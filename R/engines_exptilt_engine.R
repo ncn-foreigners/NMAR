@@ -1,16 +1,59 @@
-#' Exponential Tilting Engine for NMAR Estimation
+#' @title Exponential Tilting Engine for NMAR Estimation
 #'
-#' @param prob_model_type Probability model for data missingness ("logit" or "probit")
-#' @param y_dens Density model for outcome variable ("normal" or "gamma")
-#' @param tol_value Tolerance in convergence (default = 0.00001)
-#' @param min_iter Minimum number of iterations (default = 10)
-#' @param max_iter Maximum number of iterations (default = 100)
-#' @param optim_method Optimization method ("Newton" or "Broyden")
-#' @return Engine configuration object of class `nmar_engine_exptilt`
+#' @description Creates a configuration object for the Exponential Tilting (ET) method
+#'   used in Not Missing at Random (NMAR) estimation. This function allows users to
+#'   specify key parameters for the ET algorithm, such as the probability model type
+#'   for missingness, the density model for the outcome variable, and convergence criteria.
+#'   The returned object can then be passed to the `nmar()` function to perform
+#'   the NMAR estimation using the ET approach.
+#'
+#' @param prob_model_type A character string specifying the probability model for
+#'   data missingness. Valid options are `"logit"` for a logistic regression model
+#'   or `"probit"` for a probit regression model. Defaults to a value loaded from
+#'   package settings (likely `"probit"`).
+#' @param y_dens A character string specifying the density model for the outcome
+#'   variable. Valid options are `"normal"` for a normal distribution or `"gamma"`
+#'   for a gamma distribution. Defaults to a value loaded from package settings
+#'   (likely `"normal"`).
+#' @param tol_value A numeric value representing the tolerance for convergence
+#'   of the optimization algorithm. The algorithm stops when the change in
+#'   parameters or likelihood falls below this value. Defaults to `0.00001`.
+#' @param min_iter An integer specifying the minimum number of iterations the
+#'   optimization algorithm will perform, regardless of convergence. Defaults to `10`.
+#' @param max_iter An integer specifying the maximum number of iterations the
+#'   optimization algorithm will perform. The algorithm will stop if this limit
+#'   is reached, even if convergence has not been achieved. Defaults to `100`.
+#' @param optim_method A character string specifying the optimization method to
+#'   be used for parameter estimation. Valid options include `"Newton"` for
+#'   Newton-Raphson or `"Broyden"` for Broyden's method. Defaults to a value
+#'   loaded from package settings.
+#'
+#' @return An engine configuration object of S3 class `c("nmar_engine_exptilt", "nmar_engine")`.
+#'   This object encapsulates all the specified parameters for the Exponential
+#'   Tilting method and is ready to be used with the `nmar()` function.
 #'
 #' @importFrom jsonlite read_json
 #' @importFrom utils modifyList
 #' @export
+#'
+#' @examples
+#' # Create a default Exponential Tilting engine configuration
+#' default_exptilt_config <- exptilt()
+#' print(default_exptilt_config)
+#'
+#' # Create an Exponential Tilting engine with custom parameters
+#' custom_exptilt_config <- exptilt(
+#'   prob_model_type = 'logit',
+#'   y_dens = 'gamma',
+#'   tol_value = 1e-6,
+#'   min_iter = 50,
+#'   max_iter = 200,
+#'   optim_method = 'Broyden'
+#' )
+#' print(custom_exptilt_config)
+#'
+#' # This configuration object can then be passed to the 'nmar' function:
+#' # nmar_results <- nmar(formula = my_formula, data = my_data, engine = custom_exptilt_config)
 exptilt <- function(
     prob_model_type = get_json_param_info(all_schemas, "exptilt", "prob_model_type")$default,
     y_dens = get_json_param_info(all_schemas, "exptilt", "y_dens")$default,
