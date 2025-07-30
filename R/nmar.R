@@ -8,15 +8,20 @@
 #' @return Estimation results specific to the engine
 #' @export
 nmar <- function(formula, data, engine) {
-  # Walidacja podstawowa
+  outcome_variable <- all.vars(formula$outcome)
+  covariates_for_outcome <- all.vars(formula$covariates_outcome)
+  covariates_for_missingness <- all.vars(formula$covariates_missingness)
+
+  validate_nmar(
+    data = data,
+    outcome_variable = outcome_variable,
+    covariates_for_outcome = covariates_for_outcome,
+    covariates_for_missingness = covariates_for_missingness
+  )
+
   if (!inherits(engine, "nmar_engine")) {
     stop("Engine must be created by an engine constructor function")
   }
-
-  # Wspólne przetwarzanie wstępne
-
-
-  # Dispatch do odpowiedniego silnika
   run_engine(engine, formula, data)
 }
 
