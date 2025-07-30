@@ -1,5 +1,5 @@
 
-s_function <- function(model,delta,x,theta=model$theta) {
+s_function.nmar_exptilt <- function(model,delta,x,theta=model$theta) {
   # stopifnot(
   #   !any(is.na(delta)),
   #   delta %in% c(0, 1),
@@ -34,3 +34,5 @@ s_function <- function(model,delta,x,theta=model$theta) {
   result[is.nan(result)] <- 0  # Obsługa przypadków gdy pi = 0 lub 1
   result
 }
+
+

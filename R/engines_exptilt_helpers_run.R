@@ -1,6 +1,6 @@
 #' @importFrom nleqslv nleqslv
 #' @importFrom stats as.formula coef dnorm dgamma sd setNames # Ensure these are imported via roxygen2
-.nmar_exptilt_run <- function(model){
+run_nmar_exptilt <- function(model){
   model$x_1 <- model$x[!is.na(model$x[,model$col_y]),,drop=FALSE] #observed
   model$x_0 <- model$x[is.na(model$x[,model$col_y]),,drop=FALSE] #unobserved
   model$y_1 <- model$x_1[,model$col_y,drop=TRUE] #observed y
@@ -74,3 +74,5 @@
   }
   return(model)
 }
+
+

@@ -5,12 +5,13 @@
 \title{Exponential Tilting Engine for NMAR Estimation}
 \usage{
 exptilt(
-  prob_model_type = "logit",
-  y_dens = "normal",
-  tol_value = 1e-05,
-  min_iter = 10,
-  max_iter = 100,
-  optim_method = "Newton"
+  prob_model_type = get_json_param_info(all_schemas, "exptilt",
+    "prob_model_type")$default,
+  y_dens = get_json_param_info(all_schemas, "exptilt", "y_dens")$default,
+  tol_value = get_json_param_info(all_schemas, "exptilt", "tol_value")$default,
+  min_iter = get_json_param_info(all_schemas, "exptilt", "min_iter")$default,
+  max_iter = get_json_param_info(all_schemas, "exptilt", "max_iter")$default,
+  optim_method = get_json_param_info(all_schemas, "exptilt", "optim_method")$default
 )
 }
 \arguments{

@@ -15,3 +15,5 @@ step_func <- function(model,theta, O_matrix_nieobs) {
 
   return(result_nieobs + result_obs)
 }
+
+

@@ -7,32 +7,27 @@
 #' @param max_iter Maximum number of iterations (default = 100)
 #' @param optim_method Optimization method ("Newton" or "Broyden")
 #' @return Engine configuration object of class `nmar_engine_exptilt`
-#' @export
-
+#'
 #' @importFrom jsonlite read_json
 #' @importFrom utils modifyList
-
-#load inst/extdata/method_params.json
-json_path <- system.file("extdata", "method_params.json", package = "nmar")
-
-if (!file.exists(json_path)) {
-  stop("Method parameters JSON file (method_params.json) not found in 'inst/extdata/'. Package might be corrupted or not installed correctly.")
-}
-
-all_schemas <- jsonlite::read_json(json_path, simplifyVector = TRUE)
-
+#' @export
 exptilt <- function(
     prob_model_type = get_json_param_info(all_schemas, "exptilt", "prob_model_type")$default,
-    y_dens =  get_json_param_info(all_schemas, "exptilt", "y_dens")$default,
+    y_dens = get_json_param_info(all_schemas, "exptilt", "y_dens")$default,
     tol_value = get_json_param_info(all_schemas, "exptilt", "tol_value")$default,
-    min_iter =  get_json_param_info(all_schemas, "exptilt", "min_iter")$default,
-    max_iter =  get_json_param_info(all_schemas, "exptilt", "max_iter")$default,
+    min_iter = get_json_param_info(all_schemas, "exptilt", "min_iter")$default,
+    max_iter = get_json_param_info(all_schemas, "exptilt", "max_iter")$default,
     optim_method = get_json_param_info(all_schemas, "exptilt", "optim_method")$default) {
 
-  # Walidacja parametrów
+  # Load the JSON file inside the function
+  json_path <- system.file("extdata", "method_params.json", package = "nmar")
 
+  if (!file.exists(json_path)) {
+    stop("Method parameters JSON file (method_params.json) not found in 'inst/extdata/'. Package might be corrupted or not installed correctly.")
+  }
 
-  # Tworzenie obiektu konfiguracyjnego
+  all_schemas <- jsonlite::read_json(json_path, simplifyVector = TRUE)
+
   config <- list(
     prob_model_type = prob_model_type,
     y_dens = y_dens,
@@ -48,8 +43,7 @@ exptilt <- function(
   #   arguments = config,
   #   schemas = all_schemas
   # )
-  # browser()
+
   class(config) <- c("nmar_engine_exptilt", "nmar_engine")
   return(config)
 }
-

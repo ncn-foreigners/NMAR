@@ -1,5 +1,5 @@
 validate_nmar <- function(data,outcome_variable,covariates_for_outcome,covariates_for_missingness=c()){
-  browser()
+  # browser()
   stopifnot(
     "At least one observed variable must be specified in 'covariates_for_outcome'" =
       length(covariates_for_outcome) > 0

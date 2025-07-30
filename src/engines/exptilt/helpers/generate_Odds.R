@@ -1,4 +1,4 @@
-generate_Odds <- function(model) {
+generate_Odds.nmar_exptilt <- function(model) {
   # stopifnot(
   #   any(is.na(theta)) == FALSE,
   #   any(is.na(x)) == FALSE,
@@ -32,3 +32,5 @@ generate_Odds <- function(model) {
 
   matrix(odds, nrow = nrow(x_mat), ncol = length(y_vec), byrow = FALSE)
 }
+
+
