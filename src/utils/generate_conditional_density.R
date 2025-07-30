@@ -1,5 +1,5 @@
-#' @importFrom bbmle mle2
-
+#' @importFrom bbmle mle2 coef
+#' @importFrom stats as.formula dnorm dgamma sd setNames
 
 generate_conditional_density <- function(model) {
   # Create data frame and extract covariate names
@@ -32,7 +32,7 @@ generate_conditional_density <- function(model) {
 
     # Define density function
     density_fun <- function(y, x) {
-      coefs <- coef(.model)
+      coefs <- bbmle::coef(.model)
       beta_names <- c("beta0", paste0("beta", 1:n_covars))
       beta_vec <- coefs[beta_names]
 
@@ -75,7 +75,7 @@ generate_conditional_density <- function(model) {
 
     # Define density function
     density_fun <- function(y, x) {
-      coefs <- coef(.model)
+      coefs <- bbmle::coef(.model)
       beta_names <- c("beta0", paste0("beta", 1:n_covars))
       beta_vec <- coefs[beta_names]
 

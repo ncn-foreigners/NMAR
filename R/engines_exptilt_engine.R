@@ -1,9 +1,9 @@
 
 
 
-nmar_exptilt <- function(){
-    cat('Hello exptilt')
-  }
+# nmar_exptilt <- function(){
+#     cat('Hello exptilt')
+#   }
 # nmar_exptilt() <- function(x,col_y,cols_y_observed=c(),cols_delta=c(),prob_model_type='logit',y_dens='normal',tol_value=0.00001,min_iter=10,max_iter=100,optim_method='Newton') {
 #   cat('=========')
 #   cat(cols_y_observed)
