@@ -1,2 +1,5 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^src$
+^thrash$
+^build_r_folder\.R$

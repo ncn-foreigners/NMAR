@@ -1,3 +1,5 @@
+#' @importFrom nleqslv nleqslv
+
 .nmar_exptilt_run <- function(model){
   model$x_1 <- model$x[!is.na(model$x[,model$col_y]),,drop=FALSE] #observed
   model$x_0 <- model$x[is.na(model$x[,model$col_y]),,drop=FALSE] #unobserved
@@ -11,7 +13,7 @@
     nrow(model$x_1)>0
   )
 
-  model$theta=runif(length(model$cols_delta)+2,0,0.1)
+  model$theta=stats::runif(length(model$cols_delta)+2,0,0.1)
 
   dens_response <- generate_conditional_density(model)
 

@@ -1,3 +1,5 @@
+#' @importFrom stats runif pnorm dnorm dgamma plogis as.formula coef sd setNames
+
 .nmar_exptilt_create <- function(x, col_y, cols_y_observed, cols_delta, prob_model_type, y_dens, tol_value, min_iter, max_iter, optim_method) {
   stopifnot(length(cols_y_observed) > 0,
             length(cols_delta) >= 0,

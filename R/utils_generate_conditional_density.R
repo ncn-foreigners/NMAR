@@ -1,3 +1,6 @@
+#' @importFrom bbmle mle2
+
+
 generate_conditional_density <- function(model) {
   # Create data frame and extract covariate names
   data_df <- data.frame(y = model$y_1, model$x_for_y_obs)
