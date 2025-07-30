@@ -3,3 +3,4 @@
 ^src$
 ^thrash$
 ^build_r_folder\.R$
+^LICENSE\.md$

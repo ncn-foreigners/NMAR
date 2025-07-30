@@ -1,7 +1,7 @@
 Package: nmar
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
+Title: Not Missing at Random
+Version: 0.0.0.9
 Authors@R: c(
     person(
       "Jane", "Doe",
@@ -9,13 +9,14 @@ Authors@R: c(
       role = c("aut", "cre")
     )
   )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
-License: What license is it under?
+Description: To do package desc
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports: 
     stats,
     nleqslv,
-    bbmle
+    bbmle,
+    utils,
+    jsonlite
 RoxygenNote: 7.3.2

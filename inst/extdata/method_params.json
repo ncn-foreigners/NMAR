@@ -1,0 +1,56 @@
+{
+  "methods": {
+    "exptilt": {
+      "parameters": [
+        {
+          "name": "prob_model_type",
+          "type": "string",
+          "description": "Probability model for data missingness.",
+          "required": false,
+          "default": "logit",
+          "allowed_values": ["logit", "probit"]
+        },
+        {
+          "name": "y_dens",
+          "type": "string",
+          "description": "Density model outcome_variable ~ covariates_for_outcome.",
+          "required": false,
+          "default": "normal",
+          "allowed_values": ["normal", "gamma"]
+        },
+        {
+          "name": "tol_value",
+          "type": "number",
+          "description": "Tolerance in convergence.",
+          "required": false,
+          "default": 0.00001,
+          "min": 0
+        },
+        {
+          "name": "min_iter",
+          "type": "integer",
+          "description": "Minimum number of convergence iterations.",
+          "required": false,
+          "default": 10,
+          "min": 1
+        },
+        {
+          "name": "max_iter",
+          "type": "integer",
+          "description": "Maximum number of convergence iterations.",
+          "required": false,
+          "default": 100,
+          "min": 1
+        },
+        {
+          "name": "optim_method",
+          "type": "string",
+          "description": "Optimisation method used by nleqslv",
+          "required": false,
+          "default": "Newton",
+          "allowed_values": ["Newton", "Broyden"]
+        }
+      ]
+    }
+  }
+}

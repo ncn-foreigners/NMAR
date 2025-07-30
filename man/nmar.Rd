@@ -2,42 +2,90 @@
 % Please edit documentation in R/nmar.R
 \name{nmar}
 \alias{nmar}
-\title{Testowa nazwa}
+\title{Not Missing at Random (NMAR)}
 \usage{
 nmar(
-  x,
-  col_y,
-  cols_y_observed = c(),
-  cols_delta = c(),
-  prob_model_type = "logit",
-  y_dens = "normal",
-  tol_value = 1e-05,
-  min_iter = 10,
-  max_iter = 100,
-  optim_method = "Newton"
+  method,
+  data,
+  outcome_variable,
+  covariates_for_outcome,
+  covariates_for_missingness,
+  settings
 )
 }
 \arguments{
-\item{x}{The entire data frame in a matrix form}
+\item{method}{A character string specifying the NMAR imputation method to use.
+Currently, only `"exptilt"` (Exponential Tilting) is supported.}
 
-\item{col_y}{name of y (target) column}
+\item{data}{A data frame or matrix containing the dataset. Missing values in
+the `outcome_variable` should be represented by `NA`.}
 
-\item{cols_y_observed}{Columns that affect y density (y ~ col_y_observed)}
+\item{outcome_variable}{A character string specifying the name of the single
+target (outcome) column that may contain missing values.}
 
-\item{cols_delta}{Columns that affect observation probability (aprt from y)}
+\item{covariates_for_outcome}{A character vector of column names for the
+covariates that are used in the conditional density model of the
+`outcome_variable`}
 
-\item{prob_model_type}{Response probability model}
+\item{covariates_for_missingness}{A character vector of column names for
+additional variables (apart from the `outcome_variable`) that are used to
+model the observation probability (i.e., the missingness mechanism).}
 
-\item{y_dens}{Density y ~ col_y_observed}
-
-\item{tol_value}{Tolerance in convergence step}
-
-\item{min_iter}{Minimum iterations to nleqslv}
-
-\item{max_iter}{Maximum iterations to nleqslv}
-
-\item{optim_method}{Optim method to nleqslv}
+\item{settings}{A `list` of control parameters specific to the chosen `method`.
+For `method = "exptilt"`, this list can contain the following elements
+(all with sensible defaults if not provided):
+\itemize{
+  \item{\strong{`prob_model_type`}}{ (`character`): Type of probability model for the missingness mechanism.
+        Valid options: `"logit"` (for logistic regression, default) or `"probit"` (for probit regression).}
+  \item{\strong{`y_dens`}}{ (`character`): Type of conditional density model for the `outcome_variable`
+        given `covariates_for_outcome`. Valid options: `"normal"` (for a normal distribution, default)
+        or `"gamma"` (for a gamma distribution).}
+  \item{\strong{`tol_value`}}{ (`numeric`): Tolerance value for the convergence criterion in the
+        iterative optimization process. Default is `0.00001`.}
+  \item{\strong{`min_iter`}}{ (`integer`): Minimum number of iterations for the `nleqslv`
+        optimization algorithm. Default is `10`.}
+  \item{\strong{`max_iter`}}{ (`integer`): Maximum number of iterations for the `nleqslv`
+        optimization algorithm. Default is `100`.}
+  \item{\strong{`optim_method`}}{ (`character`): Optimization method to be used by `nleqslv`.
+        Valid options: `"Newton"` (default) or `"Broyden`".}
+}
+Any element not specified in `settings` will revert to its default value for the chosen method.}
+}
+\value{
+A `list` object containing the results of the NMAR imputation. The exact
+  structure of the returned list depends on the chosen `method`.
+  For `method = "exptilt"`, the list typically includes:
+  \itemize{
+    \item{\strong{`theta`}}{ The estimated tilting parameters.}
+    \item{\strong{`est_mean`}}{ The estimated mean of the imputed `outcome_variable`.}
+    \item{\strong{`loss_value`}}{ The final loss function value from the
+      optimization, indicating convergence status.}
+  }
 }
 \description{
-Testowa nazwa
+This function serves as the primary interface for performing
+  Missing Not At Random (NMAR) data estimation.
+}
+\details{
+The `nmar` function acts as a dispatcher, forwarding the imputation task to
+  specific internal functions based on the `method` argument.
+  It enforces strict input validation to ensure robust and predictable behavior.
+
+  The Exponential Tilting (ET) method (`"exptilt"`) addresses Missing Not At Random
+  (NMAR) data in a single outcome variable by iteratively estimating model
+  parameters for the missingness mechanism and the conditional distribution of
+  the outcome, simultaneously imputing the missing values.
+  This approach assumes specific model structures for the missingness indicator
+  and the conditional density of the outcome, as configured via `settings`.
+  Users should ensure that `covariates_for_outcome` and `covariates_for_missingness`
+  contain only fully observed variables.
+}
+\examples{
+# This is a minimal, self-contained, and runnable example.
+#TODO
+
+
+}
+\seealso{
+TODO
 }
