@@ -21,10 +21,10 @@ run_engine.nmar_engine_exptilt <- function(engine, formula, data) {
 
   model <- run_nmar_exptilt(model)
 
-  return(list(theta = model$theta
+  return(structure(list(theta = model$theta
               ,est_mean=estim_mean(model)
               ,loss_value=model$loss_value
-  ))
+  ),class = "nmar_result"))
 }
 # run <-function(model) {
 #   UseMethod("run")

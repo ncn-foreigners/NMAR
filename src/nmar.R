@@ -78,7 +78,12 @@ nmar <- function(formula, data, engine) {
   if (!inherits(engine, "nmar_engine")) {
     stop("Engine must be created by an engine constructor function")
   }
-  run_engine(engine, formula, data)
+  res <- run_engine(engine, formula, data)
+  validate_nmar_result(res)
+  browser()
+
+  return(res)
+
 }
 
 run_engine <- function(engine, ...) {
