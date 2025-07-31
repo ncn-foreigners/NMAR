@@ -2,7 +2,7 @@
 #'
 #' @param x nmar_result object
 #' @param ... Additional parameters
-#' @export
+
 print.nmar_result <- function(x, ...) {
   validate_nmar_result(x)
   cat("NMAR Model Results\n")
@@ -26,7 +26,7 @@ print.nmar_result <- function(x, ...) {
 #'
 #' @param object nmar_result object
 #' @param ... Additional parameters
-#' @export
+
 summary.nmar_result <- function(object, ...) {
   validate_nmar_result(object)
 
@@ -57,7 +57,7 @@ summary.nmar_result <- function(object, ...) {
 #'
 #' @param x summary_nmar_result object
 #' @param ... Additional parameters
-#' @export
+
 print.summary_nmar_result <- function(x, ...) {
   cat("NMAR Model Summary\n")
   cat("=================\n")
