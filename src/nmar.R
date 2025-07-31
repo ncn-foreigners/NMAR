@@ -68,18 +68,18 @@ nmar <- function(formula, data, engine) {
   covariates_for_outcome <- all.vars(formula$covariates_outcome)
   covariates_for_missingness <- all.vars(formula$covariates_missingness)
 
-  validate_nmar(
-    data = data,
-    outcome_variable = outcome_variable,
-    covariates_for_outcome = covariates_for_outcome,
-    covariates_for_missingness = covariates_for_missingness
-  )
+  # validate_nmar(
+  #   data = data,
+  #   outcome_variable = outcome_variable,
+  #   covariates_for_outcome = covariates_for_outcome,
+  #   covariates_for_missingness = covariates_for_missingness
+  # )
 
   if (!inherits(engine, "nmar_engine")) {
     stop("Engine must be created by an engine constructor function")
   }
   res <- run_engine(engine, formula, data)
-  validate_nmar_result(res)
+  # validate_nmar_result(res)
   browser()
 
   return(res)

@@ -18,5 +18,8 @@ Imports:
     nleqslv,
     bbmle,
     utils,
-    jsonlite
+    jsonlite,
+    magrittr,
+    dplyr,
+    tidyr
 RoxygenNote: 7.3.2
