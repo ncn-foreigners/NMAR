@@ -80,7 +80,6 @@ nmar <- function(formula, data, engine) {
   }
   res <- run_engine(engine, formula, data)
   # validate_nmar_result(res)
-  browser()
 
   return(res)
 

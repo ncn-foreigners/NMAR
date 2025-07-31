@@ -1,0 +1,60 @@
+---
+title: "tutorial_exptilt_nonparam"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{tutorial_exptilt_nonparam}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(nmar)
+```
+
+```{r}
+# Test data (Riddles 2016)
+voting_data_example <- data.frame(
+  Gender = rep(c("Male", "Male", "Male", "Male", "Female", "Female", "Female", "Female"), 1),
+  Age_group = c("20-29", "30-39", "40-49", ">=50", "20-29", "30-39", "40-49", "50+"),
+  Voted_A = c(93, 104, 146, 560, 106, 129, 170, 501),
+  Voted_B = c(115, 233, 295, 350, 159, 242, 262, 218),
+  Other = c(4, 8, 5, 3, 8, 5, 5, 7),
+  Refusal = c(28, 82, 49, 174, 62, 70, 69, 211),
+  Total = c(240, 427, 495, 1087, 335, 446, 506, 937)
+)
+```
+
+```{r}
+em_formula <- list(
+  outcome = ~ NULL, #TODO - This part is useless
+  covariates_outcome = ~ Gender, 
+  covariates_missingness = ~ Age_group 
+)
+```
+
+```{r}
+# Exptilt Nonparam engine configuration
+np_em_config <- exptilt_nonparam(
+  outcome_cols = c("Voted_A", "Voted_B", "Other"), 
+  refusal_col = "Refusal",                           
+  max_iter = 100,
+  tol_value = 1e-6
+)
+
+```
+
+```{r}
+results_em_np <- nmar(formula = em_formula, data = voting_data_example, engine = np_em_config)
+```
+```{r}
+
+print(results_em_np$processed_data)
+```
+

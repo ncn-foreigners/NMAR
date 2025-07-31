@@ -4,3 +4,5 @@
 ^thrash$
 ^build_r_folder\.R$
 ^LICENSE\.md$
+^doc$
+^Meta$

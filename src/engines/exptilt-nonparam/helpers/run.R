@@ -72,16 +72,13 @@ run_em_nmar_nonparametric <- function(
 
     # Check for convergence
     if (iter > 1 && max(abs(O_values_next - O_values)) < tol) {
-      cat(paste("Algorithm converged at iteration", iter, "\n"))
       O_values <- O_values_next
       break
     }
 
     O_values <- O_values_next
 
-    if (iter %% 10 == 0 || iter == 1) {
-      cat(paste("\nIteration", iter, "\n"))
-    }
+
   }
 
 
