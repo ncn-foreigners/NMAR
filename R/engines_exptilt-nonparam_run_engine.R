@@ -31,6 +31,6 @@ run_engine.nmar_engine_exptilt_nonparam <- function(engine, formula, data) {
     O_values = model_results$final_O_values,
     estimated_m_ij = model_results$final_m_ij,
     iterations = model_results$iterations,
-    processed_data = model_results$final_data # Includes the estimated m_ij
+    processed_data = model_results$final_data
   ), class = "nmar_result"))
 }

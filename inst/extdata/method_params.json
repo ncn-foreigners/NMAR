@@ -52,5 +52,38 @@
         }
       ]
     }
+     "exptilt_nonparam": {
+      "parameters": [
+        {
+          "name": "outcome_cols",
+          "type": "array_of_strings",
+          "description": "A character vector of column names representing the observable outcome categories. These are the dependent variables in the EM algorithm.",
+          "required": true
+        },
+        {
+          "name": "refusal_col",
+          "type": "string",
+          "description": "The name of the column containing the count of refusals or missing data points.",
+          "required": true
+        },
+        {
+          "name": "max_iter",
+          "type": "integer",
+          "description": "Maximum number of iterations for the EM algorithm to run. The algorithm will stop if this limit is reached, even if convergence has not occurred.",
+          "required": false,
+          "default": 100,
+          "min": 1
+        },
+        {
+          "name": "tol_value",
+          "type": "number",
+          "description": "Tolerance value for checking convergence. The algorithm stops when the maximum absolute difference between the 'O_values' from two consecutive iterations falls below this threshold.",
+          "required": false,
+          "default": 0.000001,
+          "min": 0
+        }
+      ]
+    }
+
   }
 }
