@@ -68,7 +68,7 @@ res_test_data <- generate_test_data(n_rows = 500, n_cols = 2, case = 1)
 #Exptilt engine configuration
 exptilt_config <- exptilt(
   prob_model_type = 'probit', #or logit
-  y_dens = 'normal', # y ~ x1,x2...
+  y_dens = 'auto', # y ~ x1,x2...
   tol_value = 0.00001,
   min_iter = 30,
   max_iter = 100
