@@ -12,7 +12,8 @@ step_func <- function(model,theta, O_matrix_nieobs) {
   result_nieobs <- colSums(numerators / denominator)
 
   result_obs <- colSums(s_values_obs)
-
+  test_weights_todoremove <- common_term / denominator
+  # browser()
   return(result_nieobs + result_obs)
 }
 
