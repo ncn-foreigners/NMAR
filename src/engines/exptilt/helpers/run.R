@@ -19,6 +19,7 @@ run_nmar_exptilt <- function(model){
   browser()#peek gradients func
   model$density_fun <- dens_response$density_function
   model$density_fun_gradient <- dens_response$density_function_grad
+  model$density_fun_hess <- dens_response$density_function_hess
   model$density_num_of_coefs <- dens_response$num_of_coefs
   model$O_matrix_nieobs <- generate_Odds(model)
   #const

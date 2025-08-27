@@ -22,6 +22,8 @@ estim_var.nmar_exptilt <- function(model){
       model$x_for_y_obs[i, , drop = FALSE]
     )
   }))
+
+  F11 = calculate_fisher_information(model$y_1,model$x_1,model$density_num_of_coefs,model$x_for_y_obs,model$density_fun_hess)
   browser()
 }
 

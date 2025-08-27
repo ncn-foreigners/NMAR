@@ -20,6 +20,35 @@ generate_conditional_density <- function(model) {
 
     return(gradient_vector)
   }
+
+
+  normal_hessian <- function(y, mean_val, coefs, x_vector) {
+    sigma <- coefs[["sigma"]]
+    residual <- y - mean_val
+    n_params <- length(x_vector) + 1  # beta + sigma
+
+    # Inicjalizacja macierzy Hessianu
+    H <- matrix(0, nrow = n_params, ncol = n_params)
+    param_names <- c(paste0("beta", 0:(length(x_vector)-1)), "sigma")
+    rownames(H) <- colnames(H) <- param_names
+
+    # Elementy Hessianu dla beta
+    for (i in 1:length(x_vector)) {
+      for (j in 1:length(x_vector)) {
+        H[i, j] <- -x_vector[i] * x_vector[j] / sigma^2
+      }
+    }
+
+    # Elementy mieszane beta-sigma
+    for (i in 1:length(x_vector)) {
+      H[i, n_params] <- H[n_params, i] <- -2 * residual * x_vector[i] / sigma^3
+    }
+
+    # Element dla sigma-sigma
+    H[n_params, n_params] <- 1/sigma^2 - 3 * residual^2 / sigma^4
+
+    return(H)
+  }
   # supported distributions
   dist_list <- list(
     normal = list(
@@ -31,6 +60,7 @@ generate_conditional_density <- function(model) {
         dnorm(y, mean = mean_val, sd = coefs[["sigma"]])
       },
       gradient= normal_gradient,
+      hessian= normal_hessian,
       extra = c("sigma")
     ),
     lognormal = list(
@@ -175,11 +205,29 @@ generate_conditional_density <- function(model) {
     return(gradient)
   }
 
+  density_hess_fun <- function(y, x) {
+    coefs <- bbmle::coef(.model)
+    beta_names <- c("beta0", paste0("beta", 1:n_covars))
+    beta_vec <- coefs[beta_names]
+    design_mat <- as.matrix(cbind(1, x[covar_names]))
+    mean_val <- c(design_mat %*% beta_vec)
+    x_vector <- c(1, as.numeric(x[covar_names]))
+
+    hessian <- NULL
+    if (chosen_dist == "normal") {
+      hessian <- dist_list[[chosen_dist]]$hessian(y, mean_val, coefs, x_vector)
+    }
+    return(hessian)
+  }
+
+
+
   browser()
   return(list(
     model = .model,
     density_function = density_fun,
     density_function_grad = density_grad_fun,
+    density_function_hess = density_hess_fun,
     chosen_distribution = chosen_dist,
     num_of_coefs = length(bbmle::coef(.model))
   ))
