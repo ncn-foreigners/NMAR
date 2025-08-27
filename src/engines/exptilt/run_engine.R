@@ -33,6 +33,9 @@ run_engine.nmar_engine_exptilt <- function(engine, formula, data) {
 estim_mean <- function(model) {
   UseMethod("estim_mean", model)
 }
+estim_var <- function(model) {
+  UseMethod("estim_var", model)
+}
 generate_Odds <- function(model,...) {
   UseMethod("generate_Odds", model)
 }

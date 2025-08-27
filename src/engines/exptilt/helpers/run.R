@@ -16,9 +16,10 @@ run_nmar_exptilt <- function(model){
   model$theta=stats::runif(length(model$cols_delta)+2,0,0.1)
 
   dens_response <- generate_conditional_density(model)
-
+  browser()#peek gradients func
   model$density_fun <- dens_response$density_function
-
+  model$density_fun_gradient <- dens_response$density_function_grad
+  model$density_num_of_coefs <- dens_response$num_of_coefs
   model$O_matrix_nieobs <- generate_Odds(model)
   #const
   model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
@@ -71,7 +72,10 @@ run_nmar_exptilt <- function(model){
     model$O_matrix_nieobs <- generate_Odds(model)
     iter<-iter+1
 
+
+
   }
+  estim_var(model)
   return(model)
 }
 

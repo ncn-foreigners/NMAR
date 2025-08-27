@@ -5,7 +5,21 @@ generate_conditional_density <- function(model) {
   data_df <- data.frame(y = model$y_1, model$x_for_y_obs)
   covar_names <- setdiff(colnames(data_df), "y")
   n_covars <- length(covar_names)
+  #TODO test - Ai generated. Hope it works
+  normal_gradient <- function(y, mean_val, coefs, x_vector) {
+    sigma <- coefs[["sigma"]]
+    residual <- y - mean_val
 
+    d_beta <- (residual / sigma^2) * x_vector
+
+
+    d_sigma <- -1/sigma + residual^2 / sigma^3
+
+    gradient_vector <- c(d_beta, sigma = d_sigma)
+    names(gradient_vector) <- c(paste0("beta", 0:(length(x_vector)-1)), "sigma")
+
+    return(gradient_vector)
+  }
   # supported distributions
   dist_list <- list(
     normal = list(
@@ -16,6 +30,7 @@ generate_conditional_density <- function(model) {
       density = function(y, mean_val, coefs) {
         dnorm(y, mean = mean_val, sd = coefs[["sigma"]])
       },
+      gradient= normal_gradient,
       extra = c("sigma")
     ),
     lognormal = list(
@@ -26,6 +41,7 @@ generate_conditional_density <- function(model) {
       density = function(y, mean_val, coefs) {
         dlnorm(y, meanlog = mean_val, sdlog = coefs[["sigma"]])
       },
+      gradient = normal_gradient,
       extra = c("sigma")
     ),
     weibull = list(
@@ -134,14 +150,38 @@ generate_conditional_density <- function(model) {
     beta_vec <- coefs[beta_names]
     design_mat <- as.matrix(cbind(1, x[covar_names]))
     mean_val <- c(design_mat %*% beta_vec)
-    dist_list[[chosen_dist]]$density(y, mean_val, coefs)
+    # dist_list[[chosen_dist]]$density(y, mean_val, coefs)
+
+    dens <- dist_list[[chosen_dist]]$density(y, mean_val, coefs)
+
+    return(dens)
   }
 
+  density_grad_fun <- function(y, x) {
+    coefs <- bbmle::coef(.model)
+    beta_names <- c("beta0", paste0("beta", 1:n_covars))
+    beta_vec <- coefs[beta_names]
+    design_mat <- as.matrix(cbind(1, x[covar_names]))
+    mean_val <- c(design_mat %*% beta_vec)
+    # dist_list[[chosen_dist]]$density(y, mean_val, coefs)
 
+    # dens <- dist_list[[chosen_dist]]$density(y, mean_val, coefs)
+
+    gradient <- NULL
+    if (chosen_dist == "normal") {
+      x_vector <- c(1, as.numeric(x[covar_names]))
+      gradient <- dist_list[[chosen_dist]]$gradient(y, mean_val, coefs, x_vector)
+    }
+    return(gradient)
+  }
+
+  browser()
   return(list(
     model = .model,
     density_function = density_fun,
-    chosen_distribution = chosen_dist
+    density_function_grad = density_grad_fun,
+    chosen_distribution = chosen_dist,
+    num_of_coefs = length(bbmle::coef(.model))
   ))
 }
 
