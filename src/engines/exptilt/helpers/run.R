@@ -76,7 +76,6 @@ run_nmar_exptilt <- function(model){
 
 
   }
-  estim_var(model)
   return(model)
 }
 
