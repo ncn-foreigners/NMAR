@@ -16,7 +16,7 @@ run_nmar_exptilt <- function(model){
   model$theta=stats::runif(length(model$cols_delta)+2,0,0.1)
 
   dens_response <- generate_conditional_density(model)
-  browser()#peek gradients func
+  # browser()#peek gradients func
   model$density_fun <- dens_response$density_function
   model$density_fun_gradient <- dens_response$density_function_grad
   model$density_fun_hess <- dens_response$density_function_hess
@@ -76,7 +76,6 @@ run_nmar_exptilt <- function(model){
 
 
   }
-  estim_var(model)
   return(model)
 }
 
