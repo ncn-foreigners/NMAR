@@ -29,73 +29,193 @@ estim_var.nmar_exptilt <- function(model){
 
   calculate_FI21 <- function() {
 
-    # Liczba nierespondentów (wiersze macierzy wag)
+
     n_unobs <- nrow(model$x_0)
-    # Liczba respondentów (kolumny macierzy wag)
+
     n_obs <- nrow(model$x_1)
 
-    # Wymiary macierzy FI21
-    # Wiersze: liczba parametrów modelu odpowiedzi (phi)
+
     num_phi_params <- length(model$theta)
-    # Kolumny: liczba parametrów modelu gęstości (gamma)
     num_gamma_params <- model$density_num_of_coefs
 
-    # 1. Inicjalizacja macierzy FI21 zerami
     FI21 <- matrix(0, nrow = num_phi_params, ncol = num_gamma_params)
 
-    # Pobranie wag - zakładam, że są już policzone i dostępne jako `model$weights`
-    # Wymiar `model$weights` to [n_unobs, n_obs]
-    # weights <- model$weights # Użyj już obliczonych wag
-
-    # Pętla po każdym NIERESPONDENCIE (i)
+    #TODO: optimize
     for (i in 1:n_unobs) {
-      # Covariates nierespondenta `i`
+
       x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
       x_i_gamma <- model$x_for_y_unobs[i, , drop = FALSE]
 
-      # --- Obliczenia dla nierespondenta `i` uśredniane po respondentach `j` ---
 
-      # 2. Oblicz macierz s_ij: wartości funkcji score s(phi) dla x_i oraz każdego y_j respondenta
-      # Replikujemy x_i, aby dopasować wymiar do wektora y_1
       x_i_delta_rep <- x_i_delta[rep(1, n_obs), , drop = FALSE]
 
-      # s_ij_matrix będzie miała wymiar [n_obs, num_phi_params]
-      # Każdy wiersz `j` to s(phi | delta=0, x_i, y_j)
       s_ij_matrix <- s_function(model, delta = 0, x = x_i_delta_rep, theta = model$theta)
 
-      # 3. Oblicz macierz s1_ij: wartości funkcji score s1(gamma) dla x_i oraz każdego y_j respondenta
-      # s1_ij_matrix będzie miała wymiar [n_obs, num_gamma_params]
-      # Każdy wiersz `j` to gradient log(f1(y_j | x_i, gamma))
+
       s1_ij_matrix <- t(sapply(1:n_obs, function(j) {
         model$density_fun_gradient(model$y_1[j], x_i_gamma)
       }))
 
-      # Wagi dla bieżącego nierespondenta `i`
+
       w_i <- weights[i, ]
 
-      # 4. Oblicz s_bar_0i: warunkowa wartość oczekiwana s(phi) dla nierespondenta `i`
-      # To jest wektor o długości num_phi_params
+
       # browser()
       s_bar_0i <- colSums(w_i * s_ij_matrix)
 
-      # 5. Oblicz odchylenia s_ij od ich średniej s_bar_0i
+
       s_dev_matrix <- s_ij_matrix - matrix(s_bar_0i, nrow = n_obs, ncol = num_phi_params, byrow = TRUE)
 
-      # 6. Oblicz macierz kowariancji dla nierespondenta `i`
-      # To jest suma ważonych iloczynów zewnętrznych wektorów odchyleń i wektorów s1
-      # Używamy mnożenia macierzy do efektywnego obliczenia tej sumy:
+
       # t(A) %*% (w * B) oblicza sum_j(w_j * A_j^T * B_j)
       cov_i <- t(s_dev_matrix) %*% (w_i * s1_ij_matrix)
 
-      # 7. Dodaj wynik do sumy całkowitej
+
       FI21 <- FI21 + cov_i
     }
 
-    # 8. Zgodnie z formułą, na końcu mnożymy przez -1
     return(-FI21)
   }
   FI21 <- calculate_FI21()
   browser()
 
+  z_function <- function(model, x, theta = model$theta) {
+
+    pi_vals <- pi_func(model, x, func = "reg", theta = theta)
+
+    pi_deriv <- pi_func(model, x, func = "deriv", theta = theta)
+
+
+    denominator <- pi_vals * (1 - pi_vals)
+
+
+    denominator[denominator < 1e-9] <- 1 #zero case
+
+    result <- pi_deriv / as.vector(denominator)
+    result[is.nan(result)] <- 0
+
+    return(result)
+  }
+
+  calculate_FI22 <- function(model, weights) {
+
+    n_unobs <- nrow(model$x_0)
+    n_obs <- nrow(model$x_1)
+    num_phi_params <- length(model$theta)
+
+
+    FI22 <- matrix(0, nrow = num_phi_params, ncol = num_phi_params)
+
+    #TODO: optimize
+    for (i in 1:n_unobs) {
+
+      x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
+      x_i_delta_rep <- x_i_delta[rep(1, n_obs), , drop = FALSE]
+
+      s_ij_matrix <- s_function.nmar_exptilt(model, delta = 0, x = x_i_delta_rep, theta = model$theta)
+      w_i <- weights[i, ]
+      s_bar_0i <- colSums(w_i * s_ij_matrix)
+
+      z_ij_matrix <- z_function(model, x = x_i_delta_rep, theta = model$theta)
+      z_bar_0i <- colSums(w_i * z_ij_matrix)
+
+      outer_prod_i <- s_bar_0i %*% t(z_bar_0i)
+      FI22 <- FI22 + outer_prod_i
+      # browser()
+    }
+
+    return(-FI22)
+  }
+  #TODO - CHECK Below. Fi22 Too big and K seems too low comparing to author (but it is fine because calcs are only on delta=1)
+  FI22 <- calculate_FI22(model, weights)
+  K <- FI21 %*% solve(F11)
+  browser()
+
+
+  calculate_B <- function(model, esty, FI22) {
+
+    x_obs_delta <- model$x_1[, model$cols_delta, drop = FALSE]
+    y_obs <- model$y_1
+
+
+    p_obs <- pi_func(model, x_obs_delta, func = "reg", theta = model$theta)
+    u_i <- y_obs - esty
+
+
+    pi_deriv_obs <- pi_func(model, x_obs_delta, func = "deriv", theta = model$theta)
+
+    sum_term <- t(u_i / p_obs) %*% pi_deriv_obs
+
+    B <- sum_term %*% solve(FI22)
+
+    return(B)
+  }
+
+  calculate_S2 <- function(model, weights) {
+
+    n_total <- nrow(model$x)
+    num_phi_params <- length(model$theta)
+
+    S2 <- matrix(0, nrow = n_total, ncol = num_phi_params)
+
+    respondent_indices <- which(!is.na(model$x[, model$col_y]))
+    non_respondent_indices <- which(is.na(model$x[, model$col_y]))
+
+    x_obs_delta <- model$x_1[, model$cols_delta, drop = FALSE]
+    S2[respondent_indices, ] <- s_function.nmar_exptilt(model, delta = 1, x = x_obs_delta, theta = model$theta)
+
+    n_unobs <- nrow(model$x_0)
+    n_obs <- nrow(model$x_1)
+
+  #TODO: optimize
+    for (i in 1:n_unobs) {
+      x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
+      x_i_delta_rep <- x_i_delta[rep(1, n_obs), , drop = FALSE]
+
+      s_ij_matrix <- s_function.nmar_exptilt(model, delta = 0, x = x_i_delta_rep, theta = model$theta)
+      w_i <- weights[i, ]
+      s_bar_0i <- colSums(w_i * s_ij_matrix)
+
+      S2[non_respondent_indices[i], ] <- s_bar_0i
+    }
+
+    return(S2)
+  }
+
+
+#TODO 2 lines below are repeated - optimize
+  p_obs <- pi_func(model, model$x_1[, model$cols_delta, drop = FALSE], func = "reg", theta = model$theta)
+  esty <- sum(model$y_1 / p_obs) / sum(1 / p_obs)
+
+  B <- calculate_B(model, esty, FI22)
+
+  S2 <- calculate_S2(model, weights)
+
+  n_total <- nrow(model$x)
+  eta <- numeric(n_total)
+
+  respondent_indices <- which(!is.na(model$x[, model$col_y]))
+
+  u_i_obs <- model$y_1 - esty
+
+
+  correction_term_obs <- S2[respondent_indices, ] - S1 %*% t(K)
+
+  eta[respondent_indices] <- (u_i_obs / p_obs) - B %*% t(correction_term_obs)
+
+  non_respondent_indices <- which(is.na(model$x[, model$col_y]))
+  correction_term_unobs <- S2[non_respondent_indices, ]
+
+  eta[non_respondent_indices] <- -B %*% t(correction_term_unobs)
+
+  tau <- sum(1 / p_obs)
+
+  var_est <- n_total * var(eta) / (tau^2)
+
+  #TODO - REMOVE below
+  cat("Estimated Variance (var_est):", var_est, "\n")
+
+  browser()
+  return(var_est)
 }
 
