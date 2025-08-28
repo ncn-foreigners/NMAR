@@ -77,7 +77,7 @@ estim_var.nmar_exptilt <- function(model){
     return(-FI21)
   }
   FI21 <- calculate_FI21()
-  browser()
+  # browser()
 
   z_function <- function(model, x, theta = model$theta) {
 
@@ -133,7 +133,7 @@ estim_var.nmar_exptilt <- function(model){
   #TODO - CHECK Below. Fi22 Too big and K seems too low comparing to author
   FI22 <- calculate_FI22(model, weights)
   K <- FI21 %*% solve(F11)
-  browser()
+  # browser()
 
 
   calculate_B <- function(model, esty, FI22) {

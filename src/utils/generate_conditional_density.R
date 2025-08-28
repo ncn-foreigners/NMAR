@@ -222,7 +222,7 @@ generate_conditional_density <- function(model) {
 
 
 
-  browser()
+  # browser()
   return(list(
     model = .model,
     density_function = density_fun,
