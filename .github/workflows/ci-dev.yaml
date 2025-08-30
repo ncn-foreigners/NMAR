@@ -7,75 +7,66 @@ on:
     branches: [ dev ]
 
 jobs:
-  # Job 1: Budowanie paczki. Działa tylko na Ubuntu, bo to najszybsze środowisko do budowania.
+  # Job 1: Build package
   build-package:
     name: Build Package
     runs-on: ubuntu-latest
     outputs:
-      pkg_name: ${{ steps.build.outputs.pkg_name }} # Przekażemy nazwę pliku do innych jobów
+      pkg_name: ${{ steps.build.outputs.pkg_name }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r@v2
         with:
           r-version: 'release'
 
-      - name: Install dependencies
-        run: |
-          R -e "install.packages(c('devtools', 'roxygen2'))"
-          R -e "devtools::install_deps(dependencies = TRUE)"
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            devtools
+            roxygen2
 
       - name: Run custom build script (src/ -> R/)
-        run: Rscript build_r_folder.R # TUTAJ URUCHAMIAMY WASZ SKRYPT
+        run: Rscript build_r_folder.R
 
       - name: Build package tarball
         id: build
         run: |
           PKG_NAME=$(R CMD build . --no-build-vignettes | tail -1 | awk '{print $NF}')
           echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
-          echo "Built package: $PKG_NAME"
 
-      - name: Upload package tarball artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: nmar-package # Nazwa artifactu
-          path: ${{ steps.build.outputs.pkg_name }} # Ścieżka do pliku .tar.gz
-          retention-days: 1 # Usuń po 1 dniu, nie potrzebujemy długiego przechowywania
+          name: nmar-package
+          path: ${{ steps.build.outputs.pkg_name }}
+          retention-days: 1
 
-  # Job 2: Testowanie zbudowanej paczki na wielu konfiguracjach.
+  # Job 2: Test package
   test-package:
     name: Test on R-${{ matrix.r-version }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    needs: build-package # Czeka na wykonanie joba `build-package`
+    needs: build-package
     strategy:
-      fail-fast: false # Nie przerywaj całej macierzy jeśli jeden job failuje
+      fail-fast: false
       matrix:
         r-version: ['4.4', 'release']
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r@v2
         with:
           r-version: ${{ matrix.r-version }}
 
-      - name: Install dependencies
-        run: |
-          R -e "install.packages(c('devtools', 'testthat'))"
-          R -e "devtools::install_deps(dependencies = TRUE)"
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: testthat
 
-      - name: Download built package artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: nmar-package
 
       - name: Run R CMD check
-        run: |
-          R CMD check *.tar.gz --no-manual --no-build-vignettes --as-cran
-        shell: bash
+        run: R CMD check *.tar.gz --no-manual --no-build-vignettes --as-cran
