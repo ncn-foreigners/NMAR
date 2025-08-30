@@ -1,0 +1,122 @@
+name: CI - Dev Branch
+
+on:
+  push:
+    branches: [ package-test-gh ]
+  pull_request:
+    branches: [ dev ]
+
+jobs:
+  # Job 1: Build package
+  build-package:
+    name: Build Package
+    runs-on: ubuntu-latest
+    outputs:
+      pkg_name: ${{ steps.build.outputs.pkg_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          needs: check
+          extra-packages: |
+            devtools
+            roxygen2
+
+      - name: Run custom build script (src/ -> R/)
+        run: Rscript build_r_folder.R
+
+    #Temporary
+      - name: Run tests with devtools
+        run: |
+          Rscript -e "
+          options(warn = -1) # Wyłącz wszystkie warningi
+          devtools::test(stop_on_failure = TRUE, reporter = 'fail')
+          "
+        env:
+          NOT_CRAN: "true"
+      - name: Build package tarball
+        id: build
+        run: |
+          PKG_NAME=$(R CMD build . --no-build-vignettes  | tail -1 | awk '{print $NF}')
+          echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nmar-package
+          # path: ${{ steps.build.outputs.pkg_name }}
+          path: '*.tar.gz'
+          retention-days: 1
+
+  # Job 2: Test package
+  # test-package:
+  #   name: Test on R-${{ matrix.r-version }} - ${{ matrix.os }}
+  #   runs-on: ${{ matrix.os }}
+  #   needs: build-package
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       r-version: ['4.4', 'release']
+  #       # os: [ubuntu-latest, windows-latest, macos-latest]
+  ## TODO: only linux becuase expensive
+  #       os: [ubuntu-latest, macos-latest]
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: test Cache R installation
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: |
+  #           /usr/local/lib/R/site-library
+  #           /usr/local/lib/R/library
+  #         key: ${{ runner.os }}-r-${{ matrix.r-version }}-${{ hashFiles('DESCRIPTION') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-r-${{ matrix.r-version }}-
+  #     - uses: r-lib/actions/setup-r@v2
+  #       with:
+  #         r-version: ${{ matrix.r-version }}
+  #
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         name: nmar-package
+  #
+  #     - uses: r-lib/actions/setup-r-dependencies@v2
+  #       with:
+  #         needs: check
+  #         cache-version: 1  #idk
+  #         cache-suffix: ${{ matrix.r-version }}-${{ matrix.os }}
+  #         extra-packages: |
+  #           knitr
+  #           rmarkdown
+  #           rcmdcheck
+  #           devtools
+  #           roxygen2
+  #
+  #     - name: Install the package
+  #       run: |
+  #         PKG_FILE=$(ls *.tar.gz)
+  #         R CMD INSTALL "$PKG_FILE"
+  #
+  #     ##COMMENT - too expensive
+  #     # - name: List downloaded files (debug)
+  #     #   run: ls -la
+  #
+  #     # - uses: r-lib/actions/check-r-package@v2
+  #     #   with:
+  #     #     # working-directory: .
+  #     #     # build-dir: .
+  #     #     error-on: '"error"'
+  #
+  #
+  #     - name: Run tests with devtools
+  #       run: |
+  #         Rscript -e "
+  #         options(warn = -1) # Wyłącz wszystkie warningi
+  #         devtools::test(stop_on_failure = TRUE, reporter = 'fail')
+  #       env:
+  #         NOT_CRAN: "true"
