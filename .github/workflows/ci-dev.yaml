@@ -1,0 +1,81 @@
+name: CI - Dev Branch
+
+on:
+  push:
+    branches: [ package-dev ]
+  pull_request:
+    branches: [ package-dev ]
+
+jobs:
+  build-test-package:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    outputs:
+      pkg_name: ${{ steps.build.outputs.pkg_name }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+
+      - name: Install dependencies
+        run: |
+          R -e "install.packages(c('devtools', 'testthat', 'roxygen2'))"
+          R -e "devtools::install_deps(dependencies = TRUE)"
+
+      - name: Run custom build script (src/ -> R/)
+        run: Rscript build_r_folder.R
+
+      - name: Run unit tests (testthat)
+        run: R -e "devtools::test()"
+
+      - name: Build package tarball
+        id: build
+        run: |
+          PKG_NAME=$(R CMD build . --no-build-vignettes | tail -1 | awk '{print $NF}')
+          echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
+          echo "Built package: $PKG_NAME"
+
+      - name: Upload package tarball artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nmar-package
+          path: ${{ steps.build.outputs.pkg_name }}
+          retention-days: 1
+
+  check-package-matrix:
+    name: Check (${{ matrix.os }}, R-${{ matrix.r-version }})
+    runs-on: ${{ matrix.os }}
+    needs: build-test-package
+    strategy:
+      fail-fast: false
+      matrix:
+        r-version: ['4.4', 'release']
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.r-version }}
+
+      - name: Install dependencies
+        run: |
+          R -e "install.packages(c('devtools', 'testthat'))"
+          R -e "devtools::install_deps(dependencies = TRUE)"
+
+      - name: Download built package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nmar-package
+
+      - name: Run R CMD check
+        run: |
+          R CMD check *.tar.gz --no-manual --no-build-vignettes --as-cran
