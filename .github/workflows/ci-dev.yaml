@@ -106,6 +106,7 @@ jobs:
       #     # build-dir: .
       #     error-on: '"error"'
 
+
       - name: Run tests with devtools
         run: |
           Rscript -e "devtools::test(stop_on_failure = TRUE)"
