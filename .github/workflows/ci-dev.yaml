@@ -70,6 +70,8 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           needs: check
+          cache-version: 1  #idk
+          cache-suffix: ${{ matrix.r-version }}-${{ matrix.os }}
           extra-packages: |
             knitr
             rmarkdown
