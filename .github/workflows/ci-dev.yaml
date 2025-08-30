@@ -110,6 +110,8 @@ jobs:
 
       - name: Run tests with devtools
         run: |
-          Rscript -e "devtools::test(stop_on_failure = TRUE)"
+          Rscript -e "
+          options(warn = -1) # Wyłącz wszystkie warningi
+          devtools::test(stop_on_failure = TRUE, reporter = 'fail')
         env:
           NOT_CRAN: "true"
