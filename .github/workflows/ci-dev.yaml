@@ -91,6 +91,8 @@ jobs:
             knitr
             rmarkdown
             rcmdcheck
+            devtools
+            roxygen2
 
       - name: Install the package
         run: |
