@@ -34,7 +34,7 @@ jobs:
       - name: Build package tarball
         id: build
         run: |
-          PKG_NAME=$(R CMD build . --no-build-vignettes | tail -1 | awk '{print $NF}')
+          PKG_NAME=$(R CMD build . --no-build-vignettes -o | tail -1 | awk '{print $NF}')
           echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v4
