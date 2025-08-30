@@ -2,16 +2,17 @@ name: CI - Dev Branch
 
 on:
   push:
-    branches: [ package-dev ]
+    branches: [ dev ]
   pull_request:
-    branches: [ package-dev ]
+    branches: [ dev ]
 
 jobs:
-  build-test-package:
-    name: Build and Test
+  # Job 1: Budowanie paczki. Działa tylko na Ubuntu, bo to najszybsze środowisko do budowania.
+  build-package:
+    name: Build Package
     runs-on: ubuntu-latest
     outputs:
-      pkg_name: ${{ steps.build.outputs.pkg_name }}
+      pkg_name: ${{ steps.build.outputs.pkg_name }} # Przekażemy nazwę pliku do innych jobów
 
     steps:
       - name: Checkout repository
@@ -24,14 +25,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          R -e "install.packages(c('devtools', 'testthat', 'roxygen2'))"
+          R -e "install.packages(c('devtools', 'roxygen2'))"
           R -e "devtools::install_deps(dependencies = TRUE)"
 
       - name: Run custom build script (src/ -> R/)
-        run: Rscript build_r_folder.R
-
-      - name: Run unit tests (testthat)
-        run: R -e "devtools::test()"
+        run: Rscript build_r_folder.R # TUTAJ URUCHAMIAMY WASZ SKRYPT
 
       - name: Build package tarball
         id: build
@@ -43,16 +41,17 @@ jobs:
       - name: Upload package tarball artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nmar-package
-          path: ${{ steps.build.outputs.pkg_name }}
-          retention-days: 1
+          name: nmar-package # Nazwa artifactu
+          path: ${{ steps.build.outputs.pkg_name }} # Ścieżka do pliku .tar.gz
+          retention-days: 1 # Usuń po 1 dniu, nie potrzebujemy długiego przechowywania
 
-  check-package-matrix:
-    name: Check (${{ matrix.os }}, R-${{ matrix.r-version }})
+  # Job 2: Testowanie zbudowanej paczki na wielu konfiguracjach.
+  test-package:
+    name: Test on R-${{ matrix.r-version }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    needs: build-test-package
+    needs: build-package # Czeka na wykonanie joba `build-package`
     strategy:
-      fail-fast: false
+      fail-fast: false # Nie przerywaj całej macierzy jeśli jeden job failuje
       matrix:
         r-version: ['4.4', 'release']
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -79,3 +78,4 @@ jobs:
       - name: Run R CMD check
         run: |
           R CMD check *.tar.gz --no-manual --no-build-vignettes --as-cran
+        shell: bash
