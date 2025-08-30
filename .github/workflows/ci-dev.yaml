@@ -22,10 +22,34 @@ jobs:
         with:
           r-version: 'release'
 
-      - name: Install dependencies
+      - name: Install System Dependencies (if any needed)
         run: |
-          R -e "install.packages(c('devtools', 'testthat', 'roxygen2'))"
-          R -e "devtools::install_deps(dependencies = TRUE)"
+          sudo apt-get update
+          # Tutaj dodaj potrzebne biblioteki systemowe, np.:
+          # sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+        shell: bash
+
+      - name: Query dependencies # Krok, który analizuje, co jest potrzebne
+        id: get-deps
+        run: |
+          # Instalujemy pakiet 'remotes' jako podstawowe narzędzie
+          R -e "install.packages('remotes')"
+          # Pobieramy listę wszystkich zależności (w tym Suggests, bo potrzebne testom)
+          R -e "deps <- remotes::dev_package_deps(dependencies = TRUE); cat(deps$package, sep='\n')" > deps.list
+          # Pobieramy pakiety potrzebne do *budowania* (devtools, testthat, roxygen2)
+          echo "devtools testthat roxygen2" > build-deps.list
+
+      - name: Install CRAN dependencies
+        run: |
+          # Instalujemy wszystkie zależności znalezione dla paczki
+          R -e "install.packages(readLines('deps.list'))"
+        shell: bash
+
+      - name: Install build dependencies
+        run: |
+          # Instalujemy narzędzia do budowania
+          R -e "install.packages(readLines('build-deps.list'))"
+        shell: bash
 
       - name: Run custom build script (src/ -> R/)
         run: Rscript build_r_folder.R
@@ -46,7 +70,6 @@ jobs:
           name: nmar-package
           path: ${{ steps.build.outputs.pkg_name }}
           retention-days: 1
-
   check-package-matrix:
     name: Check (${{ matrix.os }}, R-${{ matrix.r-version }})
     runs-on: ${{ matrix.os }}
