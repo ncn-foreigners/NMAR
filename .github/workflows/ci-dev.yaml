@@ -57,8 +57,8 @@ jobs:
         # r-version: ['4.4']
         # os: [ubuntu-latest]
       exclude:
-        r-version: '4.4'
-        os: ubuntu-latest
+        - r-version: '4.4'
+          os: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
