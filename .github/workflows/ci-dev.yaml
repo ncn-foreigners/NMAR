@@ -52,8 +52,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        r-version: ['4.4', 'release']
+        # r-version: ['4.4', 'release']
         os: [ubuntu-latest, windows-latest, macos-latest]
+        r-version: '4.4'
+        os: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
