@@ -75,10 +75,11 @@ jobs:
             rmarkdown
             rcmdcheck
 
-      - name: List downloaded files (debug)
-        run: ls -la
+      # - name: List downloaded files (debug)
+      #   run: ls -la
 
       - uses: r-lib/actions/check-r-package@v2
         with:
           working-directory: .
           build-dir: .
+          error-on: '"error"'
