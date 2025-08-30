@@ -85,15 +85,15 @@ jobs:
           PKG_FILE=$(ls *.tar.gz)
           R CMD INSTALL "$PKG_FILE"
 
-        - uses: r-lib/actions/setup-r-dependencies@v2
-          with:
-            needs: check
-            cache-version: 1  #idk
-            cache-suffix: ${{ matrix.r-version }}-${{ matrix.os }}
-            extra-packages: |
-              knitr
-              rmarkdown
-              rcmdcheck
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          needs: check
+          cache-version: 1  #idk
+          cache-suffix: ${{ matrix.r-version }}-${{ matrix.os }}
+          extra-packages: |
+            knitr
+            rmarkdown
+            rcmdcheck
 
       # - name: List downloaded files (debug)
       #   run: ls -la
