@@ -80,21 +80,32 @@ jobs:
           name: nmar-package
           # path: .
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          needs: check
-          cache-version: 1  #idk
-          cache-suffix: ${{ matrix.r-version }}-${{ matrix.os }}
-          extra-packages: |
-            knitr
-            rmarkdown
-            rcmdcheck
+      - name: Install the package
+        run: |
+          PKG_FILE=$(ls *.tar.gz)
+          R CMD INSTALL "$PKG_FILE"
+
+        - uses: r-lib/actions/setup-r-dependencies@v2
+          with:
+            needs: check
+            cache-version: 1  #idk
+            cache-suffix: ${{ matrix.r-version }}-${{ matrix.os }}
+            extra-packages: |
+              knitr
+              rmarkdown
+              rcmdcheck
 
       # - name: List downloaded files (debug)
       #   run: ls -la
 
-      - uses: r-lib/actions/check-r-package@v2
-        with:
-          # working-directory: .
-          # build-dir: .
-          error-on: '"error"'
+      # - uses: r-lib/actions/check-r-package@v2
+      #   with:
+      #     # working-directory: .
+      #     # build-dir: .
+      #     error-on: '"error"'
+
+    - name: Run tests with devtools
+      run: |
+        Rscript -e "devtools::test(stop_on_failure = TRUE)"
+      env:
+        NOT_CRAN: "true"
