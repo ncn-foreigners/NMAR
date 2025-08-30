@@ -235,7 +235,7 @@ test_that("exptilt returns error for data with missing values in covariates", {
     tol_value = 0.01
   )
 
-  # Dane z NA w zmiennych objaśniających
+
   data_na_covariates <- data_OK
   data_na_covariates$x1[1] <- NA
 
