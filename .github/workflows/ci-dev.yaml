@@ -23,7 +23,7 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          needs: check
+          needs: []check, test]
           extra-packages: |
             devtools
             roxygen2
@@ -31,6 +31,15 @@ jobs:
       - name: Run custom build script (src/ -> R/)
         run: Rscript build_r_folder.R
 
+    #Temporary
+      - name: Run tests with devtools
+        run: |
+          Rscript -e "
+          options(warn = -1) # Wyłącz wszystkie warningi
+          devtools::test(stop_on_failure = TRUE, reporter = 'fail')
+          "
+        env:
+          NOT_CRAN: "true"
       - name: Build package tarball
         id: build
         run: |
