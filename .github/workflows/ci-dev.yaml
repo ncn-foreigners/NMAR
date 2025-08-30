@@ -67,8 +67,17 @@ jobs:
           name: nmar-package
           # path: .
 
-      - name: Install rcmdcheck
-        run: Rscript -e 'install.packages("rcmdcheck")'
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          needs: check
+          extra-packages: |
+            knitr
+            rmarkdown
+            rcmdcheck
+
+      - name: List downloaded files (debug)
+        run: ls -la
+
       - uses: r-lib/actions/check-r-package@v2
         with:
           working-directory: .
