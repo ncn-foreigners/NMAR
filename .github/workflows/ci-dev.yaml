@@ -23,7 +23,7 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          needs: []check, test]
+          needs: [check, test]
           extra-packages: |
             devtools
             roxygen2
