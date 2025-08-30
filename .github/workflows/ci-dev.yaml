@@ -80,10 +80,7 @@ jobs:
           name: nmar-package
           # path: .
 
-      - name: Install the package
-        run: |
-          PKG_FILE=$(ls *.tar.gz)
-          R CMD INSTALL "$PKG_FILE"
+
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
@@ -94,6 +91,11 @@ jobs:
             knitr
             rmarkdown
             rcmdcheck
+
+      - name: Install the package
+        run: |
+          PKG_FILE=$(ls *.tar.gz)
+          R CMD INSTALL "$PKG_FILE"
 
       # - name: List downloaded files (debug)
       #   run: ls -la
