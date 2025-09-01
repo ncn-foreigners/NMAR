@@ -102,38 +102,38 @@ jobs:
         #     package: ${{ steps.pkg.outputs.pkg_name }}
         #     args: "--no-manual --no-build-vignettes --as-cran"
 
-    deploy-prod:
-      # needs: check-matrix
-      needs: build-package
-      runs-on: ubuntu-latest
-      # if: success()
+  deploy-prod:
+    # needs: check-matrix
+    needs: build-package
+    runs-on: ubuntu-latest
+    # if: success()
 
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
-          with:
-            ref: package-dev-actions
-            fetch-depth: 0
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: package-dev-actions
+          fetch-depth: 0
 
-        - name: Remove dev files
-          run: |
-            rm -rf src/
-            rm -f build_r_folder.R
-            echo "Dev files removed"
+      - name: Remove dev files
+        run: |
+          rm -rf src/
+          rm -f build_r_folder.R
+          echo "Dev files removed"
 
-        - name: Setup Git config
-          run: |
-            git config --global user.name "GitHub Actions"
-            git config --global user.email "actions@github.com"
+      - name: Setup Git config
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
 
-        - name: Commit and push to production branch
-          run: |
-            git checkout -B package-prod
-            git add .
-            git commit -m "Production release from CI: ${{ github.sha }}" || echo "No changes to commit"
-            git push origin package-prod --force
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit and push to production branch
+        run: |
+          git checkout -B package-prod
+          git add .
+          git commit -m "Production release from CI: ${{ github.sha }}" || echo "No changes to commit"
+          git push origin package-prod --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   # Job 2: Test package
   # test-package:
   #   name: Test on R-${{ matrix.r-version }} - ${{ matrix.os }}
