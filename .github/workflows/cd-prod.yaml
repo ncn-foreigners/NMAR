@@ -1,12 +1,11 @@
 name: CD - Prod Branch
 
-# on:
-#   workflow_run:
-#     workflows: ["CI - Dev Branch"]
-#     types:
-#       - completed
-on: workflow_dispatch
-
+on:
+  workflow_run:
+    workflows: ["CI - Dev Branch"]
+    types:
+      - completed
+  workflow_dispatch:
 jobs:
   check-matrix:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
