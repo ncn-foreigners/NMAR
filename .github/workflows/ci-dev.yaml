@@ -2,7 +2,7 @@ name: CI - Dev Branch
 
 on:
   push:
-    branches: [ package-test-gh ]
+    branches: [ package-dev-actions ]
   pull_request:
     branches: [ dev ]
 
