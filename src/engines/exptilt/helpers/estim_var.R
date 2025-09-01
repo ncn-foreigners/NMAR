@@ -11,7 +11,7 @@ estim_var.nmar_exptilt <- function(model){
   p = pi_func(model,model$x_1[,model$cols_delta],'reg',model$theta)
 
   #it is ok if Var is close to 0
-  cat("Mean of p:", mean(p), "Variance of p:", var(p), "\n")
+  # cat("Mean of p:", mean(p), "Variance of p:", var(p), "\n")
 
 
   #density num of coefs refers to density f.e beta, intercept, sigma
