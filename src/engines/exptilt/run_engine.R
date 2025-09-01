@@ -23,7 +23,8 @@ run_engine.nmar_engine_exptilt <- function(engine, formula, data) {
 
   return(structure(list(theta = model$theta
               ,est_mean=estim_mean(model)
-              ,est_var=estim_var(model)
+              # ,est_var=estim_var(model)
+              ,est_var=-1 #TODO TEST IF FAILURE DTECTED
               ,loss_value=model$loss_value
   ),class = "nmar_result"))
 }
