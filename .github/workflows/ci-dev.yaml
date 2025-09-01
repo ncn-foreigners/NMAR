@@ -2,12 +2,13 @@ name: CI - Dev Branch
 
 on:
   push:
-    branches: [ package-dev-actions ]
+    branches: [ package-dev ]
   pull_request:
-    branches: [ dev ]
+    branches: [ package-dev ]
 
 jobs:
-  # Job 1: Build package
+
+
   build-package:
     name: Build Package
     runs-on: ubuntu-latest
@@ -20,21 +21,10 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: 'release'
-      # - name: Cache R packages
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: |
-      #       ~/R/Library
-      #       /usr/local/lib/R/site-library
-      #       /usr/lib/R/site-library
-      #     key: ${{ runner.os }}-r-packages-${{ hashFiles('**/DESCRIPTION') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-r-packages-
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           needs: check
-          # cache-suffix: ${{ hashFiles('**/DESCRIPTION') }}
           extra-packages: |
             devtools
             roxygen2
@@ -62,6 +52,9 @@ jobs:
           # path: ${{ steps.build.outputs.pkg_name }}
           path: '*.tar.gz'
           retention-days: 1
+
+#TODO: Move this job and below one to different workflow
+#Job below chceck if RCMD checkcan build a package
   # check-matrix:
   #     needs: build-package
   #     runs-on: ${{ matrix.os }}
@@ -103,10 +96,9 @@ jobs:
         #     args: "--no-manual --no-build-vignettes --as-cran"
 
   deploy-prod:
-    # needs: check-matrix
+    name: Deploy to prod
     needs: build-package
     runs-on: ubuntu-latest
-    # if: success()
 
     steps:
       - name: Checkout code
@@ -114,6 +106,9 @@ jobs:
         with:
           ref: package-dev-actions
           fetch-depth: 0
+
+      - name: Run custom build script (src/ -> R/)
+        run: Rscript build_r_folder.R
 
       - name: Remove dev files
         run: |
@@ -134,70 +129,3 @@ jobs:
           git push origin package-prod --force
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  # Job 2: Test package
-  # test-package:
-  #   name: Test on R-${{ matrix.r-version }} - ${{ matrix.os }}
-  #   runs-on: ${{ matrix.os }}
-  #   needs: build-package
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       r-version: ['4.4', 'release']
-  #       # os: [ubuntu-latest, windows-latest, macos-latest]
-  ## TODO: only linux becuase expensive
-  #       os: [ubuntu-latest, macos-latest]
-  #
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: test Cache R installation
-  #       uses: actions/cache@v4
-  #       with:
-  #         path: |
-  #           /usr/local/lib/R/site-library
-  #           /usr/local/lib/R/library
-  #         key: ${{ runner.os }}-r-${{ matrix.r-version }}-${{ hashFiles('DESCRIPTION') }}
-  #         restore-keys: |
-  #           ${{ runner.os }}-r-${{ matrix.r-version }}-
-  #     - uses: r-lib/actions/setup-r@v2
-  #       with:
-  #         r-version: ${{ matrix.r-version }}
-  #
-  #     - uses: actions/download-artifact@v4
-  #       with:
-  #         name: nmar-package
-  #
-  #     - uses: r-lib/actions/setup-r-dependencies@v2
-  #       with:
-  #         needs: check
-  #         cache-version: 1  #idk
-  #         cache-suffix: ${{ matrix.r-version }}-${{ matrix.os }}
-  #         extra-packages: |
-  #           knitr
-  #           rmarkdown
-  #           rcmdcheck
-  #           devtools
-  #           roxygen2
-  #
-  #     - name: Install the package
-  #       run: |
-  #         PKG_FILE=$(ls *.tar.gz)
-  #         R CMD INSTALL "$PKG_FILE"
-  #
-  #     ##COMMENT - too expensive
-  #     # - name: List downloaded files (debug)
-  #     #   run: ls -la
-  #
-  #     # - uses: r-lib/actions/check-r-package@v2
-  #     #   with:
-  #     #     # working-directory: .
-  #     #     # build-dir: .
-  #     #     error-on: '"error"'
-  #
-  #
-  #     - name: Run tests with devtools
-  #       run: |
-  #         Rscript -e "
-  #         options(warn = -1) # Wyłącz wszystkie warningi
-  #         devtools::test(stop_on_failure = TRUE, reporter = 'fail')
-  #       env:
-  #         NOT_CRAN: "true"
