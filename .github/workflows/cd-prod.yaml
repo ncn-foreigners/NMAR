@@ -1,42 +1,81 @@
 name: CD - Prod Branch
 
-
 on:
-  push:
-    branches: [ package-prod ]
-  pull_request:
-    branches: [ package-prod ]
-    types: [closed]
+  workflow_run:
+    workflows: ["CI - Dev Branch"]
+    types:
+      - completed
 
 jobs:
-  build-and-check-clean-package:
-    if: github.event.pull_request.merged == true || github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  check-matrix:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest", "ubuntu-22.04"]
+        r-version: ["4.4", "release"]
 
-      - name: Remove dev files (src/ and build script)
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Download artifact from CI
+        uses: actions/download-artifact@v4
+        with:
+          name: nmar-package
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: List downloaded files
+        run: ls -la
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.r-version }}
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          needs: check
+
+      - name: Extract package name
+        id: pkg
+        run: |
+          PKG_NAME=$(ls *.tar.gz | head -1)
+          echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
+
+      - name: Run R CMD check
+        uses: r-lib/actions/check-r-package@v2
+        with:
+          package: ${{ steps.pkg.outputs.pkg_name }}
+          args: "--no-manual --no-build-vignettes --as-cran"
+
+  deploy-prod:
+    needs: check-matrix
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: package-dev-actions
+          fetch-depth: 0
+
+      - name: Remove dev files
         run: |
           rm -rf src/
           rm -f build_r_folder.R
-          echo "Development files removed."
+          echo "Dev files removed"
 
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: 'release'
-
-      - name: Install dependencies
+      - name: Setup Git config
         run: |
-          R -e "install.packages('devtools')"
-          R -e "devtools::install_deps(dependencies = TRUE)"
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
 
-      - name: Build clean package tarball
-        run: R CMD build . --no-build-vignettes
-
-      - name: Run R CMD check on clean package
-        run: R CMD check *.tar.gz --no-manual --no-build-vignettes --as-cran
-
-      - name: List files in the clean package (verification)
-        run: tar -ztf *.tar.gz
+      - name: Commit and push to production branch
+        run: |
+          git checkout -B package-prod
+          git add .
+          git commit -m "Production release from CI: ${{ github.sha }}" || echo "No changes to commit"
+          git push origin package-prod --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
