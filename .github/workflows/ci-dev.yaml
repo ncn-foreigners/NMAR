@@ -106,8 +106,9 @@ jobs:
           ref: package-dev
           fetch-depth: 0
 
-      - name: Run custom build script (src/ -> R/)
-        run: Rscript build_r_folder.R
+#TODO discuss whether it is necessary
+      # - name: Run custom build script (src/ -> R/)
+      #   run: Rscript build_r_folder.R
 
       - name: Remove dev files
         run: |
