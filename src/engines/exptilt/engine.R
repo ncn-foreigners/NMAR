@@ -71,6 +71,8 @@ exptilt <- function(
 
   all_schemas <- jsonlite::read_json(json_path, simplifyVector = TRUE)
 
+  #TODO FAIL ON PURSOE TO TEST GH ACTIONS!!!
+  stop('Buahahahah')
   config <- list(
     prob_model_type = prob_model_type,
     y_dens = y_dens,
