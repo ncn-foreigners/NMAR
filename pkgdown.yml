@@ -1,0 +1,12 @@
+template:
+  bootstrap: 5
+
+articles:
+  - title: Articles
+    navbar: ~
+    contents:
+      - empirical_likelihood_nmar
+      - el_empirical_likelihood_theory
+  - title: Developer
+    contents:
+      - developing_new_nmar_estimator
