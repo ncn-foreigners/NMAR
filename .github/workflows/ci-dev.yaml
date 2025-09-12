@@ -124,9 +124,9 @@ jobs:
 
       - name: Commit and push to production branch
         run: |
-          git checkout -B package-prod
+          git checkout -B package-pre_prod
           git add .
           git commit -m "Production release from CI: ${{ github.sha }}" || echo "No changes to commit"
-          git push origin package-prod --force
+          git push origin package-pre_prod --force
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
