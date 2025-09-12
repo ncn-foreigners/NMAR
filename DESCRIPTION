@@ -9,23 +9,30 @@ Authors@R: c(
       role = c("aut", "cre")
     )
   )
-Description: To do package desc
+Description: Tools for estimation under Not Missing at Random (NMAR)
+    mechanisms, including an empirical likelihood (EL) estimator for
+    population means with optional auxiliary moment constraints. Supports
+    both data frame and complex survey designs, with delta or bootstrap
+    variance estimation and rich diagnostics.
 License: MIT + file LICENSE
 Encoding: UTF-8
-LazyData: true
 Imports: 
     stats,
     nleqslv,
     bbmle,
     utils,
     jsonlite,
-    magrittr,
-    dplyr,
-    tidyr
+    numDeriv,
+    generics
 RoxygenNote: 7.3.2
 Suggests: 
     knitr,
     rmarkdown,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    survey,
+    MASS,
+    svrep,
+    broom,
+    ggplot2
 VignetteBuilder: knitr
 Config/testthat/edition: 3

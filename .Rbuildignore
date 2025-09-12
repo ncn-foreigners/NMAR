@@ -6,4 +6,9 @@
 ^LICENSE\.md$
 ^doc$
 ^Meta$
+^\.github$
+^tests/testthat/Rplots\.pdf$
+^tests/testthat/_snaps$
+^vignettes/el_empirical_likelihood_theory\.Rmd$
+^vignettes/developing_new_nmar_estimator\.Rmd$
 ^pkgdown\.yml$

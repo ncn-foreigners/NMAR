@@ -85,7 +85,6 @@ nmar <- function(formula, data, engine) {
 
 }
 
-run_engine <- function(engine, ...) {
+run_engine <- function(engine, formula, data) {
   UseMethod("run_engine")
 }
-
