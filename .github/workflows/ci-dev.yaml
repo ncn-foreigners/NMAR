@@ -99,40 +99,36 @@ jobs:
     name: Deploy to prod
     needs: build-package
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
+      - name: Checkout dev branch
         uses: actions/checkout@v4
         with:
           ref: package-dev
           fetch-depth: 0
 
-#TODO discuss whether it is necessary
-      # - name: Run custom build script (src/ -> R/)
-      #   run: Rscript build_r_folder.R
-      - name: Change branch
+      - name: Prepare production files
         run: |
-          git checkout -B package-pre_prod
-      - name: Remove dev files
-        run: |
-          rm -rf src/
-          rm -f build_r_folder.R
-          echo "Dev files removed"
-      - name: Switch to production gitignore
-        run: |
-          if [ -f ".gitignore-prod" ]; then
-            cp .gitignore-prod .gitignore
-            echo "Switched to production gitignore"
-          else
+
+          if [ ! -f ".gitignore-prod" ]; then
             echo "Error: .gitignore-prod not found!"
             exit 1
           fi
 
-      - name: Commit and push to production branch
+          rm -rf src/
+          rm -f build_r_folder.R
+          mv .gitignore-prod .gitignore
+
+          echo "Dev files removed and .gitignore switched"
+
+      - name: Commit and push to pre_prod branch
         run: |
-          git add -f .gitignore
-          git add .
-          git commit -m "Production release from CI: ${{ github.sha }}" || echo "No changes to commit"
-          git push origin package-pre_prod --force
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+
+          git checkout --orphan package-pre_prod_tmp
+          git add -A
+          git commit -m "Production release from CI: ${{ github.sha }}"
+          git push --force origin package-pre_prod_tmp:package-pre_prod
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
