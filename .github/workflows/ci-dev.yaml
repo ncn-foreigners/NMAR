@@ -116,6 +116,7 @@ jobs:
           extra-packages: |
             devtools
             roxygen2
+            broom
 
       - name: Run custom build script (src_dev/ -> R/)
         run: Rscript build_r_folder.R
