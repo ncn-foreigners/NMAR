@@ -1,13 +1,13 @@
 #' Run method for EL engine
 #' @keywords internal
 #' @exportS3Method run_engine nmar_engine_el
-run_engine.nmar_engine_el <- function(engine, formula, data) {
-  adapted <- nmar_formula_to_el(formula)
+run_engine.nmar_engine_el <- function(engine, formula, data,response_predictors) {
+  # adapted <- nmar_formula_to_el(formula)
 
   args <- list(
     data = data,
-    formula = adapted$formula,
-    response_predictors = adapted$response_predictors,
+    formula = formula,
+    response_predictors = response_predictors,
     auxiliary_means = engine$auxiliary_means,
     standardize = engine$standardize,
     trim_cap = engine$trim_cap,

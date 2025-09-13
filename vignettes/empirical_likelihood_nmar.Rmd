@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```r
+```{r}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 set.seed(123)
 library(nmar)
@@ -37,7 +37,7 @@ Key features:
 
 We simulate an NMAR mechanism where the response probability depends on the unobserved outcome.
 
-```r
+```{r}
 N <- 500
 X <- rnorm(N)
 Z <- rnorm(N)
@@ -49,12 +49,18 @@ R <- runif(N) < p
 
 dat <- data.frame(Y_miss = Y, X = X)
 dat$Y_miss[!R] <- NA_real_
+```
 
+
+```{r}
+engine = el_engine(auxiliary_means = c(X = 0), variance_method = "delta", standardize = TRUE
+  )
 # Fit EL estimator (delta variance)
 fit <- nmar(
-  formula = list(outcome = ~ Y_miss, covariates_outcome = ~ X, covariates_missingness = ~ NULL),
+  formula =  Y_miss ~ X,
   data = dat,
-  engine = el_engine(auxiliary_means = c(X = 0), variance_method = "delta", standardize = TRUE)
+  engine=engine,
+  response_predictors =  NULL
 )
 
 summary(fit)
@@ -63,18 +69,22 @@ confint(fit)
 
 Probit family (optional):
 
-```r
-fit_probit <- nmar(
-  formula = list(outcome = ~ Y_miss, covariates_outcome = ~ X, covariates_missingness = ~ NULL),
-  data = dat,
+```{r}
   engine = el_engine(auxiliary_means = c(X = 0), family = "probit", variance_method = "delta", standardize = TRUE)
+
+fit_probit <- nmar(
+  formula = Y_miss ~ X,
+  engine = engine,
+  data = dat,
+  response_predictors = NULL
+
 )
 summary(fit_probit)
 ```
 
 Tidy/glance summaries, and plots:
 
-```r
+```{r}
 if (requireNamespace("broom", quietly = TRUE)) {
   broom::tidy(fit)
   broom::glance(fit)
@@ -86,7 +96,7 @@ plot(fit, which = "fitted")
 
 Outputs and diagnostics at a glance:
 
-```r
+```{r}
 estimate(fit)
 weights(fit)[1:10]
 fitted(fit)[1:10]
@@ -95,11 +105,15 @@ str(fit$diagnostics)
 
 Bootstrap variance (keep reps small for speed):
 
-```r
-fit_boot <- nmar(
-  formula = list(outcome = ~ Y_miss, covariates_outcome = ~ X, covariates_missingness = ~ NULL),
-  data = dat,
+```{r}
   engine = el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap", bootstrap_reps = 15, standardize = TRUE, suppress_warnings = TRUE)
+
+fit_boot <- nmar(
+  formula = Y_miss ~ X,
+  engine = engine,
+  data = dat,
+  response_predictors = NULL
+
 )
 fit_boot$se
 ```
@@ -108,7 +122,7 @@ fit_boot$se
 
 You can include predictors that enter only the response model (and are not constrained as auxiliaries). Specify them in `covariates_missingness` while keeping the auxiliary set on the RHS of the outcome formula.
 
-```r
+```{r}
 N <- 400
 X <- rnorm(N)
 Z <- rnorm(N)
@@ -117,12 +131,14 @@ p <- plogis(-0.6 + 0.5 * scale(Y)[, 1] + 0.4 * Z)
 R <- runif(N) < p
 df2 <- data.frame(Y_miss = Y, X = X, Z = Z)
 df2$Y_miss[!R] <- NA_real_
+engine = el_engine(auxiliary_means = c(X = 0), variance_method = "delta", standardize = TRUE)
 
 # Use X as auxiliary (known population mean 0), and Z as response-only predictor
 fit_resp_only <- nmar(
-  formula = list(outcome = ~ Y_miss, covariates_outcome = ~ X, covariates_missingness = ~ Z),
+  formula = Y_miss ~ X,
   data = df2,
-  engine = el_engine(auxiliary_means = c(X = 0), variance_method = "delta", standardize = TRUE)
+  engine = engine,
+  response_predictors = c('Z')
 )
 summary(fit_resp_only)
 ```
@@ -137,7 +153,7 @@ Auxiliary means and formulas:
 
 The estimator supports complex surveys via `survey::svydesign()`. This chunk runs only if the `survey` package is available.
 
-```r
+```{r}
 if (requireNamespace("survey", quietly = TRUE)) {
   library(survey)
   data(api)
@@ -151,11 +167,14 @@ if (requireNamespace("survey", quietly = TRUE)) {
 
   dclus1 <- svydesign(id = ~dnum, weights = ~pw, data = apiclus1, fpc = ~fpc)
   pop_mean_ell <- mean(apiclus1$ell)
+  engine = el_engine(auxiliary_means = c(ell = pop_mean_ell), variance_method = "delta", standardize = TRUE)
 
   fit_svy <- nmar(
-    formula = list(outcome = ~ api00_miss, covariates_outcome = ~ ell, covariates_missingness = ~ NULL),
+    formula = api00_miss ~ ell,
     data = dclus1,
-    engine = el_engine(auxiliary_means = c(ell = pop_mean_ell), variance_method = "delta", standardize = TRUE)
+    engine = engine,
+    response_predictors = NULL
+    
   )
   summary(fit_svy)
 }
@@ -188,6 +207,6 @@ Troubleshooting:
 - Probit stability: the response-model score uses a stable log-ratio for $\phi/\Phi$ under the hood.
 - Theory mapping: see the companion article “Empirical Likelihood Theory for NMAR” for equations, Jacobian blocks, and variance details.
 
-```r
+```{r}
 sessionInfo()
 ```
