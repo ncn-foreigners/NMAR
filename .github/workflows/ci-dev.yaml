@@ -37,17 +37,8 @@ jobs:
 
       - name: Run tests with devtools
         run: |
-          Rscript -e "
-          options(warn = -1) # Wyłącz wszystkie warningi
-          tryCatch({
-            devtools::test(stop_on_failure = TRUE, reporter = 'fail')
-          }, error = function(e) {
-            message('TEST FAILURE DETAILS:')
-            message(e$message)
-            # Wymuszamy zakończenie z błędem
-            quit(status = 1, save = 'no')
-          })
-          "
+          Rscript -e "devtools::test(stop_on_failure = TRUE, reporter = 'fail')"
+
       - name: Build package tarball
         id: build
         run: |
