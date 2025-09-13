@@ -19,6 +19,11 @@ run_engine.nmar_engine_exptilt <- function(engine, formula, data) {
     ),
     class = "nmar_exptilt"
   )
+  model$family <- if (model$prob_model_type == "logit") {
+    logit_family()
+  } else if (model$prob_model_type == "probit") {
+    probit_family()
+  }
 
   model <- run_nmar_exptilt(model)
 

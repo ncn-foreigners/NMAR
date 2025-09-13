@@ -25,6 +25,7 @@ run_nmar_exptilt <- function(model){
   #const
   model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
   model$C_matrix_nieobs <- generate_C_matrix(model)
+
   # cat(model)
 
 

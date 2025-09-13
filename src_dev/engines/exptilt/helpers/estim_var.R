@@ -1,13 +1,7 @@
 #' @exportS3Method NULL
 estim_var.nmar_exptilt <- function(model){
   # Pobierz rodzinę
-  family <- if (model$prob_model_type == "logit") {
-    logit_family()
-  } else if (model$prob_model_type == "probit") {
-    probit_family()
-  } else {
-    stop("Unsupported prob_model_type: ", model$prob_model_type)
-  }
+
 
   s_values_unobs <- s_function(model,0, model$x_1[,model$cols_delta],model$theta)
 
@@ -22,7 +16,7 @@ estim_var.nmar_exptilt <- function(model){
   x_mat_obs <- as.matrix(model$x_1[, model$cols_delta])
   x_aug_obs <- cbind(1, x_mat_obs, model$y_1)
   eta_obs <- as.vector(x_aug_obs %*% model$theta)
-  p <- family$linkinv(eta_obs)
+  p <- model$family$linkinv(eta_obs)
 
   #it is ok if Var is close to 0
   # cat("Mean of p:", mean(p), "Variance of p:", var(p), "\n")
@@ -85,8 +79,8 @@ estim_var.nmar_exptilt <- function(model){
     x_mat <- as.matrix(x)
     x_aug <- cbind(1, x_mat, model$y_1[1:nrow(x_mat)])
     eta <- as.vector(x_aug %*% theta)
-    pi_vals <- family$linkinv(eta)
-    pi_deriv <- family$mu.eta(eta) * x_aug
+    pi_vals <- model$family$linkinv(eta)
+    pi_deriv <- model$family$mu.eta(eta) * x_aug
 
     denominator <- pi_vals * (1 - pi_vals)
     denominator[denominator < 1e-9] <- 1 # zero case
@@ -138,8 +132,8 @@ estim_var.nmar_exptilt <- function(model){
     x_mat_obs <- as.matrix(x_obs_delta)
     x_aug_obs <- cbind(1, x_mat_obs, y_obs)
     eta_obs <- as.vector(x_aug_obs %*% model$theta)
-    p_obs <- family$linkinv(eta_obs)
-    pi_deriv_obs <- family$mu.eta(eta_obs) * x_aug_obs
+    p_obs <- model$family$linkinv(eta_obs)
+    pi_deriv_obs <- model$family$mu.eta(eta_obs) * x_aug_obs
 
     u_i <- y_obs - esty
 
