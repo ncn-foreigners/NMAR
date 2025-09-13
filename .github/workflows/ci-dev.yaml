@@ -40,7 +40,7 @@ jobs:
           Rscript -e "
           options(warn = -1) # Wyłącz wszystkie warningi
           tryCatch({
-            devtools::test(stop_on_failure = TRUE, reporter = 'verbose')
+            devtools::test(stop_on_failure = TRUE, reporter = 'fail')
           }, error = function(e) {
             message('TEST FAILURE DETAILS:')
             message(e$message)
