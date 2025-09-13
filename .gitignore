@@ -7,3 +7,12 @@ inst/doc
 /doc/
 /Meta/
 tests/testthat/Rplots.pdf
+man/
+Meta/
+NAMESPACE
+vignettes/*.html
+vignettes/*.pdf
+*.tar.gz
+*.tgz
+*.zip
+R/
