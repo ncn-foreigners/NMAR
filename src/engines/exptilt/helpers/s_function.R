@@ -1,3 +1,4 @@
+#' @exportS3Method NULL
 s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta) {
   family <- if (model$prob_model_type == "logit") {
     logit_family()

@@ -1,3 +1,4 @@
+#' @exportS3Method NULL
 step_func <- function(model,theta, O_matrix_nieobs) {
   s_values_obs <- s_function(model,1, model$x_1[,model$cols_delta],theta)
   s_values_unobs <- s_function(model,0, model$x_1[,model$cols_delta],theta)

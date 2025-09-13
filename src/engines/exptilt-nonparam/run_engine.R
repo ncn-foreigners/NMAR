@@ -1,3 +1,4 @@
+#' @exportS3Method NULL
 run_engine.nmar_engine_exptilt_nonparam <- function(engine, formula, data) {
 
   common_covariates_from_formula <- all.vars(formula$covariates_outcome)

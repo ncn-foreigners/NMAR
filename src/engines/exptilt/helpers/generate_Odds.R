@@ -1,3 +1,4 @@
+#' @exportS3Method NULL
 generate_Odds.nmar_exptilt <- function(model) {
   # stopifnot(
   #   any(is.na(theta)) == FALSE,

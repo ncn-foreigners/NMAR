@@ -5,6 +5,7 @@
 #   return(sum(numerator/denominator))
 # }
 #
+#' @exportS3Method NULL
 estim_mean.nmar_exptilt <- function(model) {
   family <- if (model$prob_model_type == "logit") {
     logit_family()

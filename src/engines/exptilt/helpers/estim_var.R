@@ -1,3 +1,4 @@
+#' @exportS3Method NULL
 estim_var.nmar_exptilt <- function(model){
   # Pobierz rodzinę
   family <- if (model$prob_model_type == "logit") {
