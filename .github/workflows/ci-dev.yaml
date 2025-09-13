@@ -125,6 +125,14 @@ jobs:
       - name: Run custom build script (src/ -> R/)
         run: Rscript build_r_folder.R
 
+      - name: Run devtools::document()
+        run: |
+          Rscript -e 'devtools::document()'
+
+      - name: Run devtools::build()
+        run: |
+          Rscript -e 'devtools::build()'
+
       - name: Switch to production gitignore and remove dev files
         run: |
           if [ ! -f ".gitignore-prod" ]; then
