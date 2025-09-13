@@ -1,0 +1,686 @@
+---
+title: "Empirical Likelihood Theory for NMAR"
+output: rmarkdown::html_document
+vignette: >
+  %\VignetteIndexEntry{Empirical Likelihood Theory for NMAR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This document explains every mathematical object, equation, and derivation behind the empirical likelihood (EL) estimator implemented in the `nmar` package, and maps each concept to code. It covers both data-frame (IID) and survey design use cases, handles arbitrary numbers of response-model and auxiliary covariates, and supports both logit and probit response families.
+
+## Notation
+
+### Units
+- $i = 1, \ldots, n$ index respondents (those with observed $Y$)
+- $R_i \in \{0, 1\}$ is the response indicator; we work on observed subset $R_i = 1$
+
+### Data
+- **Outcome**: $Y_i$ (observed when $R_i = 1$; missing otherwise)
+- **Response covariates**: row vector $Z_i \in \mathbb{R}^K$, from `model.matrix` of the response RHS
+- **Auxiliary covariates**: row vector $X_i \in \mathbb{R}^L$ (possibly $L = 0$), from auxiliary RHS (no intercept)
+- **Population auxiliary means**: $\mu_x \in \mathbb{R}^L$, known; names match columns of $X$
+
+### Response Model (Family functions)
+- **Linear predictor**: $\eta_i = Z_i \, \beta$
+- **Response probability**: $w_i \equiv g(\eta_i) = \mathrm{linkinv}(\eta_i)$
+- **First derivative**: $\dfrac{dw}{d\eta}(\eta_i) = \mu_{\eta,i} = \mathrm{mu.eta}(\eta_i)$
+- **Second derivative**: $\dfrac{d^2 w}{d\eta^2}(\eta_i) = \mathrm{d2mu.deta2}(\eta_i)$
+Here `linkinv`, `mu.eta`, and `d2mu.deta2` refer to the chosen response family (logit or probit). We follow the paper’s $w_i$ notation for the response probability and reserve $p_i^{\text{EL}}$ for empirical‑likelihood weights.
+
+### Weight Re-parameterization
+- $W \in (0,1)$ nuisance scalar; we parameterize via $z = \text{logit}(W)$ for stability and set $W = \text{plogis}(z)$
+- $\lambda_W \in \mathbb{R}$ and $\lambda_x \in \mathbb{R}^L$ are EL Lagrange multipliers for constraints; collected together in $\theta$
+
+### EL Weights
+- **Denominator**: $D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T \lambda_x$
+- **Base sampling weights**: $a_i = 1$ (IID) or $a_i =$ survey base weight for respondent $i$
+- **EL weights for respondents**: $p_i^{\text{EL}} \propto a_i / D_i$ (proportionality normalized by totals below)
+
+### Estimator
+- $\hat{Y} = \sum p_i^{\text{EL}} Y_i / \sum p_i^{\text{EL}}$
+
+### Notation at a Glance
+
+| Symbol | Meaning |
+|---|---|
+| $i$ | Respondent index (rows with observed $Y$) |
+| $Y_i$ | Outcome for unit $i$ (observed if $R_i=1$) |
+| $Z_i$ | Row of response design matrix (includes intercept) |
+| $X_i$ | Row of auxiliary design (no intercept) |
+| $\mu_x$ | Known population means of auxiliaries (vector) |
+| $\beta$ | Response-model coefficients |
+| $\eta_i=Z_i\beta$ | Linear predictor for response model |
+| $w_i$ | $\mathrm{linkinv}(\eta_i)$ (logit: $\mathrm{plogis}$; probit: $\Phi$) |
+| $\mu_{\eta,i}$ | $\dfrac{dw_i}{d\eta_i}$ |
+| $\lambda_W$ | Multiplier for the $W$-constraint $\sum (w_i-W)/D_i=0$ |
+| $\lambda_x$ | Multipliers for auxiliary constraints $\sum (X_i-\mu_x)/D_i=0$ |
+| $D_i$ | $1+\lambda_W(w_i-W)+(X_i-\mu_x)^T\lambda_x$ |
+| $a_i$ | Base weight (IID: 1; survey: design weight) |
+| $p_i^{\mathrm{EL}}$ | Empirical-likelihood weight $\propto a_i/D_i$ |
+| $\hat Y$ | $\sum p_i^{\mathrm{EL}} Y_i/\sum p_i^{\mathrm{EL}}$ |
+| $F(\theta)$ | Estimating system (beta, W, and auxiliary equations) |
+| $A$ | Jacobian $\partial F/\partial \theta$ |
+| $B$ | Covariance of total score vector |
+| $g(\theta)$ | Functional mapping parameters to $\hat Y$ |
+| $\mathrm{Var}(\hat Y)$ | Delta: $\nabla g\,A^{-1}BA^{-T}\,\nabla g^T$ |
+
+### Engines
+- Family: "logit" (default) or "probit"; both use the log‑likelihood score w.r.t. $\eta$: $s_i = \partial\log w_i/\partial\eta_i = \mu_{\eta,i}/w_i$ (for respondents, $\delta_i=1$)
+- Scaling: optional standardization of design matrices and $\mu_x$ via nmar_scaling_recipe
+
+## From Paper to Implementation: Core Ideas
+
+The paper (Qin–Leung–Shao, JASA 2002) sets EL under nonignorable response using:
+
+- **Empirical likelihood weights** for respondents that satisfy:
+  - Zero‑sum residual: $\sum p_i^{\text{EL}} (w_i - W) = 0$
+  - Auxiliary moments: $\sum p_i^{\text{EL}} (X_i - \mu_x) = 0$
+- A **response model probability** $w_i = g(\eta_i)$, $\eta_i = Z_i \, \beta$
+
+In our code, we adopt the same EL structure and estimating equations. We extend it to arbitrary $Z$ and $X$, and to survey designs via design-based covariance for variance estimation. Because $\hat Y$ is a ratio-of-weights estimator, any common normalization of $p_i^{\text{EL}} \propto a_i/D_i$ cancels in $\hat Y$; only relative weights matter (the KKT multipliers $\lambda$ enforce the constraints; normalization affects only a common scale that vanishes in the ratio).
+
+### Equation Crosswalk (QLS 2002 → This Vignette/Code)
+
+- QLS (5): Discrete mass form for $p_i$ with two multipliers → Our $D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T \lambda_x$ and $p_i^{\text{EL}} \propto a_i/D_i$.
+- QLS (7): $\sum \dfrac{x_i - \bar x}{1 + \cdots} = 0$ → Our auxiliary constraints $\sum a_i (X_i - \mu_x)/D_i = 0$.
+- QLS (8): $\sum \dfrac{w_i - W}{1 + \cdots} = 0$ → Our $W$-equation $\sum a_i (w_i - W)/D_i = 0$.
+- QLS (10): $\hat{\lambda}_2 = (N/n - 1)/(1 - W)$ → Our $\lambda_W = ((N_{\text{pop}}/n_{\text{resp\_weighted}}) - 1)/(1 - W)$ (design-weighted generalization).
+- Estimator $\hat Y$ in QLS → Our ratio $\hat Y = \sum p_i^{\mathrm{EL}} Y_i/\sum p_i^{\mathrm{EL}}$ using $p_i^{\mathrm{EL}} \propto a_i/D_i$.
+
+Note on predictors: The response model predictors $Z$ (missingness mechanism) and the auxiliary predictors $X$ (moment constraints) need not coincide. You may include response-only predictors that are not part of the auxiliary set; only variables in $X$ require known population moments $\mu_x$.
+
+## Semiparametric Likelihood (QLS Eq. 2)
+
+The paper’s semiparametric likelihood (their Eq. (2)) combines the response mechanism $w_i = g(\eta_i)$ with the nonparametric distribution $F$ of $(Y,X)$:
+
+$$
+L(\beta, W, F)
+\;=\; \prod_{i=1}^{n} \Big[\, w( y_i, x_i; \beta )\, dF(y_i, x_i)\,\Big]\; W^{n} (1-W)^{N-n},
+$$
+
+where $n$ is the number of respondents ($R_i=1$), $N$ is the population size, and
+
+$$
+W \;=\; \iint w(y,x;\beta)\, dF(y,x)
+$$
+
+is the unconditional response rate under the model. The first product is the contribution of the fully observed respondents; the binomial factor $W^n(1-W)^{N-n}$ is the likelihood of the response indicators, marginalizing over $(Y,X)$ via $F$. No parametric form is assumed for $F$.
+
+To make inference without fully parameterizing $F$, QLS discretize $F$ at the observed points and treat its masses as unknown parameters, estimated subject to moment constraints. This yields an empirical-likelihood solution.
+
+Remark on conditioning: QLS’s Eq. (2) writes the first product as $\prod_i [\, w(y_i,x_i;\beta)\,dF(y_i,x_i)/W\,]$ so that it explicitly represents the likelihood of $(Y_i,X_i)$ conditional on $R_i=1$. Multiplying by the binomial term $W^n(1-W)^{N-n}$ yields the same overall likelihood as above because the $W^{-n}$ in the first factor cancels the $W^n$ in the second. Both factorizations lead to the same estimating equations and the same profiled log‑likelihood form used subsequently in QLS after introducing the multipliers.
+
+## Lagrange Multipliers and EL Weights
+
+Let $p_i$ be the jump of $F$ at $(y_i,x_i)$ for $i=1,\dots,n$ (respondents). With known auxiliary mean $\mu_x$ (vector), maximize the likelihood subject to the constraints
+
+$$
+\sum_{i=1}^n p_i = 1,\quad
+\sum_{i=1}^n p_i\,(X_i - \mu_x) = 0,\quad
+\sum_{i=1}^n p_i\,(w_i - W) = 0.
+$$
+
+Introducing Lagrange multipliers $(\lambda_0,\lambda_x,\lambda_W)$ for these constraints and profiling the $p_i$’s gives the KKT stationarity conditions
+
+$$
+\frac{\partial}{\partial p_i} \Big[\, \log p_i + \lambda_0 \big(\sum_j p_j - 1\big) + \lambda_x^T \sum_j p_j (X_j-\mu_x) + \lambda_W \sum_j p_j (w_j-W) \,\Big] = 0,
+$$
+
+which solve to
+
+$$
+p_i \,\propto\, \frac{1}{\,1 + \lambda_x^T (X_i-\mu_x) + \lambda_W (w_i - W)\,} \;\equiv\; \frac{1}{D_i}.
+$$
+
+Normalizing to enforce $\sum p_i = 1$ yields $p_i = \frac{D_i^{-1}}{\sum_j D_j^{-1}}$. In the presence of base sampling weights $a_i$ (survey designs), the same derivation gives the natural generalization
+
+$$
+p_i^{\text{EL}} \;\propto\; \frac{a_i}{D_i} \quad \text{with} \quad D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T\lambda_x.
+$$
+
+This is exactly the working form used in our estimator. The EL weights $p_i^{\text{EL}}$ are then used to build the mean estimator
+
+$$
+\hat Y \;=\; \frac{\sum_i p_i^{\text{EL}} Y_i}{\sum_i p_i^{\text{EL}}}.
+$$
+
+The remaining unknowns $(\beta, W, \lambda_x)$ are determined by the estimating equations below.
+
+### Clarification: Relationship Between $W$ and $\lambda_W$
+
+In our reparameterization, the EL multiplier for the probability constraint is expressed as:
+
+$$\lambda_W = \frac{C}{1 - W}, \quad \text{with } C = \frac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1 \text{ and } W = \text{plogis}(z)$$
+
+**Intuition**: In the EL KKT system, the constraint $\sum p_i^{\text{EL}} (w_i - W) = 0$ sits alongside normalization and (optionally) auxiliary constraints. Incorporating base weights $a_i$ and the ratio between population and respondent totals induces a scaling of the multiplier linked to the mass constraint. Writing $\lambda_W$ in this scaled form keeps the parameter on a numerically stable scale and lets the derivative structure (w.r.t. $z$ via $W$) be handled cleanly. This is consistent with the EL structure when the baseline mass is $n_{\text{resp\_weighted}}$ and the "full population" target is $N_{\text{pop}}$, and it is exactly what the code uses to match the normalization implied by base weights.
+
+**Derivation sketch (KKT)**: The discretized semiparametric likelihood (QLS, 2002) maximizes, over the unknown masses $\{p_i\}$ at observed points and over $(\beta, W)$,
+
+\[
+\ell(\beta, W, \lambda_x, \lambda_W) 
+\;=\; \sum_{i=1}^{n} \log w_i(\beta)
+\; +\; (N_{\text{pop}} - n_{\text{resp\_weighted}}) \log(1 - W)
+\; -\; \sum_{i=1}^{n} \log\!\Big(1 + (X_i - \mu_x)^\top \lambda_x + \lambda_W (w_i - W)\Big),
+\]
+
+subject to the normalization and moment constraints that generate the EL denominator. For the weighted-EL variant we work with unnormalized respondent weights proportional to $a_i/D_i$; choosing the conventional normalization
+
+\[
+\sum_{i=1}^{n} \frac{a_i}{D_i} \,=\, n_{\text{resp\_weighted}} \equiv \sum_{i=1}^{n} a_i
+\]
+
+recovers the same estimating system (and any common normalization cancels in the ratio estimator $\hat Y = \sum p_i Y_i/\sum p_i$). Taking derivatives (KKT conditions) and using that $\partial/\partial W$ of the second and third terms produces opposing contributions, one obtains the system equivalent to QLS (7)–(10). In particular, the first-order condition w.r.t. the multiplier associated with the $W$-constraint yields, together with the derivative w.r.t. $W$, the closed form
+
+\[
+\lambda_W 
+\;=\; \frac{\tfrac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1}{1 - W}
+\;=\; \frac{C}{1 - W},
+\]
+
+which generalizes QLS (10) to the design-weighted case ($n_{\text{resp\_weighted}} = \sum_i a_i$ and $N_{\text{pop}} = \sum_{\text{all}} a_i$). A quick derivation sketch mirrors QLS (7)–(10): the W-FOC yields $\sum_i a_i (w_i - W) / D_i = 0$; combining with the implicit normalization $\sum_i a_i / D_i = n_{\text{resp\_weighted}}$ and the binomial part for $W$ gives $\lambda_W (1-W)\, n_{\text{resp\_weighted}} = N_{\text{pop}} - n_{\text{resp\_weighted}}$, hence $\lambda_W = (N_{\text{pop}}/n_{\text{resp\_weighted}} - 1)/(1-W)$. This is the expression implemented in the estimator and used throughout the Jacobian and variance calculations.
+
+## Estimating Equations
+
+**Unknown parameters**: $\beta \in \mathbb{R}^K$, $z \in \mathbb{R}$ (for $W = \text{plogis}(z)$), $\lambda_x \in \mathbb{R}^L$; define $\theta = (\beta, z, \lambda_x)$.
+
+Define $w_i = \mathrm{linkinv}(\eta_i)$ and $\mu_{\eta,i} = \frac{dw}{d\eta}(\eta_i)$ (denoted `mu.eta(eta_i)` in code).
+
+Define $C = \frac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1$, with $n_{\text{resp\_weighted}} = \sum a_i$ and $N_{\text{pop}}$ known (sum of design weights for survey; $n$ for IID). Then $\lambda_W = \frac{C}{1 - W}$.
+
+**Denominator**: $D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T \lambda_x$, with $D_i \geq \epsilon$ enforced numerically.
+
+Define the score term $s_i = \mu_{\eta,i}/w_i$ (the unit‑level contribution to the log‑likelihood score with respect to $\eta$). For logit, $s_i = 1 - w_i$; for probit, $s_i = \phi(\eta_i)/\Phi(\eta_i)$ (computed stably in code).
+
+Intuition (why this score appears): for each respondent we observe $R_i=1$, so the Bernoulli log‑likelihood contribution of the response model is $\log w_i(\eta_i)$. Differentiating w.r.t. the linear predictor gives
+\[
+\frac{\partial}{\partial\eta_i} \log w_i(\eta_i) \,=\, \frac{1}{w_i}\, \frac{dw_i}{d\eta_i} \,=\, \frac{\mu_{\eta,i}}{w_i} \;\equiv\; s_i.
+\]
+Thus $s_i$ measures the local sensitivity of the observed‑response likelihood to $\eta_i$. In the logit family, $\mu_{\eta,i}=w_i(1-w_i)$ so $s_i=1-w_i$—the familiar residual‑like term; in the probit family, $s_i=\phi(\eta_i)/\Phi(\eta_i)$, the (inverse) Mills ratio. The EL $\beta$‑equations balance this likelihood score against the EL penalty term $\lambda_W\,\mu_{\eta,i}/D_i$, enforcing the calibration constraints while fitting the response model.
+
+### The System of Estimating Equations $F(\theta) = 0$
+
+**$\beta$-equations** ($K$ equations):
+$$\sum a_i Z_i [s_i - \lambda_W \mu_{\eta,i} / D_i] = 0$$
+
+**W-equation** (1 equation):
+$$\sum a_i (w_i - W) / D_i = 0$$
+
+**Auxiliary constraints** ($L$ equations):
+$$\sum a_i (X_i - \mu_x) / D_i = 0$$
+
+These are exactly how `build_equation_system` constructs the function in code (`src/engines/el/impl/el_equations.R`).
+
+Intuition: the $\beta$-equations equate the score of the respondent log-likelihood with the EL penalty term $\lambda_W \mu_{\eta,i}/D_i$; the $W$-equation centers the modeled response probabilities around the unconditional mean $W$ under the EL weights; the auxiliary equations calibrate the centered auxiliaries to zero mean under the EL weights.
+
+### Remarks
+
+- For logit and probit, $s_i$ is the log‑likelihood score $\partial\log w_i/\partial\eta_i = \mu_{\eta,i}/w_i$ (equals $1-w_i$ for logit; $\phi/\Phi$ for probit). This follows the paper’s MLE derivation; EL constraints supply the nonparametric part.
+
+## Analytical Jacobian ($A$ Matrix)
+
+We differentiate $F(\theta) = 0$ with respect to $\theta = (\beta, z, \lambda_x)$. Let:
+
+- $\eta_i = Z_i \beta$, $w_i = \text{linkinv}(\eta_i)$, $\mu_{\eta,i} = \dfrac{dw}{d\eta}(\eta_i)$, $\mu''_i = \dfrac{d^2 w}{d\eta^2}(\eta_i)$
+- $W = \text{plogis}(z)$, $\frac{dW}{dz} = W(1 - W)$
+- $\lambda_W = \frac{C}{1 - W}$, so $\frac{d\lambda_W}{dW} = \frac{C}{(1 - W)^2}$ and $\frac{d\lambda_W}{dz} = \frac{d\lambda_W}{dW} \cdot \frac{dW}{dz}$
+- $X_{\text{centered},i} = X_i - \mu_x$
+
+### Intermediate Derivatives
+
+- $s_i = \mu_{\eta,i}/w_i \Rightarrow \;\frac{ds_i}{d\eta_i} = (\mu'_{\eta,i}w_i - \mu_{\eta,i}^2)/w_i^2$ with $\mu'_{\eta,i} = \dfrac{d\mu_{\eta,i}}{d\eta_i} = \dfrac{d^2 w}{d\eta_i^2} \equiv \mu''_i$ (this is `d2mu.deta2(eta_i)` in code)
+- $D_i = 1 + \lambda_W (w_i - W) + X_{\text{centered},i}^T \lambda_x$
+  - $\frac{\partial D_i}{\partial \eta_i} = \lambda_W \mu_{\eta,i}$
+  - $\frac{\partial D_i}{\partial z} = \frac{\partial \lambda_W}{\partial z} \cdot (w_i - W) - \lambda_W \cdot \frac{dW}{dz}$
+  - $\frac{\partial D_i}{\partial \lambda_x} = X_{\text{centered},i}$
+
+Define $\text{inv}_i = 1 / D_i$ and the scalar term driving $\beta$‑equations:
+
+$$T_i = s_i - \lambda_W \mu_{\eta,i} \text{inv}_i,\quad s_i = \frac{\mu_{\eta,i}}{w_i}.$$
+
+### Compute Its Derivatives
+
+Using $\,\mu'_{\eta,i} = d\mu_{\eta,i}/d\eta_i = \mathrm{d2mu\,deta2}(\eta_i)$ and $\,dw_i/d\eta_i = \mu_{\eta,i}$,
+
+$$\frac{\partial s_i}{\partial \eta_i} = \frac{\mu'_{\eta,i} w_i - \mu_{\eta,i}^2}{w_i^2}.$$
+
+Also $\,\frac{\partial \text{inv}_i}{\partial \eta_i} = -\text{inv}_i^2 \cdot \frac{\partial D_i}{\partial \eta_i} = -\text{inv}_i^2 (\lambda_W \mu_{\eta,i})$. Therefore
+
+$$\frac{\partial T_i}{\partial \eta_i} = \frac{\mu'_{\eta,i} w_i - \mu_{\eta,i}^2}{w_i^2} - \lambda_W \mu'_{\eta,i} \text{inv}_i + \lambda_W^2 (\mu_{\eta,i})^2 \text{inv}_i^2.$$
+
+$$\frac{\partial T_i}{\partial z} = -\frac{\partial \lambda_W}{\partial z} \cdot \mu_{\eta,i} \text{inv}_i + \lambda_W \mu_{\eta,i} \text{inv}_i^2 \cdot \frac{\partial D_i}{\partial z}$$
+
+$$\frac{\partial T_i}{\partial \lambda_x} = \lambda_W \mu_{\eta,i} \text{inv}_i^2 \cdot X_{\text{centered},i}$$
+
+### Assemble Jacobian Blocks (with $a_i$ weights)
+
+**$J_{\beta\beta}$ ($K \times K$)**:
+$$J_{11} = \sum a_i Z_i^T \left[ \frac{\partial T_i}{\partial \eta_i} \right] Z_i$$
+
+**$J_{\beta z}$ ($K \times 1$)**:
+$$J_{12} = \sum a_i Z_i^T \left[ \frac{\partial T_i}{\partial z} \right]$$
+
+**$J_{\beta \lambda}$ ($K \times L$)**:
+$$J_{13} = \sum a_i Z_i^T \left[ \frac{\partial T_i}{\partial \lambda_x} \right]$$
+
+**$J_{z\beta}$ ($1 \times K$)**: derivative of W-equation w.r.t. $\beta$
+
+Equation: $G_W = \sum a_i (w_i - W) \text{inv}_i$
+
+$$\frac{\partial G_W}{\partial \eta_i} = a_i \left[ \mu_{\eta,i} \text{inv}_i - (w_i - W) \text{inv}_i^2 \left(\frac{\partial D_i}{\partial \eta_i}\right) \right] = a_i \left[ \mu_{\eta,i} \text{inv}_i - (w_i - W) \text{inv}_i^2 (\lambda_W \mu_{\eta,i}) \right]$$
+
+Then: $J_{21} = \sum \frac{\partial G_W}{\partial \eta_i} \cdot Z_i$
+
+**$J_{zz}$ ($1 \times 1$)**:
+$$\frac{\partial G_W}{\partial z} = \sum a_i \left[ -\frac{dW}{dz} \cdot \text{inv}_i - (w_i - W) \text{inv}_i^2 \cdot \frac{\partial D_i}{\partial z} \right]$$
+
+**$J_{z\lambda}$ ($1 \times L$)**:
+$$\frac{\partial G_W}{\partial \lambda_x} = \sum a_i \left[ -(w_i - W) \text{inv}_i^2 X_{\text{centered},i} \right]$$
+
+**$J_{\lambda\beta}$ ($L \times K$)**: constraints $H(\lambda): \sum a_i \text{inv}_i X_{\text{centered},i} = 0$
+
+$$\frac{\partial H}{\partial \eta_i} = -a_i \text{inv}_i^2 \frac{\partial D_i}{\partial \eta_i} X_{\text{centered},i} = -a_i \text{inv}_i^2 (\lambda_W \mu_{\eta,i}) X_{\text{centered},i}$$
+
+So, component‑wise $J_{31} = \sum_i a_i\,(-\lambda_W \mu_{\eta,i}\,\text{inv}_i^2)\, X_{\text{centered},i}^T Z_i$. In compact matrix form:
+
+$$
+J_{31} \;=\; X_{\text{centered}}^T \, \operatorname{diag}\big( a_i\,(-\lambda_W \mu_{\eta,i}\,\text{inv}_i^2) \big) \, Z,
+$$
+
+which matches the implementation `crossprod(X_centered, Z * as.numeric(respondent_weights * term31))` with `term31 = -dden_deta * inv_denom^2` and `dden_deta = \lambda_W\,\mu_{\eta}`.
+
+**$J_{\lambda z}$ ($L \times 1$)**:
+$$\frac{\partial H}{\partial z} = -\sum a_i \text{inv}_i^2 \frac{\partial D_i}{\partial z} X_{\text{centered},i}$$
+
+**$J_{\lambda\lambda}$ ($L \times L$)**:
+$$\frac{\partial H}{\partial \lambda_x} = -\sum a_i \text{inv}_i^2 X_{\text{centered},i} X_{\text{centered},i}^T$$
+
+These are exactly what `build_el_jacobian` computes (`src/engines/el/impl/el_jacobian.R`).
+
+With this $A = \frac{\partial F}{\partial \theta}$, we have the analytic Jacobian for logit and probit.
+
+### Why $A$ matters (solver and variance)
+
+- Newton–Raphson (as used by `nleqslv`) linearizes $F(\theta)$ near the current iterate: $F(\theta + \Delta) \approx F(\theta) + A(\theta)\,\Delta$. The update $\Delta$ solves $A\,\Delta = -F$, hence a high‑quality $A$ is critical for fast, stable convergence.
+- For variance, the delta method uses the same $A$: the asymptotic covariance of $\hat\theta$ is $A^{-1} B A^{-T}$, so inaccuracies in $A$ propagate to standard errors. We provide both analytic and numeric $A$ and an "auto" policy that prefers analytic unless diagnostics indicate poor agreement or conditioning.
+
+## Variance Estimation
+
+### Sandwich Variance for $\theta$ (Analytical Covariance)
+
+- Stack the estimating functions into a per‑unit score vector $U_i(\theta)$ matching $F(\theta)$:
+  - $U_{\beta,i} = a_i\, Z_i^T\,[\, s_i - \lambda_W \mu_{\eta,i}/D_i\,]$ (vector of length $K$)
+  - $U_{W,i} = a_i\, (w_i - W)/D_i$ (scalar)
+  - $U_{\lambda,i} = a_i\, (X_i - \mu_x)/D_i$ (vector of length $L$)
+  Concatenating these gives $U_i$ of length $K+1+L$.
+- **$A = \partial F/\partial\theta$** ($K+1+L$ square) comes from the analytic Jacobian (or numeric if necessary).
+- **$B = \operatorname{Var}(\sum_i U_i)$** is estimated as follows (note the totals scale):
+  - **IID**: Form an $N\times(K+1+L)$ matrix with $U_i$ on respondent rows and zeros on nonrespondent rows, then compute $\widehat B = U^T U$ (empirical second moment of totals).
+  - **Survey**: Treat each column of $U$ as a survey variable and compute the covariance of the totals using `survey::svytotal(...); vcov(...)`. This provides the design‑based $\widehat B$ for complex designs.
+- Asymptotic covariance: $\widehat{\operatorname{Var}}(\hat\theta) = A^{-1}\, \widehat B\, A^{-T}$. Both $A$ and $B$ are on the totals (sum) scale, so no extra $1/N$ factors are introduced; this matches the survey path where `vcov(svytotal)` returns covariances of totals.
+
+### Delta Variance for $\hat{Y}$
+
+- **Define the estimator functional** $g(\theta) = \hat{Y}(\theta)$: recompute $p_i^{\text{EL}}(\theta)$ from $\theta$ via $D_i(\theta)$, then $\hat{Y} = \sum p_i^{\text{EL}} Y_i / \sum p_i^{\text{EL}}$
+- **Gradient**: $\nabla g(\theta) \approx$ numeric gradient (`numDeriv::grad`)
+- **Variance**: $\text{Var}(\hat{Y}) \approx \nabla g \, A^{-1} B (A^{-1})^T \nabla g^T$
+
+Practical note on stability: when the unconditional response rate $W$ is low and auxiliaries are weak, $\lambda_W$ can be large and some denominators $D_i$ may approach zero, creating very large EL weights and a heavy‑tailed sampling distribution for $\hat Y$. In such regimes a first‑order (delta) approximation may understate across‑sample variability. Prefer `variance_method = "bootstrap"` or strengthen auxiliary constraints.
+
+Implementation: `compute_delta_variance()` in `src/engines/el/impl/el_variance.R` assembles $B$ from `U_matrix_resp` and the provided `compute_score_variance_func` (IID vs survey), computes $\nabla g$ numerically, and returns $\mathrm{Var}(\hat{Y})$ and the (scaled) sandwich vcov for $\beta$.
+
+### Solving Strategy and Initialization
+
+- Unknowns are $\theta = (\beta, z, \lambda_x)$ with $W = \mathrm{plogis}(z)$. We solve $F(\theta)=0$ using `nleqslv` with:
+  - Newton with analytic Jacobian when available;
+  - Perturbation‑based re‑starts that seed $z$ at $\mathrm{logit}(\text{observed response rate})$ to align with the binomial part; and
+  - A Broyden fallback without Jacobian if needed.
+- This reparameterization and initialization improve stability in strong NMAR settings. See `src/engines/el/impl/el_core.R`.
+
+### Jacobian Inversion Policy and Numerical Stability
+
+Let $A = \frac{\partial F}{\partial \theta}$ be the Jacobian of the estimating system. The delta variance uses $A^{-1}$. Numerically, we follow a principled, layered inversion policy implemented in `invert_jacobian()` (src/shared/numerics.R):
+
+1. **Condition number check**: Compute the condition number $\kappa(A)$. If $\kappa(A) \leq \kappa_{\text{thr}}$ (default $10^8$), attempt the plain inverse via `solve(A)`.
+
+2. **Ridge regularization**: If plain inversion fails or $\kappa(A)$ is large and `variance_ridge` is requested:
+   - Apply ridge: invert $A + \epsilon I$, where $\epsilon$ is either provided (numeric `variance_ridge`) or chosen adaptively as $\epsilon = \text{base} \times \sigma_{\max}(A)$ (default base $10^{-8}$).
+
+3. **Pseudoinverse fallback**: If `variance_pseudoinverse = TRUE`, compute the SVD-based pseudoinverse (MASS::ginv or explicit SVD with a tolerance), and use that.
+
+4. **Diagnostics**: The function returns the inverse and diagnostics: `invert_rule` $\in$ \{"plain","ridge","pinv"\}, `used_ridge`, `used_pinv`, and `kappa`.
+
+### Remarks
+
+- The minus sign in $-A^{-1}$ is conventional; it cancels in the sandwich $\nabla g \, A^{-1} B (A^{-1})^T \nabla g^T$.
+- Pseudoinverse and ridge are opt-in, with full diagnostics recorded. In ill-conditioned regimes (weak identification, trimming, etc.), these controlled stabilizers are standard practice and preferable to failing silently.
+
+- With finite weight trimming, the delta-variance is only approximate because $g(\theta)$ incorporates trimming; prefer `variance_method = "bootstrap"` in that case (as implemented).
+
+Example: If $\kappa(A) \approx 10^{10}$ and `variance_ridge = TRUE`, the inversion applies an adaptive ridge with $\epsilon \approx 10^{-8} \times \sigma_{\max}(A)$ and inverts $A + \epsilon I$. This typically reduces ill-conditioning and stabilizes both the Newton linear solve and the sandwich variance.
+
+## Survey Design Details
+
+We extend QLS’s methodology to complex surveys in two complementary ways:
+
+- **Estimating equations with base weights:** All sums already include the base weight $a_i$; set $a_i$ to the survey design weight for respondents. Totals $N_{\text{pop}}$ and $n_{\text{resp\_weighted}}=\sum a_i$ are computed from the design weights, which feeds into $\lambda_W = ((N_{\text{pop}}/n_{\text{resp\_weighted}}) - 1)/(1-W)$.
+
+- **Design‑based variance for totals:** Rather than assuming i.i.d. sampling, we estimate $B = \operatorname{Var}(\sum U_i)$ using the design:
+  - Create full‑design score variables by placing the respondent contributions $U_i$ on observed rows and zeros on nonrespondents.
+  - Compute survey totals `svytotal(~U, design)` and take their covariance via `vcov(...)` to obtain $\widehat B$.
+
+In short form, we compute
+
+\[
+\widehat B \;=\; \operatorname{vcov}\!\big(\,\texttt{svytotal}(\,\sim U,\; \texttt{design}\,)\,\big),
+\]
+
+where $U$ stacks the respondent score contributions and zeros elsewhere.
+
+This matches the paper’s guidance to adapt the likelihood/estimating framework to stratification or unequal‑probability sampling. Our approach keeps the EL structure and uses standard survey inference tools for the second‑order properties.
+
+Degrees‑of‑freedom: For confidence intervals, we use survey degrees‑of‑freedom (t‑quantiles) when a `survey.design` is supplied; otherwise, we use normal quantiles.
+
+## Scaling and Unscaling
+
+### Scaling (optional; `standardize=TRUE`)
+
+- **Compute a `nmar_scaling_recipe`**: for each column $j$ in $Z$ and $X$ (excluding intercept):
+  - $\text{mean}_j$, $\text{sd}_j$; if $\text{sd}_j \approx 0$, set $\text{sd}_j = 1$ to avoid blow-ups.
+- **Transform**:
+  - $Z_{\text{scaled}}[,j] = (Z_{\text{un}}[,j] - \text{mean}_j) / \text{sd}_j$
+  - $X_{\text{scaled}}[,j] = (X_{\text{un}}[,j] - \text{mean}_j) / \text{sd}_j$
+  - $\mu_{x,\text{scaled}}[j] = (\mu_{x,\text{un}}[j] - \text{mean}_j) / \text{sd}_j$
+
+### Unscaling $\beta$ and vcov
+
+- **Construct linear map** $D$ of size $K \times K$:
+  - For columns $j \neq$ intercept: $D[j,j] = 1/\text{sd}_j$
+  - For intercept: adjust to absorb centering: $D[\text{intercept},j] = -\text{mean}_j/\text{sd}_j$
+- **Transform**: $\beta_{\text{unscaled}} = D \beta_{\text{scaled}}$; $\text{vcov}_{\text{unscaled}} = D \, \text{vcov}_{\text{scaled}} \, D^T$
+
+Code: centralized in `src/shared/scaling.R`; engines call `validate_and_apply_nmar_scaling()` and `unscale_coefficients()`.
+
+## Bootstrap Variance
+
+- **IID**:
+  - Resample rows with replacement ($n$ to $n$), re-run estimator, compute $\text{var}$ of bootstrap $\hat{Y}$s; warn if many failures; return $\sqrt{\text{var}}$.
+- **Survey**:
+  - Convert to bootstrap replicate-weight design via `svrep::as_bootstrap_design`.
+  - For each replicate, re-construct a temporary design and run estimator; use `survey::svrVar` to compute variance of replicate estimates (with scale/rscales).
+
+Code: `src/shared/bootstrap.R` with S3 methods for `data.frame` and `survey.design`.
+
+## Families: Logit and Probit
+
+Both families implement: `linkinv(eta)`, `mu.eta(eta)`, `d2mu.deta2(eta)`, `score_eta(eta, delta)`.
+
+### Logit
+- `linkinv(eta) = stats::plogis(eta)`
+- `mu.eta(eta) = p(1 - p)`
+- `d2mu.deta2(eta) = p(1 - p)(1 - 2p)`
+- `score_eta(eta, delta) = mu.eta(eta)/p(eta) = 1 - p(eta)`
+
+### Probit
+- `linkinv(eta) = stats::pnorm(eta)`
+- `mu.eta(eta) = stats::dnorm(eta)`
+- `d2mu.deta2(eta) = -eta * stats::dnorm(eta)`
+- `score_eta(eta, delta) = mu.eta(eta)/p(eta) = phi(eta)/Phi(eta)` (computed via a stable log‑ratio)
+
+These definitions match the semiparametric MLE equations in Qin–Leung–Shao (2002), and the analytic Jacobian formulas above are valid for both links.
+
+### Score functions: IID vs Survey
+
+- The per‑unit score contributions $U_i$ have the same analytic form under IID and survey designs; the difference is the presence of base weights $a_i$ multiplying each contribution, and the way we estimate the covariance of totals $B$.
+- IID case: $a_i = 1$, and $\widehat B$ is the empirical crossproduct of per‑unit scores (with zeros for nonrespondents).
+- Survey case: $a_i$ equals the design weight; $\widehat B$ is obtained from `svytotal`/`vcov` so that clustering, stratification, and unequal probabilities are reflected in the covariance of the score totals.
+
+### Choosing Analytic vs Numeric Jacobian ("auto")
+
+When both analytic and numeric versions of $A$ are available, the default selection is "auto":
+
+- **Prefer analytic** $A$ if available, unless quality gates suggest otherwise.
+- **Override to numeric** if the relative Frobenius difference between analytic and numeric exceeds a small threshold (default $10^{-3}$), or if the condition number of the analytic $A$ is much worse ($\kappa_{\text{analytic}} > 10 \times \kappa_{\text{numeric}}$).
+- **Record in diagnostics** which source was used (`jacobian_source`) and why (`jacobian_auto_rule` $\in$ \{"default","rel_diff_high","kappa_ratio_high"\}).
+
+This balances accuracy/speed (analytic) with numerical robustness (numeric) and follows best practices for nonlinear estimating systems.
+
+## End-to-End Mapping to Code
+
+- Engine: `el_engine(..., family, standardize, trim_cap, variance_method, ...)` in `src/engines/el/engine.R`
+  - Validated by `validate_nmar_engine_el()`.
+  - Family objects: `logit_family()`, `probit_family()` in `src/shared/families.R`.
+- Dispatch: `run_engine.nmar_engine_el(...)` in `src/engines/el/run.R` adapts the formula and forwards arguments to `el()` methods.
+- Methods:
+  - `el.data.frame()` / `el.survey.design()` in `src/engines/el/impl/el_dataframe.R` and `el_survey.R` prepare inputs, call `el_estimator_core()`, and wrap results.
+- EL Core: `el_estimator_core(...)` in `src/engines/el/impl/el_core.R` runs:
+  - Scaling via `validate_and_apply_nmar_scaling()`
+  - Build equations via `build_equation_system(family, ...)`
+  - Solve with `nleqslv` (multi-start fallback and Broyden if needed)
+  - Compute EL weights, Y_hat, diagnostics, constraints
+  - Variance (delta or bootstrap), with A via `build_el_jacobian(family, ...)` and B via `compute_score_variance_func` (IID vs survey), grad_g via `numDeriv::grad`
+  - Unscale coefficients and vcov if needed
+- Jacobian: `build_el_jacobian(...)` in `src/engines/el/impl/el_jacobian.R` returns analytic A whenever family supplies `d2mu.deta2` (logit, probit).
+- Variance: `src/engines/el/impl/el_variance.R` assembles B and computes delta variance; bootstrap variance in `src/shared/bootstrap.R`.
+- Scaling: `src/shared/scaling.R` (class ‘nmar_scaling_recipe’, constructor, validator, create/apply/prepare, unscale).
+- S3 Surface:
+  - Parent `nmar_result` S3 methods in `src/shared/s3_parent.R` (`estimate`, `vcov`, `confint`, `tidy`, `glance`, `plot`, `autoplot`).
+  - EL-specific S3 methods in `src/engines/el/s3.R` (`print`/`summary` and others for `nmar_result_el`).
+
+## Symbol-to-Code Mapping
+
+| Symbol / Concept        | Meaning                                                | Code identifiers / where used |
+|-------------------------|--------------------------------------------------------|--------------------------------|
+| $i$                     | Respondent index                                       | rows of respondent data        |
+| $a_i$                   | Base weight (IID: 1; survey: design weight)           | respondent_weights             |
+| $Z_i$                   | Response design row                                    | response_model_matrix_*        |
+| $X_i$                   | Auxiliary design row (no intercept)                    | auxiliary_matrix_*             |
+| $\mu_x$                 | Population auxiliary means (named)                     | mu_x_unscaled / mu_x_scaled    |
+| $\beta$                 | Response coefficients                                  | beta_hat_scaled / unscaled     |
+| $\eta_i$                | Linear predictor $Z_i \beta$                           | eta_i_hat                      |
+| $w_i$                   | Probability = linkinv($\eta_i$)                        | w_i_hat                        |
+| $\mu_{\eta,i}$          | $dp/d\eta$ = mu.eta($\eta_i$)                          | m_i                            |
+| $\mu''_i$               | $d^2p/d\eta^2$ = d2mu.deta2($\eta_i$)                  | m2_i                           |
+| $W$                     | Target probability scalar                              | W_hat                          |
+| $z$                     | logit($W$)                                             | z from solution vector          |
+| $\lambda_W$             | Multiplier for $W$-constraint                          | lambda_W (derived)             |
+| $\lambda_x$             | Multipliers for aux constraints                        | lambda_hat                     |
+| $D_i$                   | $1 + \lambda_W (w_i - W) + (X_i-\mu_x)^T \lambda_x$    | denominator_hat                |
+| $p_i^{\text{EL}}$       | EL weight for respondent $i$ ($\propto a_i / D_i$)     | p_i (after trimming)           |
+| $\hat{Y}$               | Estimator $\sum p_i^{\text{EL}} Y_i / \sum p_i^{\text{EL}}$ | y_hat                     |
+| $F(\theta)$             | Estimating system                                      | build_equation_system          |
+| $A$                     | $\partial F/\partial \theta$ (Jacobian)               | build_el_jacobian              |
+| $B$                     | Covariance of scores                                   | compute_score_variance_func    |
+| $g(\theta)$             | Functional for mean                                    | build_mean_fn                  |
+| $\text{Var}(\hat{Y})$   | Delta: $\nabla g \, A^{-1} B (A^{-1})^T \nabla g^T$    | compute_delta_variance         |
+| Scaling recipe          | Per-column \{mean, sd\}                                | nmar_scaling_recipe            |
+
+
+## Worked Example: Logit + One Auxiliary Mean
+
+Consider a simple NMAR setup with a single auxiliary X whose population mean is known.
+
+- Data: outcome `Y_miss` (NA for nonrespondents), auxiliary `X`.
+- Response model (logit): $w_i = \mathrm{plogis}(\beta_0 + \beta_1\,Y_i)$ on respondents ($R_i=1$).
+- Auxiliary mean: $\mu_x$ known (e.g., `mean(X)` from an external source).
+
+Step 1 — Build design matrices and moments
+
+- $Z_i = [1,\;Y_i]$ from `model.matrix(~ Y_miss, data=respondents)`.
+- $X_i$ from `model.matrix(~ X - 1, data=respondents)`; $\,\mu_x$ is a scalar.
+- Optionally standardize $Z$ and $X$ and transform $\mu_x$ accordingly (we recommend `standardize=TRUE`).
+
+Step 2 — Define EL denominator and weights
+
+- $D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T \, \lambda_x$.
+- Respondent EL weights are proportional to $1/D_i$ (times base weights $a_i$, here 1).
+- The mean estimator is $\hat{Y} = \sum p_i^{\mathrm{EL}} Y_i / \sum p_i^{\mathrm{EL}}$.
+
+Step 3 — Estimating equations
+
+- Score term (logit): $s_i = \mu_{\eta,i}/w_i = 1 - w_i$ with $\mu_{\eta,i} = w_i(1-w_i)$.
+- Beta equations (2 unknowns): $\sum Z_i\,[s_i - \lambda_W\,\mu_{\eta,i}/D_i] = 0$.
+- W equation: $\sum (w_i - W)/D_i = 0$.
+- Auxiliary: $\sum (X_i - \mu_x)/D_i = 0$.
+- $\lambda_W$ is determined by $C = (N_{\text{pop}}/n_{\text{resp\_weighted}}) - 1$ via $\lambda_W = C/(1 - W)$ (for IID data, $n_{\text{resp\_weighted}} = n$).
+
+Step 4 — Solve and compute $\hat{Y}$
+
+- Unknowns: $(\beta_0, \beta_1, z, \lambda_x)$ with $W=\mathrm{plogis}(z)$.
+- Solve $F(\theta)=0$ using Newton/Broyden (with analytic Jacobian).
+- At the solution, compute $D_i$, normalize $p_i^{\mathrm{EL}} \propto 1/D_i$, and return $\hat{Y}$ and diagnostics.
+
+Step 5 — Variance
+
+- Assemble $A=\partial F/\partial\theta$ analytically; assemble $B$ from score totals (IID crossproduct or survey `svytotal` vcov).
+- Compute $\mathrm{Var}(\hat{Y})$ via the delta method: $\nabla g\,A^{-1} B A^{-T}\,\nabla g^T$.
+
+How to run (code)
+
+```
+eng <- el_engine(auxiliary_means = c(X = mu_x), family = "logit", standardize = TRUE)
+res <- nmar(
+  formula = list(outcome = ~ Y_miss, covariates_outcome = ~ X, covariates_missingness = ~ NULL),
+  data = df,
+  engine = eng
+)
+estimate(res); confint(res)
+```
+
+Where it maps in code
+
+- Equations: `src/engines/el/impl/el_equations.R`
+- Jacobian: `src/engines/el/impl/el_jacobian.R`
+- Core solve + weights + variance: `src/engines/el/impl/el_core.R`, `src/engines/el/impl/el_variance.R`
+- Scaling: `src/shared/scaling.R`
+
+## Worked Example: Probit + One Auxiliary Mean
+
+Same setup as above, but with a probit response model.
+
+- Response model (probit): $w_i = \Phi(\beta_0 + \beta_1\,Y_i)$.
+- Score term: $s_i = \mu_{\eta,i}/w_i = \phi(\eta_i)/\Phi(\eta_i)$ (computed stably via log‑ratio in code).
+- All equations and the denominator $D_i$ are as in the logit example; only $w_i$, $\mu_{\eta,i}$, and $s_i$ change by family.
+
+How to run (code)
+
+```
+eng <- el_engine(auxiliary_means = c(X = mu_x), family = "probit", standardize = TRUE)
+res <- nmar(
+  formula = list(outcome = ~ Y_miss, covariates_outcome = ~ X, covariates_missingness = ~ NULL),
+  data = df,
+  engine = eng
+)
+estimate(res); confint(res)
+```
+
+Notes
+
+- The analytic Jacobian is valid for probit through $\mu_{\eta,i}=\phi(\eta_i)$ and $\mu'_{\eta,i}=-\eta_i\phi(\eta_i)$.
+- We clip $w_i$ away from $\{0,1\}$ when forming $\mu/w$ to ensure numerical stability.
+
+## Debugging Tips
+
+- Convergence: `diagnostics$max_equation_residual` should be tiny (e.g., < 1e-5) at the solution.
+- Constraints: `constraint_sum_W` and `constraint_sum_aux` should be near 0 without trimming; small deviations may occur with trimming.
+- Denominator: `min_denominator` > 0; negative or near‑zero values indicate inconsistent auxiliary targets or a bad starting point.
+- Jacobian/inversion: inspect `jacobian_condition_number`, `jacobian_source`, and `invert_rule` ("plain", "ridge", "pinv"). Consider `variance_ridge=TRUE` or `variance_pseudoinverse=TRUE` if ill‑conditioned.
+- Variance choice: with strong NMAR or weight trimming, prefer `variance_method="bootstrap"`.
+- Survey designs: ensure design weights and known $N_{\text{pop}}$ are correct; `confint()` uses survey df for t‑quantiles when applicable.
+- Conventions: normalization $\sum_i p_i^{\text{EL}}$ is implicit in constraints and applied explicitly when forming $\hat Y$.
+
+
+## Generalization and Stability
+
+### Model Dimensions
+- **Response model dimensions**: arbitrary $K = \text{ncol}(Z)$; all sums and crossproducts generalize automatically
+- **Auxiliary constraints**: arbitrary $L = \text{ncol}(X)$; $\lambda_x \in \mathbb{R}^L$ with constraint sums by columns
+
+### Survey Design
+- **Base weights** enter $a_i$ and totals $N_{\text{pop}}$ and $n_{\text{resp\_weighted}}$; score covariance uses survey design's replication for $B$.
+- **CI computation** uses degrees-of-freedom and $t$-quantiles when `is_survey=TRUE`.
+
+Example (survey; not evaluated during build):
+
+```r
+# \dontshow{ if (!requireNamespace("survey", quietly = TRUE)) stop("survey not installed") }
+# \dontrun{
+library(survey)
+dclus1 <- svydesign(id = ~dnum, weights = ~pw, data = apiclus1, fpc = ~fpc)
+pop_mean_ell <- mean(apiclus1$ell)
+eng <- el_engine(auxiliary_means = c(ell = pop_mean_ell))
+fit <- nmar(
+  formula = list(outcome = ~ api00_miss, covariates_outcome = ~ ell, covariates_missingness = ~ NULL),
+  data = dclus1,
+  engine = eng
+)
+confint(fit)  # uses t-quantiles with survey df
+# }
+```
+
+### Numerical Safeguards
+- Bounds: cap $\eta$ at $\pm 50$; bound $W$ to $(\epsilon, 1 - \epsilon)$; clip $p$ away from $\{0,1\}$ when computing $\mu/p$; lower bound $D_i$ by $\epsilon$
+- **Trimming**: optional `trim_cap` for $p_i^{\text{EL}}$ with mass redistribution; prefer bootstrap variance when trimming is used
+- **Inversion**: condition-aware $A^{-1}$ with optional ridge/pseudoinverse fallbacks and full diagnostics, as described above
+- **Eta cap option**: you can adjust the $\eta$ cap via `options(nmar.eta_cap = 60)` (default is 50) to suit your data scale and link
+
+## References
+
+- Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200. doi:10.1198/016214502753479338
+
+## Appendix: EL Engine API Reference (User-Facing)
+
+This appendix summarizes the key options of the EL engine (constructor: `el_engine()`), their defaults, and recommended usage.
+
+- **family** (default: "logit")
+  - Values: "logit", "probit", or a family object (list with `name`, `linkinv`, `mu.eta`, `d2mu.deta2`, `score_eta`).
+  - Notes: We implement `logit_family()` and `probit_family()`. Both use the log‑likelihood score `score_eta(eta, delta) = mu.eta(eta)/linkinv(eta)` (for respondents), i.e., $\partial\log p/\partial\eta$. This matches the paper’s semiparametric MLE equations and keeps the analytic Jacobian family‑agnostic.
+
+- **standardize** (default: TRUE)
+  - Standardize $Z$/$X$ (and $\mu_x$) using a `nmar_scaling_recipe` for numerical stability. Coefficients and vcov are unscaled after solving.
+
+- **trim_cap** (default: Inf)
+  - Caps EL weights and redistributes mass. Improves robustness when extreme weights arise. Prefer `variance_method = "bootstrap"` when trimming is finite.
+
+- **variance_method** (default: "delta")
+  - "delta": analytic delta method variance via the sandwich $A^{-1} B A^{-T}$ and numeric $\nabla g$.
+  - "bootstrap": IID resampling or survey replicate weights via `svrep`; often preferred with trimming or near-boundary cases.
+
+- variance_jacobian (default: "auto")
+  - Values: "auto", "analytic", "numeric".
+  - "auto": prefer analytic if available; fall back to numeric when rel_diff > 1e-3 or kappa_analytic > 10 * kappa_numeric. Records `jacobian_source` and `jacobian_auto_rule` ("default", "rel_diff_high", "kappa_ratio_high").
+  - "analytic": force analytic A.
+  - "numeric": force numeric A.
+
+- solver_jacobian (default: "auto")
+  - Values: "auto", "analytic", "none".
+  - "auto"/"analytic": pass analytic jacobian to Newton if available; otherwise, Newton without jac + Broyden fallback.
+  - "none": never pass a jacobian; rely on Newton w/o jac and Broyden fallback.
+
+- variance_pseudoinverse (default: FALSE)
+  - If TRUE, allow SVD pseudoinverse when A is singular/ill-conditioned. Diagnostics: `used_pseudoinverse = TRUE`, `invert_rule = "pinv"`.
+
+- variance_ridge (default: FALSE)
+  - If TRUE, apply adaptive ridge epsilon = base * sigma_max(A) (base=1e-8 or `ridge_scale`). If numeric, use as epsilon. Diagnostics: `used_ridge = TRUE`, `invert_rule = "ridge"`, `ridge_epsilon`.
+  - Helpful when A is borderline ill-conditioned but not rank-deficient.
+
+- bootstrap_reps (default: 500)
+  - Number of bootstrap replicates for `variance_method = "bootstrap"`. Increase for stability, decrease for speed.
+
+- control (default: list())
+  - Passed to `nleqslv` (e.g., `ftol`, `xtol`, `maxit`). Our defaults are `ftol = 1e-10`, `xtol = 1e-10`, `maxit = 100`, with a Broyden fallback when needed.
+
+### Diagnostics (glance/print)
+
+- `jacobian_source`: "analytic" or "numeric" used for variance (A).
+- `jacobian_rel_diff`: relative Frobenius difference between analytic and numeric A (if both computed).
+- `jacobian_auto_rule`: reason for overriding analytic ("default", "rel_diff_high", "kappa_ratio_high").
+- `jacobian_condition_number`: kappa(A) used for variance.
+- `invert_rule`: "plain", "ridge", or "pinv" used for A^{-1}.
+- `used_pseudoinverse`, `used_ridge`: inversion flags.
+
+### Recommended settings
+
+- Default: `variance_method = "delta"`, `variance_jacobian = "auto"`, `solver_jacobian = "auto"`, `standardize = TRUE`.
+- With trimming or suspected weak identification: prefer `variance_method = "bootstrap"`.
+- If A is borderline ill-conditioned: set `variance_ridge = TRUE` (adaptive ridge) or `variance_pseudoinverse = TRUE` (SVD pinv). Inspect diagnostics.
