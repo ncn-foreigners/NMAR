@@ -37,7 +37,7 @@ jobs:
 
       - name: Run tests with devtools
         run: |
-          Rscript -e "devtools::test(stop_on_failure = TRUE, reporter = 'fail')"
+          Rscript -e "devtools::test(stop_on_failure = TRUE, reporter = 'summary')"
 
       - name: Build package tarball
         id: build
