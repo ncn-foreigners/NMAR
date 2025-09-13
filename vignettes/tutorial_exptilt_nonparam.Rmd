@@ -32,17 +32,18 @@ voting_data_example <- data.frame(
 ```
 
 ```{r}
-em_formula <- list(
-  outcome = ~ NULL, #TODO - This part is useless
-  covariates_outcome = ~ Gender, 
-  covariates_missingness = ~ Age_group 
-)
+# em_formula <- list(
+#   outcome = ~ NULL, #TODO - This part is useless
+#   covariates_outcome = ~ Gender, 
+#   covariates_missingness = ~ Age_group 
+# )
+em_formula <- Voted_A + Voted_B + Other ~ Gender
 ```
 
 ```{r}
 # Exptilt Nonparam engine configuration
 np_em_config <- exptilt_nonparam(
-  outcome_cols = c("Voted_A", "Voted_B", "Other"), 
+  # outcome_cols = c("Voted_A", "Voted_B", "Other"), 
   refusal_col = "Refusal",                           
   max_iter = 100,
   tol_value = 1e-6
@@ -51,7 +52,7 @@ np_em_config <- exptilt_nonparam(
 ```
 
 ```{r}
-results_em_np <- nmar(formula = em_formula, data = voting_data_example, engine = np_em_config)
+results_em_np <- nmar(formula = em_formula, data = voting_data_example, engine = np_em_config,response_predictors=c('Age_group'))
 ```
 ```{r}
 

@@ -1,8 +1,11 @@
 #' @exportS3Method NULL
-run_engine.nmar_engine_exptilt_nonparam <- function(engine, formula, data) {
+run_engine.nmar_engine_exptilt_nonparam <- function(engine, formula, data,response_predictors) {
 
-  common_covariates_from_formula <- all.vars(formula$covariates_outcome)
-  instrumental_covariates_from_formula <- all.vars(formula$covariates_missingness)
+  # common_covariates_from_formula <- all.vars(formula$covariates_outcome)
+  # instrumental_covariates_from_formula <- all.vars(formula$covariates_missingness)
+  outcome_cols <- all.vars(formula[[2]])
+  common_covariates_from_formula <- all.vars(formula[[3]])
+  instrumental_covariates_from_formula <- response_predictors
 
 
   if (length(common_covariates_from_formula) == 0) {
@@ -19,7 +22,8 @@ run_engine.nmar_engine_exptilt_nonparam <- function(engine, formula, data) {
 
   model_results <- run_em_nmar_nonparametric(
     data = data,
-    outcome_cols = engine$outcome_cols,
+    # outcome_cols = engine$outcome_cols,
+    outcome_cols = outcome_cols,
     refusal_col = engine$refusal_col,
     common_covariates = common_covariates_from_formula,
     instrumental_covariates = instrumental_covariates_used,

@@ -1,8 +1,11 @@
 #' @exportS3Method NULL
-run_engine.nmar_engine_exptilt <- function(engine, formula, data) {
-  outcome_variable <- all.vars(formula$outcome)
-  covariates_for_outcome <- all.vars(formula$covariates_outcome)
-  covariates_for_missingness <- all.vars(formula$covariates_missingness)
+run_engine.nmar_engine_exptilt <- function(engine, formula, data,response_predictors) {
+  # outcome_variable <- all.vars(formula$outcome)
+  # covariates_for_outcome <- all.vars(formula$covariates_outcome)
+  # covariates_for_missingness <- all.vars(formula$covariates_missingness)
+  outcome_variable <- as.vector(all.vars(formula[[2]]))
+  covariates_for_outcome <- as.vector(all.vars(formula[[3]]))
+  covariates_for_missingness <- response_predictors
 
   model <- structure(
     list(

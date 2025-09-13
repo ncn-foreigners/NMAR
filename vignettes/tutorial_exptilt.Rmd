@@ -75,12 +75,13 @@ exptilt_config <- exptilt(
   max_iter = 100
 )
 
-formula <- list(
-  outcome = ~ Y,
-  covariates_outcome = ~ x1+x2,
-  covariates_missingness = ~ NULL
-)
-res <- nmar(formula=formula,data=x,engine=exptilt_config)
+# formula <- list(
+#   outcome = ~ Y,
+#   covariates_outcome = ~ x1+x2,
+#   covariates_missingness = ~ NULL
+# )
+formula = Y ~ x1 + x2
+res <- nmar(formula=formula,data=x,engine=exptilt_config,response_predictors=NULL)
 ```
 
 ```{r}

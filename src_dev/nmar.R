@@ -63,10 +63,12 @@
 #' # the example cannot be fully executable without the full package.
 #' # However, this demonstrates the intended usage pattern.
 #' # For a real scenario, you would expect 'res' to contain estimation results.
-nmar <- function(formula, data, engine) {
-  outcome_variable <- all.vars(formula$outcome)
-  covariates_for_outcome <- all.vars(formula$covariates_outcome)
-  covariates_for_missingness <- all.vars(formula$covariates_missingness)
+nmar <- function(formula, data, engine,response_predictors=NULL) {
+  stopifnot(inherits(formula, "formula"))
+  stopifnot(inherits(engine, "nmar_engine"))
+
+  outcome_variable <- as.vector(all.vars(formula[[2]]))
+  covariates_for_outcome <- as.vector(all.vars(formula[[3]]))
 
   # validate_nmar(
   #   data = data,
@@ -75,16 +77,14 @@ nmar <- function(formula, data, engine) {
   #   covariates_for_missingness = covariates_for_missingness
   # )
 
-  if (!inherits(engine, "nmar_engine")) {
-    stop("Engine must be created by an engine constructor function")
-  }
-  res <- run_engine(engine, formula, data)
+
+  res <- run_engine(engine, formula, data,response_predictors)
   # validate_nmar_result(res)
 
   return(res)
 
 }
 
-run_engine <- function(engine, formula, data) {
+run_engine <- function(engine, formula, data,response_predictors) {
   UseMethod("run_engine")
 }
