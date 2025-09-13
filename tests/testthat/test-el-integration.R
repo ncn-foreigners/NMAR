@@ -11,7 +11,7 @@ test_that("EL engine runs and returns expected structure (data.frame)", {
   dat$Y_miss[!R] <- NA
 
   eng <- el_engine(variance_method = "delta", auxiliary_means = c(X = 0))
-  fml <- list(outcome = ~Y_miss, covariates_outcome = ~X, covariates_missingness = ~NULL)
+  fml <- Y_miss ~ X
   res <- nmar(formula = fml, data = dat, engine = eng)
 
   expect_s3_class(res, "nmar_result_el")

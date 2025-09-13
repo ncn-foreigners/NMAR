@@ -24,7 +24,7 @@ test_that("trimming caps weights and sets trimmed_fraction > 0", {
   df <- data.frame(Y_miss = Y, X = X)
   df[!R, "Y_miss"] <- NA_real_
   fit <- nmar(
-    formula = list(outcome = ~Y_miss, covariates_outcome = ~X, covariates_missingness = ~NULL),
+    formula = Y_miss ~ X,
     data = df,
     engine = el_engine(auxiliary_means = c(X = 0), trim_cap = 2, variance_method = "bootstrap", bootstrap_reps = 10, suppress_warnings = TRUE)
   )

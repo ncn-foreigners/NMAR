@@ -9,7 +9,7 @@ test_that("EL engine runs with probit family (data.frame)", {
   df[!R, "Y_miss"] <- NA_real_
 
   eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "delta", standardize = FALSE, family = "probit")
-  fml <- list(outcome = ~Y_miss, covariates_outcome = ~X, covariates_missingness = ~NULL)
+  fml <- Y_miss ~ X
   fit <- nmar(formula = fml, data = df, engine = eng)
   expect_true(fit$converged)
   expect_true(is.finite(fit$y_hat))
@@ -27,7 +27,7 @@ test_that("Estimating equations solved for probit family (max residual small)", 
   df[!R, "Y_miss"] <- NA_real_
 
   fit <- nmar(
-    formula = list(outcome = ~Y_miss, covariates_outcome = ~X, covariates_missingness = ~NULL),
+    formula = Y_miss ~ X,
     data = df,
     engine = el_engine(auxiliary_means = c(X = 0), variance_method = "delta", family = "probit")
   )

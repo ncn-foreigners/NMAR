@@ -9,9 +9,10 @@ test_that("constraint sums are near zero at solution (no trimming)", {
   df$Y_miss[!R] <- NA_real_
 
   fit <- nmar(
-    formula = list(outcome = ~Y_miss, covariates_outcome = ~X, covariates_missingness = ~NULL),
+    formula = Y_miss ~ X,
     data = df,
     engine = el_engine(auxiliary_means = c(X = 0), trim_cap = Inf, variance_method = "delta", standardize = FALSE)
+
   )
   expect_true(fit$converged)
   # Reconstruct components to compute raw constraint sums from stored diagnostics inputs

@@ -8,7 +8,7 @@ test_that("tidy/glance produce expected shapes", {
   df <- data.frame(Y_miss = Y, X = X)
   df[!R, "Y_miss"] <- NA_real_
   eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "delta")
-  fml <- list(outcome = ~Y_miss, covariates_outcome = ~X, covariates_missingness = ~NULL)
+  fml <- Y_miss ~ X
   fit <- nmar(formula = fml, data = df, engine = eng)
 
   td <- tidy(fit)
@@ -29,7 +29,7 @@ test_that("plot/autoplot run (skip ggplot2 if missing)", {
   df <- data.frame(Y_miss = Y, X = X)
   df[!R, "Y_miss"] <- NA_real_
   eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "delta")
-  fml <- list(outcome = ~Y_miss, covariates_outcome = ~X, covariates_missingness = ~NULL)
+  fml <- Y_miss ~ X
   fit <- nmar(formula = fml, data = df, engine = eng)
 
   # Open a temporary PDF device to avoid creating Rplots.pdf in the test dir

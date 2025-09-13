@@ -11,7 +11,7 @@ test_that("analytic Jacobian matches numeric Jacobian for probit (standardize=FA
 
   # Fit once to get parameter estimates (probit family)
   fit <- nmar(
-    formula = list(outcome = ~Y_miss, covariates_outcome = ~X, covariates_missingness = ~NULL),
+    formula = Y_miss ~ X,
     data = df,
     engine = el_engine(auxiliary_means = c(X = 0), standardize = FALSE, variance_method = "delta", family = "probit")
   )
