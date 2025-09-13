@@ -2,6 +2,7 @@
 #' @importFrom stats as.formula dnorm dgamma dlnorm dweibull dexp dt dcauchy sd setNames
 
 generate_conditional_density <- function(model) {
+
   data_df <- data.frame(y = model$y_1, model$x_for_y_obs)
   covar_names <- setdiff(colnames(data_df), "y")
   n_covars <- length(covar_names)
@@ -129,7 +130,7 @@ generate_conditional_density <- function(model) {
         lower_vec <- dist_list[[d]]$lower(start_list)
       }
       fit_try <- try(
-        mle2(
+        bbmle::mle2(
           dist_list[[d]]$formula(lin_pred_str),
           start = start_list,
           data = data_df,
@@ -164,7 +165,7 @@ generate_conditional_density <- function(model) {
     if (!is.null(dist_list[[chosen_dist]]$lower)) {
       lower_vec <- dist_list[[chosen_dist]]$lower(start_list)
     }
-    .model <- mle2(
+    .model <- bbmle::mle2(
       dist_list[[chosen_dist]]$formula(lin_pred_str),
       start = start_list,
       data = data_df,
