@@ -110,7 +110,9 @@ jobs:
 #TODO discuss whether it is necessary
       # - name: Run custom build script (src/ -> R/)
       #   run: Rscript build_r_folder.R
-
+      - name: Change branch
+        run: |
+          git checkout -B package-pre_prod
       - name: Remove dev files
         run: |
           rm -rf src/
@@ -128,7 +130,6 @@ jobs:
 
       - name: Commit and push to production branch
         run: |
-          git checkout -B package-pre_prod
           git add -f .gitignore
           git add .
           git commit -m "Production release from CI: ${{ github.sha }}" || echo "No changes to commit"
