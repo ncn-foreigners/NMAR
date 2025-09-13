@@ -31,11 +31,9 @@ jobs:
       - name: Run custom build script (src/ -> R/)
         run: Rscript build_r_folder.R
 
-      - name: Build package tarball
-        id: build
+      - name: Run devtools::document()
         run: |
-          PKG_NAME=$(R CMD build . --no-build-vignettes  | tail -1 | awk '{print $NF}')
-          echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
+          Rscript -e 'devtools::document()'
 
       - name: Run tests with devtools
         run: |
@@ -46,6 +44,11 @@ jobs:
         env:
           NOT_CRAN: "true"
 
+      - name: Build package tarball
+        id: build
+        run: |
+          PKG_NAME=$(R CMD build . --no-build-vignettes  | tail -1 | awk '{print $NF}')
+          echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v4
         with:
