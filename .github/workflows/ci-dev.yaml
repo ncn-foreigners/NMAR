@@ -116,11 +116,15 @@ jobs:
           rm -rf src/
           rm -f build_r_folder.R
           echo "Dev files removed"
-
-      - name: Setup Git config
+      - name: Switch to production gitignore
         run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
+          if [ -f ".gitignore-prod" ]; then
+            cp .gitignore-prod .gitignore
+            echo "Switched to production gitignore"
+          else
+            echo "Error: .gitignore-prod not found!"
+            exit 1
+          fi
 
       - name: Commit and push to production branch
         run: |
