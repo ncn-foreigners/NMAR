@@ -150,10 +150,8 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Zapewnij, że wszystkie zmiany są dodane, łącznie z usunięciami
           git add -A
 
-          # Stwórz nowy, odizolowany commit, a następnie nadpisz nim branch docelowy
           git checkout --orphan package-pre_prod_tmp
           git add -A
           git commit -m "Production release from CI: ${{ github.sha }}"
