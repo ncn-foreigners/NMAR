@@ -1,5 +1,5 @@
 estim_var.nmar_exptilt <- function(model){
-  # Pobierz rodzinę na początku funkcji
+  # Pobierz rodzinę
   family <- if (model$prob_model_type == "logit") {
     logit_family()
   } else if (model$prob_model_type == "probit") {
@@ -8,25 +8,23 @@ estim_var.nmar_exptilt <- function(model){
     stop("Unsupported prob_model_type: ", model$prob_model_type)
   }
 
-  s_values_unobs <- s_function(model,0, model$x_1[,model$cols_delta],theta)
+  s_values_unobs <- s_function(model,0, model$x_1[,model$cols_delta],model$theta)
 
   inv_C <- 1 / as.vector(model$C_matrix_nieobs)
   common_term <- model$O_matrix_nieobs * model$f_matrix_nieobs * rep(inv_C, each = nrow(model$O_matrix_nieobs))
 
   denominator <- rowSums(common_term)
 
-
   weights <- common_term / denominator #TODO test if dim is matching
 
-  # ZMIANA: Oblicz prawdopodobieństwa używając rodziny
+  # Zastąp pi_func rodziną
   x_mat_obs <- as.matrix(model$x_1[, model$cols_delta])
-  x_aug_obs <- cbind(1, x_mat_obs, model$x_1[, model$col_y])
+  x_aug_obs <- cbind(1, x_mat_obs, model$y_1)
   eta_obs <- as.vector(x_aug_obs %*% model$theta)
   p <- family$linkinv(eta_obs)
 
   #it is ok if Var is close to 0
   # cat("Mean of p:", mean(p), "Variance of p:", var(p), "\n")
-
 
   #density num of coefs refers to density f.e beta, intercept, sigma
   # S1=matrix(0, nrow=nrow(model$x_1), ncol=model$density_num_of_coefs)
@@ -42,12 +40,8 @@ estim_var.nmar_exptilt <- function(model){
   # browser()
 
   calculate_FI21 <- function() {
-
-
     n_unobs <- nrow(model$x_0)
-
     n_obs <- nrow(model$x_1)
-
 
     num_phi_params <- length(model$theta)
     num_gamma_params <- model$density_num_of_coefs
@@ -56,34 +50,26 @@ estim_var.nmar_exptilt <- function(model){
 
     #TODO: optimize
     for (i in 1:n_unobs) {
-
       x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
       x_i_gamma <- model$x_for_y_unobs[i, , drop = FALSE]
-
 
       x_i_delta_rep <- x_i_delta[rep(1, n_obs), , drop = FALSE]
 
       s_ij_matrix <- s_function(model, delta = 0, x = x_i_delta_rep, theta = model$theta)
 
-
       s1_ij_matrix <- t(sapply(1:n_obs, function(j) {
         model$density_fun_gradient(model$y_1[j], x_i_gamma)
       }))
 
-
       w_i <- weights[i, ]
-
 
       # browser()
       s_bar_0i <- colSums(w_i * s_ij_matrix)
 
-
       s_dev_matrix <- s_ij_matrix - matrix(s_bar_0i, nrow = n_obs, ncol = num_phi_params, byrow = TRUE)
-
 
       # t(A) %*% (w * B) oblicza sum_j(w_j * A_j^T * B_j)
       cov_i <- t(s_dev_matrix) %*% (w_i * s1_ij_matrix)
-
 
       FI21 <- FI21 + cov_i
     }
@@ -94,13 +80,12 @@ estim_var.nmar_exptilt <- function(model){
   # browser()
 
   z_function <- function(model, x, theta = model$theta) {
-    # ZMIANA: Oblicz prawdopodobieństwa i pochodne używając rodziny
+    # Zastąp pi_func rodziną
     x_mat <- as.matrix(x)
-    x_aug <- cbind(1, x_mat, model$y_1[1:nrow(x_mat)]) # Uwaga: zakładam, że y_1 jest dostępne
+    x_aug <- cbind(1, x_mat, model$y_1[1:nrow(x_mat)])
     eta <- as.vector(x_aug %*% theta)
-
     pi_vals <- family$linkinv(eta)
-    pi_deriv <- family$mu.eta(eta) * x_aug  # Pochodna to mu.eta * x_aug
+    pi_deriv <- family$mu.eta(eta) * x_aug
 
     denominator <- pi_vals * (1 - pi_vals)
     denominator[denominator < 1e-9] <- 1 # zero case
@@ -112,26 +97,21 @@ estim_var.nmar_exptilt <- function(model){
   }
 
   calculate_FI22 <- function(model, weights) {
-
     n_unobs <- nrow(model$x_0)
     n_obs <- nrow(model$x_1)
     num_phi_params <- length(model$theta)
-
 
     FI22 <- matrix(0, nrow = num_phi_params, ncol = num_phi_params)
 
     #TODO optimize
     for (i in 1:n_unobs) {
-
       x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
       x_i_delta_rep <- x_i_delta[rep(1, n_obs), , drop = FALSE]
-
 
       #TODO verify - this code might be repeated
       s_ij_matrix <- s_function.nmar_exptilt(model, delta = 0, x = x_i_delta_rep, theta = model$theta)
       w_i <- weights[i, ]
       s_bar_0i <- colSums(w_i * s_ij_matrix)
-
 
       z_ij_matrix <- z_function(model, x = x_i_delta_rep, theta = model$theta)
       z_bar_0i <- colSums(w_i * z_ij_matrix)
@@ -148,18 +128,15 @@ estim_var.nmar_exptilt <- function(model){
   K <- FI21 %*% solve(F11)
   # browser()
 
-
   calculate_B <- function(model, esty, FI22) {
-
     # Pobierz zmienne dla respondentów
     x_obs_delta <- model$x_1[, model$cols_delta, drop = FALSE]
     y_obs <- model$y_1
 
-    # ZMIANA: Oblicz p i pochodne używając rodziny
+    # Zastąp pi_func rodziną
     x_mat_obs <- as.matrix(x_obs_delta)
     x_aug_obs <- cbind(1, x_mat_obs, y_obs)
     eta_obs <- as.vector(x_aug_obs %*% model$theta)
-
     p_obs <- family$linkinv(eta_obs)
     pi_deriv_obs <- family$mu.eta(eta_obs) * x_aug_obs
 
@@ -176,7 +153,6 @@ estim_var.nmar_exptilt <- function(model){
   }
 
   calculate_S2 <- function(model, weights) {
-
     n_total <- nrow(model$x)
     num_phi_params <- length(model$theta)
 
@@ -210,44 +186,31 @@ estim_var.nmar_exptilt <- function(model){
     return(S2)
   }
 
-
-
-  #TODO below 2 lines repeated - refactor
-  # ZMIANA: Użyj już obliczonych wartości p_obs
-  # p_obs zostało już obliczone wcześniej
+  # Użyj już obliczonego p zamiast wywoływać pi_func ponownie
+  p_obs <- p
   esty <- sum(model$y_1 / p_obs) / sum(1 / p_obs)
-
 
   B <- calculate_B(model, esty, FI22)
 
-
   S2 <- calculate_S2(model, weights)
-
 
   n_total <- nrow(model$x)
   eta <- numeric(n_total)
 
-
   respondent_indices <- which(!is.na(model$x[, model$col_y]))
-
 
   u_i_obs <- model$y_1 - esty
 
-
   correction_term_obs <- S2[respondent_indices, ] - S1 %*% t(K)
 
-
   eta[respondent_indices] <- (u_i_obs / p_obs) - B %*% t(correction_term_obs)
-
 
   non_respondent_indices <- which(is.na(model$x[, model$col_y]))
   correction_term_unobs <- S2[non_respondent_indices, ]
 
   eta[non_respondent_indices] <- -B %*% t(correction_term_unobs)
 
-
   tau <- sum(1 / p_obs)
-
 
   var_est <- n_total * var(eta) / (tau^2)
 
