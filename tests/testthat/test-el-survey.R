@@ -14,7 +14,7 @@ test_that("EL engine runs for survey.design and returns CI (skip if survey missi
   pop_mean_ell <- mean(apiclus1_df$ell)
 
   eng <- el_engine(variance_method = "delta", auxiliary_means = c(ell = pop_mean_ell))
-  fml <- Y_miss ~ X
+  fml <- api00_miss ~ ell
   res <- nmar(formula = fml, data = dclus1, engine = eng)
 
   expect_s3_class(res, "nmar_result_el")
