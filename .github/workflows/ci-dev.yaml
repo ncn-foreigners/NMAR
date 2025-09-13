@@ -28,7 +28,7 @@ jobs:
             devtools
             roxygen2
 
-      - name: Run custom build script (src/ -> R/)
+      - name: Run custom build script (src_dev/ -> R/)
         run: Rscript build_r_folder.R
 
       - name: Run devtools::document()
@@ -122,7 +122,7 @@ jobs:
             devtools
             roxygen2
 
-      - name: Run custom build script (src/ -> R/)
+      - name: Run custom build script (src_dev/ -> R/)
         run: Rscript build_r_folder.R
 
       - name: Run devtools::document()
@@ -141,7 +141,7 @@ jobs:
           fi
 
           mv .gitignore-prod .gitignore
-          rm -rf src/
+          rm -rf src_dev/
           rm -f build_r_folder.R
           echo "Production environment ready."
 

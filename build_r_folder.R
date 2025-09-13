@@ -1,7 +1,7 @@
 # build_r_folder.R
 
 # --- Configuration ---
-source_directory <- "src"  # The folder to copy files from (your source code)
+source_directory <- "src_dev"  # The folder to copy files from (your source code)
 target_directory <- "R"    # The destination folder for R package files
 
 # --- Helper function to generate the target filename ---
