@@ -1,38 +1,34 @@
+s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta) {
+  family <- if (model$prob_model_type == "logit") {
+    logit_family()
+  } else if (model$prob_model_type == "probit") {
+    probit_family()
+  } else {
+    stop("Unsupported prob_model_type: ", model$prob_model_type)
+  }
 
-s_function.nmar_exptilt <- function(model,delta,x,theta=model$theta) {
-  # stopifnot(
-  #   !any(is.na(delta)),
-  #   delta %in% c(0, 1),
-  #   length(theta) == ncol(x) + 1 + 1 # +1 for intercept, +1 for y
-  # )
   x_mat <- as.matrix(x)
-  y_vec <- as.vector(model$y_1)
 
-  pi_vals <- pi_func(model, x_mat,  func = "reg",theta=theta)
-  pi_deriv <- pi_func(model,x_mat, func = "deriv",theta=theta)
+  x_aug <- cbind(1, x_mat, model$y_1[1:nrow(x_mat)])
 
+  eta <- as.vector(x_aug %*% theta)
+  pi_vals <- family$linkinv(eta)
 
-  # numerator <- pi_deriv *(delta - pi_vals)
-  # denominator <- pi_vals * (1 - pi_vals)
+  pi_deriv <- family$mu.eta(eta) * x_aug
+
   numerator <- NULL
   denominator <- NULL
 
-  #optimization
-  if(delta==1){
+
+  if (delta == 1) {
     numerator <- pi_deriv
     denominator <- pi_vals
-  }
-  else if(delta==0){
+  } else if (delta == 0) {
     numerator <- -pi_deriv
     denominator <- 1 - pi_vals
   }
 
-
-
   result <- numerator / denominator
-  # result <- sweep(pi_deriv, MARGIN = 1, STATS = 1 / pi_vals, FUN = "*") #CZAT
-  result[is.nan(result)] <- 0  # Obsługa przypadków gdy pi = 0 lub 1
+  result[is.nan(result)] <- 0
   result
 }
-
-

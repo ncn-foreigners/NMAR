@@ -1,4 +1,13 @@
 estim_var.nmar_exptilt <- function(model){
+  # Pobierz rodzinę na początku funkcji
+  family <- if (model$prob_model_type == "logit") {
+    logit_family()
+  } else if (model$prob_model_type == "probit") {
+    probit_family()
+  } else {
+    stop("Unsupported prob_model_type: ", model$prob_model_type)
+  }
+
   s_values_unobs <- s_function(model,0, model$x_1[,model$cols_delta],theta)
 
   inv_C <- 1 / as.vector(model$C_matrix_nieobs)
@@ -8,7 +17,12 @@ estim_var.nmar_exptilt <- function(model){
 
 
   weights <- common_term / denominator #TODO test if dim is matching
-  p = pi_func(model,model$x_1[,model$cols_delta],'reg',model$theta)
+
+  # ZMIANA: Oblicz prawdopodobieństwa używając rodziny
+  x_mat_obs <- as.matrix(model$x_1[, model$cols_delta])
+  x_aug_obs <- cbind(1, x_mat_obs, model$x_1[, model$col_y])
+  eta_obs <- as.vector(x_aug_obs %*% model$theta)
+  p <- family$linkinv(eta_obs)
 
   #it is ok if Var is close to 0
   # cat("Mean of p:", mean(p), "Variance of p:", var(p), "\n")
@@ -80,16 +94,15 @@ estim_var.nmar_exptilt <- function(model){
   # browser()
 
   z_function <- function(model, x, theta = model$theta) {
+    # ZMIANA: Oblicz prawdopodobieństwa i pochodne używając rodziny
+    x_mat <- as.matrix(x)
+    x_aug <- cbind(1, x_mat, model$y_1[1:nrow(x_mat)]) # Uwaga: zakładam, że y_1 jest dostępne
+    eta <- as.vector(x_aug %*% theta)
 
-    pi_vals <- pi_func(model, x, func = "reg", theta = theta)
-
-
-    pi_deriv <- pi_func(model, x, func = "deriv", theta = theta)
-
+    pi_vals <- family$linkinv(eta)
+    pi_deriv <- family$mu.eta(eta) * x_aug  # Pochodna to mu.eta * x_aug
 
     denominator <- pi_vals * (1 - pi_vals)
-
-
     denominator[denominator < 1e-9] <- 1 # zero case
 
     result <- pi_deriv / as.vector(denominator)
@@ -142,12 +155,15 @@ estim_var.nmar_exptilt <- function(model){
     x_obs_delta <- model$x_1[, model$cols_delta, drop = FALSE]
     y_obs <- model$y_1
 
-    # Oblicz p i u_i dla respondentów
-    p_obs <- pi_func(model, x_obs_delta, func = "reg", theta = model$theta)
-    u_i <- y_obs - esty
+    # ZMIANA: Oblicz p i pochodne używając rodziny
+    x_mat_obs <- as.matrix(x_obs_delta)
+    x_aug_obs <- cbind(1, x_mat_obs, y_obs)
+    eta_obs <- as.vector(x_aug_obs %*% model$theta)
 
-    # Oblicz pochodną pi po phi dla respondentów
-    pi_deriv_obs <- pi_func(model, x_obs_delta, func = "deriv", theta = model$theta)
+    p_obs <- family$linkinv(eta_obs)
+    pi_deriv_obs <- family$mu.eta(eta_obs) * x_aug_obs
+
+    u_i <- y_obs - esty
 
     # Oblicz pierwszą część formuły B (suma)
     # W artykule autora `B1`
@@ -197,7 +213,8 @@ estim_var.nmar_exptilt <- function(model){
 
 
   #TODO below 2 lines repeated - refactor
-  p_obs <- pi_func(model, model$x_1[, model$cols_delta, drop = FALSE], func = "reg", theta = model$theta)
+  # ZMIANA: Użyj już obliczonych wartości p_obs
+  # p_obs zostało już obliczone wcześniej
   esty <- sum(model$y_1 / p_obs) / sum(1 / p_obs)
 
 
@@ -241,4 +258,3 @@ estim_var.nmar_exptilt <- function(model){
   # browser()
   return(var_est)
 }
-
