@@ -8,6 +8,8 @@ exptilt.data.frame <- function(x,model){
 
   model$x_for_y_obs <- model$x_1[,model$cols_y_observed,drop=FALSE]
   model$x_for_y_unobs <- model$x_0[,model$cols_y_observed,drop=FALSE]
+
+  model$respondent_weights <- rep(1, nrow(model$x_1))
   # browser()
   stopifnot(
     nrow(model$x_0)>0,
