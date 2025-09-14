@@ -33,7 +33,7 @@ data_OK_full <- generate_test_data(n_rows = 100, n_cols = 2, case = 1)$X
 
 test_that("exptilt returns OK data for correct input", {
   formula_ok <- Y ~ x1 + x2
-  exptilt_config_ok <- exptilt(
+  exptilt_config_ok <- exptilt_engine(
     prob_model_type = 'probit',
     y_dens = 'normal',
     tol_value = 0.01,
@@ -56,7 +56,7 @@ test_that("exptilt returns OK data for correct input", {
 
 test_that("exptilt returns error for faulty data", {
   formula_ok <- Y ~ x1 + x2
-  exptilt_config_ok <- exptilt(
+  exptilt_config_ok <- exptilt_engine(
     prob_model_type = 'probit',
     y_dens = 'normal',
     tol_value = 0.01,
@@ -82,7 +82,7 @@ test_that("exptilt returns error for faulty data", {
 })
 
 test_that("exptilt returns error for faulty formulas", {
-  exptilt_config_ok <- exptilt(
+  exptilt_config_ok <- exptilt_engine(
     prob_model_type = 'probit',
     y_dens = 'normal',
     tol_value = 0.01,
@@ -101,31 +101,31 @@ test_that("exptilt returns error for bad config", {
   expect_error(nmar(
     formula = formula_ok,
     data = data_OK,
-    engine = exptilt(prob_model_type = 'invalid_type', y_dens = 'normal')
+    engine = exptilt_engine(prob_model_type = 'invalid_type', y_dens = 'normal')
   ))
 
   expect_error(nmar(
     formula = formula_ok,
     data = data_OK,
-    engine = exptilt(prob_model_type = 'probit', y_dens = 'invalid_distribution')
+    engine = exptilt_engine(prob_model_type = 'probit', y_dens = 'invalid_distribution')
   ))
 
   expect_error(nmar(
     formula = formula_ok,
     data = data_OK,
-    engine = exptilt(prob_model_type = 'probit', y_dens = 'normal', tol_value = -0.01)
+    engine = exptilt_engine(prob_model_type = 'probit', y_dens = 'normal', tol_value = -0.01)
   ))
 
   expect_error(nmar(
     formula = formula_ok,
     data = data_OK,
-    engine = exptilt(prob_model_type = 'probit', y_dens = 'normal', min_iter = 10, max_iter = 5)
+    engine = exptilt_engine(prob_model_type = 'probit', y_dens = 'normal', min_iter = 10, max_iter = 5)
   ))
 })
 
 test_that("exptilt returns error for empty data", {
   formula_ok <- Y ~ x1 + x2
-  exptilt_config_ok <- exptilt(
+  exptilt_config_ok <- exptilt_engine(
     prob_model_type = 'probit',
     y_dens = 'normal',
     tol_value = 0.01
@@ -137,7 +137,7 @@ test_that("exptilt returns error for empty data", {
 
 test_that("exptilt returns error for missing values in covariates", {
   formula_ok <- Y ~ x1 + x2
-  exptilt_config_ok <- exptilt(
+  exptilt_config_ok <- exptilt_engine(
     prob_model_type = 'probit',
     y_dens = 'normal',
     tol_value = 0.01

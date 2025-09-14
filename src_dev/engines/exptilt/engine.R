@@ -34,7 +34,7 @@
 #'
 #' @importFrom jsonlite read_json
 #' @importFrom utils modifyList
-#' @export
+
 #'
 #' @examples
 #' # Create a default Exponential Tilting engine configuration
@@ -54,7 +54,8 @@
 #'
 #' # This configuration object can then be passed to the 'nmar' function:
 #' # nmar_results <- nmar(formula = my_formula, data = my_data, engine = custom_exptilt_config)
-exptilt <- function(
+#' @export
+exptilt_engine <- function(
     prob_model_type = get_json_param_info(all_schemas, "exptilt", "prob_model_type")$default,
     y_dens = get_json_param_info(all_schemas, "exptilt", "y_dens")$default,
     tol_value = get_json_param_info(all_schemas, "exptilt", "tol_value")$default,

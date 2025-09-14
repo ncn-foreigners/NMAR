@@ -28,7 +28,7 @@ run_engine.nmar_engine_exptilt <- function(engine, formula, data,response_predic
     probit_family()
   }
 
-  model <- run_nmar_exptilt(model)
+  model <- exptilt(data,model)
 
   return(structure(list(theta = model$theta
               ,est_mean=estim_mean(model)
