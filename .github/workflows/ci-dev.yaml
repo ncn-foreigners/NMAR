@@ -116,7 +116,6 @@ jobs:
           extra-packages: |
             devtools
             roxygen2
-            broom
 
       - name: Run custom build script (src_dev/ -> R/)
         run: Rscript build_r_folder.R
@@ -127,7 +126,7 @@ jobs:
 
       - name: Run devtools::build()
         run: |
-          Rscript -e 'devtools::build()'
+          Rscript -e 'devtools::build(vignettes = FALSE)'
 
       - name: Switch to production gitignore and remove dev files
         run: |
