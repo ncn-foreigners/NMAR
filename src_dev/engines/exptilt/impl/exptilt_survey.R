@@ -2,14 +2,37 @@
 #' @importFrom stats as.formula coef dnorm dgamma sd setNames
 #' @export
 exptilt.survey <- function(x,model){
-  model$x_1 <- model$x[!is.na(model$x[,model$col_y]),,drop=FALSE] #observed
-  model$x_0 <- model$x[is.na(model$x[,model$col_y]),,drop=FALSE] #unobserved
-  model$y_1 <- model$x_1[,model$col_y,drop=TRUE] #observed y
+  # model$x_1 <- model$x[!is.na(model$x[,model$col_y]),,drop=FALSE] #observed
+  # model$x_0 <- model$x[is.na(model$x[,model$col_y]),,drop=FALSE] #unobserved
+  # model$y_1 <- model$x_1[,model$col_y,drop=TRUE] #observed y
+  #
+  # model$x_for_y_obs <- model$x_1[,model$cols_y_observed,drop=FALSE]
+  # model$x_for_y_unobs <- model$x_0[,model$cols_y_observed,drop=FALSE]
 
-  model$x_for_y_obs <- model$x_1[,model$cols_y_observed,drop=FALSE]
-  model$x_for_y_unobs <- model$x_0[,model$cols_y_observed,drop=FALSE]
+
+  has_aux = length(model$coly) > 0#TODO make sure not col_y
+  mu_x_unscaled <- if (has_aux) auxiliary_means else NULL
+
+  scaling_result <- validate_and_apply_nmar_scaling(
+    standardize = model$standardize,
+    has_aux = has_aux,#TODO make sure not col_y
+    response_model_matrix_unscaled = model$x[,c(model$col_y,model$cols_delta),drop=FALSE],
+    auxiliary_matrix_unscaled = model$x[,model$cols_y_observed,drop=FALSE],
+    mu_x_unscaled = model$auxiliary_means
+  )
+  model$nmar_scaling_recipe <- scaling_result$nmar_scaling_recipe
+  response_model_matrix_scaled <- scaling_result$response_model_matrix_scaled
+  auxiliary_matrix_scaled <- scaling_result$auxiliary_matrix_scaled
+  mu_x_scaled <- scaling_result$mu_x_scaled
+
+  model$x_1 <- response_model_matrix_scaled[!is.na(response_model_matrix_scaled[,model$col_y]),,drop=FALSE] #observed
+  model$x_0 <- response_model_matrix_scaled[is.na(response_model_matrix_scaled[,model$col_y]),,drop=FALSE] #unobserved
+  model$y_1 <- model$x_1[,model$col_y,drop=TRUE] #observed y
+  model$x_for_y_obs <- auxiliary_matrix_scaled[!is.na(response_model_matrix_scaled[,model$col_y]),,drop=FALSE]
+  model$x_for_y_unobs <- auxiliary_matrix_scaled[is.na(response_model_matrix_scaled[,model$col_y]),,drop=FALSE]
 
   model$respondent_weights <- weights(model$x_1)
+  # model$respondent_weights <- rep(1, nrow(model$x_1))
   # browser()
   stopifnot(
     nrow(model$x_0)>0,
@@ -80,6 +103,14 @@ exptilt.survey <- function(x,model){
 
 
   }
+  model$theta <- if (model$standardize) unscale_coefficients(model$theta, estim_var(model)$vcov, model$nmar_scaling_recipe)$coefficients else model$theta
+  # names(beta_hat_unscaled) <- colnames(response_model_matrix_unscaled)
+  model$x_1 <- model$x[!is.na(model$x[,model$col_y]),,drop=FALSE] #observed
+  model$x_0 <- model$x[is.na(model$x[,model$col_y]),,drop=FALSE] #unobserved
+  model$y_1 <- model$x_1[,model$col_y,drop=TRUE] #observed y
+
+  model$x_for_y_obs <- model$x_1[,model$cols_y_observed,drop=FALSE]
+  model$x_for_y_unobs <- model$x_0[,model$cols_y_observed,drop=FALSE]
   return(model)
 }
 
