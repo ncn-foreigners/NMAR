@@ -6,10 +6,11 @@ run_engine.nmar_engine_exptilt <- function(engine, formula, data,response_predic
   outcome_variable <- as.vector(all.vars(formula[[2]]))
   covariates_for_outcome <- as.vector(all.vars(formula[[3]]))
   covariates_for_missingness <- response_predictors
-
+  #data should only consist of columns outcome_variable,covariates_for_outcome,covariates_for_missingness
+  data_ <- data[,c(outcome_variable,covariates_for_outcome,covariates_for_missingness)]
   model <- structure(
     list(
-      x = data,
+      x = data_,
       col_y = outcome_variable,
       cols_y_observed = covariates_for_outcome,
       cols_delta = covariates_for_missingness,
@@ -17,6 +18,8 @@ run_engine.nmar_engine_exptilt <- function(engine, formula, data,response_predic
       y_dens =engine$y_dens,
       tol_value =engine$tol_value,
       min_iter =engine$min_iter,
+      auxiliary_means =engine$auxiliary_means,
+      standardize =engine$standardize,
       max_iter =engine$max_iter,
       optim_method =engine$optim_method
     ),
@@ -28,11 +31,14 @@ run_engine.nmar_engine_exptilt <- function(engine, formula, data,response_predic
     probit_family()
   }
 
-  model <- exptilt(data,model)
+
+  model <- exptilt(data_,model)
+
+
 
   return(structure(list(theta = model$theta
               ,est_mean=estim_mean(model)
-              ,est_var=estim_var(model)
+              ,est_var=estim_var(model)$var_est
               ,loss_value=model$loss_value
   ),class = "nmar_result"))
 }

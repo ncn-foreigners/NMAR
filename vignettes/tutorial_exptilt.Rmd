@@ -73,7 +73,8 @@ exptilt_config <- exptilt_engine(
   y_dens = 'normal',
   tol_value = 0.00001,
   min_iter = 30,
-  max_iter = 100
+  max_iter = 100,
+  standardize = TRUE
 )
 
 # formula <- list(

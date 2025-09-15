@@ -61,6 +61,8 @@ exptilt_engine <- function(
     tol_value = get_json_param_info(all_schemas, "exptilt", "tol_value")$default,
     min_iter = get_json_param_info(all_schemas, "exptilt", "min_iter")$default,
     max_iter = get_json_param_info(all_schemas, "exptilt", "max_iter")$default,
+    standardize=FALSE, #TODO apply jSON
+    auxiliary_means = NULL,
     optim_method = get_json_param_info(all_schemas, "exptilt", "optim_method")$default) {
 
   # Load the JSON file inside the function
@@ -78,6 +80,8 @@ exptilt_engine <- function(
     tol_value = tol_value,
     min_iter = min_iter,
     max_iter = max_iter,
+    auxiliary_means = auxiliary_means,
+    standardize=standardize,
     optim_method = optim_method
   )
 
