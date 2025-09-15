@@ -42,7 +42,7 @@ em_formula <- Voted_A + Voted_B + Other ~ Gender
 
 ```{r}
 # Exptilt Nonparam engine configuration
-np_em_config <- exptilt_nonparam(
+np_em_config <- exptilt_nonparam_engine(
   # outcome_cols = c("Voted_A", "Voted_B", "Other"), 
   refusal_col = "Refusal",                           
   max_iter = 100,

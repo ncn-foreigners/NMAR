@@ -19,7 +19,7 @@
 #'   This object contains all specified parameters for the nonparametric ET method.
 #'
 #' @importFrom jsonlite read_json
-#' @export
+
 #'
 #' @examples
 #' # Create a nonparametric ET configuration with default parameters
@@ -38,7 +38,8 @@
 #'
 #' # Use with nmar() function:
 #' # results <- nmar(data = survey_data, engine = config)
-exptilt_nonparam <- function(
+#' @export
+exptilt_nonparam_engine <- function(
     # outcome_cols,
     refusal_col,
     # max_iter = get_json_param_info(all_schemas, "nonparametric_em", "max_iter")$default,
