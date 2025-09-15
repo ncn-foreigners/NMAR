@@ -64,6 +64,7 @@ res_test_data <- generate_test_data(n_rows = 500, n_cols = 2, case = 1)
 ```
 
 
+
 ```{r}
 #Exptilt engine configuration
 exptilt_config <- exptilt_engine(
@@ -100,3 +101,33 @@ cat('Est Y mean (NMAR):    ', sprintf('%.4f', res$est_mean),
     ', ', sprintf('%.4f', res$est_mean + 3*sqrt(res$est_var)), 'σ=',sprintf('%.4f',sqrt(res$est_var)),')\n')
 cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(x[!is.na(x$Y), 'Y'])), '\n')
 ```
+
+```{r}
+#if survey is installed
+if (requireNamespace("survey", quietly = TRUE)) {
+
+  library('survey')
+  surv_test_weights <- runif(nrow(x), 0.9, 1.1)
+  surv_test_data <- svydesign(ids = ~1, data = x, weights = ~surv_test_weights)
+  
+  exptilt_config <- exptilt_engine(
+  prob_model_type = 'probit', #or logit
+  # y_dens = 'auto', # y ~ x1,x2...
+  y_dens = 'normal',
+  tol_value = 0.00001,
+  min_iter = 30,
+  max_iter = 100
+)
+
+  # formula <- list(
+  #   outcome = ~ Y,
+  #   covariates_outcome = ~ x1+x2,
+  #   covariates_missingness = ~ NULL
+  # )
+  formula = Y ~ x1 + x2
+  res <- nmar(formula=formula,data=x,engine=exptilt_config,response_predictors=NULL)
+  print(res)
+
+}
+```
+
