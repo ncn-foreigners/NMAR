@@ -91,7 +91,7 @@ el.data.frame <- function(data, formula, response_predictors = NULL,
     ))
   }
 
-  validate_nmar_result_el(
+  validate_nmar_result(
     new_nmar_result_el(
       y_hat = core_results$y_hat, se = core_results$se, weights = core_results$weights,
       coefficients = core_results$coefficients, vcov = core_results$vcov,
@@ -105,5 +105,6 @@ el.data.frame <- function(data, formula, response_predictors = NULL,
       nmar_scaling_recipe = core_results$nmar_scaling_recipe,
       fitted_values = core_results$fitted_values, call = cl
     )
+  ,'nmar_result_el'
   )
 }

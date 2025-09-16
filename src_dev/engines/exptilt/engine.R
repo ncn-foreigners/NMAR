@@ -74,7 +74,7 @@ exptilt_engine <- function(
 
   all_schemas <- jsonlite::read_json(json_path, simplifyVector = TRUE)
 
-  config <- list(
+  engine <- list(
     prob_model_type = prob_model_type,
     y_dens = y_dens,
     tol_value = tol_value,
@@ -92,6 +92,6 @@ exptilt_engine <- function(
   #   schemas = all_schemas
   # )
 
-  class(config) <- c("nmar_engine_exptilt", "nmar_engine")
-  return(config)
+  class(engine) <- c("nmar_engine_exptilt", "nmar_engine")
+  return(engine)
 }

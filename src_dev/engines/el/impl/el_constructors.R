@@ -1,21 +1,56 @@
 #' Construct EL Result Object
 #' @keywords internal
+# new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
+#                                converged, diagnostics, data_info,
+#                                nmar_scaling_recipe, fitted_values, call) {
+#   if (is.null(data_info$method)) data_info$method <- "Empirical Likelihood (EL)"
+#   # Standardize diagnostics and data_info bundles
+#   diagnostics <- new_nmar_diagnostics(diagnostics)
+#   data_info <- new_nmar_data_info(data_info)
+#   structure(
+#     list(
+#       y_hat = y_hat, se = se, weights = weights, coefficients = coefficients,
+#       vcov = vcov, converged = converged, diagnostics = diagnostics,
+#       data_info = data_info, nmar_scaling_recipe = nmar_scaling_recipe,
+#       fitted_values = fitted_values, call = call
+#     ),
+#     class = c("nmar_result_el", "nmar_result")
+#   )
+# }
+#' Construct EL Result Object
+#' @keywords internal
 new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
                                converged, diagnostics, data_info,
                                nmar_scaling_recipe, fitted_values, call) {
-  if (is.null(data_info$method)) data_info$method <- "Empirical Likelihood (EL)"
-  # Standardize diagnostics and data_info bundles
-  diagnostics <- new_nmar_diagnostics(diagnostics)
-  data_info <- new_nmar_data_info(data_info)
-  structure(
-    list(
-      y_hat = y_hat, se = se, weights = weights, coefficients = coefficients,
-      vcov = vcov, converged = converged, diagnostics = diagnostics,
-      data_info = data_info, nmar_scaling_recipe = nmar_scaling_recipe,
-      fitted_values = fitted_values, call = call
-    ),
-    class = c("nmar_result_el", "nmar_result")
+
+
+  if (is.null(data_info$method)) {
+    data_info$method <- "Empirical Likelihood (EL)"
+  }
+
+
+
+  result <- new_nmar_result(
+    y_hat = y_hat,
+    se = se,
+    weights = weights,
+    coefficients = coefficients,
+    vcov = vcov,
+    converged = converged,
+    class = "nmar_result_el"
   )
+
+
+  result$diagnostics <- diagnostics
+  result$data_info <- data_info
+  result$fitted_values <- fitted_values
+  result$call <- call
+  result$nmar_scaling_recipe <- nmar_scaling_recipe
+
+  result$diagnostics <- new_nmar_diagnostics(diagnostics)
+  result$data_info <- new_nmar_data_info(data_info)
+
+  return(result)
 }
 
 #' Prepare inputs for EL estimation
@@ -69,10 +104,10 @@ prepare_el_inputs <- function(formula, data, response_predictors) {
 
 #' Validator for EL result
 #' @keywords internal
-validate_nmar_result_el <- function(x) {
-  stopifnot(is.list(x), inherits(x, "nmar_result_el"))
-  if (isTRUE(x$converged)) {
-    stopifnot(is.finite(x$y_hat), is.numeric(x$se))
-  }
-  x
-}
+# validate_nmar_result_el <- function(x) {
+#   stopifnot(is.list(x), inherits(x, "nmar_result_el"))
+#   if (isTRUE(x$converged)) {
+#     stopifnot(is.finite(x$y_hat), is.numeric(x$se))
+#   }
+#   x
+# }
