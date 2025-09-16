@@ -112,14 +112,14 @@ exptilt.data.frame <- function(x,model){
   model$x_for_y_obs <- model$x_1[,model$cols_y_observed,drop=FALSE]
   model$x_for_y_unobs <- model$x_0[,model$cols_y_observed,drop=FALSE]
 
-  return(validate_nmar_result(new_nmar_result_el(
+  return(validate_nmar_result(new_nmar_result_exptilt(
     y_hat=estim_mean(model),
     se = sqrt(estim_var(model)$var_est),
-              weights=NULL, #TODO
-              coefficients = model$theta,
-              vcov = estim_var(model)$vcov,
-              converged = TRUE, #TODO
-              class="nmar_result_exptilt"
+    weights=NULL, #TODO
+    coefficients = model$theta,
+    vcov = estim_var(model)$vcov,
+    converged = TRUE, #TODO
+    class="nmar_result_exptilt"
 
   ), "nmar_result_exptilt"))
   # return(model)

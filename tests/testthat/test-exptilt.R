@@ -45,13 +45,13 @@ test_that("exptilt returns OK data for correct input", {
 
   expect_s3_class(res, "nmar_result")
   expect_type(res, "list")
-  expect_type(res$est_mean, "double")
-  expect_type(res$est_var, "double")
-  expect_length(res$est_mean, 1)
-  expect_length(res$est_var, 1)
-  expect_true(is.finite(res$est_mean))
-  expect_true(is.finite(res$est_var))
-  expect_gt(res$est_var, 0)
+  expect_type(res$y_hat, "double")
+  expect_type(res$se, "double")
+  expect_length(res$y_hat, 1)
+  expect_length(res$se, 1)
+  expect_true(is.finite(res$y_hat))
+  expect_true(is.finite(res$se))
+  expect_gt(res$se, 0)
 })
 
 test_that("exptilt returns error for faulty data", {
