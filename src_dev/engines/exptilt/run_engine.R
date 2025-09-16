@@ -33,14 +33,17 @@ run_engine.nmar_engine_exptilt <- function(engine, formula, data,response_predic
 
 
   model <- exptilt(data_,model)
+  if (!inherits(model, "nmar_result_exptilt")) {
+    stop("Exptilt engine did not return an 'nmar_result_el' object.")
+  }
 
 
-
-  return(structure(list(theta = model$theta
-              ,est_mean=estim_mean(model)
-              ,est_var=estim_var(model)$var_est
-              ,loss_value=model$loss_value
-  ),class = "nmar_result"))
+  # return(structure(list(theta = model$theta
+  #             ,est_mean=estim_mean(model)
+  #             ,est_var=estim_var(model)$var_est
+  #             ,loss_value=model$loss_value
+  # ),class = "nmar_result"))
+  return(model)
 }
 # run <-function(model) {
 #   UseMethod("run")

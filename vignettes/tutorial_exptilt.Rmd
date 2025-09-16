@@ -97,9 +97,9 @@ summary(res)
 
 ```{r}
 cat('True Y mean:          ', sprintf('%.4f', mean(y_original)), '\n')
-cat('Est Y mean (NMAR):    ', sprintf('%.4f', res$est_mean), 
-    '  3σ interval: (', sprintf('%.4f', res$est_mean - 3*sqrt(res$est_var)), 
-    ', ', sprintf('%.4f', res$est_mean + 3*sqrt(res$est_var)), 'σ=',sprintf('%.4f',sqrt(res$est_var)),')\n')
+cat('Est Y mean (NMAR):    ', sprintf('%.4f', res$y_hat), 
+    '  3σ interval: (', sprintf('%.4f', res$y_hat - 3*res$se), 
+    ', ', sprintf('%.4f', res$y_hat + 3*res$se), 'σ=',sprintf('%.4f',res$se),')\n')
 cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(x[!is.na(x$Y), 'Y'])), '\n')
 ```
 
