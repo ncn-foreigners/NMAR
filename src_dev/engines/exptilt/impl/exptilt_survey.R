@@ -1,8 +1,7 @@
 #' @importFrom nleqslv nleqslv
 #' @importFrom stats as.formula coef dnorm dgamma sd setNames
 #' @export
-#' #todo on_failure logic
-exptilt.survey <- function(data,model,on_failure=c('return')){
+exptilt.survey <- function(data,model,on_failure=c('return')){ #' #todo on_failure logic
   model$x=data
   # model$x_1 <- model$x[!is.na(model$x[,model$col_y]),,drop=FALSE] #observed
   # model$x_0 <- model$x[is.na(model$x[,model$col_y]),,drop=FALSE] #unobserved
@@ -137,7 +136,7 @@ exptilt.survey <- function(data,model,on_failure=c('return')){
 
   return(validate_nmar_result(new_nmar_result_exptilt(
     y_hat=estim_mean(model),
-    se_final = se_final,
+    se = se_final,
     weights=NULL, #TODO
     coefficients = model$theta,
     vcov = estim_var(model)$vcov,
