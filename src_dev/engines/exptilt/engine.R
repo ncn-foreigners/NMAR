@@ -62,6 +62,8 @@ exptilt_engine <- function(
     min_iter = get_json_param_info(all_schemas, "exptilt", "min_iter")$default,
     max_iter = get_json_param_info(all_schemas, "exptilt", "max_iter")$default,
     standardize=FALSE, #TODO apply jSON
+    variance_method='delta',#TODO apply jSON
+    bootstrap_reps=500,
     auxiliary_means = NULL,
     optim_method = get_json_param_info(all_schemas, "exptilt", "optim_method")$default) {
 
@@ -82,7 +84,10 @@ exptilt_engine <- function(
     max_iter = max_iter,
     auxiliary_means = auxiliary_means,
     standardize=standardize,
-    optim_method = optim_method
+    optim_method = optim_method,
+    bootstrap_reps=bootstrap_reps,
+    variance_method=variance_method
+
   )
 
   #TODO

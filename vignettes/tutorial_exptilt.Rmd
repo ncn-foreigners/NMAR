@@ -44,8 +44,10 @@ generate_test_data <- function(n_rows=400,n_cols=2,case=2,x_var=0.5,eps_var=0.5,
   
 
   pi_obs <- 1 / (1 + exp(-(a + b * X$Y)))
+
   
   mask <- runif(nrow(X)) > pi_obs
+  mask[1] <- FALSE  
   X$Y[mask] <- NA
   return(list(X = X, Y_original = Y_original))
 }
@@ -74,7 +76,9 @@ exptilt_config <- exptilt_engine(
   tol_value = 0.00001,
   min_iter = 30,
   max_iter = 100,
-  standardize = TRUE
+  # standardize = TRUE
+  variance_method='bootstrap',
+  bootstrap_reps=10
 )
 
 # formula <- list(

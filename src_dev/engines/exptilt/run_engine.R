@@ -10,7 +10,7 @@ run_engine.nmar_engine_exptilt <- function(engine, formula, data,response_predic
   data_ <- data[,c(outcome_variable,covariates_for_outcome,covariates_for_missingness)]
   model <- structure(
     list(
-      x = data_,
+      data = data_,
       col_y = outcome_variable,
       cols_y_observed = covariates_for_outcome,
       cols_delta = covariates_for_missingness,
@@ -21,17 +21,20 @@ run_engine.nmar_engine_exptilt <- function(engine, formula, data,response_predic
       auxiliary_means =engine$auxiliary_means,
       standardize =engine$standardize,
       max_iter =engine$max_iter,
-      optim_method =engine$optim_method
+      optim_method =engine$optim_method,
+      variance_method = engine$variance_method,
+      bootstrap_reps = engine$bootstrap_reps
     ),
     class = "nmar_exptilt"
   )
+
   model$family <- if (model$prob_model_type == "logit") {
     logit_family()
   } else if (model$prob_model_type == "probit") {
     probit_family()
   }
 
-
+  model$original_params <- model
   model <- exptilt(data_,model)
   if (!inherits(model, "nmar_result_exptilt")) {
     stop("Exptilt engine did not return an 'nmar_result_el' object.")

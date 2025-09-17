@@ -1,14 +1,15 @@
 #' @importFrom nleqslv nleqslv
 #' @importFrom stats as.formula coef dnorm dgamma sd setNames
 #' @export
-exptilt.data.frame <- function(x,model){
+#' #todo on_failure logic
+exptilt.data.frame <- function(data,model,on_failure=c('return')){
+  model$x=data
   # model$x_1 <- model$x[!is.na(model$x[,model$col_y]),,drop=FALSE] #observed
   # model$x_0 <- model$x[is.na(model$x[,model$col_y]),,drop=FALSE] #unobserved
   # model$y_1 <- model$x_1[,model$col_y,drop=TRUE] #observed y
   #
   # model$x_for_y_obs <- model$x_1[,model$cols_y_observed,drop=FALSE]
   # model$x_for_y_unobs <- model$x_0[,model$cols_y_observed,drop=FALSE]
-
 
   has_aux = length(model$coly) > 0#TODO make sure not col_y
   mu_x_unscaled <- if (has_aux) auxiliary_means else NULL
@@ -32,8 +33,9 @@ exptilt.data.frame <- function(x,model){
   model$x_for_y_unobs <- auxiliary_matrix_scaled[is.na(response_model_matrix_scaled[,model$col_y]),,drop=FALSE]
 
   # model$respondent_weights <- weights(model$x_1)
+
   model$respondent_weights <- rep(1, nrow(model$x_1))
-  # browser()
+  #
   stopifnot(
     nrow(model$x_0)>0,
     nrow(model$x_1)>0
@@ -42,7 +44,7 @@ exptilt.data.frame <- function(x,model){
   model$theta=stats::runif(length(model$cols_delta)+2,0,0.1)
 
   dens_response <- generate_conditional_density(model)
-  # browser()#peek gradients func
+  # #peek gradients func
   model$density_fun <- dens_response$density_function
   model$density_fun_gradient <- dens_response$density_function_grad
   model$density_fun_hess <- dens_response$density_function_hess
@@ -96,7 +98,7 @@ exptilt.data.frame <- function(x,model){
     model$theta <- solution$x
     model$loss_value <- solution$fvec
     # O_matrix_nieobs <- generate_Odds(theta_prev,x_0[,cols_delta],y_1)
-    # browser()
+    #
     model$O_matrix_nieobs <- generate_Odds(model)
     iter<-iter+1
 
@@ -112,9 +114,30 @@ exptilt.data.frame <- function(x,model){
   model$x_for_y_obs <- model$x_1[,model$cols_y_observed,drop=FALSE]
   model$x_for_y_unobs <- model$x_0[,model$cols_y_observed,drop=FALSE]
 
+
+    var_final=69
+  if(model$variance_method=="bootstrap"){
+
+    model$original_params$variance_method='delta'
+    cat(model$bootstrap_reps)
+    test_var <- as.list(model$original_params)
+    bootstrap_results <- do.call(
+      bootstrap_variance,
+      list(data=model$x,estimator=exptilt,point_estimate=estim_mean(model), bootstrap_reps=model$bootstrap_reps,as.list(model$original_params)
+           ),
+      # as.list(model$original_params)
+    )
+    se_final <- bootstrap_results$se
+
+  }
+  else{
+    se_final <- sqrt(estim_var(model)$var_est)
+  }
+
+
   return(validate_nmar_result(new_nmar_result_exptilt(
     y_hat=estim_mean(model),
-    se = sqrt(estim_var(model)$var_est),
+    se_final = var_final,
     weights=NULL, #TODO
     coefficients = model$theta,
     vcov = estim_var(model)$vcov,
