@@ -6,6 +6,9 @@ run_engine.nmar_engine_exptilt <- function(engine, formula, data,response_predic
   outcome_variable <- as.vector(all.vars(formula[[2]]))
   covariates_for_outcome <- as.vector(all.vars(formula[[3]]))
   covariates_for_missingness <- response_predictors
+
+   validate_data(data, outcome_variable, covariates_for_outcome, covariates_for_missingness)
+
   #data should only consist of columns outcome_variable,covariates_for_outcome,covariates_for_missingness
   data_ <- data[,c(outcome_variable,covariates_for_outcome,covariates_for_missingness)]
   model <- structure(

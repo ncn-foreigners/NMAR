@@ -70,15 +70,17 @@ res_test_data <- generate_test_data(n_rows = 500, n_cols = 2, case = 1)
 ```{r}
 #Exptilt engine configuration
 exptilt_config <- exptilt_engine(
-  prob_model_type = 'probit', #or logit
+  # prob_model_type = 'probit', #or logit
   # y_dens = 'auto', # y ~ x1,x2...
+  # standardize = 'Pozdro Igor',
   y_dens = 'normal',
-  tol_value = 0.00001,
+  # tol_value = -2137,
   min_iter = 30,
   max_iter = 100,
+  family = 'probit', #or logit
   # standardize = TRUE
   # variance_method='bootstrap',
-  bootstrap_reps=10
+  # bootstrap_reps=-2
 )
 
 # formula <- list(
@@ -86,6 +88,8 @@ exptilt_config <- exptilt_engine(
 #   covariates_outcome = ~ x1+x2,
 #   covariates_missingness = ~ NULL
 # )
+
+# x$Y=NaN
 formula = Y ~ x1 + x2
 res <- nmar(formula=formula,data=x,engine=exptilt_config,response_predictors=NULL)
 ```
@@ -116,7 +120,8 @@ if (requireNamespace("survey", quietly = TRUE)) {
   surv_test_data <- svydesign(ids = ~1, data = x, weights = ~surv_test_weights)
   
   exptilt_config <- exptilt_engine(
-  prob_model_type = 'probit', #or logit
+  family = 'probit', #or logit
+
   # y_dens = 'auto', # y ~ x1,x2...
   y_dens = 'normal',
   tol_value = 0.00001,

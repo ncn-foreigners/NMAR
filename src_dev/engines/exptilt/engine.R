@@ -56,28 +56,57 @@
 #' # nmar_results <- nmar(formula = my_formula, data = my_data, engine = custom_exptilt_config)
 #' @export
 exptilt_engine <- function(
-    prob_model_type = get_json_param_info(all_schemas, "exptilt", "prob_model_type")$default,
-    y_dens = get_json_param_info(all_schemas, "exptilt", "y_dens")$default,
-    tol_value = get_json_param_info(all_schemas, "exptilt", "tol_value")$default,
-    min_iter = get_json_param_info(all_schemas, "exptilt", "min_iter")$default,
-    max_iter = get_json_param_info(all_schemas, "exptilt", "max_iter")$default,
-    standardize=FALSE, #TODO apply jSON
-    variance_method='delta',#TODO apply jSON
-    bootstrap_reps=500,
+    # prob_model_type = get_json_param_info(all_schemas, "exptilt", "prob_model_type")$default,
+    # y_dens = get_json_param_info(all_schemas, "exptilt", "y_dens")$default,
+    # tol_value = get_json_param_info(all_schemas, "exptilt", "tol_value")$default,
+    # min_iter = get_json_param_info(all_schemas, "exptilt", "min_iter")$default,
+    # max_iter = get_json_param_info(all_schemas, "exptilt", "max_iter")$default,
+    # standardize=FALSE, #TODO apply jSON
+    # variance_method='delta',#TODO apply jSON
+    # bootstrap_reps=500,
+    # auxiliary_means = NULL,
+    # optim_method = get_json_param_info(all_schemas, "exptilt", "optim_method")$default
+    standardize=TRUE,
+    # trim_cap=Inf,
+    on_failure = c("return","error"),
+    bootstrap_reps=10,
+    supress_warnings=FALSE,
     auxiliary_means = NULL,
-    optim_method = get_json_param_info(all_schemas, "exptilt", "optim_method")$default) {
+    control=list(),
+    family=c("logit", "probit"),
+    y_dens=c("auto","normal", "gamma"),
+    variance_method=c("delta","bootstrap"),
+    min_iter=1,#todo move to control
+    max_iter=100,#todo move to control
+    optim_method=c("Newton","Broyden"), #todo move to control
+    tol_value=1e-5 #todo move to control
 
-  # Load the JSON file inside the function
-  json_path <- system.file("extdata", "method_params.json", package = "nmar")
+    ) {
 
-  if (!file.exists(json_path)) {
-    stop("Method parameters JSON file (method_params.json) not found in 'inst/extdata/'. Package might be corrupted or not installed correctly.")
-  }
+  on_failure <- match.arg(on_failure)
+  family <- match.arg(family)
+  y_dens <- match.arg(y_dens)
+  variance_method <- match.arg(variance_method)
+  y_dens <- match.arg(y_dens)
+  optim_method <- match.arg(optim_method)
 
-  all_schemas <- jsonlite::read_json(json_path, simplifyVector = TRUE)
+  # R code for a custom validator module
+  # (This part assumes you have the 'validator' object defined from our previous conversation)
+
+  validator$assert_logical(standardize, name = "standardize")
+  validator$assert_choice(on_failure, choices = c("return", "error"), name = "on_failure")
+  validator$assert_positive_integer(bootstrap_reps, name = "bootstrap_reps",is.finite=TRUE)
+  validator$assert_logical(supress_warnings, name = "supress_warnings")
+  validator$assert_choice(family, choices = c("logit", "probit"), name = "family")
+  validator$assert_choice(y_dens, choices = c("auto", "normal", "gamma"), name = "y_dens")
+  validator$assert_choice(variance_method, choices = c("delta", "bootstrap"), name = "variance_method")
+  validator$assert_positive_integer(min_iter, name = "min_iter")
+  validator$assert_positive_integer(max_iter, name = "max_iter")
+  validator$assert_choice(optim_method, choices = c("Newton", "Broyden"), name = "optim_method")
+  validator$assert_number(tol_value, name = "tol_value", min = 0, max = Inf)
 
   engine <- list(
-    prob_model_type = prob_model_type,
+    prob_model_type = family,
     y_dens = y_dens,
     tol_value = tol_value,
     min_iter = min_iter,
@@ -90,12 +119,6 @@ exptilt_engine <- function(
 
   )
 
-  #TODO
-  # config <- validate_method_settings(
-  #   method_name = "exptilt",
-  #   arguments = config,
-  #   schemas = all_schemas
-  # )
 
   class(engine) <- c("nmar_engine_exptilt", "nmar_engine")
   return(engine)
