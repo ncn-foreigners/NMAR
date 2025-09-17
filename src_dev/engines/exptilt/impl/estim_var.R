@@ -139,7 +139,7 @@ estim_var.nmar_exptilt <- function(model){
 
     # Oblicz pierwszą część formuły B (suma)
     # W artykule autora `B1`
-    sum_term <- t(u_i / p_obs) %*% pi_deriv_obs
+    sum_term <- t(u_i * model$respondent_weights / p_obs) %*% pi_deriv_obs
 
     # B = suma %*% odwrotność(FI22)
     B <- sum_term %*% solve(FI22)

@@ -77,7 +77,7 @@ exptilt_config <- exptilt_engine(
   min_iter = 30,
   max_iter = 100,
   # standardize = TRUE
-  variance_method='bootstrap',
+  # variance_method='bootstrap',
   bootstrap_reps=10
 )
 
