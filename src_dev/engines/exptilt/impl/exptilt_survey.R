@@ -2,7 +2,7 @@
 #' @importFrom stats as.formula coef dnorm dgamma sd setNames
 #' @export
 #' #todo on_failure logic
-exptilt.data.frame <- function(data,model,on_failure=c('return')){
+exptilt.survey <- function(data,model,on_failure=c('return')){
   model$x=data
   # model$x_1 <- model$x[!is.na(model$x[,model$col_y]),,drop=FALSE] #observed
   # model$x_0 <- model$x[is.na(model$x[,model$col_y]),,drop=FALSE] #unobserved
