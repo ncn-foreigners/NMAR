@@ -115,7 +115,7 @@ exptilt.survey <- function(data,model,on_failure=c('return')){
   model$x_for_y_unobs <- model$x_0[,model$cols_y_observed,drop=FALSE]
 
 
-  var_final=69
+  se_final=NaN
   if(model$variance_method=="bootstrap"){
 
     model$original_params$variance_method='delta'
@@ -137,7 +137,7 @@ exptilt.survey <- function(data,model,on_failure=c('return')){
 
   return(validate_nmar_result(new_nmar_result_exptilt(
     y_hat=estim_mean(model),
-    se_final = var_final,
+    se_final = se_final,
     weights=NULL, #TODO
     coefficients = model$theta,
     vcov = estim_var(model)$vcov,
