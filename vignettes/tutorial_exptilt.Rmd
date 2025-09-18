@@ -119,7 +119,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
      variance_method="delta",
      min_iter=10,#todo move to control
      max_iter=100,#todo move to control
-     optim_method="Newton","Broyden", #todo move to control
+     optim_method="Newton", #todo move to control
      tol_value=1e-5 #todo move to control
 )
 
