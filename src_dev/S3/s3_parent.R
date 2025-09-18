@@ -6,21 +6,17 @@
 #'   (e.g., `nmar_result_el`) that inherits from `nmar_result` and may override
 #'   or extend behavior.
 #' @details
-#'   Result objects are expected to include at least:
-#'   - `y_hat`: the primary estimand (typically population mean).
-#'   - `se`: standard error for `y_hat`.
-#'   - `data_info`: a list created by `new_nmar_data_info()` with fields such as
-#'     `outcome_var`, `is_survey`, and (optionally) `design`.
-#'   - `diagnostics`: a list created by `new_nmar_diagnostics()` (solver/Jacobian
-#'     diagnostics, constraint sums, etc.).
-#'   Optionally, engines may include:
-#'   - `coefficients$response_model` and `vcov` for the response model; these are
-#'     consumed by `tidy()` for reporting.
+#'   Result objects expose a universal schema:
+#'   - `estimate`, `estimate_name`, `std_error`, `converged`.
+#'   - `model`: list with `coefficients`, `vcov`, plus optional extras.
+#'   - `weights_info`: list with `values` and `trimmed_fraction`.
+#'   - `sample`: list with `n_total`, `n_respondents`, `is_survey`, `design`.
+#'   - `inference`: variance metadata (`variance_method`, `df`, etc.).
+#'   - `diagnostics`, `meta`, and `extra` for estimator-specific details.
 #'
-#'   This separation keeps shared S3 surface concise and allows new engines to
-#'   reuse these methods with minimal glue. To add a new NMAR estimator, return a
-#'   child class `nmar_result_*` with these fields and engine‑specific S3 where
-#'   appropriate (e.g., `weights()`, `fitted()`).
+#'   Legacy fields (`y_hat`, `se`, `data_info`, `diagnostics` at top level) may
+#'   still be populated during the transition; methods below consume the new
+#'   fields first and fall back to the legacy ones when necessary.
 #'
 #' @name nmar_result_s3_parent
 #' @keywords internal
@@ -41,16 +37,10 @@ estimate <- function(x, ...) UseMethod("estimate")
 #' @param ... Ignored.
 #' @export
 estimate.nmar_result <- function(x, ...) {
-  if (!is.null(x$est_mean)) {
-    return(x$est_mean)
-  }
-  if (!is.null(x$y_hat)) {
-    est <- x$y_hat
-    nm <- if (!is.null(x$data_info$outcome_var)) x$data_info$outcome_var else "y"
-    names(est) <- nm
-    return(est)
-  }
-  NA_real_
+  est <- nmar_result_get_estimate(x)
+  nm <- nmar_result_get_estimate_name(x)
+  if (is.na(est)) return(NA_real_)
+  setNames(as.numeric(est), nm)
 }
 
 #' Variance-covariance for base NMAR results
@@ -58,13 +48,13 @@ estimate.nmar_result <- function(x, ...) {
 #' @param ... Ignored.
 #' @export
 vcov.nmar_result <- function(object, ...) {
-  se <- object$se %||% object$est_var %||% NA_real_
+  se <- nmar_result_get_std_error(object)
   if (length(se) == 1 && is.finite(se)) {
     mat <- matrix(as.numeric(se)^2, 1, 1)
   } else {
     mat <- matrix(NA_real_, 1, 1)
   }
-  nm <- if (!is.null(object$data_info$outcome_var)) object$data_info$outcome_var else "y"
+  nm <- nmar_result_get_estimate_name(object)
   dimnames(mat) <- list(nm, nm)
   mat
 }
@@ -76,18 +66,24 @@ vcov.nmar_result <- function(object, ...) {
 #' @param ... Ignored.
 #' @export
 confint.nmar_result <- function(object, parm, level = 0.95, ...) {
-  se <- object$se %||% NA_real_
+  se <- nmar_result_get_std_error(object)
+  nm <- nmar_result_get_estimate_name(object)
+  est <- nmar_result_get_estimate(object)
   if (!is.finite(se)) {
-    nm <- if (!is.null(object$data_info$outcome_var)) object$data_info$outcome_var else "y"
-    return(matrix(c(NA, NA), nrow = 1, dimnames = list(nm, c("2.5 %", "97.5 %"))))
+    return(matrix(c(NA_real_, NA_real_), nrow = 1, dimnames = list(nm, c("2.5 %", "97.5 %"))))
   }
   alpha <- 1 - level
-  crit <- stats::qnorm(1 - alpha / 2)
-  ci0 <- object$est_mean %||% object$y_hat
-  ci <- as.numeric(ci0) + c(-1, 1) * crit * se
+  inference <- nmar_result_get_inference(object)
+  sample <- nmar_result_get_sample(object)
+  if (isTRUE(sample$is_survey) && is.finite(inference$df)) {
+    crit <- stats::qt(1 - alpha / 2, df = inference$df)
+  } else {
+    crit <- stats::qnorm(1 - alpha / 2)
+  }
+  ci <- as.numeric(est) + c(-1, 1) * crit * se
   m <- matrix(ci, nrow = 1)
   colnames(m) <- paste0(format(100 * c(alpha / 2, 1 - alpha / 2)), " %")
-  rownames(m) <- if (!is.null(object$data_info$outcome_var)) object$data_info$outcome_var else "y"
+  rownames(m) <- nm
   m
 }
 
@@ -98,29 +94,55 @@ confint.nmar_result <- function(object, parm, level = 0.95, ...) {
 #' @param ... Ignored.
 #' @export
 tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
-  se <- x$se
-  est <- x$y_hat
-  nm <- if (!is.null(x$data_info$outcome_var)) x$data_info$outcome_var else "y"
-  is_svy <- isTRUE(x$data_info$is_survey)
-  if (is_svy) {
-    df <- tryCatch(survey::degf(x$data_info$design), error = function(e) Inf)
-    crit <- stats::qt(1 - (1 - conf.level) / 2, df = df)
+  est <- nmar_result_get_estimate(x)
+  se <- nmar_result_get_std_error(x)
+  nm <- nmar_result_get_estimate_name(x)
+  inference <- nmar_result_get_inference(x)
+  sample <- nmar_result_get_sample(x)
+  if (isTRUE(sample$is_survey) && is.finite(inference$df)) {
+    crit <- stats::qt(1 - (1 - conf.level) / 2, df = inference$df)
   } else {
     crit <- stats::qnorm(1 - (1 - conf.level) / 2)
   }
   ci <- c(NA_real_, NA_real_)
   if (is.finite(se)) ci <- as.numeric(est + c(-1, 1) * crit * se)
-  rows <- list(data.frame(term = nm, estimate = est, std.error = se, conf.low = ci[1], conf.high = ci[2], component = "estimand", statistic = NA_real_, p.value = NA_real_, check.names = FALSE))
-  if (is.list(x$coefficients) && !is.null(x$coefficients$response_model)) {
-    beta <- x$coefficients$response_model
+  rows <- list(data.frame(
+    term = nm,
+    estimate = as.numeric(est),
+    std.error = se,
+    conf.low = ci[1],
+    conf.high = ci[2],
+    component = "estimand",
+    statistic = NA_real_,
+    p.value = NA_real_,
+    check.names = FALSE
+  ))
+
+  model <- nmar_result_get_model(x)
+  beta <- model$coefficients
+  if (!is.null(beta)) {
     se_beta <- rep(NA_real_, length(beta))
     stat <- pval <- rep(NA_real_, length(beta))
-    if (is.matrix(x$vcov)) {
-      se_beta <- sqrt(diag(x$vcov))
+    if (!is.null(model$vcov) && is.matrix(model$vcov)) {
+      se_beta <- sqrt(diag(model$vcov))
       stat <- beta / se_beta
-      pval <- if (is_svy) 2 * stats::pt(-abs(stat), df = tryCatch(survey::degf(x$data_info$design), error = function(e) Inf)) else 2 * stats::pnorm(-abs(stat))
+      if (isTRUE(sample$is_survey) && is.finite(inference$df)) {
+        pval <- 2 * stats::pt(-abs(stat), df = inference$df)
+      } else {
+        pval <- 2 * stats::pnorm(-abs(stat))
+      }
     }
-    rows[[2]] <- data.frame(term = names(beta), estimate = as.numeric(beta), std.error = se_beta, statistic = stat, p.value = pval, conf.low = NA_real_, conf.high = NA_real_, component = "response", check.names = FALSE)
+    rows[[2]] <- data.frame(
+      term = names(beta),
+      estimate = as.numeric(beta),
+      std.error = se_beta,
+      statistic = stat,
+      p.value = pval,
+      conf.low = NA_real_,
+      conf.high = NA_real_,
+      component = "response",
+      check.names = FALSE
+    )
   }
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
@@ -133,26 +155,38 @@ tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
 #' @param ... Ignored.
 #' @export
 glance.nmar_result <- function(x, ...) {
-  se <- x$se
-  est <- x$y_hat
-  is_svy <- isTRUE(x$data_info$is_survey)
-  if (is_svy) {
-    df <- tryCatch(survey::degf(x$data_info$design), error = function(e) Inf)
-    crit <- stats::qt(0.975, df = df)
+  est <- nmar_result_get_estimate(x)
+  se <- nmar_result_get_std_error(x)
+  inference <- nmar_result_get_inference(x)
+  sample <- nmar_result_get_sample(x)
+  diagnostics <- nmar_result_get_diagnostics(x)
+  if (isTRUE(sample$is_survey) && is.finite(inference$df)) {
+    crit <- stats::qt(0.975, df = inference$df)
   } else {
     crit <- stats::qnorm(0.975)
   }
   ci <- c(NA_real_, NA_real_)
   if (is.finite(se)) ci <- as.numeric(est + c(-1, 1) * crit * se)
   data.frame(
-    estimate = est, std.error = se, conf.low = ci[1], conf.high = ci[2],
-    converged = x$converged, trimmed_fraction = x$diagnostics$trimmed_fraction,
-    variance_method = x$data_info$variance_method, solver_jacobian = x$diagnostics$solver_jacobian,
-    jacobian_source = x$diagnostics$jacobian_source, jacobian_condition_number = x$diagnostics$jacobian_condition_number,
-    jacobian_rel_diff = x$diagnostics$jacobian_rel_diff, max_equation_residual = x$diagnostics$max_equation_residual,
-    min_denominator = x$diagnostics$min_denominator, fraction_small_denominators = x$diagnostics$fraction_small_denominators,
-    used_pseudoinverse = isTRUE(x$diagnostics$used_pseudoinverse), nobs = x$data_info$nobs, nobs_resp = x$data_info$nobs_resp,
-    is_survey = is_svy, check.names = FALSE
+    estimate = as.numeric(est),
+    std.error = se,
+    conf.low = ci[1],
+    conf.high = ci[2],
+    converged = isTRUE(x$converged),
+    trimmed_fraction = diagnostics$trimmed_fraction %||% NA_real_,
+    variance_method = inference$variance_method,
+    solver_jacobian = diagnostics$solver_jacobian %||% NA_character_,
+    jacobian_source = diagnostics$jacobian_source %||% NA_character_,
+    jacobian_condition_number = diagnostics$jacobian_condition_number %||% NA_real_,
+    jacobian_rel_diff = diagnostics$jacobian_rel_diff %||% NA_real_,
+    max_equation_residual = diagnostics$max_equation_residual %||% NA_real_,
+    min_denominator = diagnostics$min_denominator %||% NA_real_,
+    fraction_small_denominators = diagnostics$fraction_small_denominators %||% NA_real_,
+    used_pseudoinverse = inference$used_pseudoinverse,
+    nobs = sample$n_total,
+    nobs_resp = sample$n_respondents,
+    is_survey = isTRUE(sample$is_survey),
+    check.names = FALSE
   )
 }
 
@@ -166,17 +200,19 @@ plot.nmar_result <- function(x, which = c("weights", "fitted", "constraints", "d
   which <- match.arg(which)
   op <- graphics::par(no.readonly = TRUE)
   on.exit(graphics::par(op), add = TRUE)
+  weights_info <- nmar_result_get_weights_info(x)
+  diagnostics <- nmar_result_get_diagnostics(x)
   if (which == "weights") {
-    w <- as.numeric(weights(x))
+    w <- as.numeric(weights_info$values)
     w <- w[is.finite(w)]
     if (length(w) < 2) {
       message("No weights available to plot.")
       return(invisible(x))
     }
     br <- max(2L, ceiling(sqrt(length(w))))
-    graphics::hist(w, breaks = br, main = "EL weights (respondents)", xlab = "weight", col = "gray")
+    graphics::hist(w, breaks = br, main = "NMAR weights (respondents)", xlab = "weight", col = "gray")
     graphics::abline(v = max(w), col = "firebrick", lty = 2)
-    tr <- attr(w, "trimmed_fraction")
+    tr <- weights_info$trimmed_fraction
     if (length(tr) == 1 && is.finite(tr)) graphics::mtext(sprintf("trimmed_fraction = %.2f%%", 100 * tr), side = 3, cex = 0.8)
   } else if (which == "fitted") {
     fv <- as.numeric(fitted(x))
@@ -188,20 +224,22 @@ plot.nmar_result <- function(x, which = c("weights", "fitted", "constraints", "d
     br <- max(2L, ceiling(sqrt(length(fv))))
     graphics::hist(fv, breaks = br, main = "Fitted response probabilities (respondents)", xlab = "p_hat", col = "gray")
   } else if (which == "constraints") {
-    vals <- c(eqW = x$diagnostics$constraint_sum_W)
-    if (!is.null(x$diagnostics$constraint_sum_aux) && length(x$diagnostics$constraint_sum_aux) > 0) vals <- c(vals, x$diagnostics$constraint_sum_aux)
+    vals <- c(eqW = diagnostics$constraint_sum_W %||% NA_real_)
+    if (!is.null(diagnostics$constraint_sum_aux) && length(diagnostics$constraint_sum_aux) > 0) vals <- c(vals, diagnostics$constraint_sum_aux)
     graphics::barplot(as.numeric(vals), names.arg = names(vals), main = "Constraint sums at solution", ylab = "sum", las = 2)
     graphics::abline(h = 0, col = "darkgray")
   } else if (which == "diagnostics") {
     graphics::plot.new()
-    js <- x$diagnostics$jacobian_source
-    jc <- x$diagnostics$jacobian_condition_number
-    jrd <- x$diagnostics$jacobian_rel_diff
-    mer <- x$diagnostics$max_equation_residual
-    md <- x$diagnostics$min_denominator
-    fsmall <- x$diagnostics$fraction_small_denominators
-    tr <- x$diagnostics$trimmed_fraction
-    txt <- c(sprintf("converged: %s", x$converged), sprintf("variance_method: %s", x$data_info$variance_method), sprintf("Jacobian source: %s  cond: %s", js, format(jc, digits = 3)), sprintf("Jacobian rel diff: %s", format(jrd, digits = 3)), sprintf("Max eq residual: %s", format(mer, digits = 3)), sprintf("Min denominator: %s (frac<1e-6: %.2f%%)", format(md, digits = 3), 100 * fsmall), sprintf("Trimmed fraction: %.2f%%", 100 * tr), sprintf("used_pseudoinverse: %s", isTRUE(x$diagnostics$used_pseudoinverse)))
+    txt <- c(
+      sprintf("converged: %s", isTRUE(x$converged)),
+      sprintf("variance_method: %s", (.get_inference(x)$variance_method)),
+      sprintf("Jacobian source: %s  cond: %s", diagnostics$jacobian_source %||% NA_character_, format(diagnostics$jacobian_condition_number %||% NA_real_, digits = 3)),
+      sprintf("Jacobian rel diff: %s", format(diagnostics$jacobian_rel_diff %||% NA_real_, digits = 3)),
+      sprintf("Max eq residual: %s", format(diagnostics$max_equation_residual %||% NA_real_, digits = 3)),
+      sprintf("Min denominator: %s (frac<1e-6: %.2f%%)", format(diagnostics$min_denominator %||% NA_real_, digits = 3), 100 * (diagnostics$fraction_small_denominators %||% 0)),
+      sprintf("Trimmed fraction: %.2f%%", 100 * (weights_info$trimmed_fraction %||% 0)),
+      sprintf("used_pseudoinverse: %s", isTRUE(.get_inference(x)$used_pseudoinverse))
+    )
     graphics::text(0.02, 0.95, adj = c(0, 1), labels = paste(txt, collapse = "\n"), cex = 0.9)
   }
   invisible(x)
