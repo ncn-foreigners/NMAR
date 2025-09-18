@@ -9,20 +9,34 @@ NULL
 #' @param ... Ignored.
 #' @export
 print.nmar_result_el <- function(x, ...) {
-  cat("Call:\n")
-  if (!is.null(x$call)) print(x$call)
-  cat("\n--- NMAR Estimation Result ---\n")
-  method <- if (!is.null(x$data_info$method)) x$data_info$method else "Empirical Likelihood (EL)"
-  cat("Method:", method, "\n\n")
-  if (isTRUE(x$converged)) {
-    nm <- x$data_info$outcome_var %||% "y"
-    cat("Population Mean Estimate\n")
-    est <- x$y_hat
-    names(est) <- nm
-    print(est)
-  } else {
-    cat("--> Estimation failed to converge.\n")
-    if (!is.null(x$diagnostics$message)) cat("--> Message:", x$diagnostics$message, "\n")
+  meta <- x$meta %||% list()
+  call_obj <- meta$call %||% x$call
+  if (!is.null(call_obj)) {
+    cat("Call:\n")
+    print(call_obj)
+    cat("\n")
+  }
+
+  NextMethod()
+
+  diagnostics <- nmar_result_get_diagnostics(x)
+  method_label <- meta$engine_name %||% "Empirical Likelihood (EL)"
+  cat("\nMethod: ", method_label, "\n", sep = "")
+  if (!isTRUE(x$converged)) {
+    msg <- diagnostics$message %||% NA_character_
+    if (!is.na(msg)) cat("Convergence message: ", msg, "\n", sep = "")
+    return(invisible(x))
+  }
+
+  if (!is.null(diagnostics$max_equation_residual)) {
+    cat(sprintf("Max equation residual: %.3e\n", diagnostics$max_equation_residual))
+  }
+  if (!is.null(diagnostics$constraint_sum_W)) {
+    cat(sprintf("Constraint sum (W): %.3e\n", diagnostics$constraint_sum_W))
+  }
+  if (!is.null(diagnostics$constraint_sum_aux) && length(diagnostics$constraint_sum_aux) > 0) {
+    cat("Constraint sums (aux):\n")
+    print(diagnostics$constraint_sum_aux)
   }
   invisible(x)
 }
@@ -33,39 +47,42 @@ print.nmar_result_el <- function(x, ...) {
 #' @param ... Ignored.
 #' @export
 summary.nmar_result_el <- function(object, ...) {
-  if (!isTRUE(object$converged)) {
-    cat("Model did not converge.\n")
-    return(invisible(object))
+  base <- NextMethod()
+  model <- nmar_result_get_model(object)
+  base$response_model <- model$coefficients
+  base$response_vcov <- model$vcov
+  base$call <- object$meta$call %||% object$call
+  base$df <- nmar_result_get_inference(object)$df
+  class(base) <- c("summary_nmar_result_el", class(base))
+  base
+}
+
+#' @export
+print.summary_nmar_result_el <- function(x, ...) {
+  NextMethod()
+  if (!is.null(x$call)) {
+    cat("Call:\n")
+    print(x$call)
   }
-  is_svy <- isTRUE(object$data_info$is_survey)
-  df <- if (is_svy && !is.null(object$data_info$design)) tryCatch(survey::degf(object$data_info$design), error = function(e) Inf) else Inf
-  crit <- if (is.finite(df) && is_svy) stats::qt(0.975, df = df) else stats::qnorm(0.975)
-  ci <- object$y_hat + c(-1, 1) * crit * object$se
-
-  cat("Call:\n")
-  if (!is.null(object$call)) print(object$call)
-  cat("\n")
-  cat("--- Population Mean Estimate ---\n")
-  cat(sprintf("Estimate of mean(%s): %.4f\n", object$data_info$outcome_var, object$y_hat))
-  cat(sprintf("Std. Error: %.4f\n", object$se))
-  vm <- object$data_info$variance_method %||% "unknown"
-  cat(sprintf("95%% CI (Wald, %s): (%.4f, %.4f)\n", vm, ci[1], ci[2]))
-
-  # Coefficients (if available)
-  if (is.list(object$coefficients) && !is.null(object$coefficients$response_model)) {
-    cat("\n--- Response Model Coefficients ---\n")
-    beta <- object$coefficients$response_model
-    if (is.matrix(object$vcov)) {
-      se <- sqrt(diag(object$vcov))
+  if (!is.null(x$response_model)) {
+    cat("\nResponse-model coefficients:\n")
+    beta <- x$response_model
+    if (!is.null(x$response_vcov) && is.matrix(x$response_vcov)) {
+      se <- sqrt(diag(x$response_vcov))
       stat <- beta / se
-      p <- if (is_svy) 2 * stats::pt(-abs(stat), df = df) else 2 * stats::pnorm(-abs(stat))
-      out <- data.frame(Estimate = beta, `Std. Error` = se, `z/t value` = stat, `Pr(>|z/t|)` = p, check.names = FALSE)
-      print(out)
+      df <- x$df %||% NA_real_
+      if (is.finite(df)) {
+        pval <- 2 * stats::pt(-abs(stat), df = df)
+      } else {
+        pval <- 2 * stats::pnorm(-abs(stat))
+      }
+      tab <- data.frame(Estimate = beta, `Std. Error` = se, `z value` = stat, `Pr(>|z|)` = pval, check.names = FALSE)
+      print(tab)
     } else {
       print(data.frame(Estimate = beta))
     }
   }
-  invisible(object)
+  invisible(x)
 }
 
 #' Estimate for EL results
@@ -73,20 +90,18 @@ summary.nmar_result_el <- function(object, ...) {
 #' @param ... Ignored.
 #' @export
 estimate.nmar_result_el <- function(x, ...) {
-  est <- x$y_hat
-  nm <- x$data_info$outcome_var %||% "y"
-  names(est) <- nm
-  est
+  NextMethod()
 }
 
 #' @export
 coef.nmar_result_el <- function(object, type = c("response", "estimand"), ...) {
   type <- match.arg(type)
   if (type == "response") {
-    return(object$coefficients$response_model)
+    return(nmar_result_get_model(object)$coefficients)
   }
-  est <- object$y_hat
-  names(est) <- object$data_info$outcome_var
+  est <- nmar_result_get_estimate(object)
+  nm <- nmar_result_get_estimate_name(object)
+  names(est) <- nm
   est
 }
 
@@ -99,13 +114,7 @@ coef.nmar_result_el <- function(object, type = c("response", "estimand"), ...) {
 #' @param ... Ignored.
 #' @export
 vcov.nmar_result_el <- function(object, ...) {
-  if (!isTRUE(object$converged) || !is.finite(object$se)) {
-    mat <- matrix(NA_real_, 1, 1)
-  } else {
-    mat <- matrix(object$se^2, 1, 1)
-  }
-  dimnames(mat) <- list(object$data_info$outcome_var, object$data_info$outcome_var)
-  mat
+  NextMethod()
 }
 
 #' Confidence interval for the primary estimand (EL)
@@ -118,19 +127,7 @@ vcov.nmar_result_el <- function(object, ...) {
 #' @param ... Ignored.
 #' @export
 confint.nmar_result_el <- function(object, parm, level = 0.95, ...) {
-  if (!isTRUE(object$converged) || !is.finite(object$se)) {
-    ci <- c(NA_real_, NA_real_)
-  } else {
-    is_svy <- isTRUE(object$data_info$is_survey)
-    df <- if (is_svy && !is.null(object$data_info$design)) tryCatch(survey::degf(object$data_info$design), error = function(e) Inf) else Inf
-    alpha <- 1 - level
-    crit <- if (is_svy && is.finite(df)) stats::qt(1 - alpha / 2, df = df) else stats::qnorm(1 - alpha / 2)
-    ci <- object$y_hat + c(-1, 1) * crit * object$se
-  }
-  m <- matrix(ci, nrow = 1)
-  colnames(m) <- paste0(format(100 * c((1 - level) / 2, 1 - (1 - level) / 2)), " %")
-  rownames(m) <- object$data_info$outcome_var
-  m
+  NextMethod()
 }
 
 #' Fitted probabilities for EL results
@@ -138,7 +135,7 @@ confint.nmar_result_el <- function(object, parm, level = 0.95, ...) {
 #' @param ... Ignored.
 #' @export
 fitted.nmar_result_el <- function(object, ...) {
-  fv <- object$fitted_values
+  fv <- object$extra$fitted_values %||% object$fitted_values
   if (is.null(fv) || length(fv) == 0) {
     return(numeric(0))
   }
@@ -150,13 +147,13 @@ fitted.nmar_result_el <- function(object, ...) {
 #' @param ... Ignored.
 #' @export
 weights.nmar_result_el <- function(object, ...) {
-  w <- object$weights
+  info <- nmar_result_get_weights_info(object)
+  w <- info$values
   if (is.null(w)) {
     return(numeric(0))
   }
   w <- as.numeric(w)
-  tr <- object$diagnostics$trimmed_fraction
-  attr(w, "trimmed_fraction") <- tr
+  attr(w, "trimmed_fraction") <- info$trimmed_fraction
   w
 }
 
@@ -165,14 +162,8 @@ weights.nmar_result_el <- function(object, ...) {
 #' @param ... Ignored.
 #' @export
 formula.nmar_result_el <- function(x, ...) {
-  if (!is.null(x$data_info$formula)) {
-    return(x$data_info$formula)
-  }
-  NULL
+  x$meta$formula %||% NULL
 }
-
-# small infix helper
-`%||%` <- function(a, b) if (!is.null(a)) a else b
 
 # Additional S3 methods for user workflows
 
@@ -180,6 +171,7 @@ formula.nmar_result_el <- function(x, ...) {
 autoplot.nmar_result <- function(object, type = c("weights", "fitted", "constraints"), ...) {
   type <- match.arg(type)
   if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 is required for autoplot.nmar_result", call. = FALSE)
+  diagnostics <- nmar_result_get_diagnostics(object)
   if (type == "weights") {
     w <- weights(object)
     df <- data.frame(w = as.numeric(w))
@@ -193,8 +185,8 @@ autoplot.nmar_result <- function(object, type = c("weights", "fitted", "constrai
       ggplot2::geom_histogram(color = "white", fill = "gray") +
       ggplot2::labs(title = "Fitted response probabilities", x = "p_hat")
   } else {
-    vals <- c(eqW = object$diagnostics$constraint_sum_W)
-    if (!is.null(object$diagnostics$constraint_sum_aux) && length(object$diagnostics$constraint_sum_aux) > 0) vals <- c(vals, object$diagnostics$constraint_sum_aux)
+    vals <- c(eqW = diagnostics$constraint_sum_W %||% NA_real_)
+    if (!is.null(diagnostics$constraint_sum_aux) && length(diagnostics$constraint_sum_aux) > 0) vals <- c(vals, diagnostics$constraint_sum_aux)
     df <- data.frame(term = names(vals), value = as.numeric(vals))
     ggplot2::ggplot(df, ggplot2::aes(x = term, y = value)) +
       ggplot2::geom_col(fill = "gray") +
