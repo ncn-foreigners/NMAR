@@ -9,14 +9,14 @@
 #'   Result objects expose a universal schema:
 #'   - `estimate`, `estimate_name`, `std_error`, `converged`.
 #'   - `model`: list with `coefficients`, `vcov`, plus optional extras.
-#'   - `weights_info`: list with `values` and `trimmed_fraction`.
-#'   - `sample`: list with `n_total`, `n_respondents`, `is_survey`, `design`.
-#'   - `inference`: variance metadata (`variance_method`, `df`, etc.).
+#'   - `weights_info`: list with respondent weights and trimming metadata.
+#'   - `sample`: list with total units, respondent count, survey flag, and `design`.
+#'   - `inference`: variance metadata (`variance_method`, `df`, diagnostic flags).
 #'   - `diagnostics`, `meta`, and `extra` for estimator-specific details.
 #'
-#'   Legacy fields (`y_hat`, `se`, `data_info`, `diagnostics` at top level) may
-#'   still be populated during the transition; methods below consume the new
-#'   fields first and fall back to the legacy ones when necessary.
+#'   New engines should populate these components in their constructors and rely
+#'   on the `nmar_result_get_*` utilities when implementing child-specific S3
+#'   methods.
 #'
 #' @name nmar_result_s3_parent
 #' @keywords internal

@@ -185,23 +185,26 @@ math here (e.g., likelihood, gradients, constraints).
   for IID or survey designs.
 
 ### 8) `impl/<method>_constructors.R`
-Use `new_nmar_result.R` in order to create `new_nmar_result_<method>`. It should 'inherit' from (de facto run) new_nmar_result, as provided in el (`new_nmar_result_el`)
+Call `new_nmar_result()` inside your constructor so the object carries class
+`c("nmar_result_<method>", "nmar_result")` and shares the standard layout:
 
-Eventually it should be validated by `validate_nmar_result.R`
+- Scalar fields: `estimate`, `estimate_name`, `std_error`, `converged`.
+- Lists: `model` (coefficients/vcov), `weights_info`, `sample`, `inference`,
+  `diagnostics`, `meta`, `extra`.
 
-Using common new_nmar_result is **obligatory** to provide consistency across naming (y_hat, se etc)
-
-Create a result constructor mirroring EL’s `new_nmar_result_el()`, returning
-`structure(list(...), class = c("nmar_result_<method>", "nmar_result"))`, and a
-validator. 
+Populate these components directly; do not add extra top-level aliases such as
+`y_hat` or `data_info`. Call `validate_nmar_result()` before returning to ensure
+the structure is complete.
 
 ### 9) `s3.R` — S3 methods for your result class
 
 Implement (or rely on parent defaults):
 
-- `print.nmar_result_<method>()`, `summary.nmar_result_<method>()` (optional)
-- `estimate()`, `vcov()`, `confint()`: the parent methods will work out of the
-  box if you return `y_hat`, `se`, `data_info`, and `diagnostics`.
+- `print.nmar_result_<method>()`, `summary.nmar_result_<method>()` (optional).
+  When overriding, call `NextMethod()` first to reuse the parent output and then
+  append estimator-specific details.
+- `estimate()`, `vcov()`, `confint()`, `tidy()`, `glance()`: these work out of
+  the box as long as you populate the shared schema.
 - Optional accessors: `weights()`, `fitted()`, `coef()`, etc., if your engine
   exposes them.
 
@@ -233,4 +236,3 @@ Use these shared modules in `src/shared/`:
 - IID: resample rows and rerun the estimator.
 - Survey: convert to bootstrap replicate weights (`svrep::as_bootstrap_design`),
   use `survey::withReplicates`, then `survey::svrVar`.
-
