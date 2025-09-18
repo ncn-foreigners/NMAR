@@ -34,33 +34,6 @@
 #'
 #' @importFrom jsonlite read_json
 #' @importFrom utils modifyList
-
-#'
-#' @examples
-#' # Create a default Exponential Tilting engine configuration
-#' default_exptilt_config <- exptilt()
-#' print(default_exptilt_config)
-#'
-#' # Create an Exponential Tilting engine with custom parameters
-#' custom_exptilt_config <- exptilt(
-#' standardize=TRUE,
-#' on_failure = "error",
-#' bootstrap_reps=10,
-#' supress_warnings=FALSE,
-#' auxiliary_means = NULL,
-#' control=list(),
-#' family="logit",
-#' y_dens="normal",
-#' variance_method="delta",
-#' min_iter=10,#todo move to control
-#' max_iter=100,#todo move to control
-#' optim_method="Newton","Broyden", #todo move to control
-#' tol_value=1e-5 #todo move to control
-#' )
-#' print(custom_exptilt_config)
-#'
-#' # This configuration object can then be passed to the 'nmar' function:
-#' # nmar_results <- nmar(formula = my_formula, data = my_data, engine = custom_exptilt_config)
 #' @export
 exptilt_engine <- function(
     standardize=TRUE,

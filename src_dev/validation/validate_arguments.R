@@ -24,8 +24,6 @@ is_positive <- function(x) {
 #' @param choices A vector of allowed choices.
 #' @param name A string representing the name of the argument being checked.
 #' @return Returns nothing on success, stops with an error on failure.
-#' @examples
-#' # validator$assert_choice("probit", choices = c("logit", "probit"), name = "family")
 #' @name validator_assert_choice
 validator$assert_choice <- function(x, choices, name) {
   if (!x %in% choices) {
@@ -47,8 +45,6 @@ validator$assert_choice <- function(x, choices, name) {
 #' @param min The minimum allowed value (inclusive). Defaults to -Inf.
 #' @param max The maximum allowed value (inclusive). Defaults to Inf.
 #' @return Returns nothing on success, stops with an error on failure.
-#' @examples
-#' # validator$assert_number(args$tol_value, name = "tol_value", min = 0)
 #' @name validator_assert_number
 validator$assert_number <- function(x, name, min = -Inf, max = Inf) {
   if (!is.numeric(x) || x < min || x > max) {
@@ -67,10 +63,6 @@ validator$assert_number <- function(x, name, min = -Inf, max = Inf) {
 #' @param name A string representing the name of the argument being checked.
 #' @param is.finite A logical value. If TRUE (default), checks if the number is finite.
 #' @return Returns nothing on success. Stops with a clear error on failure.
-#' @examples
-#' # This will pass validation:
-#' validator$assert_positive_integer(10L, name = "reps")
-#'
 #' @name validator_assert_positive_integer
 validator$assert_positive_integer <- function(x, name, is.finite = TRUE) {
   if (!is.numeric(x) || x != as.integer(x)) {
@@ -92,8 +84,6 @@ validator$assert_positive_integer <- function(x, name, is.finite = TRUE) {
 #' @param x The value to check.
 #' @param name A string representing the name of the argument being checked.
 #' @return Returns nothing on success, stops with an error on failure.
-#' @examples
-#' # validator$assert_logical(args$standardize, name = "standardize")
 #' @name validator_assert_logical
 validator$assert_logical <- function(x, name) {
   if (!is.logical(x)) {

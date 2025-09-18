@@ -19,25 +19,6 @@
 #'   This object contains all specified parameters for the nonparametric ET method.
 #'
 #' @importFrom jsonlite read_json
-
-#'
-#' @examples
-#' # Create a nonparametric ET configuration with default parameters
-#' config <- exptilt_nonparam(
-#'   outcome_cols = c("vote_A", "vote_B", "abstain"),
-#'   refusal_col = "refused"
-#' )
-#'
-#' # Create with custom iteration parameters
-#' custom_config <- exptilt_nonparam(
-#'   outcome_cols = c("yes", "no"),
-#'   refusal_col = "missing",
-#'   max_iter = 200,
-#'   tol_value = 1e-8
-#' )
-#'
-#' # Use with nmar() function:
-#' # results <- nmar(data = survey_data, engine = config)
 #' @export
 exptilt_nonparam_engine <- function(
     # outcome_cols,

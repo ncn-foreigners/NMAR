@@ -39,38 +39,6 @@
 #' nonignorable nonresponse or informative sampling. Journal of the American
 #' Statistical Association, 97(457), 193–200.
 #'
-#' @examples
-#' \donttest{
-#' # Simulate a small NMAR example
-#' set.seed(1)
-#' N <- 100
-#' X <- rnorm(N)
-#' Y <- 2 + 0.5 * X + rnorm(N)
-#' p <- plogis(-1 + 0.4 * scale(Y)[, 1])
-#' R <- runif(N) < p
-#' df <- data.frame(Y_miss = Y, X = X)
-#' df$Y_miss[!R] <- NA_real_
-#'
-#' # Construct EL engine and estimate mean(Y)
-#' eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "delta")
-#' fit <- nmar(
-#'   formula = list(outcome = ~Y_miss, covariates_outcome = ~X, covariates_missingness = ~NULL),
-#'   data = df,
-#'   engine = eng
-#' )
-#' estimate(fit)
-#'
-#' # Probit family and inversion options
-#' eng2 <- el_engine(
-#'   auxiliary_means = c(X = 0), family = "probit",
-#'   variance_pseudoinverse = TRUE, variance_ridge = TRUE
-#' )
-#' fit2 <- nmar(
-#'   formula = list(outcome = ~Y_miss, covariates_outcome = ~X, covariates_missingness = ~NULL),
-#'   data = df,
-#'   engine = eng2
-#' )
-#' }
 #' @export
 el_engine <- function(
     standardize = TRUE,
