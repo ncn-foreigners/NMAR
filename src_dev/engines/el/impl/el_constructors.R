@@ -85,10 +85,7 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
     class = "nmar_result_el"
   )
 
-  # Maintain legacy fields used by downstream methods until they are rewritten.
-  result$fitted_values <- fitted_values
   result$nmar_scaling_recipe <- nmar_scaling_recipe
-  result$data_info <- data_info
 
   result
 }

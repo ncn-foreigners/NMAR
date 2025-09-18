@@ -12,7 +12,7 @@ nmar_result_get_std_error <- function(x) {
 
 #' @keywords internal
 nmar_result_get_estimate_name <- function(x) {
-  x$estimate_name %||% x$data_info$outcome_var %||%
+  x$estimate_name %||%
     (if (!is.null(names(x$estimate)) && length(x$estimate) == 1) names(x$estimate) else NULL) %||%
     "estimand"
 }
@@ -20,21 +20,21 @@ nmar_result_get_estimate_name <- function(x) {
 #' @keywords internal
 nmar_result_get_sample <- function(x) {
   sample <- x$sample %||% list()
-  sample$n_total <- sample$n_total %||% x$data_info$nobs %||% NA_integer_
-  sample$n_respondents <- sample$n_respondents %||% x$data_info$nobs_resp %||% NA_integer_
-  sample$is_survey <- sample$is_survey %||% isTRUE(x$data_info$is_survey)
-  sample$design <- sample$design %||% x$data_info$design %||% NULL
+  sample$n_total <- sample$n_total %||% NA_integer_
+  sample$n_respondents <- sample$n_respondents %||% NA_integer_
+  sample$is_survey <- sample$is_survey %||% FALSE
+  sample$design <- sample$design %||% NULL
   sample
 }
 
 #' @keywords internal
 nmar_result_get_inference <- function(x) {
   inference <- x$inference %||% list()
-  inference$variance_method <- inference$variance_method %||% x$data_info$variance_method %||% NA_character_
+  inference$variance_method <- inference$variance_method %||% NA_character_
   inference$df <- inference$df %||% NA_real_
   inference$message <- inference$message %||% NA_character_
-  inference$used_pseudoinverse <- inference$used_pseudoinverse %||% isTRUE(x$diagnostics$used_pseudoinverse)
-  inference$used_ridge <- inference$used_ridge %||% isTRUE(x$diagnostics$used_ridge)
+  inference$used_pseudoinverse <- inference$used_pseudoinverse %||% FALSE
+  inference$used_ridge <- inference$used_ridge %||% FALSE
   inference
 }
 

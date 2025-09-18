@@ -67,17 +67,5 @@ new_nmar_result_exptilt <- function(estimate, std_error, coefficients, vcov, mod
     class = "nmar_result_exptilt"
   )
 
-  # Maintain legacy aliases used elsewhere in the codebase.
-  result$data_info <- list(
-    outcome_var = outcome_name,
-    nobs = n_total,
-    nobs_resp = n_resp,
-    is_survey = sample$is_survey,
-    design = sample$design,
-    variance_method = inference$variance_method,
-    method = "Exponential Tilting (ET)"
-  )
-  result$diagnostics <- diagnostics
-
   result
 }
