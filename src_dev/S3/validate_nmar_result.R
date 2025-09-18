@@ -30,8 +30,6 @@ validate_nmar_result <- function(x, class_name) {
   if (is.null(x$weights_info) || !is.list(x$weights_info)) x$weights_info <- list()
   if (is.null(x$weights_info$values)) x$weights_info$values <- NULL
   if (is.null(x$weights_info$trimmed_fraction)) x$weights_info$trimmed_fraction <- NA_real_
-  # Legacy alias kept in sync
-  x$weights <- x$weights_info$values
 
   # Sample metadata
   sample_defaults <- list(n_total = NA_integer_, n_respondents = NA_integer_, is_survey = FALSE, design = NULL)
@@ -62,12 +60,6 @@ validate_nmar_result <- function(x, class_name) {
   }
 
   if (is.null(x$extra) || !is.list(x$extra)) x$extra <- list()
-
-  # Legacy aliases
-  x$y_hat <- x$estimate
-  x$se <- x$std_error
-  if (is.null(x$coefficients)) x$coefficients <- x$model$coefficients
-  if (is.null(x$vcov)) x$vcov <- x$model$vcov
 
   x
 }

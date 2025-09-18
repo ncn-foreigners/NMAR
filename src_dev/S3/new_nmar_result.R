@@ -9,7 +9,7 @@
 new_nmar_result <- function(...) {
   dots <- list(...)
 
-  # Detect legacy usage: unnamed first argument assumed to be `y_hat`.
+  # Detect legacy usage: unnamed first argument assumed to be `y_hat`
   legacy_names <- c("y_hat", "se", "weights", "coefficients", "vcov", "converged", "class")
   legacy_call <-
     (length(dots) >= 6) &&
@@ -110,18 +110,12 @@ new_nmar_result <- function(...) {
     inference = inference,
     diagnostics = diagnostics,
     meta = meta,
-    extra = extra,
-    # Legacy aliases (to be removed after downstream refactor)
-    y_hat = estimate,
-    se = std_error,
-    weights = weights_info$values,
-    coefficients = model$coefficients,
-    vcov = model$vcov
+    extra = extra
   )
 
   structure(result, class = c(class_name, "nmar_result"))
 }
-# Fallback definition for the `%||%` helper used across the S3 stack.
+# Fallback definition for the `%||%` helper used across the S3 stack
 if (!exists("%||%")) {
   `%||%` <- function(a, b) if (!is.null(a)) a else b
 }
