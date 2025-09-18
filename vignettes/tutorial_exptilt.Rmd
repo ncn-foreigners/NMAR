@@ -70,26 +70,16 @@ res_test_data <- generate_test_data(n_rows = 500, n_cols = 2, case = 1)
 ```{r}
 #Exptilt engine configuration
 exptilt_config <- exptilt_engine(
-  # prob_model_type = 'probit', #or logit
-  # y_dens = 'auto', # y ~ x1,x2...
-  # standardize = 'Pozdro Igor',
   y_dens = 'normal',
-  # tol_value = -2137,
   min_iter = 30,
   max_iter = 100,
   family = 'probit', #or logit
   # standardize = TRUE
-  # variance_method='bootstrap',
-  # bootstrap_reps=-2
+  # variance_method='bootstrap', #or delta
+  # bootstrap_reps=10
 )
 
-# formula <- list(
-#   outcome = ~ Y,
-#   covariates_outcome = ~ x1+x2,
-#   covariates_missingness = ~ NULL
-# )
 
-# x$Y=NaN
 formula = Y ~ x1 + x2
 res <- nmar(formula=formula,data=x,engine=exptilt_config,response_predictors=NULL)
 ```
@@ -98,9 +88,7 @@ res <- nmar(formula=formula,data=x,engine=exptilt_config,response_predictors=NUL
 print(res)
 
 ```
-```{r}
-summary(res)
-```
+
 
 
 ```{r}
@@ -120,21 +108,22 @@ if (requireNamespace("survey", quietly = TRUE)) {
   surv_test_data <- svydesign(ids = ~1, data = x, weights = ~surv_test_weights)
   
   exptilt_config <- exptilt_engine(
-  family = 'probit', #or logit
-
-  # y_dens = 'auto', # y ~ x1,x2...
-  y_dens = 'normal',
-  tol_value = 0.00001,
-  min_iter = 30,
-  max_iter = 100,
-  standardize = TRUE,
+     standardize=FALSE,
+     on_failure = "error", #currently does nothing
+     bootstrap_reps=10,
+     supress_warnings=FALSE, #currently does nothing
+     auxiliary_means = NULL, #currently does nothing
+     control=list(),#currently does nothing
+     family="logit",
+     y_dens="normal",
+     variance_method="delta",
+     min_iter=10,#todo move to control
+     max_iter=100,#todo move to control
+     optim_method="Newton","Broyden", #todo move to control
+     tol_value=1e-5 #todo move to control
 )
 
-  # formula <- list(
-  #   outcome = ~ Y,
-  #   covariates_outcome = ~ x1+x2,
-  #   covariates_missingness = ~ NULL
-  # )
+
   formula = Y ~ x1 + x2
   res <- nmar(formula=formula,data=x,engine=exptilt_config,response_predictors=NULL)
   print(res)

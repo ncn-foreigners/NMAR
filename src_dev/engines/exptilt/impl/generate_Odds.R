@@ -1,13 +1,6 @@
 #' @exportS3Method NULL
 generate_Odds.nmar_exptilt <- function(model) {
-  # stopifnot(
-  #   any(is.na(theta)) == FALSE,
-  #   any(is.na(x)) == FALSE,
-  #   any(is.na(y)) == FALSE,
-  #   is.matrix(x) || is.data.frame(x),
-  #   is.vector(y) || is.matrix(y),
-  #   length(theta) == ncol(x) + 1 + 1 # +1 for intercept, +1 for y
-  # )
+
   x_mat <- as.matrix(model$x_0[,model$cols_delta,drop=FALSE])
   y_vec <- as.vector(model$y_1)
 

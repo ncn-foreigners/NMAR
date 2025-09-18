@@ -7,7 +7,7 @@
 #'   The returned object can then be passed to the `nmar()` function to perform
 #'   the NMAR estimation using the ET approach.
 #'
-#' @param prob_model_type A character string specifying the probability model for
+#' @param family A character string specifying the probability model for
 #'   data missingness. Valid options are `"logit"` for a logistic regression model
 #'   or `"probit"` for a probit regression model. Defaults to a value loaded from
 #'   package settings (likely `"probit"`).
@@ -43,12 +43,19 @@
 #'
 #' # Create an Exponential Tilting engine with custom parameters
 #' custom_exptilt_config <- exptilt(
-#'   prob_model_type = 'logit',
-#'   y_dens = 'gamma',
-#'   tol_value = 1e-6,
-#'   min_iter = 50,
-#'   max_iter = 200,
-#'   optim_method = 'Broyden'
+#' standardize=TRUE,
+#' on_failure = "error",
+#' bootstrap_reps=10,
+#' supress_warnings=FALSE,
+#' auxiliary_means = NULL,
+#' control=list(),
+#' family="logit",
+#' y_dens="normal",
+#' variance_method="delta",
+#' min_iter=10,#todo move to control
+#' max_iter=100,#todo move to control
+#' optim_method="Newton","Broyden", #todo move to control
+#' tol_value=1e-5 #todo move to control
 #' )
 #' print(custom_exptilt_config)
 #'
@@ -56,18 +63,7 @@
 #' # nmar_results <- nmar(formula = my_formula, data = my_data, engine = custom_exptilt_config)
 #' @export
 exptilt_engine <- function(
-    # prob_model_type = get_json_param_info(all_schemas, "exptilt", "prob_model_type")$default,
-    # y_dens = get_json_param_info(all_schemas, "exptilt", "y_dens")$default,
-    # tol_value = get_json_param_info(all_schemas, "exptilt", "tol_value")$default,
-    # min_iter = get_json_param_info(all_schemas, "exptilt", "min_iter")$default,
-    # max_iter = get_json_param_info(all_schemas, "exptilt", "max_iter")$default,
-    # standardize=FALSE, #TODO apply jSON
-    # variance_method='delta',#TODO apply jSON
-    # bootstrap_reps=500,
-    # auxiliary_means = NULL,
-    # optim_method = get_json_param_info(all_schemas, "exptilt", "optim_method")$default
     standardize=TRUE,
-    # trim_cap=Inf,
     on_failure = c("return","error"),
     bootstrap_reps=10,
     supress_warnings=FALSE,
@@ -76,7 +72,7 @@ exptilt_engine <- function(
     family=c("logit", "probit"),
     y_dens=c("auto","normal", "gamma"),
     variance_method=c("delta","bootstrap"),
-    min_iter=1,#todo move to control
+    min_iter=10,#todo move to control
     max_iter=100,#todo move to control
     optim_method=c("Newton","Broyden"), #todo move to control
     tol_value=1e-5 #todo move to control
@@ -89,9 +85,6 @@ exptilt_engine <- function(
   variance_method <- match.arg(variance_method)
   y_dens <- match.arg(y_dens)
   optim_method <- match.arg(optim_method)
-
-  # R code for a custom validator module
-  # (This part assumes you have the 'validator' object defined from our previous conversation)
 
   validator$assert_logical(standardize, name = "standardize")
   validator$assert_choice(on_failure, choices = c("return", "error"), name = "on_failure")
@@ -118,7 +111,6 @@ exptilt_engine <- function(
     variance_method=variance_method
 
   )
-
 
   class(engine) <- c("nmar_engine_exptilt", "nmar_engine")
   return(engine)

@@ -1,15 +1,11 @@
 #' @exportS3Method NULL
 run_engine.nmar_engine_exptilt <- function(engine, formula, data,response_predictors) {
-  # outcome_variable <- all.vars(formula$outcome)
-  # covariates_for_outcome <- all.vars(formula$covariates_outcome)
-  # covariates_for_missingness <- all.vars(formula$covariates_missingness)
   outcome_variable <- as.vector(all.vars(formula[[2]]))
   covariates_for_outcome <- as.vector(all.vars(formula[[3]]))
   covariates_for_missingness <- response_predictors
 
    validate_data(data, outcome_variable, covariates_for_outcome, covariates_for_missingness)
 
-  #data should only consist of columns outcome_variable,covariates_for_outcome,covariates_for_missingness
   data_ <- data[,c(outcome_variable,covariates_for_outcome,covariates_for_missingness)]
   model <- structure(
     list(
@@ -43,17 +39,8 @@ run_engine.nmar_engine_exptilt <- function(engine, formula, data,response_predic
     stop("Exptilt engine did not return an 'nmar_result_el' object.")
   }
 
-
-  # return(structure(list(theta = model$theta
-  #             ,est_mean=estim_mean(model)
-  #             ,est_var=estim_var(model)$var_est
-  #             ,loss_value=model$loss_value
-  # ),class = "nmar_result"))
   return(model)
 }
-# run <-function(model) {
-#   UseMethod("run")
-# }
 
 estim_mean <- function(model) {
   UseMethod("estim_mean", model)
@@ -68,6 +55,4 @@ s_function <- function(model, ...) {
   UseMethod("s_function", model)
 }
 
-# step_func <- function(model,..){
-#   UseMethod("step_func", model)
-# }
+
