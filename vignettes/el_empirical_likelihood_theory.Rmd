@@ -464,8 +464,8 @@ This balances accuracy/speed (analytic) with numerical robustness (numeric) and 
 - Variance: `src/engines/el/impl/el_variance.R` assembles B and computes delta variance; bootstrap variance in `src/shared/bootstrap.R`.
 - Scaling: `src/shared/scaling.R` (class ‘nmar_scaling_recipe’, constructor, validator, create/apply/prepare, unscale).
 - S3 Surface:
-  - Parent `nmar_result` S3 methods in `src/shared/s3_parent.R` (`estimate`, `vcov`, `confint`, `tidy`, `glance`, `plot`, `autoplot`).
-  - EL-specific S3 methods in `src/engines/el/s3.R` (`print`/`summary` and others for `nmar_result_el`).
+  - Parent `nmar_result` S3 methods in `src/S3/nmar_result_methods.R` (`estimate`, `vcov`, `confint`, `tidy`, `glance`, `plot`, `autoplot`).
+  - EL-specific S3 methods in `src/engines/el/s3.R` (`print`/`summary` for `nmar_result_el`).
 
 ## Symbol-to-Code Mapping
 
@@ -487,7 +487,7 @@ This balances accuracy/speed (analytic) with numerical robustness (numeric) and 
 | $\lambda_x$             | Multipliers for aux constraints                        | lambda_hat                     |
 | $D_i$                   | $1 + \lambda_W (w_i - W) + (X_i-\mu_x)^T \lambda_x$    | denominator_hat                |
 | $p_i^{\text{EL}}$       | EL weight for respondent $i$ ($\propto a_i / D_i$)     | p_i (after trimming)           |
-| $\hat{Y}$               | Estimator $\sum p_i^{\text{EL}} Y_i / \sum p_i^{\text{EL}}$ | y_hat                     |
+| $\hat{Y}$               | Estimator $\sum p_i^{\text{EL}} Y_i / \sum p_i^{\text{EL}}$ | estimate (field) / estimate(fit) |
 | $F(\theta)$             | Estimating system                                      | build_equation_system          |
 | $A$                     | $\partial F/\partial \theta$ (Jacobian)               | build_el_jacobian              |
 | $B$                     | Covariance of scores                                   | compute_score_variance_func    |

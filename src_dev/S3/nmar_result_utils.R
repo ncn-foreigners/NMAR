@@ -2,12 +2,12 @@
 #'
 #' @keywords internal
 nmar_result_get_estimate <- function(x) {
-  x$estimate %||% x$y_hat %||% NA_real_
+  x$estimate %||% NA_real_
 }
 
 #' @keywords internal
 nmar_result_get_std_error <- function(x) {
-  x$std_error %||% x$se %||% NA_real_
+  x$std_error %||% NA_real_
 }
 
 #' @keywords internal
@@ -40,9 +40,9 @@ nmar_result_get_inference <- function(x) {
 
 #' @keywords internal
 nmar_result_get_weights_info <- function(x) {
-  weights_info <- x$weights_info %||% list(values = x$weights, trimmed_fraction = NA_real_)
-  weights_info$values <- weights_info$values %||% x$weights
-  weights_info$trimmed_fraction <- weights_info$trimmed_fraction %||% attr(x$weights, "trimmed_fraction") %||% NA_real_
+  weights_info <- x$weights_info %||% list(values = NULL, trimmed_fraction = NA_real_)
+  weights_info$values <- weights_info$values %||% NULL
+  weights_info$trimmed_fraction <- weights_info$trimmed_fraction %||% NA_real_
   weights_info
 }
 
@@ -54,7 +54,7 @@ nmar_result_get_diagnostics <- function(x) {
 #' @keywords internal
 nmar_result_get_model <- function(x) {
   model <- x$model %||% list()
-  model$coefficients <- model$coefficients %||% x$coefficients %||% NULL
-  model$vcov <- model$vcov %||% x$vcov %||% NULL
+  model$coefficients <- model$coefficients %||% NULL
+  model$vcov <- model$vcov %||% NULL
   model
 }

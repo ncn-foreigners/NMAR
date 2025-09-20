@@ -63,7 +63,3 @@ validate_nmar_result <- function(x, class_name) {
 
   x
 }
-
-# validate_nmar_result <- function(x, ...) {
-#   UseMethod("validate_nmar_result")
-# }

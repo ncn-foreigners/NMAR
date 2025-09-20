@@ -1,24 +1,5 @@
 #' Construct EL Result Object
 #' @keywords internal
-# new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
-#                                converged, diagnostics, data_info,
-#                                nmar_scaling_recipe, fitted_values, call) {
-#   if (is.null(data_info$method)) data_info$method <- "Empirical Likelihood (EL)"
-#   # Standardize diagnostics and data_info bundles
-#   diagnostics <- new_nmar_diagnostics(diagnostics)
-#   data_info <- new_nmar_data_info(data_info)
-#   structure(
-#     list(
-#       y_hat = y_hat, se = se, weights = weights, coefficients = coefficients,
-#       vcov = vcov, converged = converged, diagnostics = diagnostics,
-#       data_info = data_info, nmar_scaling_recipe = nmar_scaling_recipe,
-#       fitted_values = fitted_values, call = call
-#     ),
-#     class = c("nmar_result_el", "nmar_result")
-#   )
-# }
-#' Construct EL Result Object
-#' @keywords internal
 new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
                                converged, diagnostics, data_info,
                                nmar_scaling_recipe, fitted_values, call) {
@@ -85,8 +66,6 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
     class = "nmar_result_el"
   )
 
-  result$nmar_scaling_recipe <- nmar_scaling_recipe
-
   result
 }
 
@@ -139,12 +118,3 @@ prepare_el_inputs <- function(formula, data, response_predictors) {
   list(data = data2, formula_list = list(outcome = outcome_fml, response = response_fml, auxiliary = auxiliary_fml))
 }
 
-#' Validator for EL result
-#' @keywords internal
-# validate_nmar_result_el <- function(x) {
-#   stopifnot(is.list(x), inherits(x, "nmar_result_el"))
-#   if (isTRUE(x$converged)) {
-#     stopifnot(is.finite(x$y_hat), is.numeric(x$se))
-#   }
-#   x
-# }

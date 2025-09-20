@@ -22,7 +22,7 @@
 #' @keywords internal
 #' @import generics
 #' @importFrom generics tidy glance
-#' @importFrom stats fitted weights
+#' @importFrom stats fitted weights coef
 NULL
 
 #' Extract the primary estimate
@@ -120,27 +120,32 @@ tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
 
   model <- nmar_result_get_model(x)
   beta <- model$coefficients
-  if (!is.null(beta)) {
-    se_beta <- rep(NA_real_, length(beta))
-    stat <- pval <- rep(NA_real_, length(beta))
+  if (!is.null(beta) && length(beta) > 0) {
+    beta_vec <- as.numeric(beta)
+    se_beta <- rep(NA_real_, length(beta_vec))
+    stat <- pval <- rep(NA_real_, length(beta_vec))
     if (!is.null(model$vcov) && is.matrix(model$vcov)) {
       se_beta <- sqrt(diag(model$vcov))
-      stat <- beta / se_beta
+      stat <- beta_vec / se_beta
       if (isTRUE(sample$is_survey) && is.finite(inference$df)) {
         pval <- 2 * stats::pt(-abs(stat), df = inference$df)
       } else {
         pval <- 2 * stats::pnorm(-abs(stat))
       }
     }
+    beta_names <- names(beta)
+    if (is.null(beta_names) || length(beta_names) != length(beta_vec) || anyNA(beta_names)) {
+      beta_names <- paste0("coef", seq_along(beta_vec))
+    }
     rows[[2]] <- data.frame(
-      term = names(beta),
-      estimate = as.numeric(beta),
+      term = beta_names,
+      estimate = beta_vec,
       std.error = se_beta,
       statistic = stat,
       p.value = pval,
-      conf.low = NA_real_,
-      conf.high = NA_real_,
-      component = "response",
+      conf.low = rep(NA_real_, length(beta_vec)),
+      conf.high = rep(NA_real_, length(beta_vec)),
+      component = rep("response", length(beta_vec)),
       check.names = FALSE
     )
   }
@@ -232,13 +237,13 @@ plot.nmar_result <- function(x, which = c("weights", "fitted", "constraints", "d
     graphics::plot.new()
     txt <- c(
       sprintf("converged: %s", isTRUE(x$converged)),
-      sprintf("variance_method: %s", (.get_inference(x)$variance_method)),
+      sprintf("variance_method: %s", (nmar_result_get_inference(x)$variance_method)),
       sprintf("Jacobian source: %s  cond: %s", diagnostics$jacobian_source %||% NA_character_, format(diagnostics$jacobian_condition_number %||% NA_real_, digits = 3)),
       sprintf("Jacobian rel diff: %s", format(diagnostics$jacobian_rel_diff %||% NA_real_, digits = 3)),
       sprintf("Max eq residual: %s", format(diagnostics$max_equation_residual %||% NA_real_, digits = 3)),
       sprintf("Min denominator: %s (frac<1e-6: %.2f%%)", format(diagnostics$min_denominator %||% NA_real_, digits = 3), 100 * (diagnostics$fraction_small_denominators %||% 0)),
       sprintf("Trimmed fraction: %.2f%%", 100 * (weights_info$trimmed_fraction %||% 0)),
-      sprintf("used_pseudoinverse: %s", isTRUE(.get_inference(x)$used_pseudoinverse))
+      sprintf("used_pseudoinverse: %s", isTRUE(nmar_result_get_inference(x)$used_pseudoinverse))
     )
     graphics::text(0.02, 0.95, adj = c(0, 1), labels = paste(txt, collapse = "\n"), cex = 0.9)
   }
@@ -251,3 +256,85 @@ plot.nmar_result <- function(x, which = c("weights", "fitted", "constraints", "d
 #' @param ... Passed to methods.
 #' @export
 autoplot <- function(object, ...) UseMethod("autoplot")
+
+#' Default ggplot2 autoplot for NMAR results
+#' @description Quick ggplot2 visualizations for result objects.
+#' @param object An object of class `nmar_result` or a subclass.
+#' @param type One of "weights", "fitted", or "constraints".
+#' @param ... Ignored.
+#' @return A `ggplot` object.
+#' @export
+autoplot.nmar_result <- function(object, type = c("weights", "fitted", "constraints"), ...) {
+  type <- match.arg(type)
+  if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 is required for autoplot.nmar_result", call. = FALSE)
+  diagnostics <- nmar_result_get_diagnostics(object)
+  if (type == "weights") {
+    w <- stats::weights(object)
+    df <- data.frame(w = as.numeric(w))
+    ggplot2::ggplot(df, ggplot2::aes(x = w)) +
+      ggplot2::geom_histogram(color = "white", fill = "gray") +
+      ggplot2::labs(title = "NMAR weights", x = "weight")
+  } else if (type == "fitted") {
+    fv <- stats::fitted(object)
+    df <- data.frame(p = as.numeric(fv))
+    ggplot2::ggplot(df, ggplot2::aes(x = p)) +
+      ggplot2::geom_histogram(color = "white", fill = "gray") +
+      ggplot2::labs(title = "Fitted response probabilities", x = "p_hat")
+  } else {
+    vals <- c(eqW = diagnostics$constraint_sum_W %||% NA_real_)
+    if (!is.null(diagnostics$constraint_sum_aux) && length(diagnostics$constraint_sum_aux) > 0) vals <- c(vals, diagnostics$constraint_sum_aux)
+    df <- data.frame(term = names(vals), value = as.numeric(vals))
+    ggplot2::ggplot(df, ggplot2::aes(x = term, y = value)) +
+      ggplot2::geom_col(fill = "gray") +
+      ggplot2::geom_hline(yintercept = 0, color = "darkgray") +
+      ggplot2::labs(title = "Constraint sums", x = NULL, y = "sum") +
+      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
+  }
+}
+
+#' Default coefficients for NMAR results
+#' @description Returns response-model coefficients if available.
+#' @param object An `nmar_result` object.
+#' @param ... Ignored.
+#' @return A named numeric vector or `NULL`.
+#' @export
+coef.nmar_result <- function(object, ...) {
+  nmar_result_get_model(object)$coefficients
+}
+
+#' Default fitted values for NMAR results
+#' @description Returns fitted response probabilities if available.
+#' @param object An `nmar_result` object.
+#' @param ... Ignored.
+#' @return A numeric vector (possibly length 0).
+#' @export
+fitted.nmar_result <- function(object, ...) {
+  fv <- object$extra$fitted_values %||% object$fitted_values
+  if (is.null(fv) || length(fv) == 0) return(numeric(0))
+  as.numeric(fv)
+}
+
+#' Default weights for NMAR results
+#' @description Returns respondent weights with trimmed_fraction attribute when present.
+#' @param object An `nmar_result` object.
+#' @param ... Ignored.
+#' @return A numeric vector (possibly length 0); attribute `trimmed_fraction` may be set.
+#' @export
+weights.nmar_result <- function(object, ...) {
+  info <- nmar_result_get_weights_info(object)
+  w <- info$values
+  if (is.null(w)) return(numeric(0))
+  w <- as.numeric(w)
+  attr(w, "trimmed_fraction") <- info$trimmed_fraction
+  w
+}
+
+#' Default formula for NMAR results
+#' @description Returns the estimation formula if available.
+#' @param x An `nmar_result` object.
+#' @param ... Ignored.
+#' @return A formula or `NULL`.
+#' @export
+formula.nmar_result <- function(x, ...) {
+  x$meta$formula %||% NULL
+}
