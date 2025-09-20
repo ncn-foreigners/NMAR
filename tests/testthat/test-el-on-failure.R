@@ -11,7 +11,7 @@ test_that("on_failure=return yields converged=FALSE on inconsistent aux means", 
   bad_aux <- c(X1 = 10, X2 = -10)
   fit <- nmar:::el.data.frame(df, Y_miss ~ X1 + X2, response_predictors = NULL, auxiliary_means = bad_aux, on_failure = "return", variance_method = "delta")
   expect_false(fit$converged)
-  expect_true(is.na(fit$y_hat))
+  expect_true(is.na(fit[['estimate']]))
 })
 
 test_that("trimming caps weights and sets trimmed_fraction > 0", {

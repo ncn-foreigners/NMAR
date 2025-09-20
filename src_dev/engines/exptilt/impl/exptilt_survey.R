@@ -96,7 +96,10 @@ exptilt.survey <- function(data,model,on_failure=c('return')){ #' #todo on_failu
 
 
   }
-  model$theta <- if (model$standardize) unscale_coefficients(model$theta, estim_var(model)$vcov, model$nmar_scaling_recipe)$coefficients else model$theta
+  var_results_initial <- estim_var(model)
+  model$theta <- if (model$standardize) unscale_coefficients(model$theta, var_results_initial$vcov, model$nmar_scaling_recipe)$coefficients else model$theta
+
+  model$iterations <- iter
 
   model$x_1 <- model$x[!is.na(model$x[,model$col_y]),,drop=FALSE] #observed
   model$x_0 <- model$x[is.na(model$x[,model$col_y]),,drop=FALSE] #unobserved
@@ -105,6 +108,7 @@ exptilt.survey <- function(data,model,on_failure=c('return')){ #' #todo on_failu
   model$x_for_y_obs <- model$x_1[,model$cols_y_observed,drop=FALSE]
   model$x_for_y_unobs <- model$x_0[,model$cols_y_observed,drop=FALSE]
 
+  var_results <- estim_var(model)
 
   se_final=NaN
   if(model$variance_method=="bootstrap"){
@@ -119,22 +123,20 @@ exptilt.survey <- function(data,model,on_failure=c('return')){ #' #todo on_failu
     )
     se_final <- bootstrap_results$se
 
-  }
-  else{
-    se_final <- sqrt(estim_var(model)$var_est)
+  } else {
+    se_final <- sqrt(var_results$var_est)
   }
 
-
-  return(validate_nmar_result(new_nmar_result_exptilt(
-    y_hat=estim_mean(model),
-    se= se_final,
-    weights=NULL, #TODO
+  result <- new_nmar_result_exptilt(
+    estimate = estim_mean(model),
+    std_error = se_final,
     coefficients = model$theta,
-    vcov = estim_var(model)$vcov,
-    converged = TRUE, #TODO
-    class="nmar_result_exptilt"
+    vcov = var_results$vcov,
+    model = model,
+    converged = TRUE,
+    weights = model$respondent_weights,
+    variance_message = NA_character_
+  )
 
-  ), "nmar_result_exptilt"))
+  return(validate_nmar_result(result, "nmar_result_exptilt"))
 }
-
-
