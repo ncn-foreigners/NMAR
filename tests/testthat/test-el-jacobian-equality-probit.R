@@ -37,7 +37,7 @@ test_that("analytic Jacobian matches numeric Jacobian for probit (standardize=FA
   wts <- rep(1, length(obs_idx))
 
   fam <- nmar:::probit_family()
-  eq_fun <- nmar:::build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
+  eq_fun <- nmar:::el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
   jac_fun <- nmar:::build_el_jacobian(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
 
   beta_hat <- fit$model$coefficients

@@ -81,7 +81,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 
   # 3. Build Solver Components
   n_resp_weighted <- sum(respondent_weights)
-  equation_system_func <- build_equation_system(
+  equation_system_func <- el_build_equation_system(
     family = family, response_model_matrix = response_model_matrix_scaled, auxiliary_matrix = auxiliary_matrix_scaled,
     respondent_weights = respondent_weights, N_pop = N_pop, n_resp_weighted = n_resp_weighted, mu_x_scaled = mu_x_scaled
   )
@@ -284,7 +284,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     vcov_try <- tryCatch(
       {
         A_matrix <- if (!is.null(A_matrix_var)) A_matrix_var else if (!is.null(analytical_jac_func)) analytical_jac_func(estimates) else numDeriv::jacobian(func = equation_system_func, x = estimates)
-        res <- compute_delta_variance(
+        res <- el_compute_delta_variance(
           A_matrix = A_matrix,
           family = family,
           response_model_matrix_scaled = response_model_matrix_scaled,
@@ -317,7 +317,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
       vcov_try_fb <- tryCatch(
         {
           A_matrix_alt <- analytical_jac_func(estimates)
-          res <- compute_delta_variance(
+          res <- el_compute_delta_variance(
             A_matrix = A_matrix_alt,
             family = family,
             response_model_matrix_scaled = response_model_matrix_scaled,

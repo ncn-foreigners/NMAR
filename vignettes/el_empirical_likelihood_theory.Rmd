@@ -455,17 +455,17 @@ This balances accuracy/speed (analytic) with numerical robustness (numeric) and 
   - `el.data.frame()` / `el.survey.design()` in `src/engines/el/impl/el_dataframe.R` and `el_survey.R` prepare inputs, call `el_estimator_core()`, and wrap results.
 - EL Core: `el_estimator_core(...)` in `src/engines/el/impl/el_core.R` runs:
   - Scaling via `validate_and_apply_nmar_scaling()`
-  - Build equations via `build_equation_system(family, ...)`
+  - Build equations via `el_build_equation_system(family, ...)`
   - Solve with `nleqslv` (multi-start fallback and Broyden if needed)
   - Compute EL weights, Y_hat, diagnostics, constraints
   - Variance (delta or bootstrap), with A via `build_el_jacobian(family, ...)` and B via `compute_score_variance_func` (IID vs survey), grad_g via `numDeriv::grad`
   - Unscale coefficients and vcov if needed
-- Jacobian: `build_el_jacobian(...)` in `src/engines/el/impl/el_jacobian.R` returns analytic A whenever family supplies `d2mu.deta2` (logit, probit).
-- Variance: `src/engines/el/impl/el_variance.R` assembles B and computes delta variance; bootstrap variance in `src/shared/bootstrap.R`.
-- Scaling: `src/shared/scaling.R` (class ‘nmar_scaling_recipe’, constructor, validator, create/apply/prepare, unscale).
+- Jacobian: `build_el_jacobian(...)` in `src_dev/engines/el/impl/jacobian.R` returns analytic A whenever family supplies `d2mu.deta2` (logit, probit).
+- Variance: `src_dev/engines/el/impl/variance.R` assembles B and computes delta variance; bootstrap variance in `src_dev/shared/bootstrap.R`.
+- Scaling: `src_dev/shared/scaling.R` (class ‘nmar_scaling_recipe’, constructor, validator, create/apply/prepare, unscale).
 - S3 Surface:
-  - Parent `nmar_result` S3 methods in `src/S3/nmar_result_methods.R` (`estimate`, `vcov`, `confint`, `tidy`, `glance`, `plot`, `autoplot`).
-  - EL-specific S3 methods in `src/engines/el/s3.R` (`print`/`summary` for `nmar_result_el`).
+  - Parent `nmar_result` S3 methods in `src_dev/S3/nmar_result_methods.R` (`estimate`, `vcov`, `confint`, `tidy`, `glance`, `plot`, `autoplot`).
+  - EL-specific S3 methods in `src_dev/engines/el/s3.R` (`print`/`summary` for `nmar_result_el`).
 
 ## Symbol-to-Code Mapping
 
@@ -488,11 +488,11 @@ This balances accuracy/speed (analytic) with numerical robustness (numeric) and 
 | $D_i$                   | $1 + \lambda_W (w_i - W) + (X_i-\mu_x)^T \lambda_x$    | denominator_hat                |
 | $p_i^{\text{EL}}$       | EL weight for respondent $i$ ($\propto a_i / D_i$)     | p_i (after trimming)           |
 | $\hat{Y}$               | Estimator $\sum p_i^{\text{EL}} Y_i / \sum p_i^{\text{EL}}$ | estimate (field) / estimate(fit) |
-| $F(\theta)$             | Estimating system                                      | build_equation_system          |
+| $F(\theta)$             | Estimating system                                      | el_build_equation_system       |
 | $A$                     | $\partial F/\partial \theta$ (Jacobian)               | build_el_jacobian              |
 | $B$                     | Covariance of scores                                   | compute_score_variance_func    |
-| $g(\theta)$             | Functional for mean                                    | build_mean_fn                  |
-| $\text{Var}(\hat{Y})$   | Delta: $\nabla g \, A^{-1} B (A^{-1})^T \nabla g^T$    | compute_delta_variance         |
+| $g(\theta)$             | Functional for mean                                    | el_build_mean_fn               |
+| $\text{Var}(\hat{Y})$   | Delta: $\nabla g \, A^{-1} B (A^{-1})^T \nabla g^T$    | el_compute_delta_variance      |
 | Scaling recipe          | Per-column \{mean, sd\}                                | nmar_scaling_recipe            |
 
 

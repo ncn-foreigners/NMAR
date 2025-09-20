@@ -33,7 +33,7 @@ test_that("constraint sums are near zero at solution (no trimming)", {
   wts <- rep(1, length(obs_idx))
 
   fam <- nmar:::logit_family()
-  eq_fun <- nmar:::build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
+  eq_fun <- nmar:::el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
   beta_hat <- fit$model$coefficients
   z <- stats::qlogis(fit$model$nuisance$W_hat)
   lambda_hat <- if (!is.null(fit$model$nuisance$lambda_x)) as.numeric(fit$model$nuisance$lambda_x) else numeric(0)

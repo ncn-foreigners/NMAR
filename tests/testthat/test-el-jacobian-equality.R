@@ -36,7 +36,7 @@ test_that("analytic Jacobian matches numeric Jacobian at solution (standardize=F
   N_pop <- nrow(dat2)
   wts <- rep(1, length(obs_idx))
 
-  eq_fun <- nmar:::build_equation_system(nmar:::logit_family(), Z, Xc, wts, N_pop, n_resp_wt, mu_x)
+  eq_fun <- nmar:::el_build_equation_system(nmar:::logit_family(), Z, Xc, wts, N_pop, n_resp_wt, mu_x)
   jac_fun <- nmar:::build_el_jacobian(nmar:::logit_family(), Z, Xc, wts, N_pop, n_resp_wt, mu_x)
 
   beta_hat <- fit$model$coefficients # unscaled since standardize=FALSE
