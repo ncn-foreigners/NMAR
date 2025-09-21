@@ -1,12 +1,12 @@
 #' @exportS3Method NULL
-run_engine.nmar_engine_exptilt <- function(engine, formula, data,response_predictors) {
-  outcome_variable <- as.vector(all.vars(formula[[2]]))
-  covariates_for_outcome <- as.vector(all.vars(formula[[3]]))
-  covariates_for_missingness <- response_predictors
+run_engine.nmar_engine_exptilt <- function(engine, spec) {
+  outcome_variable <- spec$outcome[[1]]
+  covariates_for_outcome <- spec$auxiliary_vars
+  covariates_for_missingness <- spec$response_predictors
 
-   validate_data(data, outcome_variable, covariates_for_outcome, covariates_for_missingness)
+  data_required <- unique(c(outcome_variable, covariates_for_outcome, covariates_for_missingness))
+  data_ <- spec$data[, data_required, drop = FALSE]
 
-  data_ <- data[,c(outcome_variable,covariates_for_outcome,covariates_for_missingness)]
   model <- structure(
     list(
       data = data_,
@@ -54,4 +54,3 @@ generate_Odds <- function(model,...) {
 s_function <- function(model, ...) {
   UseMethod("s_function", model)
 }
-

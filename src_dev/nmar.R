@@ -6,48 +6,39 @@
 #'   It ensures that all necessary data and model specifications are correctly
 #'   formatted before computation begins.
 #'
-#' @param formula A named list of formulas specifying the model components.
-#'   It must contain:
-#'   \itemize{
-#'     \item `outcome`: A formula for the outcome variable (e.g., `~ Y`).
-#'     \item `covariates_outcome`: A formula for covariates affecting the outcome (e.g., `~ x1 + x2`).
-#'     \item `covariates_missingness`: A formula for covariates affecting the missingness mechanism.
-#'       Use `NULL` if no specific covariates are used for missingness (e.g., in some NMAR models,
-#'       missingness depends implicitly on the outcome itself).
-#'   }
-#' @param data A data frame containing all variables specified in the `formula`.
+#' @param formula A two-sided formula of the form `y_miss ~ x1 + x2 + ...` specifying the
+#'   outcome (with `NA` values indicating nonresponse) and auxiliary variables used to
+#'   stabilise estimation.
+#' @param data A data frame or `survey.design` containing the variables referenced by the
+#'   formula.
 #' @param engine An engine configuration object, typically created by an
 #'   engine constructor function like `exptilt()`. This object defines the
 #'   specific NMAR estimation method and its parameters. It must inherit from
 #'   class `nmar_engine`.
+#' @param response_predictors Optional character vector naming additional predictors for the
+#'   response (missingness) model. These variables need not appear on the right-hand side of
+#'   `formula` and are interpreted by the chosen engine.
 #'
 #' @return An object containing the estimation results, whose structure will be
 #'   specific to the `engine` used. This might include estimated parameters,
 #'   convergence information, and other relevant output from the chosen NMAR method.
 #'
 #' @export
-nmar <- function(formula, data, engine,response_predictors=NULL) {
-  stopifnot(inherits(formula, "formula"))
+nmar <- function(formula, data, engine, response_predictors = NULL) {
   stopifnot(inherits(engine, "nmar_engine"))
 
-  outcome_variable <- as.vector(all.vars(formula[[2]]))
-  covariates_for_outcome <- as.vector(all.vars(formula[[3]]))
+  spec <- parse_nmar_spec(
+    formula = formula,
+    data = data,
+    response_predictors = response_predictors,
+    env = parent.frame()
+  )
 
-  # validate_nmar(
-  #   data = data,
-  #   outcome_variable = outcome_variable,
-  #   covariates_for_outcome = covariates_for_outcome,
-  #   covariates_for_missingness = covariates_for_missingness
-  # )
+  validate_nmar_args(spec, engine_traits(engine))
 
-
-  res <- run_engine(engine, formula, data,response_predictors)
-  # validate_nmar_result(res)
-
-  return(res)
-
+  run_engine(engine, spec)
 }
 
-run_engine <- function(engine, formula, data,response_predictors) {
+run_engine <- function(engine, spec) {
   UseMethod("run_engine")
 }
