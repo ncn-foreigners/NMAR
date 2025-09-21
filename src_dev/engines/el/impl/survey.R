@@ -87,29 +87,47 @@ el.survey.design <- function(data, formula, response_predictors = NULL,
     variance_pseudoinverse = variance_pseudoinverse, variance_ridge = variance_ridge, user_args = user_args, ...
   )
 
+  sample_info <- list(
+    outcome_var = all.vars(internal_formula$outcome)[1],
+    response_var = response_var,
+    formula = formula,
+    nobs = nrow(design$variables),
+    nobs_resp = length(observed_indices),
+    is_survey = TRUE,
+    design = design,
+    variance_method = variance_method
+  )
+
   if (!core_results$converged) {
-    return(new_nmar_result_el(
-      y_hat = NA, se = NA, weights = NA, coefficients = NA, vcov = NA, converged = FALSE,
-      diagnostics = core_results$diagnostics,
-      data_info = list(outcome_var = all.vars(internal_formula$outcome)[1]),
-      nmar_scaling_recipe = core_results$nmar_scaling_recipe,
-      fitted_values = NA, call = cl
-    ))
+    diag_list <- core_results$diagnostics
+    if (is.null(diag_list)) diag_list <- list()
+    msg <- diag_list$message
+    if (is.null(msg)) msg <- NA_character_
+    result <- new_nmar_result(
+      estimate = NA_real_,
+      estimate_name = sample_info$outcome_var,
+      std_error = NA_real_,
+      converged = FALSE,
+      model = list(coefficients = NULL, vcov = NULL),
+      weights_info = list(values = numeric(0), trimmed_fraction = NA_real_),
+      sample = list(n_total = sample_info$nobs, n_respondents = sample_info$nobs_resp, is_survey = TRUE, design = design),
+      inference = list(variance_method = variance_method, df = NA_real_, message = msg, used_pseudoinverse = FALSE, used_ridge = FALSE),
+      diagnostics = diag_list,
+      meta = list(engine_name = "empirical_likelihood", call = cl, formula = formula),
+      extra = list(nmar_scaling_recipe = core_results$nmar_scaling_recipe),
+      class = "nmar_result_el"
+    )
+    return(validate_nmar_result(result, 'nmar_result_el'))
   }
 
-  validate_nmar_result(
-    new_nmar_result_el(
-      y_hat = core_results$y_hat, se = core_results$se, weights = core_results$weights,
-      coefficients = core_results$coefficients, vcov = core_results$vcov,
-      converged = core_results$converged, diagnostics = core_results$diagnostics,
-      data_info = list(
-        outcome_var = all.vars(internal_formula$outcome)[1],
-        response_var = response_var, formula = formula, nobs = nrow(design$variables),
-        nobs_resp = length(observed_indices), is_survey = TRUE, design = design,
-        variance_method = variance_method
-      ),
-      nmar_scaling_recipe = core_results$nmar_scaling_recipe,
-      fitted_values = core_results$fitted_values, call = cl
-    )
-  ,'nmar_result_el')
+  result <- new_nmar_result_el(
+    y_hat = core_results$y_hat, se = core_results$se, weights = core_results$weights,
+    coefficients = core_results$coefficients, vcov = core_results$vcov,
+    converged = core_results$converged, diagnostics = core_results$diagnostics,
+    data_info = sample_info,
+    nmar_scaling_recipe = core_results$nmar_scaling_recipe,
+    fitted_values = core_results$fitted_values, call = cl
+  )
+
+  validate_nmar_result(result, 'nmar_result_el')
 }

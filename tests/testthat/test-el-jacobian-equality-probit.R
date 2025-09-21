@@ -37,12 +37,12 @@ test_that("analytic Jacobian matches numeric Jacobian for probit (standardize=FA
   wts <- rep(1, length(obs_idx))
 
   fam <- nmar:::probit_family()
-  eq_fun <- nmar:::build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
+  eq_fun <- nmar:::el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
   jac_fun <- nmar:::build_el_jacobian(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
 
-  beta_hat <- fit$coefficients$response_model
-  z <- stats::qlogis(fit$coefficients$nuisance$W_hat)
-  lambda_hat <- if (!is.null(fit$coefficients$nuisance$lambda_x)) as.numeric(fit$coefficients$nuisance$lambda_x) else numeric(0)
+  beta_hat <- fit$model$coefficients
+  z <- stats::qlogis(fit$model$nuisance$W_hat)
+  lambda_hat <- if (!is.null(fit$model$nuisance$lambda_x)) as.numeric(fit$model$nuisance$lambda_x) else numeric(0)
   theta <- c(as.numeric(beta_hat), z, lambda_hat)
 
   J_num <- numDeriv::jacobian(eq_fun, theta)

@@ -81,7 +81,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 
   # 3. Build Solver Components
   n_resp_weighted <- sum(respondent_weights)
-  equation_system_func <- build_equation_system(
+  equation_system_func <- el_build_equation_system(
     family = family, response_model_matrix = response_model_matrix_scaled, auxiliary_matrix = auxiliary_matrix_scaled,
     respondent_weights = respondent_weights, N_pop = N_pop, n_resp_weighted = n_resp_weighted, mu_x_scaled = mu_x_scaled
   )
@@ -270,7 +270,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     warning("Delta method variance is not recommended with weight trimming. Consider variance_method = 'bootstrap'.", call. = FALSE)
   }
 
-  if (variance_method == "bootstrap") {
+ if (variance_method == "bootstrap") {
     user_args_internal <- user_args
     user_args_internal$variance_method <- "delta"
     user_args_internal$suppress_warnings <- TRUE
@@ -278,12 +278,13 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     boot_try <- tryCatch(list(result = do.call(bootstrap_variance, boot_args), message = "Calculation successful"), error = function(e) list(result = NULL, message = paste("Bootstrap failed:", e$message)))
     vcov_message <- boot_try$message
     if (!is.null(boot_try$result)) se_y_hat <- boot_try$result$se
+    else se_y_hat <- NA_real_
   } else {
     vcov_unscaled <- matrix(NA, K_beta, K_beta, dimnames = list(colnames(response_model_matrix_unscaled), colnames(response_model_matrix_unscaled)))
     vcov_try <- tryCatch(
       {
         A_matrix <- if (!is.null(A_matrix_var)) A_matrix_var else if (!is.null(analytical_jac_func)) analytical_jac_func(estimates) else numDeriv::jacobian(func = equation_system_func, x = estimates)
-        res <- compute_delta_variance(
+        res <- el_compute_delta_variance(
           A_matrix = A_matrix,
           family = family,
           response_model_matrix_scaled = response_model_matrix_scaled,
@@ -316,7 +317,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
       vcov_try_fb <- tryCatch(
         {
           A_matrix_alt <- analytical_jac_func(estimates)
-          res <- compute_delta_variance(
+          res <- el_compute_delta_variance(
             A_matrix = A_matrix_alt,
             family = family,
             response_model_matrix_scaled = response_model_matrix_scaled,
@@ -353,8 +354,8 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
       used_pseudoinverse <- isTRUE(vcov_result$used_pseudoinverse)
       used_ridge <- isTRUE(vcov_result$used_ridge)
       invert_rule <- if (!is.null(vcov_result$invert_rule)) vcov_result$invert_rule else NA_character_
-    }
-    if (!is.finite(se_y_hat)) se_y_hat <- 0
+   }
+    if (!is.finite(se_y_hat)) se_y_hat <- NA_real_
   }
 
   # 8. Return Final Results List

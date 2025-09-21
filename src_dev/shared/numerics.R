@@ -6,6 +6,16 @@ get_eta_cap <- function() {
   cap
 }
 
+#' Numeric gradient helper
+#' @description Thin wrapper around numDeriv::grad for internal use across engines.
+#' @param x Numeric vector at which to evaluate the gradient.
+#' @param func Function mapping numeric vector to scalar; receives `x`.
+#' @keywords internal
+#' @noRd
+grad_numeric <- function(x, func) {
+  numDeriv::grad(func = func, x = x)
+}
+
 #' @keywords internal
 invert_jacobian <- function(A_matrix,
                             variance_ridge = FALSE,

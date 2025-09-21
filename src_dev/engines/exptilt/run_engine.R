@@ -36,7 +36,7 @@ run_engine.nmar_engine_exptilt <- function(engine, formula, data,response_predic
   model$original_params <- model
   model <- exptilt(data_,model)
   if (!inherits(model, "nmar_result_exptilt")) {
-    stop("Exptilt engine did not return an 'nmar_result_el' object.")
+    stop("Exptilt engine did not return an 'nmar_result_exptilt' object.")
   }
 
   return(model)
@@ -54,5 +54,4 @@ generate_Odds <- function(model,...) {
 s_function <- function(model, ...) {
   UseMethod("s_function", model)
 }
-
 

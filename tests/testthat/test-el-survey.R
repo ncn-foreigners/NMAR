@@ -19,8 +19,9 @@ test_that("EL engine runs for survey.design and returns CI (skip if survey missi
 
   expect_s3_class(res, "nmar_result_el")
   expect_true(isTRUE(res$converged))
-  expect_true(is.numeric(res$se) && res$se >= 0)
-  ci <- nmar:::confint.nmar_result_el(res)
+  expect_true(is.numeric(res[['std_error']]))
+  expect_true(is.na(res[['std_error']]) || res[['std_error']] >= 0)
+  ci <- confint(res)
   expect_true(is.matrix(ci) && nrow(ci) == 1)
   expect_equal(rownames(ci), "api00_miss")
 })

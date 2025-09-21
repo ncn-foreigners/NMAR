@@ -39,6 +39,6 @@ test_that("standardize vs manual scaling yields identical y_hat (df)", {
   )
   expect_true(fit_manual$converged)
   # Unscale y_hat back to original Y_miss scale
-  y_hat_unscaled <- fit_manual$y_hat * recipe$Y_miss$sd + recipe$Y_miss$mean
-  expect_equal(fit_auto$y_hat, y_hat_unscaled, tolerance = 1e-8)
+  y_hat_unscaled <- fit_manual[['estimate']] * recipe$Y_miss$sd + recipe$Y_miss$mean
+  expect_equal(fit_auto[['estimate']], y_hat_unscaled, tolerance = 1e-8)
 })

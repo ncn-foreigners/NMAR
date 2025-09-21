@@ -4,7 +4,7 @@
 #'   delta variance for \eqn{\hat Y} via \eqn{\nabla g\,A^{-1} B A^{-T}\,\nabla g^T}.
 #'   Consistent with the asymptotic results in Qin, Leung and Shao (2002).
 #' @keywords internal
-compute_score_contrib <- function(family,
+el_compute_score_contrib <- function(family,
                                   response_model_matrix_scaled,
                                   auxiliary_matrix_scaled,
                                   mu_x_scaled,
@@ -31,7 +31,7 @@ compute_B_matrix <- function(U_matrix_resp, full_data, compute_score_variance_fu
 }
 
 #' @keywords internal
-build_mean_fn <- function(family,
+el_build_mean_fn <- function(family,
                           response_model_matrix_scaled,
                           auxiliary_matrix_scaled,
                           mu_x_scaled,
@@ -58,12 +58,7 @@ build_mean_fn <- function(family,
 }
 
 #' @keywords internal
-grad_mean <- function(estimates, g_fn) {
-  numDeriv::grad(func = g_fn, x = estimates)
-}
-
-#' @keywords internal
-compute_delta_variance <- function(A_matrix,
+el_compute_delta_variance <- function(A_matrix,
                                    family,
                                    response_model_matrix_scaled,
                                    auxiliary_matrix_scaled,
@@ -91,7 +86,7 @@ compute_delta_variance <- function(A_matrix,
   used_pseudoinverse <- isTRUE(inv_res$used_pinv)
   used_ridge <- isTRUE(inv_res$used_ridge)
   invert_rule <- inv_res$invert_rule
-  U_matrix_resp <- compute_score_contrib(
+  U_matrix_resp <- el_compute_score_contrib(
     family = family,
     response_model_matrix_scaled = response_model_matrix_scaled,
     auxiliary_matrix_scaled = auxiliary_matrix_scaled,
@@ -104,7 +99,7 @@ compute_delta_variance <- function(A_matrix,
   )
   B_matrix <- compute_B_matrix(U_matrix_resp, full_data, compute_score_variance_func)
   vcov_matrix_sandwich_scaled <- (A_inv %*% B_matrix %*% t(A_inv))
-  g_fn <- build_mean_fn(
+  g_fn <- el_build_mean_fn(
     family = family,
     response_model_matrix_scaled = response_model_matrix_scaled,
     auxiliary_matrix_scaled = auxiliary_matrix_scaled,
@@ -115,7 +110,7 @@ compute_delta_variance <- function(A_matrix,
     trim_cap = trim_cap,
     outcome_vec = outcome_vec
   )
-  grad_g <- grad_mean(estimates, g_fn)
+  grad_g <- grad_numeric(estimates, g_fn)
   var_y_hat <- as.numeric(t(grad_g) %*% vcov_matrix_sandwich_scaled %*% grad_g)
   list(
     var_y_hat = var_y_hat,
