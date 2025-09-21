@@ -1,52 +1,32 @@
-#' @title Nonparametric Exponential Tilting Engine for NMAR Estimation
+#' Nonparametric exponential tilting engine
 #'
-#' @description Creates a configuration object for the nonparametric Exponential Tilting (ET) method
-#'   used in Not Missing at Random (NMAR) estimation. This version uses a nonparametric
-#'   approach to estimate the missing data mechanism without distributional assumptions.
-#'   The returned object can be passed to the `nmar()` function for NMAR estimation.
+#' Build a configuration for the nonparametric exponential-tilting EM estimator
+#' used in NMAR problems with grouped outcomes and refusal counts. Pass the
+#' resulting engine to [nmar()] together with the appropriate formula and data.
 #'
-#' @param outcome_cols A character vector specifying the names of columns containing
-#'   the outcome variables in the data.
-#' @param refusal_col A character string specifying the name of the column containing
-#'   refusal/missingness counts.
-#' @param max_iter An integer specifying the maximum number of iterations for the
-#'   EM algorithm. Defaults to 100.
-#' @param tol_value A numeric value representing the convergence tolerance for the
-#'   EM algorithm. The algorithm stops when parameter changes are below this value.
-#'   Defaults to 1e-6.
+#' @param refusal_col Column name in `data` containing refusal counts.
+#' @param max_iter Maximum number of EM iterations.
+#' @param tol_value Convergence tolerance for the EM updates.
 #'
-#' @return An engine configuration object of S3 class `c("nmar_engine_exptilt_nonparam", "nmar_engine")`.
-#'   This object contains all specified parameters for the nonparametric ET method.
+#' @return A list of class `c("nmar_engine_exptilt_nonparam", "nmar_engine")`.
 #'
-#' @importFrom jsonlite read_json
 #' @export
 exptilt_nonparam_engine <- function(
-    # outcome_cols,
     refusal_col,
-    # max_iter = get_json_param_info(all_schemas, "nonparametric_em", "max_iter")$default,
-    # tol_value = get_json_param_info(all_schemas, "nonparametric_em", "tol_value")$default
-    #TODO
-    max_iter=100,
-    tol_value=1e-6
+    max_iter = 100,
+    tol_value = 1e-6
 ) {
-  # json_path <- system.file("extdata", "method_params.json", package = "nmar")
-
-  # if (!file.exists(json_path)) {
-  #   stop("Method parameters JSON file (method_params.json) not found in 'inst/extdata/'. Package might be corrupted or not installed correctly.")
-  # }
-
-  # all_schemas <- jsonlite::read_json(json_path, simplifyVector = TRUE)
+  if (!is.character(refusal_col) || length(refusal_col) != 1L || !nzchar(refusal_col)) {
+    stop("`refusal_col` must be a single non-empty character string.", call. = FALSE)
+  }
+  validator$assert_positive_integer(max_iter, name = "max_iter")
+  validator$assert_number(tol_value, name = "tol_value", min = 0, max = Inf)
 
   config <- list(
-    # outcome_cols = outcome_cols,
     refusal_col = refusal_col,
-    max_iter = 100, #hotfix
-    tol_value = 1e-6 #hotfix
+    max_iter = max_iter,
+    tol_value = tol_value
   )
-
-  # TODO: add validation
-  # config <- validate_method_settings(...)
-
   class(config) <- c("nmar_engine_exptilt_nonparam", "nmar_engine")
-  return(config)
+  config
 }
