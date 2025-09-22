@@ -1,4 +1,4 @@
-#' @exportS3Method NULL
+#' @exportS3Method run_engine nmar_engine_exptilt
 run_engine.nmar_engine_exptilt <- function(engine, spec) {
   outcome_variable <- spec$outcome[[1]]
   covariates_for_outcome <- spec$auxiliary_vars

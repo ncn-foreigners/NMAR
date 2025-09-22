@@ -2,6 +2,7 @@
 #'
 #' @param x nmar_result object
 #' @param ... Additional parameters
+#' @export
 
 print.nmar_result <- function(x, ...) {
   est <- nmar_result_get_estimate(x)
@@ -41,6 +42,7 @@ print.nmar_result <- function(x, ...) {
 #' @param object nmar_result object
 #' @param conf.level Confidence level for intervals.
 #' @param ... Additional parameters
+#' @export
 
 summary.nmar_result <- function(object, conf.level = 0.95, ...) {
   est <- nmar_result_get_estimate(object)
@@ -73,6 +75,7 @@ summary.nmar_result <- function(object, conf.level = 0.95, ...) {
 #'
 #' @param x summary_nmar_result object
 #' @param ... Additional parameters
+#' @export
 
 print.summary_nmar_result <- function(x, ...) {
   cat("NMAR Model Summary\n")
