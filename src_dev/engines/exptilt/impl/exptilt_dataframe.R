@@ -13,12 +13,16 @@ exptilt.data.frame <- function(data,model,on_failure=c('return')){ #' #todo on_f
   has_aux = length(model$coly) > 0#TODO make sure not col_y
   mu_x_unscaled <- if (has_aux) auxiliary_means else NULL
 
+  respondent_mask <- !is.na(model$x[, model$col_y])
+  scaling_weights <- as.numeric(respondent_mask)
+
   scaling_result <- validate_and_apply_nmar_scaling(
     standardize = model$standardize,
     has_aux = has_aux,
     response_model_matrix_unscaled = model$x[,c(model$col_y,model$cols_delta),drop=FALSE],
     auxiliary_matrix_unscaled = model$x[,model$cols_y_observed,drop=FALSE],
-    mu_x_unscaled = model$auxiliary_means
+    mu_x_unscaled = model$auxiliary_means,
+    weights = scaling_weights
   )
   model$nmar_scaling_recipe <- scaling_result$nmar_scaling_recipe
   response_model_matrix_scaled <- scaling_result$response_model_matrix_scaled
