@@ -5,6 +5,7 @@ trim_weights <- function(weights, cap) {
     return(list(weights = weights, trimmed_fraction = 0))
   }
   final_weights <- weights
+  original_total <- sum(weights)
   eligible_for_redistribution <- rep(TRUE, length(weights))
   while (TRUE) {
     weights_to_cap <- (final_weights > cap) & eligible_for_redistribution
@@ -16,6 +17,16 @@ trim_weights <- function(weights, cap) {
     if (sum(eligible_weights) < 1e-8) break
     redistribution <- excess * (eligible_weights / sum(eligible_weights))
     final_weights[eligible_for_redistribution] <- eligible_weights + redistribution
+  }
+  total_after <- sum(final_weights)
+  if (abs(total_after - original_total) > 1e-8) {
+    warning(
+      sprintf(
+        "Trimming reduced total weight from %.6f to %.6f; consider using a larger cap.",
+        original_total, total_after
+      ),
+      call. = FALSE
+    )
   }
   list(weights = final_weights, trimmed_fraction = mean(weights > cap))
 }

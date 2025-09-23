@@ -63,11 +63,10 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
 #' Bootstrap for survey designs via replicate weights
 #' @inheritParams bootstrap_variance
 #' @param bootstrap_reps integer; number of bootstrap replicates.
-#' @details The replicate‑weight path tries to reconstruct a temporary design for
-#'   each replicate weight vector; it first attempts to replay the original
-#'   `svydesign` call with updated weights and then falls back to simple designs
-#'   if needed. Replicates that fail to converge are recorded as `NA`; a warning
-#'   is issued if many fail.
+#' @details This path constructs a replicate-weight design using
+#'   [svrep::as_bootstrap_design()] and rebuilds the original sampling design for
+#'   each replicate weight vector. The supplied design must have been created
+#'   directly with [survey::svydesign()].
 #' @return a list with `se`, `variance`, and the vector of `replicates`.
 #' @exportS3Method
 bootstrap_variance.survey.design <- function(data, estimator_func, point_estimate, bootstrap_reps = 500, ...) {
@@ -75,64 +74,63 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
     stop("Package 'svrep' is required for bootstrap variance with survey objects. Please install it.", call. = FALSE)
   }
 
-  rep_design <- svrep::as_bootstrap_design(design = data, replicates = bootstrap_reps)
-  other_args <- list(...)
+  dot_args <- list(...)
+  bootstrap_settings <- list()
+  if (!is.null(dot_args$bootstrap_settings)) {
+    if (!is.list(dot_args$bootstrap_settings)) {
+      stop("`bootstrap_settings` must be a list of arguments understood by svrep::as_bootstrap_design().", call. = FALSE)
+    }
+    bootstrap_settings <- utils::modifyList(bootstrap_settings, dot_args$bootstrap_settings)
+    dot_args$bootstrap_settings <- NULL
+  }
+  if (!is.null(dot_args$bootstrap_options)) {
+    if (!is.list(dot_args$bootstrap_options)) {
+      stop("`bootstrap_options` must be a list.", call. = FALSE)
+    }
+    bootstrap_settings <- utils::modifyList(bootstrap_settings, dot_args$bootstrap_options)
+    dot_args$bootstrap_options <- NULL
+  }
+  if (!is.null(dot_args$bootstrap_type)) {
+    bootstrap_settings$type <- dot_args$bootstrap_type
+    dot_args$bootstrap_type <- NULL
+  }
+  if (!is.null(dot_args$bootstrap_mse)) {
+    bootstrap_settings$mse <- dot_args$bootstrap_mse
+    dot_args$bootstrap_mse <- NULL
+  }
+
+  rep_design <- do.call(
+    svrep::as_bootstrap_design,
+    c(list(design = data, replicates = bootstrap_reps), bootstrap_settings)
+  )
+
+  estimator_args <- dot_args
+  template_call <- nmar_extract_svydesign_call(data)
 
   replicate_results <- survey::withReplicates(
     design = rep_design,
     theta = function(pw, data_subset) {
       data_subset$..replicate_weights.. <- pw
-      temp_design <- NULL
-      temp_call <- try(getCall(data), silent = TRUE)
-      if (!inherits(temp_call, "try-error") && !is.null(temp_call)) {
-        temp_call$data <- quote(data_subset)
-        temp_call$weights <- quote(~..replicate_weights..)
-        temp_call$probs <- NULL
-        temp_call$fpc <- NULL
-        temp_design <- try(eval(temp_call), silent = TRUE)
-        if (inherits(temp_design, "try-error")) temp_design <- NULL
+      temp_design <- nmar_reconstruct_design(template_call, data_subset)
+      call_args <- c(list(data = temp_design), estimator_args)
+      fn_formals <- tryCatch(names(formals(estimator_func)), error = function(e) character())
+      if ("on_failure" %in% fn_formals && is.null(call_args$on_failure)) {
+        call_args$on_failure <- "return"
       }
-      if (is.null(temp_design)) {
-        temp_design <- try(
-          survey::svydesign(
-            ids = data$call$ids,
-            strata = data$call$strata,
-            fpc = data$call$fpc,
-            data = data_subset,
-            weights = ~..replicate_weights..,
-            nest = TRUE
-          ),
-          silent = TRUE
-        )
-        if (inherits(temp_design, "try-error")) temp_design <- NULL
-      }
-      if (is.null(temp_design)) {
-        temp_design <- try(
-          survey::svydesign(
-            ids = ~1,
-            data = data_subset,
-            weights = ~..replicate_weights..
-          ),
-          silent = TRUE
-        )
-        if (inherits(temp_design, "try-error")) temp_design <- NULL
-      }
-      if (is.null(temp_design)) stop("Failed to reconstruct survey design for bootstrap replicates.")
-      call_args <- c(list(data = temp_design, on_failure = "return"), other_args)
       fit <- suppressWarnings({
         do.call(estimator_func, call_args)
       })
-      if (!is.null(fit$converged) && !fit$converged) return(NA)
+      if (!is.null(fit$converged) && !fit$converged) return(NA_real_)
       as.numeric(estimate(fit))
     },
     return.replicates = TRUE
   )
 
   replicate_estimates <- replicate_results$replicates
-  failed_reps <- sum(is.na(replicate_estimates))
-  if (failed_reps > 0 && (failed_reps / bootstrap_reps > 0.1)) {
-    warning(sprintf(
-      "%d out of %d bootstrap replicates failed to converge. The variance estimate may be unreliable.",
+  if (anyNA(replicate_estimates)) {
+    failed_reps <- sum(is.na(replicate_estimates))
+    stop(sprintf(
+      "%d out of %d bootstrap replicates failed to produce an estimate (NA). Consider adjusting solver settings or bootstrap configuration.",
       failed_reps, bootstrap_reps
     ), call. = FALSE)
   }
@@ -149,4 +147,25 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
     variance = as.numeric(boot_variance),
     replicates = as.vector(replicate_estimates)
   )
+}
+
+nmar_extract_svydesign_call <- function(design) {
+  design_call <- try(getCall(design), silent = TRUE)
+  if (inherits(design_call, "try-error") || is.null(design_call)) {
+    stop("Unable to retrieve the original call for the provided survey design. Ensure it was created with survey::svydesign().", call. = FALSE)
+  }
+  fun <- design_call[[1]]
+  is_svydesign <- identical(fun, as.name("svydesign")) || identical(fun, quote(survey::svydesign))
+  if (!is_svydesign) {
+    stop("bootstrap_variance() currently supports survey designs created directly with survey::svydesign().", call. = FALSE)
+  }
+  design_call[[1]] <- quote(survey::svydesign)
+  design_call
+}
+
+nmar_reconstruct_design <- function(template_call, data_subset, weight_var = "..replicate_weights..") {
+  call_copy <- template_call
+  call_copy$data <- quote(data_subset)
+  call_copy$weights <- as.formula(paste0("~", weight_var))
+  eval(call_copy, envir = list(data_subset = data_subset), enclos = parent.frame())
 }
