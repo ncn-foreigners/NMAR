@@ -28,8 +28,9 @@
 ## - We intentionally avoid engine‑specific assumptions; engines with non‑linear
 ##   parameterizations can build on top of this. The intercept column is never
 ##   scaled. Columns with ~0 variance are assigned sd=1 to avoid blow‑ups.
-## - Engines may build the recipe on respondents‑only matrices (as EL does) or
-##   on full/design matrices, depending on their estimation strategy.
+## - Engines may build the recipe on respondents-only matrices (as EL does) or
+##   on the full design, and can request design-weighted scaling by supplying
+##   weights through the API.
 
 #' @title Shared scaling for NMAR estimators (developer overview)
 #' @name nmar_scaling_infra
@@ -49,20 +50,79 @@ validate_nmar_scaling_recipe <- function(x) {
   x
 }
 
+compute_weighted_stats <- function(values, weights = NULL) {
+  values <- as.numeric(values)
+  if (is.null(weights)) {
+    mean_val <- mean(values, na.rm = TRUE)
+    sd_val <- stats::sd(values, na.rm = TRUE)
+    return(list(mean = mean_val, sd = sd_val))
+  }
+  if (length(weights) != length(values)) {
+    stop("`weights` must have the same length as the data being scaled.", call. = FALSE)
+  }
+  weights <- as.numeric(weights)
+  mask <- !is.na(values) & is.finite(values) & !is.na(weights)
+  if (!any(mask)) {
+    mean_val <- NA_real_
+    sd_val <- NA_real_
+    return(list(mean = mean_val, sd = sd_val))
+  }
+  w <- weights[mask]
+  x <- values[mask]
+  w_sum <- sum(w)
+  if (w_sum <= 0 || all(w == 0)) {
+    mean_val <- mean(x, na.rm = TRUE)
+    sd_val <- stats::sd(x, na.rm = TRUE)
+    return(list(mean = mean_val, sd = sd_val))
+  }
+  mean_val <- sum(w * x) / w_sum
+  variance_num <- sum(w * (x - mean_val)^2)
+  sd_val <- sqrt(variance_num / w_sum)
+  list(mean = mean_val, sd = sd_val)
+}
+
 #' Build a scaling recipe from one or more design matrices
-#' @param ... one or more matrices with named columns
-#' @param intercept_col name of the intercept column that should not be scaled
+#' @param ... one or more matrices with named columns.
+#' @param intercept_col Intercept column name that should remain unscaled.
+#' @param weights Optional numeric vector of weights used to compute weighted
+#'   means/standard deviations.
+#' @param weight_mask Optional logical/ numeric mask applied to `weights` before
+#'   computing moments (useful for respondents-only scaling).
+#' @param tol_constant Numeric tolerance below which columns are treated as
+#'   constant and left unscaled.
+#' @param warn_on_constant Logical; emit a warning when a column is treated as
+#'   constant.
 #' @keywords internal
-create_nmar_scaling_recipe <- function(..., intercept_col = "(Intercept)") {
+create_nmar_scaling_recipe <- function(..., intercept_col = "(Intercept)", weights = NULL,
+                                       weight_mask = NULL, tol_constant = 1e-8,
+                                       warn_on_constant = TRUE) {
   matrices <- list(...)
   recipe <- list()
+  if (!is.null(weights)) {
+    weights <- as.numeric(weights)
+  }
+  if (!is.null(weight_mask)) {
+    weight_mask <- as.logical(weight_mask)
+    if (!is.null(weights)) {
+      if (length(weight_mask) != length(weights)) {
+        stop("`weight_mask` must have the same length as `weights`.", call. = FALSE)
+      }
+      weights <- weights * as.numeric(weight_mask)
+    } else {
+      weights <- as.numeric(weight_mask)
+    }
+  }
   for (mat in matrices) {
     for (col_name in colnames(mat)) {
       if (col_name == intercept_col || col_name %in% names(recipe)) next
       col_data <- mat[, col_name]
-      col_mean <- mean(col_data, na.rm = TRUE)
-      col_sd <- sd(col_data, na.rm = TRUE)
-      if (is.na(col_sd) || col_sd < .Machine$double.eps) {
+      stats <- compute_weighted_stats(col_data, weights)
+      col_mean <- stats$mean
+      col_sd <- stats$sd
+      if (is.na(col_sd) || col_sd < tol_constant) {
+        if (warn_on_constant) {
+          warning(sprintf("Column '%s' is nearly constant under the scaling weights; leaving unscaled.", col_name), call. = FALSE)
+        }
         recipe[[col_name]] <- list(mean = col_mean, sd = 1)
       } else {
         recipe[[col_name]] <- list(mean = col_mean, sd = col_sd)
@@ -95,8 +155,11 @@ apply_nmar_scaling <- function(matrix_to_scale, recipe) {
 #' @param mu_x_un named numeric vector of auxiliary means on the original scale
 #'   (names must match `colnames(X_un)`), or NULL.
 #' @param standardize logical; apply standardization if TRUE.
+#' @param weights Optional numeric vector used for weighted scaling.
+#' @param weight_mask Optional logical/numeric mask applied to `weights`.
 #' @return a list with `Z`, `X`, `mu_x`, and `recipe`.
-prepare_nmar_scaling <- function(Z_un, X_un, mu_x_un, standardize) {
+prepare_nmar_scaling <- function(Z_un, X_un, mu_x_un, standardize,
+                                 weights = NULL, weight_mask = NULL) {
   if (!standardize) {
     return(list(Z = Z_un, X = X_un, mu_x = if (is.null(mu_x_un)) numeric(0) else mu_x_un, recipe = NULL))
   }
@@ -106,7 +169,8 @@ prepare_nmar_scaling <- function(Z_un, X_un, mu_x_un, standardize) {
   } else {
     mu_x <- numeric(0)
   }
-  recipe <- create_nmar_scaling_recipe(Z_un, if (is.null(X_un)) matrix(nrow = nrow(Z_un), ncol = 0) else X_un)
+  recipe <- create_nmar_scaling_recipe(Z_un, if (is.null(X_un)) matrix(nrow = nrow(Z_un), ncol = 0) else X_un,
+                                       weights = weights, weight_mask = weight_mask)
   Z <- apply_nmar_scaling(Z_un, recipe)
   X <- if (is.null(X_un)) X_un else apply_nmar_scaling(X_un, recipe)
   if (length(mu_x)) {
@@ -122,10 +186,13 @@ prepare_nmar_scaling <- function(Z_un, X_un, mu_x_un, standardize) {
 #' @param response_model_matrix_unscaled response model matrix (with intercept).
 #' @param auxiliary_matrix_unscaled auxiliary matrix (no intercept) or an empty matrix.
 #' @param mu_x_unscaled named auxiliary means on original scale, or NULL.
+#' @param weights Optional numeric vector used for weighted scaling.
+#' @param weight_mask Optional logical/numeric mask applied to `weights`.
 #' @return a list with `nmar_scaling_recipe`, `response_model_matrix_scaled`,
 #'   `auxiliary_matrix_scaled`, and `mu_x_scaled`.
 validate_and_apply_nmar_scaling <- function(standardize, has_aux, response_model_matrix_unscaled,
-                                            auxiliary_matrix_unscaled, mu_x_unscaled) {
+                                            auxiliary_matrix_unscaled, mu_x_unscaled,
+                                            weights = NULL, weight_mask = NULL) {
   nmar_scaling_recipe <- NULL
   if (standardize) {
     if (has_aux) {
@@ -134,7 +201,18 @@ validate_and_apply_nmar_scaling <- function(standardize, has_aux, response_model
       }
       mu_x_unscaled <- mu_x_unscaled[colnames(auxiliary_matrix_unscaled)]
     }
-    nmar_scaling_recipe <- create_nmar_scaling_recipe(response_model_matrix_unscaled, auxiliary_matrix_unscaled)
+    if (!is.null(weights) && length(weights) != nrow(response_model_matrix_unscaled)) {
+      stop("`weights` must have the same length as the number of rows in the response matrix.", call. = FALSE)
+    }
+    if (!is.null(weight_mask) && length(weight_mask) != nrow(response_model_matrix_unscaled)) {
+      stop("`weight_mask` must have the same length as the number of rows in the response matrix.", call. = FALSE)
+    }
+    nmar_scaling_recipe <- create_nmar_scaling_recipe(
+      response_model_matrix_unscaled,
+      auxiliary_matrix_unscaled,
+      weights = weights,
+      weight_mask = weight_mask
+    )
     response_model_matrix_scaled <- apply_nmar_scaling(response_model_matrix_unscaled, nmar_scaling_recipe)
     auxiliary_matrix_scaled <- apply_nmar_scaling(auxiliary_matrix_unscaled, nmar_scaling_recipe)
     mu_x_scaled <- if (has_aux) {
@@ -176,6 +254,15 @@ unscale_coefficients <- function(scaled_coeffs, scaled_vcov, recipe) {
       D[param_name, param_name] <- 1 / sigma
       if (intercept_name %in% param_names) D[intercept_name, param_name] <- -mu / sigma
     }
+  }
+  missing_in_recipe <- setdiff(param_names[param_names != intercept_name], names(recipe))
+  if (length(missing_in_recipe)) {
+    stop(
+      "Scaling recipe is missing entries for coefficients: ",
+      paste(missing_in_recipe, collapse = ", "),
+      ". Ensure all predictors were present during scaling.",
+      call. = FALSE
+    )
   }
   unscaled_coeffs <- drop(D %*% scaled_coeffs)
   unscaled_vcov <- D %*% scaled_vcov %*% t(D)

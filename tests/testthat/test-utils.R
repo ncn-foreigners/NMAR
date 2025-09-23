@@ -25,3 +25,24 @@ test_that("trim_weights caps and redistributes mass", {
   expect_equal(max(res$weights), cap)
   expect_equal(sum(res$weights), sum(w))
 })
+
+test_that("trim_weights warns when all mass is capped", {
+  w <- c(5, 5)
+  cap <- 1
+  expect_warning(res <- nmar:::trim_weights(w, cap), "reduced total weight")
+  expect_equal(res$weights, rep(cap, length(w)))
+})
+
+test_that("enforce_nonneg_weights flags large negative weights", {
+  w <- c(0.2, -1e-6, -0.3)
+  res <- nmar:::enforce_nonneg_weights(w, tol = 1e-3)
+  expect_false(res$ok)
+  expect_equal(res$weights, w)
+})
+
+test_that("enforce_nonneg_weights clips small negative weights", {
+  w <- c(0.2, -1e-10)
+  res <- nmar:::enforce_nonneg_weights(w, tol = 1e-3)
+  expect_true(res$ok)
+  expect_equal(res$weights, c(0.2, 0))
+})

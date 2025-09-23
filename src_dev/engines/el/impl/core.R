@@ -72,7 +72,8 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     has_aux = has_aux,
     response_model_matrix_unscaled = response_model_matrix_unscaled,
     auxiliary_matrix_unscaled = auxiliary_matrix_unscaled,
-    mu_x_unscaled = mu_x_unscaled
+    mu_x_unscaled = mu_x_unscaled,
+    weights = respondent_weights
   )
   nmar_scaling_recipe <- scaling_result$nmar_scaling_recipe
   response_model_matrix_scaled <- scaling_result$response_model_matrix_scaled

@@ -35,12 +35,10 @@ logit_family <- function() {
       p * (1 - p) * (1 - 2 * p)
     },
     score_eta = function(eta, delta) {
-      # Score wrt eta for log-likelihood of response probability: d/deta log p(eta)
-      # This equals mu.eta / p for any Bernoulli mean model.
+      if (missing(delta)) delta <- 1
+      delta <- validate_delta(delta)
       p <- stats::plogis(eta)
-      p <- pmin(pmax(p, 1e-12), 1 - 1e-12)
-      m <- p * (1 - p)
-      m / p
+      delta - p
     }
   )
 }
@@ -54,20 +52,41 @@ probit_family <- function() {
     mu.eta = function(eta) stats::dnorm(eta),
     d2mu.deta2 = function(eta) -eta * stats::dnorm(eta),
     score_eta = function(eta, delta) {
-      # Score wrt eta for log-likelihood of response probability: d/deta log p(eta)
-      # Compute via stable log form for extreme tails.
-      # score = phi(eta) / Phi(eta)
-      log_phi <- stats::dnorm(eta, log = TRUE)
+      if (missing(delta)) delta <- 1
+      delta <- validate_delta(delta)
+      phi <- stats::dnorm(eta)
+      score <- numeric(length(phi))
+      if (!length(score)) return(score)
+
       log_Phi <- stats::pnorm(eta, log.p = TRUE)
-      # When p is extremely close to 1, use (1-Phi) tail to avoid 0/0; fallback to direct ratio.
-      s <- exp(log_phi - log_Phi)
-      # Guard against under/overflow
-      s[!is.finite(s)] <- {
-        p <- stats::pnorm(eta)
-        p <- pmin(pmax(p, 1e-300), 1 - 1e-300)
-        stats::dnorm(eta) / p
-      }[!is.finite(s)]
-      s
+      log_tail <- stats::pnorm(eta, lower.tail = FALSE, log.p = TRUE)
+
+      idx1 <- delta == 1
+      if (any(idx1)) {
+        score[idx1] <- phi[idx1] * exp(-log_Phi[idx1])
+      }
+      idx0 <- delta == 0
+      if (any(idx0)) {
+        score[idx0] <- -phi[idx0] * exp(-log_tail[idx0])
+      }
+      idx_other <- !(idx1 | idx0)
+      if (any(idx_other)) {
+        p_other <- stats::pnorm(eta[idx_other])
+        p_other <- pmin(pmax(p_other, .Machine$double.eps), 1 - .Machine$double.eps)
+        score[idx_other] <- phi[idx_other] * ((delta[idx_other] - p_other) / (p_other * (1 - p_other)))
+      }
+      score
     }
   )
+}
+
+validate_delta <- function(delta) {
+  delta <- as.numeric(delta)
+  if (any(!is.finite(delta))) {
+    stop("`delta` must be finite.", call. = FALSE)
+  }
+  if (any(delta < 0 | delta > 1)) {
+    stop("`delta` must lie in [0, 1] for Bernoulli response models.", call. = FALSE)
+  }
+  delta
 }
