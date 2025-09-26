@@ -1,9 +1,12 @@
 #' @exportS3Method NULL
 estim_var.nmar_exptilt <- function(model){
-  # Pobierz rodzinę
+  # Weighted linearisation following Riddles et al, compute the
+  # Fisher blocks using respondent/nonrespondent weights so the influence
+  # function matches the weighted score equation
 
 
-  s_values_unobs <- s_function(model,0, model$x_1[,model$cols_delta],model$theta)
+  # Removed unused precomputation of s_values_unobs, respondent-only score at
+  # delta=0 is not used in the variance path
 
   inv_C <- 1 / as.vector(model$C_matrix_nieobs)
   common_term <- model$O_matrix_nieobs * model$f_matrix_nieobs * rep(inv_C, each = nrow(model$O_matrix_nieobs))
@@ -24,14 +27,26 @@ estim_var.nmar_exptilt <- function(model){
   #density num of coefs refers to density f.e beta, intercept, sigma
   # S1=matrix(0, nrow=nrow(model$x_1), ncol=model$density_num_of_coefs)
   S1 <- t(sapply(1:nrow(model$x_1), function(i) {
+    x_row <- model$x_for_y_obs[i, , drop = FALSE]
+    if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
+      # Gradient evaluations must use the covariates on the scaled space
+      # associated with y_hat, re-apply the scaling recipe when working with the
+      # unscaled copies stored for reporting
+      x_row <- apply_nmar_scaling(x_row, model$nmar_scaling_recipe)
+    }
     model$density_fun_gradient(
       model$y_1[i],
-      model$x_for_y_obs[i, , drop = FALSE]
+      x_row
     )
   }))
 
   #it is OK if values are close to 0
-  F11 = calculate_fisher_information(model$y_1,model$x_1,model$density_num_of_coefs,model$x_for_y_obs,model$density_fun_hess)
+  # Ensure density derivatives are evaluated on the scale used to fit y_hat
+  X_obs_for_fi <- model$x_for_y_obs
+  if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
+    X_obs_for_fi <- apply_nmar_scaling(X_obs_for_fi, model$nmar_scaling_recipe)
+  }
+  F11 = calculate_fisher_information(model$y_1, model$x_1, model$density_num_of_coefs, X_obs_for_fi, model$density_fun_hess)
   # browser()
 
   calculate_FI21 <- function() {
@@ -44,9 +59,20 @@ estim_var.nmar_exptilt <- function(model){
     FI21 <- matrix(0, nrow = num_phi_params, ncol = num_gamma_params)
 
     #TODO: optimize
+
+    # Match Remark 2, nonrespondent contributions are weighted by their design
+    # weights so the FI blocks reflect the weighted mean-score equation
+    nonresp_wts <- model$nonrespondent_weights
+    if (is.null(nonresp_wts)) nonresp_wts <- rep(1, n_unobs)
+
     for (i in 1:n_unobs) {
       x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
       x_i_gamma <- model$x_for_y_unobs[i, , drop = FALSE]
+    if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
+      # Gradient of log f_1 w.r.t. γ must be computed at the covariates used
+      # during y_hat fitting, re-apply the stored scaling recipe if needed
+        x_i_gamma <- apply_nmar_scaling(x_i_gamma, model$nmar_scaling_recipe)
+      }
 
       x_i_delta_rep <- x_i_delta[rep(1, n_obs), , drop = FALSE]
 
@@ -66,7 +92,7 @@ estim_var.nmar_exptilt <- function(model){
       # t(A) %*% (w * B) oblicza sum_j(w_j * A_j^T * B_j)
       cov_i <- t(s_dev_matrix) %*% (w_i * s1_ij_matrix)
 
-      FI21 <- FI21 + cov_i
+      FI21 <- FI21 + nonresp_wts[i] * cov_i
     }
 
     return(-FI21)
@@ -82,11 +108,9 @@ estim_var.nmar_exptilt <- function(model){
     pi_vals <- model$family$linkinv(eta)
     pi_deriv <- model$family$mu.eta(eta) * x_aug
 
-    denominator <- pi_vals * (1 - pi_vals)
-    denominator[denominator < 1e-9] <- 1 # zero case
-
-    result <- pi_deriv / as.vector(denominator)
-    result[is.nan(result)] <- 0
+    denominator <- pmax(pi_vals * (1 - pi_vals), 1e-9)
+    result <- pi_deriv / denominator
+    result[!is.finite(result)] <- 0
 
     return(result)
   }
@@ -99,6 +123,10 @@ estim_var.nmar_exptilt <- function(model){
     FI22 <- matrix(0, nrow = num_phi_params, ncol = num_phi_params)
 
     #TODO optimize
+    # Same weighting logic for FI22
+    nonresp_wts <- model$nonrespondent_weights
+    if (is.null(nonresp_wts)) nonresp_wts <- rep(1, n_unobs)
+
     for (i in 1:n_unobs) {
       x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
       x_i_delta_rep <- x_i_delta[rep(1, n_obs), , drop = FALSE]
@@ -112,7 +140,7 @@ estim_var.nmar_exptilt <- function(model){
       z_bar_0i <- colSums(w_i * z_ij_matrix)
 
       outer_prod_i <- s_bar_0i %*% t(z_bar_0i)
-      FI22 <- FI22 + outer_prod_i
+      FI22 <- FI22 + nonresp_wts[i] * outer_prod_i
       # browser()
     }
 
@@ -159,11 +187,16 @@ estim_var.nmar_exptilt <- function(model){
 
     # --- 1. Obliczenia dla respondentów ---
     x_obs_delta <- model$x_1[, model$cols_delta, drop = FALSE]
-    S2[respondent_indices, ] <- s_function.nmar_exptilt(model, delta = 1, x = x_obs_delta, theta = model$theta)
+    resp_wts <- model$respondent_weights
+    if (is.null(resp_wts)) resp_wts <- rep(1, length(respondent_indices))
+    S2[respondent_indices, ] <- resp_wts * s_function.nmar_exptilt(model, delta = 1, x = x_obs_delta, theta = model$theta)
 
     # --- 2. Obliczenia dla nierespondentów ---
     n_unobs <- nrow(model$x_0)
     n_obs <- nrow(model$x_1)
+
+    nonresp_wts <- model$nonrespondent_weights
+    if (is.null(nonresp_wts)) nonresp_wts <- rep(1, n_unobs)
 
     # W pętli, ponieważ każda `s_bar_0i` jest specyficzna dla `x_i` nierespondenta
     for (i in 1:n_unobs) {
@@ -175,7 +208,7 @@ estim_var.nmar_exptilt <- function(model){
       s_bar_0i <- colSums(w_i * s_ij_matrix)
 
       # Przypisz do odpowiedniego wiersza w macierzy S2
-      S2[non_respondent_indices[i], ] <- s_bar_0i
+      S2[non_respondent_indices[i], ] <- nonresp_wts[i] * s_bar_0i
     }
 
     return(S2)
@@ -197,21 +230,23 @@ estim_var.nmar_exptilt <- function(model){
   u_i_obs <- model$y_1 - esty
 
   correction_term_obs <- S2[respondent_indices, ] - S1 %*% t(K)
-
-  eta[respondent_indices] <- (u_i_obs / p_obs) - B %*% t(correction_term_obs)
+  resp_wts <- model$respondent_weights
+  if (is.null(resp_wts)) resp_wts <- rep(1, length(respondent_indices))
+  eta_resp <- (u_i_obs / p_obs) - as.numeric(B %*% t(correction_term_obs))
+  eta[respondent_indices] <- resp_wts * eta_resp
 
   non_respondent_indices <- which(is.na(model$x[, model$col_y]))
   correction_term_unobs <- S2[non_respondent_indices, ]
+  nonresp_wts <- model$nonrespondent_weights
+  if (is.null(nonresp_wts)) nonresp_wts <- rep(1, length(non_respondent_indices))
+  eta_nonresp <- -as.numeric(B %*% t(correction_term_unobs))
+  eta[non_respondent_indices] <- nonresp_wts * eta_nonresp
 
-  eta[non_respondent_indices] <- -B %*% t(correction_term_unobs)
+  tau <- sum(model$respondent_weights / p_obs)
 
-  tau <- sum(1 / p_obs)
+  total_weight <- if (!is.null(model$design_weights)) sum(model$design_weights) else n_total
+  var_est <- total_weight * stats::var(eta) / (tau^2)
 
-  var_est <- n_total * var(eta) / (tau^2)
-
-  #TODO below for test only
-  # cat("Estimated Mean (esty):", esty, "\n")
-  cat("Estimated Variance (var_est):", var_est, "\n")
   respondent_indices <- which(!is.na(model$x[, model$col_y]))
   diff_S2_S1 <- S2[respondent_indices, ] - S1 %*% t(K)
   var_S2_S1 <- cov(diff_S2_S1)
