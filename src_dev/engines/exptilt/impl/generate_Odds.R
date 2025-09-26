@@ -1,5 +1,5 @@
 #' @exportS3Method NULL
-generate_Odds.nmar_exptilt <- function(model) {
+generate_Odds.nmar_exptilt <- function(model, ...) {
 
   x_mat <- as.matrix(model$x_0[,model$cols_delta,drop=FALSE])
   y_vec <- as.vector(model$y_1)

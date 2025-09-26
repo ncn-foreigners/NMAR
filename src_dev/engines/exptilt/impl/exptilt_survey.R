@@ -1,6 +1,6 @@
 #' @importFrom stats weights
 #' @export
-exptilt.survey.design <- function(data, model, on_failure = c("return")) {
+exptilt.survey.design <- function(data, model, on_failure = c("return"), ...) {
   on_failure <- match.arg(on_failure)
 
   # Keep the survey design on the model so diagnostics/variance can reuse it

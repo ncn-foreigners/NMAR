@@ -1,7 +1,7 @@
 #' @importFrom nleqslv nleqslv
 #' @importFrom stats as.formula coef dnorm dgamma sd setNames
 #' @export
-exptilt.data.frame <- function(data,model,on_failure=c('return')){ #' #todo on_failure logic
+exptilt.data.frame <- function(data,model,on_failure=c('return'), ...){ #' #todo on_failure logic
   model$x=data
   model$is_survey <- isTRUE(model$is_survey)
   if (is.null(model$standardize)) {

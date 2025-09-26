@@ -1,5 +1,5 @@
 #' @exportS3Method NULL
-s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta, y = NULL) {
+s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta, y = NULL, ...) {
   # We compute the score contributions d(log-likelihood)/d phi for each row by
   # evaluating the Bernoulli score with respect to eta (using the shared family
   # helpers) and multiplying by the design vector [1, x1, y]. This mirrors
