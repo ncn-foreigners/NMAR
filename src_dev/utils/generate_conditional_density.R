@@ -118,9 +118,17 @@ generate_conditional_density <- function(model) {
     as.matrix(cbind(Intercept = 1, x[covar_names]))
   }
 
-  # Add sigma coefficient for normal and lognormal
+  # Add sigma coefficient for normal and lognormal using the model's
+  # weighted residual standard error (design-consistent when weights are
+  # provided to lm()). Fallback to an epsilon if undefined
   if (chosen_dist %in% c("normal", "lognormal")) {
-    sigma_val <- sd(resid(.model))
+    sigma_val <- tryCatch({
+      s <- summary(.model)$sigma
+      if (!is.finite(s) || s <= 0) NA_real_ else s
+    }, error = function(e) NA_real_)
+    if (!is.finite(sigma_val) || is.na(sigma_val) || sigma_val <= 0) {
+      sigma_val <- .Machine$double.eps
+    }
     coefs <- c(coefs, sigma = sigma_val)
   }
 
@@ -169,21 +177,63 @@ generate_conditional_density <- function(model) {
   ))
 }
 generate_conditional_density_matrix <- function(model) {
-  # Add error handling for dimension mismatches
+  # Add error handling for dimension mismatches and ensure that the covariates
+  # fed to the fitted density function live on the SAME scale used during the
+  # density fit. The model stores a scaling recipe, after unscaling the feature
+  # matrices for reporting, we temporarily re-apply that recipe here
   tryCatch({
-    matrix(
-      outer(1:nrow(model$x_for_y_unobs), model$y_1,
-            FUN = function(i, y) model$density_fun(y, model$x_for_y_unobs[i, , drop = FALSE])),
-      ncol = length(model$y_1),
-      nrow = nrow(model$x_for_y_unobs)
-    )
+    n_unobs <- nrow(model$x_for_y_unobs)
+    n_resp <- length(model$y_1)
+    if (!n_unobs || !n_resp) return(matrix(numeric(0), nrow = n_unobs, ncol = n_resp))
+    out <- matrix(NA_real_, nrow = n_unobs, ncol = n_resp)
+    for (i in seq_len(n_unobs)) {
+      x_row <- model$x_for_y_unobs[i, , drop = FALSE]
+      # Re-apply scaling if the current feature matrices are on the original scale
+      if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
+        x_row <- apply_nmar_scaling(x_row, model$nmar_scaling_recipe)
+      }
+      for (j in seq_len(n_resp)) {
+        out[i, j] <- model$density_fun(model$y_1[j], x_row)
+      }
+    }
+    out
   }, error = function(e) {
     stop("Error in generate_conditional_density_matrix: ", e$message)
   })
 }
 
 generate_C_matrix <- function(model) {
-  stopifnot(is.matrix(model$f_matrix_nieobs))
-  col_sums <- colSums(model$f_matrix_nieobs)
-  return(matrix(col_sums, ncol = 1))
+  # C(y_j; gamma) must sum over RESPONDENTS, not nonrespondents.
+  # Paper (eq. 15): C(y; gamma) = sum_{l: delta_l=1} f1(y | x_l; gamma). In the survey case,
+  # this becomes a weighted sum with design weights d_l. This term depends only
+  # on y_j and gamma_hat; it must not depend on any nonrespondent covariates.
+  #
+  # Earlier implementation incorrectly computed C as colSums of f_matrix_nieobs,
+  # which sums over nonrespondents i: sum_i f1(y_j | x_i^unobs). That is
+  # inconsistent with the derivation and breaks the fractional weights.
+
+  y_obs <- as.numeric(model$y_1)
+  X_obs <- model$x_for_y_obs
+  n_obs <- length(y_obs)
+  if (!length(y_obs) || is.null(X_obs) || !nrow(X_obs)) {
+    return(matrix(numeric(0), ncol = 1))
+  }
+
+  # Build F_resp[l, j] = f1(y_j | x_l^obs; gamma_hat), honoring the scale used during fit.
+  F_resp <- matrix(NA_real_, nrow = nrow(X_obs), ncol = n_obs)
+  for (l in seq_len(nrow(X_obs))) {
+    x_row <- X_obs[l, , drop = FALSE]
+    if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
+      x_row <- apply_nmar_scaling(x_row, model$nmar_scaling_recipe)
+    }
+    F_resp[l, ] <- vapply(y_obs, function(yj) model$density_fun(yj, x_row), numeric(1))
+  }
+
+  # Include respondent sampling weights if present (Remark 2)
+  w_resp <- model$respondent_weights
+  if (is.null(w_resp)) w_resp <- rep(1, nrow(X_obs))
+
+  # C_j = sum_l w_l * f1(y_j | x_l)
+  C_vec <- as.numeric(crossprod(w_resp, F_resp))
+  matrix(C_vec, ncol = 1)
 }
