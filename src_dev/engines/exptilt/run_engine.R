@@ -5,11 +5,19 @@ run_engine.nmar_engine_exptilt <- function(engine, spec) {
   covariates_for_missingness <- spec$response_predictors
 
   data_required <- unique(c(outcome_variable, covariates_for_outcome, covariates_for_missingness))
-  data_ <- spec$data[, data_required, drop = FALSE]
+
+  if (spec$is_survey) {
+    # Keep the original survey.design object intact, but trim the variables
+    # so downstream code sees exactly the columns required by this engine
+    data_object <- spec$original_data
+    data_object$variables <- data_object$variables[, data_required, drop = FALSE]
+  } else {
+    data_object <- spec$data[, data_required, drop = FALSE]
+  }
 
   model <- structure(
     list(
-      data = data_,
+      data = if (spec$is_survey) spec$original_data else data_object,
       col_y = outcome_variable,
       cols_y_observed = covariates_for_outcome,
       cols_delta = covariates_for_missingness,
@@ -27,14 +35,23 @@ run_engine.nmar_engine_exptilt <- function(engine, spec) {
     class = "nmar_exptilt"
   )
 
+  if (spec$is_survey) {
+    # Flag the model as survey-backed and retain the design so variance/diagnostics
+    # can recover replicate structures when requested (e.g., bootstrap path)
+    model$is_survey <- TRUE
+    model$design <- data_object
+  }
+
   model$family <- if (model$prob_model_type == "logit") {
     logit_family()
   } else if (model$prob_model_type == "probit") {
     probit_family()
   }
 
-  model$original_params <- model
-  model <- exptilt(data_,model)
+  # Keep a pristine copy of the pre-fit model so bootstrap replicates can reuse
+  # the exact same starting values without inheriting stateful mutations
+  model$original_params <- unserialize(serialize(model, NULL))
+  model <- exptilt(data_object, model)
   if (!inherits(model, "nmar_result_exptilt")) {
     stop("Exptilt engine did not return an 'nmar_result_exptilt' object.")
   }

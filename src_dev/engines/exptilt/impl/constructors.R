@@ -20,11 +20,15 @@ new_nmar_result_exptilt <- function(estimate, std_error, coefficients, vcov, mod
     tol_value = model$tol_value
   )
 
+  # The unified data-frame/survey path populates model$is_survey, we also
+  # honor designs that arrive directly via the survey method so result
+  # metadata reflects the original call
+  is_survey <- isTRUE(model$is_survey) || inherits(model$design, "survey.design")
   sample <- list(
     n_total = n_total,
     n_respondents = n_resp,
-    is_survey = isTRUE(model$is_survey),
-    design = if (isTRUE(model$is_survey)) model$design else NULL
+    is_survey = is_survey,
+    design = if (is_survey) model$design else NULL
   )
 
   inference <- list(
@@ -62,7 +66,8 @@ new_nmar_result_exptilt <- function(estimate, std_error, coefficients, vcov, mod
       bootstrap_reps = model$bootstrap_reps,
       variance_method = model$variance_method,
       loss_value = model$loss_value,
-      iterations = model$iterations
+      iterations = model$iterations,
+      raw = list(model = model) # allow post-hoc diagnostics (e.g. score checks)
     ),
     class = "nmar_result_exptilt"
   )
