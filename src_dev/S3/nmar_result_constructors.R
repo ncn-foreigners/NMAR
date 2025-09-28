@@ -20,7 +20,7 @@ new_nmar_result <- function(...) {
   extra <- dots$extra %||% list()
   class_name <- dots$class %||% "nmar_result"
 
-  # Normalize components
+# Normalize components
   if (!is.list(model)) model <- list()
   if (is.null(model$coefficients)) model$coefficients <- NULL
   if (is.null(model$vcov)) model$vcov <- NULL

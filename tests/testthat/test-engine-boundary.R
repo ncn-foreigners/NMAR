@@ -4,10 +4,10 @@
 test_that("engines do not reference EL internals", {
   skip_on_cran()
   if (!dir.exists("src_dev")) skip("boundary test runs only in src_dev context")
-  # Files outside EL engine impl
+# Files outside EL engine impl
   all_r_files <- list.files("src_dev", pattern = "\\.R$", recursive = TRUE, full.names = TRUE)
   offenders <- grep("/engines/el/", all_r_files, invert = TRUE, value = TRUE)
-  # Look for calls to el_* helpers
+# Look for calls to el_* helpers
   bad <- character(0)
   for (f in offenders) {
     txt <- readLines(f, warn = FALSE)
@@ -15,4 +15,3 @@ test_that("engines do not reference EL internals", {
   }
   expect(length(bad) == 0, failure_message = paste("Cross-engine references to EL internals found in:\n", paste(bad, collapse = "\n")))
 })
-

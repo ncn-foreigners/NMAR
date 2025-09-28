@@ -1,4 +1,3 @@
-
 #' @exportS3Method NULL
 estim_mean.nmar_exptilt <- function(model) {
 

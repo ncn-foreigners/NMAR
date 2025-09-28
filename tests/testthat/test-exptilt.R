@@ -1,19 +1,19 @@
-generate_test_data <- function(n_rows=400,n_cols=2,case=2,x_var=0.5,eps_var=0.5,a=0.8,b=-0.2) {
+generate_test_data <- function(n_rows = 400, n_cols = 2, case = 2, x_var = 0.5, eps_var = 0.5, a = 0.8, b = -0.2) {
   X <- as.data.frame(replicate(n_cols, rnorm(n_rows, 0, x_var)^1))
   colnames(X) <- paste0("x", 1:n_cols)
 
   coefs <- runif(n_cols, 0.95, 1.05)
   eps <- rnorm(n_rows, 0, eps_var)
-  if (case==1){
+  if (case == 1) {
     X$Y <- as.vector(-1 + as.matrix(X) %*% coefs + eps)
   }
-  else if(case==2){
+  else if (case == 2) {
     X$Y <- -2 + 0.5 * exp(as.matrix(X) %*% coefs) + eps
   }
-  else if(case==3){
-    X$Y <- -1 + sin(2* as.matrix(X) %*% coefs) + eps
+  else if (case == 3) {
+    X$Y <- -1 + sin(2 * as.matrix(X) %*% coefs) + eps
   }
-  else if(case==4){
+  else if (case == 4) {
     X$Y <- -1 + 0.4 * as.matrix(X)^3 %*% coefs + eps
   }
 
@@ -23,8 +23,8 @@ generate_test_data <- function(n_rows=400,n_cols=2,case=2,x_var=0.5,eps_var=0.5,
   pi_obs <- 1 / (1 + exp(-(a + b * X$Y)))
 
   mask <- runif(nrow(X)) > pi_obs
-  mask[1]=TRUE
-  mask[2]=FALSE
+  mask[1] = TRUE
+  mask[2] = FALSE
   X$Y[mask] <- NA
   return(list(X = X, Y_original = Y_original))
 }

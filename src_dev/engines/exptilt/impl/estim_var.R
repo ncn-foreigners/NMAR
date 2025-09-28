@@ -1,28 +1,28 @@
 #' @exportS3Method NULL
-estim_var.nmar_exptilt <- function(model){
-  # Pobierz rodzinę
+estim_var.nmar_exptilt <- function(model) {
+# Pobierz rodzinę
 
 
-  s_values_unobs <- s_function(model,0, model$x_1[,model$cols_delta],model$theta)
+  s_values_unobs <- s_function(model, 0, model$x_1[, model$cols_delta], model$theta)
 
   inv_C <- 1 / as.vector(model$C_matrix_nieobs)
   common_term <- model$O_matrix_nieobs * model$f_matrix_nieobs * rep(inv_C, each = nrow(model$O_matrix_nieobs))
 
   denominator <- rowSums(common_term)
 
-  weights <- common_term / denominator #TODO test if dim is matching
+  weights <- common_term / denominator # TODO test if dim is matching
 
-  # Zastąp pi_func rodziną
+# Zastąp pi_func rodziną
   x_mat_obs <- as.matrix(model$x_1[, model$cols_delta])
   x_aug_obs <- cbind(1, x_mat_obs, model$y_1)
   eta_obs <- as.vector(x_aug_obs %*% model$theta)
   p <- model$family$linkinv(eta_obs)
 
-  #it is ok if Var is close to 0
-  # cat("Mean of p:", mean(p), "Variance of p:", var(p), "\n")
+# it is ok if Var is close to 0
+# cat("Mean of p:", mean(p), "Variance of p:", var(p), "\n")
 
-  #density num of coefs refers to density f.e beta, intercept, sigma
-  # S1=matrix(0, nrow=nrow(model$x_1), ncol=model$density_num_of_coefs)
+# density num of coefs refers to density f.e beta, intercept, sigma
+# S1=matrix(0, nrow=nrow(model$x_1), ncol=model$density_num_of_coefs)
   S1 <- t(sapply(1:nrow(model$x_1), function(i) {
     model$density_fun_gradient(
       model$y_1[i],
@@ -30,9 +30,9 @@ estim_var.nmar_exptilt <- function(model){
     )
   }))
 
-  #it is OK if values are close to 0
-  F11 = calculate_fisher_information(model$y_1,model$x_1,model$density_num_of_coefs,model$x_for_y_obs,model$density_fun_hess)
-  # browser()
+# it is OK if values are close to 0
+  F11 = calculate_fisher_information(model$y_1, model$x_1, model$density_num_of_coefs, model$x_for_y_obs, model$density_fun_hess)
+# browser()
 
   calculate_FI21 <- function() {
     n_unobs <- nrow(model$x_0)
@@ -43,7 +43,7 @@ estim_var.nmar_exptilt <- function(model){
 
     FI21 <- matrix(0, nrow = num_phi_params, ncol = num_gamma_params)
 
-    #TODO: optimize
+# TODO: optimize
     for (i in 1:n_unobs) {
       x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
       x_i_gamma <- model$x_for_y_unobs[i, , drop = FALSE]
@@ -58,12 +58,12 @@ estim_var.nmar_exptilt <- function(model){
 
       w_i <- weights[i, ]
 
-      # browser()
+# browser()
       s_bar_0i <- colSums(w_i * s_ij_matrix)
 
       s_dev_matrix <- s_ij_matrix - matrix(s_bar_0i, nrow = n_obs, ncol = num_phi_params, byrow = TRUE)
 
-      # t(A) %*% (w * B) oblicza sum_j(w_j * A_j^T * B_j)
+# t(A) %*% (w * B) oblicza sum_j(w_j * A_j^T * B_j)
       cov_i <- t(s_dev_matrix) %*% (w_i * s1_ij_matrix)
 
       FI21 <- FI21 + cov_i
@@ -72,10 +72,10 @@ estim_var.nmar_exptilt <- function(model){
     return(-FI21)
   }
   FI21 <- calculate_FI21()
-  # browser()
+# browser()
 
   z_function <- function(model, x, theta = model$theta) {
-    # Zastąp pi_func rodziną
+# Zastąp pi_func rodziną
     x_mat <- as.matrix(x)
     x_aug <- cbind(1, x_mat, model$y_1[1:nrow(x_mat)])
     eta <- as.vector(x_aug %*% theta)
@@ -98,12 +98,12 @@ estim_var.nmar_exptilt <- function(model){
 
     FI22 <- matrix(0, nrow = num_phi_params, ncol = num_phi_params)
 
-    #TODO optimize
+# TODO optimize
     for (i in 1:n_unobs) {
       x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
       x_i_delta_rep <- x_i_delta[rep(1, n_obs), , drop = FALSE]
 
-      #TODO verify - this code might be repeated
+# TODO verify - this code might be repeated
       s_ij_matrix <- s_function.nmar_exptilt(model, delta = 0, x = x_i_delta_rep, theta = model$theta)
       w_i <- weights[i, ]
       s_bar_0i <- colSums(w_i * s_ij_matrix)
@@ -113,22 +113,22 @@ estim_var.nmar_exptilt <- function(model){
 
       outer_prod_i <- s_bar_0i %*% t(z_bar_0i)
       FI22 <- FI22 + outer_prod_i
-      # browser()
+# browser()
     }
 
     return(-FI22)
   }
-  #TODO - CHECK Below. Fi22 Too big and K seems too low comparing to author
+# TODO - CHECK Below. Fi22 Too big and K seems too low comparing to author
   FI22 <- calculate_FI22(model, weights)
   K <- FI21 %*% solve(F11)
-  # browser()
+# browser()
 
   calculate_B <- function(model, esty, FI22) {
-    # Pobierz zmienne dla respondentów
+# Pobierz zmienne dla respondentów
     x_obs_delta <- model$x_1[, model$cols_delta, drop = FALSE]
     y_obs <- model$y_1
 
-    # Zastąp pi_func rodziną
+# Zastąp pi_func rodziną
     x_mat_obs <- as.matrix(x_obs_delta)
     x_aug_obs <- cbind(1, x_mat_obs, y_obs)
     eta_obs <- as.vector(x_aug_obs %*% model$theta)
@@ -137,11 +137,11 @@ estim_var.nmar_exptilt <- function(model){
 
     u_i <- y_obs - esty
 
-    # Oblicz pierwszą część formuły B (suma)
-    # W artykule autora `B1`
+# Oblicz pierwszą część formuły B (suma)
+# W artykule autora `B1`
     sum_term <- t(u_i * model$respondent_weights / p_obs) %*% pi_deriv_obs
 
-    # B = suma %*% odwrotność(FI22)
+# B = suma %*% odwrotność(FI22)
     B <- sum_term %*% solve(FI22)
 
     return(B)
@@ -153,19 +153,19 @@ estim_var.nmar_exptilt <- function(model){
 
     S2 <- matrix(0, nrow = n_total, ncol = num_phi_params)
 
-    # Identyfikatory respondentów i nierespondentów w pełnym zbiorze danych
+# Identyfikatory respondentów i nierespondentów w pełnym zbiorze danych
     respondent_indices <- which(!is.na(model$x[, model$col_y]))
     non_respondent_indices <- which(is.na(model$x[, model$col_y]))
 
-    # --- 1. Obliczenia dla respondentów ---
+# --- 1. Obliczenia dla respondentów ---
     x_obs_delta <- model$x_1[, model$cols_delta, drop = FALSE]
     S2[respondent_indices, ] <- s_function.nmar_exptilt(model, delta = 1, x = x_obs_delta, theta = model$theta)
 
-    # --- 2. Obliczenia dla nierespondentów ---
+# --- 2. Obliczenia dla nierespondentów ---
     n_unobs <- nrow(model$x_0)
     n_obs <- nrow(model$x_1)
 
-    # W pętli, ponieważ każda `s_bar_0i` jest specyficzna dla `x_i` nierespondenta
+# W pętli, ponieważ każda `s_bar_0i` jest specyficzna dla `x_i` nierespondenta
     for (i in 1:n_unobs) {
       x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
       x_i_delta_rep <- x_i_delta[rep(1, n_obs), , drop = FALSE]
@@ -174,14 +174,14 @@ estim_var.nmar_exptilt <- function(model){
       w_i <- weights[i, ]
       s_bar_0i <- colSums(w_i * s_ij_matrix)
 
-      # Przypisz do odpowiedniego wiersza w macierzy S2
+# Przypisz do odpowiedniego wiersza w macierzy S2
       S2[non_respondent_indices[i], ] <- s_bar_0i
     }
 
     return(S2)
   }
 
-  # Użyj już obliczonego p zamiast wywoływać pi_func ponownie
+# Użyj już obliczonego p zamiast wywoływać pi_func ponownie
   p_obs <- p
   esty <- sum(model$y_1 / p_obs) / sum(1 / p_obs)
 
@@ -209,8 +209,8 @@ estim_var.nmar_exptilt <- function(model){
 
   var_est <- n_total * var(eta) / (tau^2)
 
-  #TODO below for test only
-  # cat("Estimated Mean (esty):", esty, "\n")
+# TODO below for test only
+# cat("Estimated Mean (esty):", esty, "\n")
   cat("Estimated Variance (var_est):", var_est, "\n")
   respondent_indices <- which(!is.na(model$x[, model$col_y]))
   diff_S2_S1 <- S2[respondent_indices, ] - S1 %*% t(K)
@@ -218,7 +218,7 @@ estim_var.nmar_exptilt <- function(model){
   inv_FI22 <- solve(FI22)
   vcov <- inv_FI22 %*% var_S2_S1 %*% t(inv_FI22)
 
-  # browser()
-  #return list
-  return(list(var_est = var_est, vcov = vcov) )
+# browser()
+# return list
+  return(list(var_est = var_est, vcov = vcov))
 }

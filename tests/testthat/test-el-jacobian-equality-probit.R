@@ -9,7 +9,7 @@ test_that("analytic Jacobian matches numeric Jacobian for probit (standardize=FA
   df <- data.frame(Y_miss = Y, X = X)
   df[!R, "Y_miss"] <- NA_real_
 
-  # Fit once to get parameter estimates (probit family)
+# Fit once to get parameter estimates (probit family)
   fit <- nmar(
     formula = Y_miss ~ X,
     data = df,
@@ -17,7 +17,7 @@ test_that("analytic Jacobian matches numeric Jacobian for probit (standardize=FA
   )
   expect_true(fit$converged)
 
-  # Reconstruct inputs and functions
+# Reconstruct inputs and functions
   parsed <- nmar:::prepare_el_inputs(Y_miss ~ X, df, NULL)
   dat2 <- parsed$data
   fmls <- parsed$formula_list

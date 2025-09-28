@@ -117,4 +117,3 @@ prepare_el_inputs <- function(formula, data, response_predictors) {
   }
   list(data = data2, formula_list = list(outcome = outcome_fml, response = response_fml, auxiliary = auxiliary_fml))
 }
-

@@ -7,7 +7,7 @@ test_that("bootstrap and delta SE differ on typical df case", {
   R <- runif(N) < p
   df <- data.frame(Y_miss = Y, X = X)
   df[!R, "Y_miss"] <- NA_real_
-  fml <-  Y_miss ~ X
+  fml <- Y_miss ~ X
 
   fit_d <- nmar(formula = fml, data = df, engine = el_engine(auxiliary_means = c(X = 0), variance_method = "delta", standardize = FALSE))
   fit_b <- nmar(formula = fml, data = df, engine = el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap", bootstrap_reps = 50, standardize = FALSE, suppress_warnings = TRUE))
