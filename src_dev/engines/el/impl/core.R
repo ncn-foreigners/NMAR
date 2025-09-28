@@ -50,11 +50,11 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   variance_jacobian <- match.arg(variance_jacobian)
   solver_jacobian <- match.arg(solver_jacobian)
 
-  # 0. Setup
+# 0. Setup
   force(family)
   outcome_var <- all.vars(internal_formula$outcome)[1]
 
-  # 1. Data Preparation
+# 1. Data Preparation
   has_aux <- !is.null(internal_formula$auxiliary)
   if (has_aux && is.null(auxiliary_means)) {
     message("An `auxiliary` formula was created but no `auxiliary_means` were given. Ignoring auxiliary information.")
@@ -66,7 +66,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   auxiliary_matrix_unscaled <- if (has_aux) model.matrix(internal_formula$auxiliary, data = respondent_data) else matrix(nrow = nrow(respondent_data), ncol = 0)
   mu_x_unscaled <- if (has_aux) auxiliary_means else NULL
 
-  # 2. Scaling
+# 2. Scaling
   scaling_result <- validate_and_apply_nmar_scaling(
     standardize = standardize,
     has_aux = has_aux,
@@ -80,7 +80,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   auxiliary_matrix_scaled <- scaling_result$auxiliary_matrix_scaled
   mu_x_scaled <- scaling_result$mu_x_scaled
 
-  # 3. Build Solver Components
+# 3. Build Solver Components
   n_resp_weighted <- sum(respondent_weights)
   equation_system_func <- el_build_equation_system(
     family = family, response_model_matrix = response_model_matrix_scaled, auxiliary_matrix = auxiliary_matrix_scaled,
@@ -91,7 +91,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     respondent_weights = respondent_weights, N_pop = N_pop, n_resp_weighted = n_resp_weighted, mu_x_scaled = mu_x_scaled
   )
 
-  # 4. Solve for Parameters with Automated Multi-Start Strategy
+# 4. Solve for Parameters with Automated Multi-Start Strategy
   K_beta <- ncol(response_model_matrix_scaled)
   K_aux <- ncol(auxiliary_matrix_scaled)
   init_beta <- rep(0, K_beta)
@@ -99,7 +99,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   final_control <- modifyList(list(ftol = 1e-10, xtol = 1e-10, maxit = 100), control)
   use_solver_jac <- solver_jacobian %in% c("auto", "analytic") && !is.null(analytical_jac_func)
 
-  # STAGE 1: Newton method
+# STAGE 1: Newton method
   solution <- nleqslv::nleqslv(
     x = init,
     fn = equation_system_func,
@@ -108,11 +108,11 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     control = final_control, ...
   )
 
-  # STAGE 2: Perturbation-based recovery
+# STAGE 2: Perturbation-based recovery
   if (any(is.na(solution$x)) || solution$termcd > 2) {
     for (i in seq_len(3)) {
       init_beta_perturbed <- init_beta + rnorm(K_beta, mean = 0, sd = 0.5)
-      # Parameterization uses z = logit(W). Seed z near observed response rate.
+# Parameterization uses z = logit(W). Seed z near observed response rate.
       W_seed <- sum(respondent_weights) / N_pop
       W_seed <- min(max(W_seed, 1e-12), 1 - 1e-12)
       z_seed <- stats::qlogis(W_seed)
@@ -128,7 +128,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     }
   }
 
-  # STAGE 3: Broyden fallback
+# STAGE 3: Broyden fallback
   if (any(is.na(solution$x)) || solution$termcd > 2) {
     broyden_control <- final_control
     if (!is.null(broyden_control$maxit) && is.finite(broyden_control$maxit) && broyden_control$maxit < 5) {
@@ -155,7 +155,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     }
   }
 
-  # 5. Post-processing and Point Estimate Calculation
+# 5. Post-processing and Point Estimate Calculation
   estimates <- solution$x
   beta_hat_scaled <- estimates[1:K_beta]
   names(beta_hat_scaled) <- colnames(response_model_matrix_scaled)
@@ -195,7 +195,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   beta_hat_unscaled <- if (standardize) unscale_coefficients(beta_hat_scaled, matrix(0, K_beta, K_beta), nmar_scaling_recipe)$coefficients else beta_hat_scaled
   names(beta_hat_unscaled) <- colnames(response_model_matrix_unscaled)
 
-  # 6. Diagnostics at Solution
+# 6. Diagnostics at Solution
   eq_residuals <- tryCatch(equation_system_func(estimates), error = function(e) rep(NA_real_, length(estimates)))
   max_eq_resid <- suppressWarnings(max(abs(eq_residuals), na.rm = TRUE))
   jac_choice <- choose_jacobian(
@@ -218,24 +218,24 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     A_condition <- A_condition_analytic
     A_source <- "analytic"
   } else {
-    # auto: prefer analytic when available, unless quality gates suggest numeric
+# auto: prefer analytic when available, unless quality gates suggest numeric
     REL_THR <- 1e-3
     KAPPA_RATIO_THR <- 10
     if (!is.null(A_matrix_analytic)) {
-      # Start with analytic as default
+# Start with analytic as default
       A_matrix_var <- A_matrix_analytic
       A_condition <- A_condition_analytic
       A_source <- "analytic"
-      # If numeric also available, evaluate quality gates
+# If numeric also available, evaluate quality gates
       if (!is.null(A_matrix_numeric)) {
-        # Gate 1: large relative difference between analytic and numeric
+# Gate 1: large relative difference between analytic and numeric
         if (is.finite(A_diff_norm) && A_diff_norm > REL_THR) {
           A_matrix_var <- A_matrix_numeric
           A_condition <- A_condition_numeric
           A_source <- "numeric"
           jacobian_auto_rule <- "rel_diff_high"
         } else {
-          # Gate 2: analytic much worse conditioned than numeric
+# Gate 2: analytic much worse conditioned than numeric
           if (is.finite(A_condition_analytic) && is.finite(A_condition_numeric) &&
             A_condition_analytic > KAPPA_RATIO_THR * A_condition_numeric) {
             A_matrix_var <- A_matrix_numeric
@@ -250,7 +250,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
       A_condition <- A_condition_numeric
       A_source <- "numeric"
     } else {
-      # Fallback to whatever choose_jacobian provided
+# Fallback to whatever choose_jacobian provided
       A_matrix_var <- jac_choice$A
       A_source <- jac_choice$source
       A_condition <- jac_choice$kappa
@@ -262,7 +262,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   constraint_eqW_sum <- cons$constraint_sum_W
   constraint_aux_sum <- cons$constraint_sum_aux
 
-  # 7. Conditional Variance Calculation
+# 7. Conditional Variance Calculation
   se_y_hat <- NA
   vcov_unscaled <- NA
   vcov_message <- "Calculation successful"
@@ -359,7 +359,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     if (!is.finite(se_y_hat)) se_y_hat <- NA_real_
   }
 
-  # 8. Return Final Results List
+# 8. Return Final Results List
   return(list(
     y_hat = y_hat, se = se_y_hat, weights = p_i,
     coefficients = list(response_model = beta_hat_unscaled, nuisance = list(W_hat = W_hat, lambda_x = lambda_hat)),

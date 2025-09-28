@@ -9,7 +9,7 @@ test_that("analytic Jacobian matches numeric Jacobian at solution (standardize=F
   df <- data.frame(Y_miss = Y, X = X)
   df[!R, "Y_miss"] <- NA_real_
 
-  # Fit once to get parameter estimates
+# Fit once to get parameter estimates
   fit <- nmar:::el.data.frame(df, Y_miss ~ X,
     response_predictors = NULL,
     auxiliary_means = c(X = 0), standardize = FALSE,
@@ -17,7 +17,7 @@ test_that("analytic Jacobian matches numeric Jacobian at solution (standardize=F
   )
   expect_true(fit$converged)
 
-  # Reconstruct inputs used by builders
+# Reconstruct inputs used by builders
   parsed <- nmar:::prepare_el_inputs(Y_miss ~ X, df, NULL)
   dat2 <- parsed$data
   fmls <- parsed$formula_list

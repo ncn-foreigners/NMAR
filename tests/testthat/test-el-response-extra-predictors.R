@@ -9,7 +9,7 @@ test_that("response_predictors can include non-auxiliary variables", {
   df <- data.frame(Y_miss = Y, X = X, Z = Z)
   df$Y_miss[!R] <- NA_real_
 
-  # Outcome RHS contains only X (auxiliary). Include Z as response-only predictor.
+# Outcome RHS contains only X (auxiliary). Include Z as response-only predictor.
   res <- nmar:::el.data.frame(
     data = df,
     formula = Y_miss ~ X,
@@ -25,6 +25,6 @@ test_that("response_predictors can include non-auxiliary variables", {
   expect_true(isTRUE(res$converged))
   expect_true(is.numeric(res[['std_error']]))
   expect_true(is.na(res[['std_error']]) || res[['std_error']] >= 0)
-  # Coefficient vector should include Z as a response predictor
+# Coefficient vector should include Z as a response predictor
   expect_true(any(grepl("(^|\\b)Z(\\b|$)", names(res$model$coefficients))))
 })

@@ -14,7 +14,7 @@ el_compute_score_contrib <- function(family,
                                   denominator_hat,
                                   lambda_W_hat) {
   K_aux <- if (is.null(auxiliary_matrix_scaled) || ncol(auxiliary_matrix_scaled) == 0) 0 else ncol(auxiliary_matrix_scaled)
-  # Score wrt eta for log-likelihood: d/deta log p(eta) = mu.eta / p
+# Score wrt eta for log-likelihood: d/deta log p(eta) = mu.eta / p
   p_hat <- family$linkinv(eta_i_hat)
   p_hat <- pmin(pmax(p_hat, 1e-12), 1 - 1e-12)
   U_beta <- response_model_matrix_scaled * as.vector(

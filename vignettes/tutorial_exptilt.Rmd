@@ -20,73 +20,67 @@ library(nmar)
 
 ```{r}
 # Function to generate testdata, basing on riddle(2016)
-generate_test_data <- function(n_rows=400,n_cols=2,case=2,x_var=0.5,eps_var=0.5,a=0.8,b=-0.2) {
+generate_test_data <- function(n_rows = 400, n_cols = 2, case = 2, x_var = 0.5, eps_var = 0.5, a = 0.8, b = -0.2) {
   X <- as.data.frame(replicate(n_cols, rnorm(n_rows, 0, x_var)^1))
   colnames(X) <- paste0("x", 1:n_cols)
-  
+
   coefs <- runif(n_cols, 0.95, 1.05)
   eps <- rnorm(n_rows, 0, eps_var)
-  if (case==1){
+  if (case == 1) {
   X$Y <- as.vector(-1 + as.matrix(X) %*% coefs + eps)
   }
-  else if(case==2){
+  else if (case == 2) {
     X$Y <- -2 + 0.5 * exp(as.matrix(X) %*% coefs) + eps
   }
-  else if(case==3){
-    X$Y <- -1 + sin(2* as.matrix(X) %*% coefs) + eps
+  else if (case == 3) {
+    X$Y <- -1 + sin(2 * as.matrix(X) %*% coefs) + eps
   }
-  else if(case==4){
+  else if (case == 4) {
     X$Y <- -1 + 0.4 * as.matrix(X)^3 %*% coefs + eps
   }
-  
+
   X <- X[order(X$Y), ]
   Y_original = X$Y
-  
+
 
   pi_obs <- 1 / (1 + exp(-(a + b * X$Y)))
 
-  
+
   mask <- runif(nrow(X)) > pi_obs
-  mask[1] <- FALSE  
+  mask[1] <- FALSE
   X$Y[mask] <- NA
   return(list(X = X, Y_original = Y_original))
 }
-
-
-
 ```
 
 
 ```{r}
 res_test_data <- generate_test_data(n_rows = 500, n_cols = 2, case = 1)
   x <- res_test_data$X
-  y_original <- res_test_data$Y_original #to compare with true values
-  
-  
+  y_original <- res_test_data$Y_original # to compare with true values
 ```
 
 
 
 ```{r}
-#Exptilt engine configuration
+# Exptilt engine configuration
 exptilt_config <- exptilt_engine(
   y_dens = 'normal',
   min_iter = 30,
   max_iter = 100,
-  family = 'probit', #or logit
-  # standardize = TRUE
-  # variance_method='bootstrap', #or delta
-  # bootstrap_reps=10
+  family = 'probit', # or logit
+# standardize = TRUE
+# variance_method='bootstrap', #or delta
+# bootstrap_reps=10
 )
 
 
 formula = Y ~ x1 + x2
-res <- nmar(formula=formula,data=x,engine=exptilt_config,response_predictors=NULL)
+res <- nmar(formula = formula, data = x, engine = exptilt_config, response_predictors = NULL)
 ```
 
 ```{r}
 print(res)
-
 ```
 
 
@@ -94,40 +88,40 @@ print(res)
 ```{r}
 cat('True Y mean:          ', sprintf('%.4f', mean(y_original)), '\n')
 est <- as.numeric(estimate(res))
-se  <- res$std_error
-cat('Est Y mean (NMAR):    ', sprintf('%.4f', est), 
-    '  3σ interval: (', sprintf('%.4f', est - 3*se), 
-    ', ', sprintf('%.4f', est + 3*se), 'σ=', sprintf('%.4f', se), ')\n')
+se <- res$std_error
+cat('Est Y mean (NMAR):    ', sprintf('%.4f', est),
+    '  3σ interval: (', sprintf('%.4f', est - 3 * se),
+    ', ', sprintf('%.4f', est + 3 * se), 'σ=', sprintf('%.4f', se), ')\n')
 cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(x[!is.na(x$Y), 'Y'])), '\n')
 ```
 
 ```{r}
-#if survey is installed
+# if survey is installed
 if (requireNamespace("survey", quietly = TRUE)) {
 
   library('survey')
   surv_test_weights <- runif(nrow(x), 0.9, 1.1)
   surv_test_data <- svydesign(ids = ~1, data = x, weights = ~surv_test_weights)
-  
+
   exptilt_config <- exptilt_engine(
-     standardize=FALSE,
-     on_failure = "error", #currently does nothing
-     bootstrap_reps=10,
-     supress_warnings=FALSE, #currently does nothing
-     auxiliary_means = NULL, #currently does nothing
-     control=list(),#currently does nothing
-     family="logit",
-     y_dens="normal",
-     variance_method="delta",
-     min_iter=10,#todo move to control
-     max_iter=100,#todo move to control
-     optim_method="Newton", #todo move to control
-     tol_value=1e-5 #todo move to control
+     standardize = FALSE,
+     on_failure = "error", # currently does nothing
+     bootstrap_reps = 10,
+     supress_warnings = FALSE, # currently does nothing
+     auxiliary_means = NULL, # currently does nothing
+     control = list(), # currently does nothing
+     family = "logit",
+     y_dens = "normal",
+     variance_method = "delta",
+     min_iter = 10, # todo move to control
+     max_iter = 100, # todo move to control
+     optim_method = "Newton", # todo move to control
+     tol_value = 1e-5 # todo move to control
 )
 
 
   formula = Y ~ x1 + x2
-  res <- nmar(formula=formula,data=x,engine=exptilt_config,response_predictors=NULL)
+  res <- nmar(formula = formula, data = x, engine = exptilt_config, response_predictors = NULL)
   print(res)
 
 }

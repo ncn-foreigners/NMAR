@@ -73,11 +73,11 @@ as.data.frame.el_mc_summary <- function(x, ...) {
 bind_mc <- function(lst) do.call(rbind, lapply(lst, as.data.frame))
 
 if (identical(environment(), globalenv())) {
-  # Expanded grid and simple checks (mirroring earlier unit-test heuristics)
+# Expanded grid and simple checks (mirroring earlier unit-test heuristics)
   grid <- run_mc_grid(Ns = c(400L, 800L, 2000L), alphas = c(0.3, 0.4, 0.5), reps_small = 30L, reps_large = 20L)
   tab <- bind_mc(grid)
 
-  # Heuristic checks
+# Heuristic checks
   bias_tol <- 0.4
   ratio_tol <- 0.5
   conv_min_frac <- 0.6

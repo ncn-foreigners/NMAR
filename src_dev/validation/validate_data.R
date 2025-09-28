@@ -19,17 +19,17 @@ validate_data <- function(data,
                           allow_outcome_in_missingness = FALSE,
                           allow_covariate_overlap = FALSE) {
 
-  # Validate data object type
+# Validate data object type
   if (!inherits(data, c("data.frame", "survey.design"))) {
     stop("'data' must be a data.frame or survey.design object. Received: ", class(data)[1])
   }
 
-  # Extract variables from survey object
+# Extract variables from survey object
   if (inherits(data, "survey.design")) {
     data <- data$variables
   }
 
-  # Check for empty data
+# Check for empty data
   if (nrow(data) == 0) {
     stop("Input dataset is empty (0 rows).")
   }
@@ -65,16 +65,16 @@ validate_data <- function(data,
     )
   }
 
-  # Combine all required variables
+# Combine all required variables
   all_vars <- unique(c(outcome_variable, covariates_for_outcome, covariates_for_missingness))
 
-  # Check variable existence in data
+# Check variable existence in data
   missing_vars <- setdiff(all_vars, names(data))
   if (length(missing_vars) > 0) {
     stop("Variables not found in data: ", paste(missing_vars, collapse = ", "))
   }
 
-  # Validate outcome variable
+# Validate outcome variable
   if (!is.numeric(data[[outcome_variable]])) {
     bad_val <- data[[outcome_variable]][which(!is.numeric(data[[outcome_variable]]))[1]]
     stop(
@@ -83,17 +83,17 @@ validate_data <- function(data,
     )
   }
 
-  # Check for required NAs in outcome
+# Check for required NAs in outcome
   if (!anyNA(data[[outcome_variable]])) {
     stop("Outcome variable '", outcome_variable, "' must contain NA values.")
   }
 
-  # Check for at least one non-NA value in outcome
+# Check for at least one non-NA value in outcome
   if (all(is.na(data[[outcome_variable]]))) {
     stop("Outcome variable '", outcome_variable, "' cannot be entirely NA.")
   }
 
-  # Validate covariates
+# Validate covariates
   covariates_for_missingness_checked <- if (allow_outcome_in_missingness) {
     setdiff(covariates_for_missingness, outcome_variable)
   } else {
@@ -103,7 +103,7 @@ validate_data <- function(data,
   covariate_vars <- unique(c(covariates_for_outcome, covariates_for_missingness_checked))
 
   for (var in covariate_vars) {
-    # Check type
+# Check type
     if (!is.numeric(data[[var]]) && !is.logical(data[[var]])) {
       bad_val <- data[[var]][which(!is.numeric(data[[var]]) & !is.logical(data[[var]]))[1]]
       stop(
@@ -112,7 +112,7 @@ validate_data <- function(data,
       )
     }
 
-    # Check for NAs
+# Check for NAs
     if (anyNA(data[[var]])) {
       stop(
         "Covariate '", var, "' contains NA values.\n",

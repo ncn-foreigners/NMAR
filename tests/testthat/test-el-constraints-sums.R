@@ -15,7 +15,7 @@ test_that("constraint sums are near zero at solution (no trimming)", {
 
   )
   expect_true(fit$converged)
-  # Reconstruct components to compute raw constraint sums from stored diagnostics inputs
+# Reconstruct components to compute raw constraint sums from stored diagnostics inputs
   parsed <- nmar:::prepare_el_inputs(Y_miss ~ X, df, NULL)
   dat2 <- parsed$data
   fmls <- parsed$formula_list
@@ -38,7 +38,7 @@ test_that("constraint sums are near zero at solution (no trimming)", {
   z <- stats::qlogis(fit$model$nuisance$W_hat)
   lambda_hat <- if (!is.null(fit$model$nuisance$lambda_x)) as.numeric(fit$model$nuisance$lambda_x) else numeric(0)
   theta <- c(as.numeric(beta_hat), z, lambda_hat)
-  # Equations close to zero
+# Equations close to zero
   res <- as.numeric(eq_fun(theta))
   expect_lt(max(abs(res)), 1e-5)
 })

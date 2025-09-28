@@ -7,7 +7,7 @@ run_em_nmar_nonparametric <- function(
     max_iter = 100,
     tol = 1e-6
 ) {
-  #TODO
+# TODO
   required_cols <- c(outcome_cols, refusal_col, common_covariates, instrumental_covariates)
   missing_cols <- setdiff(required_cols, names(data))
   if (length(missing_cols) > 0) {
@@ -33,7 +33,7 @@ run_em_nmar_nonparametric <- function(
   O_values <- matrix(1.0, nrow = length(outcome_classes), ncol = length(common_covariate_keys),
                      dimnames = list(outcome_classes, common_covariate_keys))
 
-  # --- Main EM loop ---
+# --- Main EM loop ---
   for (iter in 1:max_iter) {
     P_j_i_matrix <- as.matrix(data_processed[, p_cols])
     colnames(P_j_i_matrix) <- outcome_classes
@@ -51,12 +51,12 @@ run_em_nmar_nonparametric <- function(
     m_ij_t <- numerator_components * weights_for_refusal_split
     m_ij_t[is.na(m_ij_t) | is.infinite(m_ij_t)] <- 0
 
-    # M-step: Update O_{j, i1}^{(t+1)}
+# M-step: Update O_{j, i1}^{(t+1)}
     O_values_next <- matrix(0.0, nrow = length(outcome_classes), ncol = length(common_covariate_keys),
                             dimnames = list(outcome_classes, common_covariate_keys))
 
     df_with_m_ij_t <- cbind(data_processed, m_ij_t)
-    colnames(df_with_m_ij_t)[(ncol(df_with_m_ij_t)-length(outcome_classes)+1):ncol(df_with_m_ij_t)] <-
+    colnames(df_with_m_ij_t)[(ncol(df_with_m_ij_t) - length(outcome_classes) + 1):ncol(df_with_m_ij_t)] <-
       paste0("m_", outcome_classes)
 
     for (key in common_covariate_keys) {
@@ -70,7 +70,7 @@ run_em_nmar_nonparametric <- function(
       }
     }
 
-    # Check for convergence
+# Check for convergence
     if (iter > 1 && max(abs(O_values_next - O_values)) < tol) {
       O_values <- O_values_next
       break

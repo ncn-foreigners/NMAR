@@ -67,7 +67,7 @@ Create the following files under `src_dev/engines/<method>/`:
 
 ```{r eval=FALSE}
 method_engine <- function(...) {
-  # Validate controls using validate_arguments.R as in exptilt.
+# Validate controls using validate_arguments.R as in exptilt.
   validator$assert_choice(family, choices = c("logit", "probit"), name = "family")
 
   engine <- list(...)
@@ -124,21 +124,21 @@ method <- function(data, ...) UseMethod("method")
 ```{r eval=FALSE}
 #' @export
 method.data.frame <- function(data, formula, controls = list(), ...) {
-  # Prepare inputs. You may adapt from EL’s prepare_el_inputs() pattern.
+# Prepare inputs. You may adapt from EL’s prepare_el_inputs() pattern.
   parsed <- build_method_inputs(data, formula, controls)
   estimation_data <- parsed$data
   internal_formula <- parsed$formula_list
 
-  # Identify respondents
+# Identify respondents
   response_var <- all.vars(internal_formula$response)[1]
   obs_idx <- which(estimation_data[[response_var]] == 1)
 
-  # Build design matrices
+# Build design matrices
   Z_un <- model.matrix(update(internal_formula$response, NULL ~ .), data = estimation_data[obs_idx, ])
   X_un <- build_method_auxiliary_matrix(estimation_data[obs_idx, ])
   mu_x <- controls$auxiliary_means
 
-  # Shared scaling
+# Shared scaling
   sc <- validate_and_apply_nmar_scaling(
     standardize = TRUE, has_aux = !is.null(X_un),
     response_model_matrix_unscaled = Z_un,
@@ -146,7 +146,7 @@ method.data.frame <- function(data, formula, controls = list(), ...) {
     mu_x_unscaled = mu_x
   )
 
-  # Solve on the scaled space (method-specific code)
+# Solve on the scaled space (method-specific code)
   fit <- method_solve_core(
     full_data = estimation_data,
     respondent_data = estimation_data[obs_idx, ],
@@ -157,7 +157,7 @@ method.data.frame <- function(data, formula, controls = list(), ...) {
     ...
   )
 
-  # Wrap into a standard result object (see Section 5)
+# Wrap into a standard result object (see Section 5)
   new_nmar_result_method(
     estimate = fit$estimate,
     std_error = fit$std_error,

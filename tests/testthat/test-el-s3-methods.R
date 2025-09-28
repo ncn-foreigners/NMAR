@@ -32,7 +32,7 @@ test_that("plot/autoplot run (skip ggplot2 if missing)", {
   fml <- Y_miss ~ X
   fit <- nmar(formula = fml, data = df, engine = eng)
 
-  # Open a temporary PDF device to avoid creating Rplots.pdf in the test dir
+# Open a temporary PDF device to avoid creating Rplots.pdf in the test dir
   tmp <- tempfile(fileext = ".pdf")
   grDevices::pdf(file = tmp)
   on.exit(

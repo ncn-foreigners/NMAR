@@ -13,14 +13,14 @@ run_engine.nmar_engine_exptilt <- function(engine, spec) {
       col_y = outcome_variable,
       cols_y_observed = covariates_for_outcome,
       cols_delta = covariates_for_missingness,
-      prob_model_type =engine$prob_model_type,
-      y_dens =engine$y_dens,
-      tol_value =engine$tol_value,
-      min_iter =engine$min_iter,
-      auxiliary_means =engine$auxiliary_means,
-      standardize =engine$standardize,
-      max_iter =engine$max_iter,
-      optim_method =engine$optim_method,
+      prob_model_type = engine$prob_model_type,
+      y_dens = engine$y_dens,
+      tol_value = engine$tol_value,
+      min_iter = engine$min_iter,
+      auxiliary_means = engine$auxiliary_means,
+      standardize = engine$standardize,
+      max_iter = engine$max_iter,
+      optim_method = engine$optim_method,
       variance_method = engine$variance_method,
       bootstrap_reps = engine$bootstrap_reps
     ),
@@ -34,7 +34,7 @@ run_engine.nmar_engine_exptilt <- function(engine, spec) {
   }
 
   model$original_params <- model
-  model <- exptilt(data_,model)
+  model <- exptilt(data_, model)
   if (!inherits(model, "nmar_result_exptilt")) {
     stop("Exptilt engine did not return an 'nmar_result_exptilt' object.")
   }
@@ -48,7 +48,7 @@ estim_mean <- function(model) {
 estim_var <- function(model) {
   UseMethod("estim_var", model)
 }
-generate_Odds <- function(model,...) {
+generate_Odds <- function(model, ...) {
   UseMethod("generate_Odds", model)
 }
 s_function <- function(model, ...) {
