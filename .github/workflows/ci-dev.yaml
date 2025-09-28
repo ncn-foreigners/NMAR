@@ -48,22 +48,22 @@ jobs:
             exit 1
           fi
 
-        - name: Run R CMD check
-          run: |
-            R CMD check . --no-manual --no-build-vignettes --as-cran
+      - name: Run R CMD check
+        run: |
+          R CMD check . --no-manual --no-build-vignettes --as-cran
 
-        - name: Build package tarball
-          id: build
-          run: |
-            PKG_NAME=$(R CMD build . --no-build-vignettes  | tail -1 | awk '{print $NF}')
-            echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
+      - name: Build package tarball
+        id: build
+        run: |
+          PKG_NAME=$(R CMD build . --no-build-vignettes  | tail -1 | awk '{print $NF}')
+          echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
 
-        - uses: actions/upload-artifact@v4
-          with:
-            name: nmar-package
-            # path: ${{ steps.build.outputs.pkg_name }}
-            path: '*.tar.gz'
-            retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nmar-package
+          # path: ${{ steps.build.outputs.pkg_name }}
+          path: '*.tar.gz'
+          retention-days: 1
 
 #TODO: Move this job and below one to different workflow
 #Job below chceck if RCMD checkcan build a package
