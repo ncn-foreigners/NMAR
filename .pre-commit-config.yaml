@@ -20,7 +20,7 @@ repos:
       name: Full R CMD check (Pre-push)
       entry: Rscript ./hooks/pre-push.R
       language: system
-      stages: [pre-push] 
+      stages: [push] 
       pass_filenames: false 
       always_run: true
       files: \.(R|r|Rmd|rmd|qmd)$ 
