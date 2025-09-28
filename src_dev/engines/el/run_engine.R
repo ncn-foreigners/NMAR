@@ -1,16 +1,26 @@
 #' Run method for EL engine
 #' @keywords internal
 #' @exportS3Method run_engine nmar_engine_el
-run_engine.nmar_engine_el <- function(engine, spec) {
-  response_predictors <- spec$response_predictors
+run_engine.nmar_engine_el <- function(engine, task) {
+  # Reuse the shared design preparation so EL mirrors the ET workflow for
+  # survey designs, scaling, and auxiliary moment injection
+  design_info <- prepare_nmar_design(
+    task,
+    standardize = engine$standardize,
+    auxiliary_means = engine$auxiliary_means,
+    include_response = TRUE,
+    include_auxiliary = TRUE
+  )
+
+  response_predictors <- design_info$response_predictors
   if (length(response_predictors) == 0) response_predictors <- NULL
 
   args <- list(
-    data = spec$original_data,
-    formula = spec$formula,
+    data = design_info$survey_design %||% design_info$data,
+    formula = task$formula,
     response_predictors = response_predictors,
-    auxiliary_means = engine$auxiliary_means,
-    standardize = engine$standardize,
+    auxiliary_means = design_info$auxiliary_means,
+    standardize = design_info$standardize,
     trim_cap = engine$trim_cap,
     control = engine$control,
     on_failure = engine$on_failure,

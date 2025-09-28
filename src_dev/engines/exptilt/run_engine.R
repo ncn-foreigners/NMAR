@@ -1,62 +1,48 @@
 #' @exportS3Method run_engine nmar_engine_exptilt
-run_engine.nmar_engine_exptilt <- function(engine, spec) {
-  outcome_variable <- spec$outcome[[1]]
-  covariates_for_outcome <- spec$auxiliary_vars
-  covariates_for_missingness <- spec$response_predictors
-
-  data_required <- unique(c(outcome_variable, covariates_for_outcome, covariates_for_missingness))
-
-  if (spec$is_survey) {
-    # Keep the original survey.design object intact, but trim the variables
-    # so downstream code sees exactly the columns required by this engine
-    data_object <- spec$original_data
-    data_object$variables <- data_object$variables[, data_required, drop = FALSE]
-  } else {
-    data_object <- spec$data[, data_required, drop = FALSE]
-  }
-
-  model <- structure(
-    list(
-      data = if (spec$is_survey) spec$original_data else data_object,
-      col_y = outcome_variable,
-      cols_y_observed = covariates_for_outcome,
-      cols_delta = covariates_for_missingness,
-      prob_model_type =engine$prob_model_type,
-      y_dens =engine$y_dens,
-      tol_value =engine$tol_value,
-      min_iter =engine$min_iter,
-      auxiliary_means =engine$auxiliary_means,
-      standardize =engine$standardize,
-      max_iter =engine$max_iter,
-      optim_method =engine$optim_method,
-      variance_method = engine$variance_method,
-      bootstrap_reps = engine$bootstrap_reps
-    ),
-    class = "nmar_exptilt"
+run_engine.nmar_engine_exptilt <- function(engine, task) {
+  # All ET fits flow through the shared design prep so data-frame and survey
+  # paths inherit the same scaling, auxiliary moments, and weight handling as EL
+  design_info <- prepare_nmar_design(
+    task,
+    standardize = engine$standardize,
+    auxiliary_means = engine$auxiliary_means,
+    include_response = TRUE,
+    include_auxiliary = TRUE
   )
 
-  if (spec$is_survey) {
-    # Flag the model as survey-backed and retain the design so variance/diagnostics
-    # can recover replicate structures when requested (e.g., bootstrap path)
-    model$is_survey <- TRUE
-    model$design <- data_object
+  response_predictors <- design_info$response_predictors
+  if (length(response_predictors) == 0) response_predictors <- NULL
+
+  args <- list(
+    data = design_info$survey_design %||% design_info$data,
+    formula = task$formula,
+    response_predictors = response_predictors,
+    auxiliary_means = design_info$auxiliary_means,
+    standardize = design_info$standardize,
+    prob_model_type = engine$prob_model_type,
+    y_dens = engine$y_dens,
+    variance_method = engine$variance_method,
+    bootstrap_reps = engine$bootstrap_reps,
+    min_iter = engine$min_iter,
+    max_iter = engine$max_iter,
+    tol_value = engine$tol_value,
+    optim_method = engine$optim_method,
+    on_failure = engine$on_failure,
+    supress_warnings = engine$supress_warnings
+  )
+
+  if (!isTRUE(design_info$is_survey)) {
+    # For data.frames we pass explicit design weights (all ones unless supplied).
+    # For survey designs the method extracts weights via stats::weights(), so we
+    # avoid passing a duplicate argument to prevent ambiguity
+    args$design_weights <- design_info$weights
   }
 
-  model$family <- if (model$prob_model_type == "logit") {
-    logit_family()
-  } else if (model$prob_model_type == "probit") {
-    probit_family()
-  }
-
-  # Keep a pristine copy of the pre-fit model so bootstrap replicates can reuse
-  # the exact same starting values without inheriting stateful mutations
-  model$original_params <- unserialize(serialize(model, NULL))
-  model <- exptilt(data_object, model)
-  if (!inherits(model, "nmar_result_exptilt")) {
+  res <- do.call(exptilt, args)
+  if (!inherits(res, "nmar_result_exptilt")) {
     stop("Exptilt engine did not return an 'nmar_result_exptilt' object.")
   }
-
-  return(model)
+  res
 }
 
 estim_mean <- function(model) {

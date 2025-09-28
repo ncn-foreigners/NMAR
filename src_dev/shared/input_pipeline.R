@@ -59,7 +59,7 @@ parse_nmar_spec <- function(formula, data, response_predictors = NULL, env = par
 #' Engine trait declarations
 #'
 #' Engines can override this generic to relax or tighten validation checks. The
-#' defaults match the historical behaviour for the exponential tilting engines.
+#' defaults match the historical behavior for the exponential tilting engines.
 #'
 #' @keywords internal
 engine_traits <- function(engine) {
@@ -149,4 +149,83 @@ validate_nmar_args <- function(spec, traits = list()) {
   }
 
   invisible(spec)
+}
+
+#' Create a normalized NMAR task object
+#'
+#' @param spec Parsed NMAR specification produced by [parse_nmar_spec()].
+#' @param traits Engine traits returned by [engine_traits()].
+#'
+#' @keywords internal
+new_nmar_task <- function(spec, traits) {
+  if (!inherits(spec, "nmar_input_spec")) {
+    stop("`spec` must be created by `parse_nmar_spec()`.", call. = FALSE)
+  }
+  structure(
+    list(
+      formula = spec$formula,
+      outcome = spec$outcome,
+      auxiliary_vars = spec$auxiliary_vars,
+      response_predictors = spec$response_predictors,
+      data = spec$data,
+      original_data = spec$original_data,
+      is_survey = spec$is_survey,
+      environment = spec$environment,
+      traits = traits
+    ),
+    class = "nmar_task"
+  )
+}
+
+#' Prepare common NMAR design components
+#'
+#' @param task An object created by [new_nmar_task()].
+#' @param standardize Logical flag forwarded to engines.
+#' @param auxiliary_means Optional named vector of auxiliary means.
+#' @param include_response Logical; include response predictors.
+#' @param include_auxiliary Logical; include auxiliary predictors.
+#' @param data Optional override of the data-frame backing the task.
+#' @param design_weights Optional numeric vector of design weights.
+#'
+#' @return A list containing the trimmed data, predictor sets, weights, survey
+#'   design (if applicable), formula, and standardization settings.
+#'
+#' @keywords internal
+prepare_nmar_design <- function(task,
+                                standardize = TRUE,
+                                auxiliary_means = NULL,
+                                include_response = TRUE,
+                                include_auxiliary = TRUE,
+                                data = task$data,
+                                design_weights = NULL) {
+  if (!inherits(task, "nmar_task")) {
+    stop("`task` must be created by `new_nmar_task()`.", call. = FALSE)
+  }
+  data_df <- data
+  if (!is.data.frame(data_df)) {
+    stop("`data` must be a data.frame when preparing the NMAR design.", call. = FALSE)
+  }
+  weights <- design_weights
+  if (is.null(weights)) {
+    if (isTRUE(task$is_survey)) {
+      weights <- stats::weights(task$original_data)
+      if (is.null(weights)) {
+        stop("Unable to retrieve design weights from the supplied survey design.", call. = FALSE)
+      }
+    } else {
+      weights <- rep(1, nrow(data_df))
+    }
+  }
+  list(
+    data = data_df,
+    outcome = task$outcome,
+    auxiliary_vars = if (isTRUE(include_auxiliary)) task$auxiliary_vars else character(),
+    response_predictors = if (isTRUE(include_response)) task$response_predictors else character(),
+    weights = as.numeric(weights),
+    is_survey = isTRUE(task$is_survey),
+    survey_design = if (isTRUE(task$is_survey)) task$original_data else NULL,
+    formula = task$formula,
+    standardize = standardize,
+    auxiliary_means = auxiliary_means
+  )
 }
