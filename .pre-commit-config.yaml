@@ -18,7 +18,7 @@ repos:
   hooks:
     - id: devtools-check
       name: Full R CMD check (Pre-push)
-      entry: Rscript .git/hooks/pre-push.R
+      entry: Rscript ./hooks/pre-push.R
       language: system
       stages: [pre-push] 
       pass_filenames: false 
