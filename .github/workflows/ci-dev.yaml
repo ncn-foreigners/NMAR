@@ -9,7 +9,6 @@ on:
     branches: [ package-dev ]
 
 jobs:
-
   build-package:
     name: Build Package
     runs-on: ubuntu-latest
