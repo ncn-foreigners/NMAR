@@ -22,4 +22,5 @@ repos:
       language: system
       stages: [pre-push] 
       pass_filenames: false 
+      always_run: true
       files: \.(R|r|Rmd|rmd|qmd)$ 
