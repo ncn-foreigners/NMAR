@@ -137,6 +137,8 @@ jobs:
 
           mv .gitignore-prod .gitignore
           rm -rf src_dev/
+          rm -f .pre-commit-config.yaml
+          rm -rf hooks/
           rm -f build_r_folder.R
           echo "Production environment ready."
 
