@@ -1,4 +1,25 @@
 generate_conditional_density <- function(model) {
+  # Conditional density fit for f_1(y | x_1; gamma)
+  #
+  # Rationale and safeguards (what can go wrong):
+  # - Support mismatch (lognormal/exponential): both families require y>0.
+  #   If any observed respondent outcome is nonpositive, fitting
+  #   log(y) ~ x_1 (lognormal) or Gamma(log) (exponential) will produce domain
+  #   errors or NaNs. We therefore exclude these families from the "auto"
+  #   selection unless all observed y are strictly positive. If the user
+  #   explicitly requests one of these but the data violate support, we warn and
+  #   revert to the normal family.
+  # - Non-finite likelihood evaluations: even with a feasible family, extreme
+  #   parameter estimates (e.g., sigma <= 0) or numerical issues can yield
+  #   non-finite density values during EM. After selecting a family we probe the
+  #   observed support; if any evaluation is non-finite we conservatively fall
+  #   back to the normal family at the same design to keep the EM step defined.
+  # - Design-matrix alignment: the design for f_1(y | x_1) must match the
+  #   fitted coefficient vector. We check dimensions and throw an explicit error
+  #   if they disagree (prevents silent recycling or misaligned multiplications).
+  # - Scaling: f_1 is fit on the scaled auxiliary space when the ET solver works
+  #   in scaled coordinates. For density evaluation on unobserved x_1 we apply
+  #   the stored scaling recipe so the design fed to the density matches the fit.
 
   data_df <- data.frame(y = model$y_1, model$x_for_y_obs)
   data_df$weights <- model$respondent_weights  # Add weights to data frame
@@ -6,6 +27,9 @@ generate_conditional_density <- function(model) {
   # Get covariate names (excluding y and weights)
   covar_names <- setdiff(colnames(model$x_for_y_obs), c("y", "weights"))
   n_covars <- length(covar_names)
+  rhs_terms <- if (n_covars > 0) paste(covar_names, collapse = " + ") else "1"
+
+  respondent_support_positive <- all(is.finite(model$y_1) & model$y_1 > 0)
 
   # Gradient and Hessian for normal distribution
   normal_gradient <- function(y, mean_val, coefs, x_vector) {
@@ -77,36 +101,41 @@ generate_conditional_density <- function(model) {
   )
 
   # Choose distribution
+  fit_distribution <- function(dist_name) {
+    formula_str <- if (dist_name == "lognormal") {
+      paste("log(y) ~", rhs_terms)
+    } else {
+      paste("y ~", rhs_terms)
+    }
+    dist_list[[dist_name]]$fit(as.formula(formula_str), data_df)
+  }
+
   chosen_dist <- model$y_dens
   if (chosen_dist == "auto") {
+    candidate_dists <- names(dist_list)
+    if (!respondent_support_positive) {
+      candidate_dists <- setdiff(candidate_dists, c("lognormal", "exponential"))
+    }
     aics <- c()
     fits <- list()
-    for (d in names(dist_list)) {
-      # Create formula with explicit covariates (not using .)
-      formula_str <- if (d == "lognormal") {
-        paste("log(y) ~", paste(covar_names, collapse = " + "))
-      } else {
-        paste("y ~", paste(covar_names, collapse = " + "))
-      }
-      fit_try <- try(
-        dist_list[[d]]$fit(as.formula(formula_str), data = data_df),
-        silent = TRUE
-      )
+    for (d in candidate_dists) {
+      fit_try <- try(fit_distribution(d), silent = TRUE)
       if (!inherits(fit_try, "try-error")) {
         fits[[d]] <- fit_try
         aics[d] <- AIC(fit_try)
       }
     }
+    if (!length(fits)) {
+      stop("Unable to fit any conditional outcome density.", call. = FALSE)
+    }
     chosen_dist <- names(which.min(aics))
     .model <- fits[[chosen_dist]]
   } else {
-    # Create formula with explicit covariates (not using .)
-    formula_str <- if (chosen_dist == "lognormal") {
-      paste("log(y) ~", paste(covar_names, collapse = " + "))
-    } else {
-      paste("y ~", paste(covar_names, collapse = " + "))
+    if (chosen_dist %in% c("lognormal", "exponential") && !respondent_support_positive) {
+      warning("Selected y_dens='", chosen_dist, "' requires positive observed outcomes; using normal instead.", call. = FALSE)
+      chosen_dist <- "normal"
     }
-    .model <- dist_list[[chosen_dist]]$fit(as.formula(formula_str), data_df)
+    .model <- fit_distribution(chosen_dist)
   }
 
   # Extract coefficients and create design matrix function
@@ -165,6 +194,28 @@ generate_conditional_density <- function(model) {
     }
   } else {
     NULL
+  }
+
+  # Guard against densities that fail on the observed support. If detected and
+  # a non-normal family was selected, refit using the normal helper instead
+  if (!identical(chosen_dist, "normal")) {
+    finite_eval <- tryCatch({
+      vals <- vapply(seq_along(model$y_1), function(idx) {
+        x_row <- model$x_for_y_obs[idx, , drop = FALSE]
+        if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
+          x_row <- apply_nmar_scaling(x_row, model$nmar_scaling_recipe)
+        }
+        density_fun(model$y_1[idx], x_row)
+      }, numeric(1))
+      all(is.finite(vals))
+    }, error = function(e) FALSE)
+
+    if (!finite_eval) {
+      warning("Density '", chosen_dist, "' produced non-finite evaluations; reverting to normal.", call. = FALSE)
+      model_fallback <- model
+      model_fallback$y_dens <- "normal"
+      return(generate_conditional_density(model_fallback))
+    }
   }
 
   return(list(
