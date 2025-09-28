@@ -10,10 +10,10 @@ on:
 
 jobs:
   build-package:
-    - name: Build Package
-      runs-on: ubuntu-latest
-      outputs:
-        pkg_name: ${{ steps.build.outputs.pkg_name }}
+    name: Build Package
+    runs-on: ubuntu-latest
+    outputs:
+      pkg_name: ${{ steps.build.outputs.pkg_name }}
 
     steps:
       - uses: actions/checkout@v4
@@ -35,35 +35,35 @@ jobs:
       # - name: Run devtools::document()
       #   run: |
       #     Rscript -e 'devtools::document()'
-    - name: Regenerate documentation
-      run: R -q -e "devtools::document(quiet = TRUE)"
+      - name: Regenerate documentation
+        run: R -q -e "devtools::document(quiet = TRUE)"
 
-    - name: Check man and NAMESPACE changes
-      run: |
-        if git status --porcelain man/ NAMESPACE | grep -q '^ M'; then
-          echo "❌ Documentation files were modified:"
-          git status man/ NAMESPACE
-          echo "Please run devtools::document() locally and commit changes to:"
-          git diff --name-only man/ NAMESPACE
-          exit 1
-        fi
-
-      - name: Run R CMD check
+      - name: Check man and NAMESPACE changes
         run: |
-          R CMD check . --no-manual --no-build-vignettes --as-cran
+          if git status --porcelain man/ NAMESPACE | grep -q '^ M'; then
+            echo "❌ Documentation files were modified:"
+            git status man/ NAMESPACE
+            echo "Please run devtools::document() locally and commit changes to:"
+            git diff --name-only man/ NAMESPACE
+            exit 1
+          fi
 
-      - name: Build package tarball
-        id: build
-        run: |
-          PKG_NAME=$(R CMD build . --no-build-vignettes  | tail -1 | awk '{print $NF}')
-          echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
+        - name: Run R CMD check
+          run: |
+            R CMD check . --no-manual --no-build-vignettes --as-cran
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: nmar-package
-          # path: ${{ steps.build.outputs.pkg_name }}
-          path: '*.tar.gz'
-          retention-days: 1
+        - name: Build package tarball
+          id: build
+          run: |
+            PKG_NAME=$(R CMD build . --no-build-vignettes  | tail -1 | awk '{print $NF}')
+            echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
+
+        - uses: actions/upload-artifact@v4
+          with:
+            name: nmar-package
+            # path: ${{ steps.build.outputs.pkg_name }}
+            path: '*.tar.gz'
+            retention-days: 1
 
 #TODO: Move this job and below one to different workflow
 #Job below chceck if RCMD checkcan build a package
