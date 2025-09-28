@@ -1,23 +1,45 @@
 #' @importFrom stats weights
-#' @export
-exptilt.survey.design <- function(data, model, on_failure = c("return"), ...) {
-  on_failure <- match.arg(on_failure)
-
-  # Keep the survey design on the model so diagnostics/variance can reuse it
-  model$design <- data
-  model$is_survey <- TRUE
-
-  # Trim the design variables to the columns selected upstream (run_engine)
+#' @exportS3Method exptilt survey.design
+exptilt.survey.design <- function(data, formula, response_predictors = NULL,
+                                  auxiliary_means = NULL,
+                                  standardize = TRUE,
+                                  prob_model_type = c("logit", "probit"),
+                                  y_dens = c("auto", "normal", "lognormal", "exponential"),
+                                  variance_method = c("delta", "bootstrap"),
+                                  bootstrap_reps = 10,
+                                  min_iter = 10,
+                                  max_iter = 100,
+                                  tol_value = 1e-5,
+                                  optim_method = c("Newton", "Broyden"),
+                                  on_failure = c("return", "error"),
+                                  supress_warnings = FALSE,
+                                  ...) {
   design_vars <- data$variables
+  design_weights <- as.numeric(stats::weights(data))
+  # The survey method is a thin adapter that harvests the analysis weights and
+  # then reuses the data.frame implementation so that both flows share identical
+  # preprocessing, scaling, EM fitting and bootstrap variance logic
 
-  # Extract the analysis weights once so every downstream component sees the
-  # same vector. Use the survey package's helper to honor calibration etc.
-  # stats::weights() dispatches to survey::weights for survey designs, which
-  # honors calibration / analysis weight choices
-  survey_weights <- stats::weights(data)
-  model$design_weights <- as.numeric(survey_weights)
-
-  # Reuse the data.frame implementation now that we have the design weights
-  # and the same column structure, so survey and IID flows share one code path
-  exptilt.data.frame(design_vars, model, on_failure = on_failure)
+  # Delegate to the data.frame method after harvesting weights so both flows
+  # share identical preprocessing, scaling, and bootstrap behavior
+  exptilt.data.frame(
+    design_vars,
+    formula = formula,
+    response_predictors = response_predictors,
+    auxiliary_means = auxiliary_means,
+    standardize = standardize,
+    prob_model_type = prob_model_type,
+    y_dens = y_dens,
+    variance_method = variance_method,
+    bootstrap_reps = bootstrap_reps,
+    min_iter = min_iter,
+    max_iter = max_iter,
+    tol_value = tol_value,
+    optim_method = optim_method,
+    on_failure = on_failure,
+    supress_warnings = supress_warnings,
+    design_weights = design_weights,
+    survey_design = data,
+    ...
+  )
 }

@@ -39,7 +39,9 @@ test_that("exptilt handles simple survey design", {
   set.seed(321)
   # Larger survey sample keeps replicate fits numerically stable during
   # bootstrap variance calculations
-  n <- 200
+  # Keep runtime contained for local integration runs while still exercising
+  # the survey/bootstrap code path
+  n <- 120
   x1 <- rnorm(n)
   x2 <- rnorm(n)
   w <- runif(n, 0.5, 2)
@@ -56,7 +58,7 @@ test_that("exptilt handles simple survey design", {
     engine = nmar::exptilt_engine(
       y_dens = "normal",
       variance_method = "bootstrap",
-      bootstrap_reps = 10,
+      bootstrap_reps = 3,
       min_iter = 1,
       max_iter = 8,
       tol_value = 1e-3

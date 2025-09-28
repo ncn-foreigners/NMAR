@@ -1,7 +1,76 @@
 #' @importFrom nleqslv nleqslv
 #' @importFrom stats as.formula coef dnorm dgamma sd setNames
-#' @export
-exptilt.data.frame <- function(data,model,on_failure=c('return'), ...){ #' #todo on_failure logic
+#' @exportS3Method exptilt data.frame
+exptilt.data.frame <- function(data, formula, response_predictors = NULL,
+                               auxiliary_means = NULL,
+                               standardize = TRUE,
+                               prob_model_type = c("logit", "probit"),
+                               y_dens = c("auto", "normal", "lognormal", "exponential"),
+                               variance_method = c("delta", "bootstrap"),
+                               bootstrap_reps = 10,
+                               min_iter = 10,
+                               max_iter = 100,
+                               tol_value = 1e-5,
+                               optim_method = c("Newton", "Broyden"),
+                               on_failure = c("return", "error"),
+                               supress_warnings = FALSE,
+                               design_weights = NULL,
+                               survey_design = NULL,
+                               ...) {
+  prob_model_type <- match.arg(prob_model_type)
+  y_dens <- match.arg(y_dens)
+  variance_method <- match.arg(variance_method)
+  optim_method <- match.arg(optim_method)
+  on_failure <- match.arg(on_failure)
+
+  outcome_var <- all.vars(formula[[2]])[1]
+  aux_vars <- unique(all.vars(formula[[3]]))
+  if (length(aux_vars) == 0) aux_vars <- character()
+
+  if (is.null(response_predictors)) response_predictors <- character()
+  response_predictors <- unique(response_predictors)
+
+  required_cols <- unique(c(outcome_var, aux_vars, response_predictors))
+  data_subset <- data[, required_cols, drop = FALSE]
+
+  model <- list(
+    data = data,
+    col_y = outcome_var,
+    cols_y_observed = aux_vars,
+    cols_delta = response_predictors,
+    prob_model_type = prob_model_type,
+    y_dens = y_dens,
+    tol_value = tol_value,
+    min_iter = min_iter,
+    auxiliary_means = auxiliary_means,
+    standardize = standardize,
+    max_iter = max_iter,
+    optim_method = optim_method,
+    variance_method = variance_method,
+    bootstrap_reps = bootstrap_reps,
+    supress_warnings = supress_warnings,
+    design_weights = design_weights,
+    design = survey_design,
+    formula = formula,
+    call = match.call()
+  )
+
+  class(model) <- "nmar_exptilt"
+
+  model$is_survey <- !is.null(survey_design)
+  model$family <- if (prob_model_type == "logit") {
+    logit_family()
+  } else {
+    probit_family()
+  }
+
+  model$original_params <- unserialize(serialize(model, NULL))
+
+  exptilt_fit_model(data_subset, model, on_failure = on_failure, ...)
+}
+
+exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ...) {
+  on_failure <- match.arg(on_failure)
   model$x=data
   model$is_survey <- isTRUE(model$is_survey)
   if (is.null(model$standardize)) {
@@ -10,6 +79,8 @@ exptilt.data.frame <- function(data,model,on_failure=c('return'), ...){ #' #todo
   # Cache the pre-fit template so bootstrap replicates can start from the same
   # initial state (rather than inheriting mutated fields from the first fit)
   bootstrap_template <- unserialize(serialize(model, NULL))
+  model$cols_required <- colnames(model$x)
+  bootstrap_template$cols_required <- model$cols_required
   # model$x_1 <- model$x[!is.na(model$x[,model$col_y]),,drop=FALSE] #observed
   # model$x_0 <- model$x[is.na(model$x[,model$col_y]),,drop=FALSE] #unobserved
   # model$y_1 <- model$x_1[,model$col_y,drop=TRUE] #observed y
@@ -94,52 +165,53 @@ exptilt.data.frame <- function(data,model,on_failure=c('return'), ...){ #' #todo
   model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
   model$C_matrix_nieobs <- generate_C_matrix(model)
 
+  return(exptilt_estimator_core(
+    model = model,
+    bootstrap_template = bootstrap_template,
+    respondent_mask = respondent_mask,
+    on_failure = on_failure,
+    ...
+  ))
+}
 
+#' @keywords internal
+exptilt_estimator_core <- function(model, bootstrap_template, respondent_mask,
+                             on_failure = "return", ...) {
+  model$cols_required <- colnames(model$x)
+  bootstrap_template$cols_required <- model$cols_required
 
   target_function <- function(theta) {
     model$theta <<- theta
-    step_func(model,theta, model$O_matrix_nieobs)
+    step_func(model, theta, model$O_matrix_nieobs)
   }
-
 
   solution <- nleqslv(
     x = model$theta,
     fn = target_function,
     method = "Newton",
-    control = list(
-      maxit = 1
-
-    )
+    control = list(maxit = 1)
   )
 
-  theta_prev=model$theta
+  theta_prev <- model$theta
   model$theta <- solution$x
   model$loss_value <- solution$fvec
-  iter=0
+  iter <- 0
 
-  while(sum((model$theta-theta_prev)^2) > model$tol_value || (iter < model$min_iter && iter < model$max_iter)) {
+  while(sum((model$theta - theta_prev)^2) > model$tol_value ||
+        (iter < model$min_iter && iter < model$max_iter)) {
 
     solution <- nleqslv(
       x = model$theta,
       fn = target_function,
       method = "Newton",
-      control = list(
-        maxit = 1
-
-      )
-
+      control = list(maxit = 1)
     )
 
     theta_prev <- model$theta
     model$theta <- solution$x
     model$loss_value <- solution$fvec
-    # O_matrix_nieobs <- generate_Odds(theta_prev,x_0[,cols_delta],y_1)
-    #
     model$O_matrix_nieobs <- generate_Odds(model)
-    iter<-iter+1
-
-
-
+    iter <- iter + 1
   }
   model$iterations <- iter
 
@@ -185,7 +257,7 @@ exptilt.data.frame <- function(data,model,on_failure=c('return'), ...){ #' #todo
   # If heuristics later steer us back to the bootstrap path, discard the delta
   # variance so downstream code reports NA rather than an unreliable number
   if (isTRUE(model$is_survey) && !use_bootstrap) {
-    # The analytic delta variance we inherited assumes IID sampling: it plugs
+    # The current implementation of analytic delta variance assumes IID sampling: it plugs
     # respondent/nonrespondent scores into the Fisher blocks (F11, F21, F22) and
     # combines them with the linearized estimating system S2(phi) to get var(tau_hat).
     # Under complex designs the weights themselves change across replicates and
@@ -224,6 +296,7 @@ exptilt.data.frame <- function(data,model,on_failure=c('return'), ...){ #' #todo
     # large respondent pool and light weighting. If the sample has few
     # respondents or highly uneven weights, steering to the bootstrap tends to
     # give more stable uncertainty estimates
+
     n_resp <- length(model$respondent_weights)
     design_varies <- n_resp > 1 && max(abs(model$respondent_weights - model$respondent_weights[1])) > 1e-6
     few_resp <- n_resp < 40
@@ -241,8 +314,20 @@ exptilt.data.frame <- function(data,model,on_failure=c('return'), ...){ #' #todo
 
     bootstrap_runner <- function(data, ...) {
       template <- unserialize(serialize(bootstrap_template, NULL))
-      if (is.null(template$standardize)) template$standardize <- TRUE
-      exptilt(data, template, ...)
+      if (inherits(data, "survey.design")) {
+        data_df <- data$variables[, template$cols_required, drop = FALSE]
+        template$design <- data
+        template$is_survey <- TRUE
+        template$design_weights <- as.numeric(stats::weights(data))
+        exptilt_fit_model(data_df, template, on_failure = on_failure, ...)
+      } else {
+        data_df <- data[, template$cols_required, drop = FALSE]
+        template$design <- NULL
+        template$is_survey <- FALSE
+        template$design_weights <- if (is.null(template$design_weights) ||
+          length(template$design_weights) != nrow(data_df)) rep(1, nrow(data_df)) else template$design_weights
+        exptilt_fit_model(data_df, template, on_failure = on_failure, ...)
+      }
     }
 
     base_args <- list(
@@ -252,9 +337,8 @@ exptilt.data.frame <- function(data,model,on_failure=c('return'), ...){ #' #todo
       bootstrap_reps = model$bootstrap_reps
     )
     if (!model$is_survey) {
-      # Guard: resample until at least one respondent is present so the EM score
-      # and variance code can evaluate the replicate. The bootstrap helper will
-      # fall back to NA (with a warning) if this fails repeatedly
+      # Guard: resample until a respondent is present so EM/variance code can
+      # evaluate each replicate. Fallback to NA (with warning) if this fails
       respondent_mask_guard <- respondent_mask
       base_args$resample_guard <- function(indices, data) {
         any(respondent_mask_guard[indices])
