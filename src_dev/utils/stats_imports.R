@@ -6,5 +6,6 @@
 #' @name nmar_internal_stats_imports
 #' @keywords internal
 #' @noRd
-#' @importFrom stats AIC getCall median model.matrix plogis pnorm rnorm update var
+#' @importFrom stats AIC Gamma confint cov dexp dlnorm gaussian getCall glm lm median model.matrix plogis pnorm rnorm update var
+#' @importFrom utils modifyList
 NULL

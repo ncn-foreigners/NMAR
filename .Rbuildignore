@@ -12,3 +12,5 @@
 ^vignettes/el_empirical_likelihood_theory\.Rmd$
 ^vignettes/developing_new_nmar_estimator\.Rmd$
 ^pkgdown\.yml$
+^\.gitignore-prod$
+^src_dev$
