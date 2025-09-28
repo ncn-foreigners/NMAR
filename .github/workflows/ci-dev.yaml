@@ -10,10 +10,10 @@ on:
 
 jobs:
   build-package:
-    name: Build Package
-    runs-on: ubuntu-latest
-    outputs:
-      pkg_name: ${{ steps.build.outputs.pkg_name }}
+    - name: Build Package
+      runs-on: ubuntu-latest
+      outputs:
+        pkg_name: ${{ steps.build.outputs.pkg_name }}
 
     steps:
       - uses: actions/checkout@v4
