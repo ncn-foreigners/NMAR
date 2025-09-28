@@ -1,5 +1,5 @@
 #' @exportS3Method NULL
-estim_var.nmar_exptilt <- function(model){
+estim_var.nmar_exptilt <- function(model) {
   # Weighted linearisation following Riddles et al, compute the
   # Fisher blocks using respondent/nonrespondent weights so the influence
   # function matches the weighted score equation
@@ -13,7 +13,7 @@ estim_var.nmar_exptilt <- function(model){
 
   denominator <- rowSums(common_term)
 
-  weights <- common_term / denominator #TODO test if dim is matching
+  weights <- common_term / denominator # TODO test if dim is matching
 
   # Zastąp pi_func rodziną
   x_mat_obs <- as.matrix(model$x_1[, model$cols_delta])
@@ -21,10 +21,10 @@ estim_var.nmar_exptilt <- function(model){
   eta_obs <- as.vector(x_aug_obs %*% model$theta)
   p <- model$family$linkinv(eta_obs)
 
-  #it is ok if Var is close to 0
+  # it is ok if Var is close to 0
   # cat("Mean of p:", mean(p), "Variance of p:", var(p), "\n")
 
-  #density num of coefs refers to density f.e beta, intercept, sigma
+  # density num of coefs refers to density f.e beta, intercept, sigma
   # S1=matrix(0, nrow=nrow(model$x_1), ncol=model$density_num_of_coefs)
   S1 <- t(sapply(1:nrow(model$x_1), function(i) {
     x_row <- model$x_for_y_obs[i, , drop = FALSE]
@@ -40,13 +40,13 @@ estim_var.nmar_exptilt <- function(model){
     )
   }))
 
-  #it is OK if values are close to 0
+  # it is OK if values are close to 0
   # Ensure density derivatives are evaluated on the scale used to fit y_hat
   X_obs_for_fi <- model$x_for_y_obs
   if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
     X_obs_for_fi <- apply_nmar_scaling(X_obs_for_fi, model$nmar_scaling_recipe)
   }
-  F11 = calculate_fisher_information(model$y_1, model$x_1, model$density_num_of_coefs, X_obs_for_fi, model$density_fun_hess)
+  F11 <- calculate_fisher_information(model$y_1, model$x_1, model$density_num_of_coefs, X_obs_for_fi, model$density_fun_hess)
   # browser()
 
   calculate_FI21 <- function() {
@@ -58,7 +58,7 @@ estim_var.nmar_exptilt <- function(model){
 
     FI21 <- matrix(0, nrow = num_phi_params, ncol = num_gamma_params)
 
-    #TODO: optimize
+    # TODO: optimize
 
     # Match Remark 2, nonrespondent contributions are weighted by their design
     # weights so the FI blocks reflect the weighted mean-score equation
@@ -68,9 +68,9 @@ estim_var.nmar_exptilt <- function(model){
     for (i in 1:n_unobs) {
       x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
       x_i_gamma <- model$x_for_y_unobs[i, , drop = FALSE]
-    if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
-      # Gradient of log f_1 w.r.t. γ must be computed at the covariates used
-      # during y_hat fitting, re-apply the stored scaling recipe if needed
+      if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
+        # Gradient of log f_1 w.r.t. γ must be computed at the covariates used
+        # during y_hat fitting, re-apply the stored scaling recipe if needed
         x_i_gamma <- apply_nmar_scaling(x_i_gamma, model$nmar_scaling_recipe)
       }
 
@@ -122,7 +122,7 @@ estim_var.nmar_exptilt <- function(model){
 
     FI22 <- matrix(0, nrow = num_phi_params, ncol = num_phi_params)
 
-    #TODO optimize
+    # TODO optimize
     # Same weighting logic for FI22
     nonresp_wts <- model$nonrespondent_weights
     if (is.null(nonresp_wts)) nonresp_wts <- rep(1, n_unobs)
@@ -131,7 +131,7 @@ estim_var.nmar_exptilt <- function(model){
       x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
       x_i_delta_rep <- x_i_delta[rep(1, n_obs), , drop = FALSE]
 
-      #TODO verify - this code might be repeated
+      # TODO verify - this code might be repeated
       s_ij_matrix <- s_function.nmar_exptilt(model, delta = 0, x = x_i_delta_rep, theta = model$theta)
       w_i <- weights[i, ]
       s_bar_0i <- colSums(w_i * s_ij_matrix)
@@ -146,7 +146,7 @@ estim_var.nmar_exptilt <- function(model){
 
     return(-FI22)
   }
-  #TODO - CHECK Below. Fi22 Too big and K seems too low comparing to author
+  # TODO - CHECK Below. Fi22 Too big and K seems too low comparing to author
   FI22 <- calculate_FI22(model, weights)
   K <- FI21 %*% solve(F11)
   # browser()
@@ -254,6 +254,6 @@ estim_var.nmar_exptilt <- function(model){
   vcov <- inv_FI22 %*% var_S2_S1 %*% t(inv_FI22)
 
   # browser()
-  #return list
-  return(list(var_est = var_est, vcov = vcov) )
+  # return list
+  return(list(var_est = var_est, vcov = vcov))
 }

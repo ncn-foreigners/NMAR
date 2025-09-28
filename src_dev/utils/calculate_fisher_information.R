@@ -1,4 +1,4 @@
-calculate_fisher_information <- function(y_1,x_1,density_num_of_coefs,x_for_y_obs,density_fun_hess) {
+calculate_fisher_information <- function(y_1, x_1, density_num_of_coefs, x_for_y_obs, density_fun_hess) {
   n_obs <- nrow(x_1)
   n_params <- density_num_of_coefs
 

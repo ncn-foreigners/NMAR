@@ -56,7 +56,9 @@ probit_family <- function() {
       delta <- validate_delta(delta)
       phi <- stats::dnorm(eta)
       score <- numeric(length(phi))
-      if (!length(score)) return(score)
+      if (!length(score)) {
+        return(score)
+      }
 
       log_Phi <- stats::pnorm(eta, log.p = TRUE)
       log_tail <- stats::pnorm(eta, lower.tail = FALSE, log.p = TRUE)

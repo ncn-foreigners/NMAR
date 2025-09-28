@@ -22,7 +22,7 @@ generate_conditional_density <- function(model) {
   #   the stored scaling recipe so the design fed to the density matches the fit.
 
   data_df <- data.frame(y = model$y_1, model$x_for_y_obs)
-  data_df$weights <- model$respondent_weights  # Add weights to data frame
+  data_df$weights <- model$respondent_weights # Add weights to data frame
 
   # Get covariate names (excluding y and weights)
   covar_names <- setdiff(colnames(model$x_for_y_obs), c("y", "weights"))
@@ -36,9 +36,9 @@ generate_conditional_density <- function(model) {
     sigma <- coefs[["sigma"]]
     residual <- y - mean_val
     d_beta <- (residual / sigma^2) * x_vector
-    d_sigma <- -1/sigma + residual^2 / sigma^3
+    d_sigma <- -1 / sigma + residual^2 / sigma^3
     gradient_vector <- c(d_beta, sigma = d_sigma)
-    names(gradient_vector) <- c(paste0("beta", 0:(length(x_vector)-1)), "sigma")
+    names(gradient_vector) <- c(paste0("beta", 0:(length(x_vector) - 1)), "sigma")
     return(gradient_vector)
   }
 
@@ -47,7 +47,7 @@ generate_conditional_density <- function(model) {
     residual <- y - mean_val
     n_params <- length(x_vector) + 1
     H <- matrix(0, nrow = n_params, ncol = n_params)
-    param_names <- c(paste0("beta", 0:(length(x_vector)-1)), "sigma")
+    param_names <- c(paste0("beta", 0:(length(x_vector) - 1)), "sigma")
     rownames(H) <- colnames(H) <- param_names
     for (i in 1:length(x_vector)) {
       for (j in 1:length(x_vector)) {
@@ -57,7 +57,7 @@ generate_conditional_density <- function(model) {
     for (i in 1:length(x_vector)) {
       H[i, n_params] <- H[n_params, i] <- -2 * residual * x_vector[i] / sigma^3
     }
-    H[n_params, n_params] <- 1/sigma^2 - 3 * residual^2 / sigma^4
+    H[n_params, n_params] <- 1 / sigma^2 - 3 * residual^2 / sigma^4
     return(H)
   }
 
@@ -95,7 +95,7 @@ generate_conditional_density <- function(model) {
         return(fit)
       },
       density = function(y, mean_val, coefs) {
-        dexp(y, rate = 1/mean_val)
+        dexp(y, rate = 1 / mean_val)
       }
     )
   )
@@ -151,10 +151,13 @@ generate_conditional_density <- function(model) {
   # weighted residual standard error (design-consistent when weights are
   # provided to lm()). Fallback to an epsilon if undefined
   if (chosen_dist %in% c("normal", "lognormal")) {
-    sigma_val <- tryCatch({
-      s <- summary(.model)$sigma
-      if (!is.finite(s) || s <= 0) NA_real_ else s
-    }, error = function(e) NA_real_)
+    sigma_val <- tryCatch(
+      {
+        s <- summary(.model)$sigma
+        if (!is.finite(s) || s <= 0) NA_real_ else s
+      },
+      error = function(e) NA_real_
+    )
     if (!is.finite(sigma_val) || is.na(sigma_val) || sigma_val <= 0) {
       sigma_val <- .Machine$double.eps
     }
@@ -167,8 +170,10 @@ generate_conditional_density <- function(model) {
 
     # Ensure coefficient vector is aligned with design matrix
     if (ncol(x_mat) != length(coefs[beta_names])) {
-      stop(paste("Design matrix has", ncol(x_mat), "columns but coefficients have",
-                 length(coefs[beta_names]), "elements"))
+      stop(paste(
+        "Design matrix has", ncol(x_mat), "columns but coefficients have",
+        length(coefs[beta_names]), "elements"
+      ))
     }
 
     mean_val <- x_mat %*% coefs[beta_names]
@@ -199,16 +204,19 @@ generate_conditional_density <- function(model) {
   # Guard against densities that fail on the observed support. If detected and
   # a non-normal family was selected, refit using the normal helper instead
   if (!identical(chosen_dist, "normal")) {
-    finite_eval <- tryCatch({
-      vals <- vapply(seq_along(model$y_1), function(idx) {
-        x_row <- model$x_for_y_obs[idx, , drop = FALSE]
-        if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
-          x_row <- apply_nmar_scaling(x_row, model$nmar_scaling_recipe)
-        }
-        density_fun(model$y_1[idx], x_row)
-      }, numeric(1))
-      all(is.finite(vals))
-    }, error = function(e) FALSE)
+    finite_eval <- tryCatch(
+      {
+        vals <- vapply(seq_along(model$y_1), function(idx) {
+          x_row <- model$x_for_y_obs[idx, , drop = FALSE]
+          if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
+            x_row <- apply_nmar_scaling(x_row, model$nmar_scaling_recipe)
+          }
+          density_fun(model$y_1[idx], x_row)
+        }, numeric(1))
+        all(is.finite(vals))
+      },
+      error = function(e) FALSE
+    )
 
     if (!finite_eval) {
       warning("Density '", chosen_dist, "' produced non-finite evaluations; reverting to normal.", call. = FALSE)
@@ -232,25 +240,30 @@ generate_conditional_density_matrix <- function(model) {
   # fed to the fitted density function live on the SAME scale used during the
   # density fit. The model stores a scaling recipe, after unscaling the feature
   # matrices for reporting, we temporarily re-apply that recipe here
-  tryCatch({
-    n_unobs <- nrow(model$x_for_y_unobs)
-    n_resp <- length(model$y_1)
-    if (!n_unobs || !n_resp) return(matrix(numeric(0), nrow = n_unobs, ncol = n_resp))
-    out <- matrix(NA_real_, nrow = n_unobs, ncol = n_resp)
-    for (i in seq_len(n_unobs)) {
-      x_row <- model$x_for_y_unobs[i, , drop = FALSE]
-      # Re-apply scaling if the current feature matrices are on the original scale
-      if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
-        x_row <- apply_nmar_scaling(x_row, model$nmar_scaling_recipe)
+  tryCatch(
+    {
+      n_unobs <- nrow(model$x_for_y_unobs)
+      n_resp <- length(model$y_1)
+      if (!n_unobs || !n_resp) {
+        return(matrix(numeric(0), nrow = n_unobs, ncol = n_resp))
       }
-      for (j in seq_len(n_resp)) {
-        out[i, j] <- model$density_fun(model$y_1[j], x_row)
+      out <- matrix(NA_real_, nrow = n_unobs, ncol = n_resp)
+      for (i in seq_len(n_unobs)) {
+        x_row <- model$x_for_y_unobs[i, , drop = FALSE]
+        # Re-apply scaling if the current feature matrices are on the original scale
+        if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
+          x_row <- apply_nmar_scaling(x_row, model$nmar_scaling_recipe)
+        }
+        for (j in seq_len(n_resp)) {
+          out[i, j] <- model$density_fun(model$y_1[j], x_row)
+        }
       }
+      out
+    },
+    error = function(e) {
+      stop("Error in generate_conditional_density_matrix: ", e$message)
     }
-    out
-  }, error = function(e) {
-    stop("Error in generate_conditional_density_matrix: ", e$message)
-  })
+  )
 }
 
 generate_C_matrix <- function(model) {

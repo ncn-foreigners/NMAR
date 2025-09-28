@@ -51,7 +51,7 @@ estim_mean <- function(model) {
 estim_var <- function(model) {
   UseMethod("estim_var", model)
 }
-generate_Odds <- function(model,...) {
+generate_Odds <- function(model, ...) {
   UseMethod("generate_Odds", model)
 }
 s_function <- function(model, ...) {

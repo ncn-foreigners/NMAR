@@ -40,11 +40,11 @@ exptilt_engine <- function(
     control = list(),
     family = c("logit", "probit"),
     y_dens = c("auto", "normal", "lognormal", "exponential"),
-    min_iter = 10,  # TODO move to control
+    min_iter = 10, # TODO move to control
     max_iter = 100, # TODO move to control
     optim_method = c("Newton", "Broyden"), # TODO move to control
     tol_value = 1e-5 # TODO move to control
-) {
+    ) {
   on_failure <- match.arg(on_failure)
   variance_method <- match.arg(variance_method)
   family <- match.arg(family)

@@ -71,7 +71,7 @@ exptilt.data.frame <- function(data, formula, response_predictors = NULL,
 
 exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ...) {
   on_failure <- match.arg(on_failure)
-  model$x=data
+  model$x <- data
   model$is_survey <- isTRUE(model$is_survey)
   if (is.null(model$standardize)) {
     model$standardize <- TRUE
@@ -116,8 +116,8 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   scaling_result <- validate_and_apply_nmar_scaling(
     standardize = model$standardize,
     has_aux = has_aux,
-    response_model_matrix_unscaled = model$x[,c(model$col_y,model$cols_delta),drop=FALSE],
-    auxiliary_matrix_unscaled = model$x[,model$cols_y_observed,drop=FALSE],
+    response_model_matrix_unscaled = model$x[, c(model$col_y, model$cols_delta), drop = FALSE],
+    auxiliary_matrix_unscaled = model$x[, model$cols_y_observed, drop = FALSE],
     mu_x_unscaled = filtered_aux_means,
     weights = scaling_weights,
     weight_mask = weight_mask
@@ -127,11 +127,11 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   auxiliary_matrix_scaled <- scaling_result$auxiliary_matrix_scaled
   mu_x_scaled <- scaling_result$mu_x_scaled
 
-  model$x_1 <- response_model_matrix_scaled[respondent_mask,,drop=FALSE] #observed
-  model$x_0 <- response_model_matrix_scaled[!respondent_mask,,drop=FALSE] #unobserved
-  model$y_1 <- if (nrow(model$x_1)) model$x_1[, model$col_y, drop = TRUE] else numeric(0) #observed y
-  model$x_for_y_obs <- auxiliary_matrix_scaled[respondent_mask,,drop=FALSE]
-  model$x_for_y_unobs <- auxiliary_matrix_scaled[!respondent_mask,,drop=FALSE]
+  model$x_1 <- response_model_matrix_scaled[respondent_mask, , drop = FALSE] # observed
+  model$x_0 <- response_model_matrix_scaled[!respondent_mask, , drop = FALSE] # unobserved
+  model$y_1 <- if (nrow(model$x_1)) model$x_1[, model$col_y, drop = TRUE] else numeric(0) # observed y
+  model$x_for_y_obs <- auxiliary_matrix_scaled[respondent_mask, , drop = FALSE]
+  model$x_for_y_unobs <- auxiliary_matrix_scaled[!respondent_mask, , drop = FALSE]
   # Track the current scale of feature matrices. We fit f1(.) on the scaled
   # space and compute EM steps there. After unscaling coefficients for
   # presentation we flip this flag to FALSE so downstream density evaluations
@@ -145,7 +145,7 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   model$respondent_weights <- if (any(respondent_mask)) model$design_weights[respondent_mask] else numeric(0)
   model$nonrespondent_weights <- if (any(!respondent_mask)) model$design_weights[!respondent_mask] else numeric(0)
 
-  model$theta = stats::runif(length(model$cols_delta) + 2, 0, 0.1)
+  model$theta <- stats::runif(length(model$cols_delta) + 2, 0, 0.1)
   # Name the parameter vector to align with the design vector used throughout
   # the ET implementation: [ (Intercept), x1 (cols_delta...), y ].  These names
   # are required by the shared scaling unscaler so coefficients are returned on
@@ -161,7 +161,7 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   model$chosen_y_dens <- dens_response$chosen_distribution
   model$O_matrix_nieobs <- generate_Odds(model)
 
-  #const
+  # const
   model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
   model$C_matrix_nieobs <- generate_C_matrix(model)
 
@@ -176,7 +176,7 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
 
 #' @keywords internal
 exptilt_estimator_core <- function(model, bootstrap_template, respondent_mask,
-                             on_failure = "return", ...) {
+                                   on_failure = "return", ...) {
   model$cols_required <- colnames(model$x)
   bootstrap_template$cols_required <- model$cols_required
 
@@ -197,9 +197,8 @@ exptilt_estimator_core <- function(model, bootstrap_template, respondent_mask,
   model$loss_value <- solution$fvec
   iter <- 0
 
-  while(sum((model$theta - theta_prev)^2) > model$tol_value ||
-        (iter < model$min_iter && iter < model$max_iter)) {
-
+  while (sum((model$theta - theta_prev)^2) > model$tol_value ||
+    (iter < model$min_iter && iter < model$max_iter)) {
     solution <- nleqslv(
       x = model$theta,
       fn = target_function,
@@ -220,8 +219,8 @@ exptilt_estimator_core <- function(model, bootstrap_template, respondent_mask,
     model$theta <- unscale$coefficients
   }
 
-  model$x_1 <- model$x[respondent_mask,,drop=FALSE]
-  model$x_0 <- model$x[!respondent_mask,,drop=FALSE]
+  model$x_1 <- model$x[respondent_mask, , drop = FALSE]
+  model$x_0 <- model$x[!respondent_mask, , drop = FALSE]
   model$y_1 <- if (nrow(model$x_1)) model$x_1[, model$col_y, drop = TRUE] else numeric(0)
 
   model$x_for_y_obs <- model$x_1[, model$cols_y_observed, drop = FALSE]
@@ -310,8 +309,7 @@ exptilt_estimator_core <- function(model, bootstrap_template, respondent_mask,
     var_results <- list(var_est = NA_real_, vcov = default_vcov)
   }
 
-  if(use_bootstrap){
-
+  if (use_bootstrap) {
     bootstrap_runner <- function(data, ...) {
       template <- unserialize(serialize(bootstrap_template, NULL))
       if (inherits(data, "survey.design")) {
@@ -325,7 +323,11 @@ exptilt_estimator_core <- function(model, bootstrap_template, respondent_mask,
         template$design <- NULL
         template$is_survey <- FALSE
         template$design_weights <- if (is.null(template$design_weights) ||
-          length(template$design_weights) != nrow(data_df)) rep(1, nrow(data_df)) else template$design_weights
+          length(template$design_weights) != nrow(data_df)) {
+          rep(1, nrow(data_df))
+        } else {
+          template$design_weights
+        }
         exptilt_fit_model(data_df, template, on_failure = on_failure, ...)
       }
     }
@@ -347,7 +349,6 @@ exptilt_estimator_core <- function(model, bootstrap_template, respondent_mask,
 
     bootstrap_results <- do.call(bootstrap_variance, base_args)
     se_final <- bootstrap_results$se
-
   } else {
     se_final <- sqrt(var_results$var_est)
   }

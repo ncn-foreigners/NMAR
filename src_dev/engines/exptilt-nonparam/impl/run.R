@@ -5,9 +5,8 @@ run_em_nmar_nonparametric <- function(
     common_covariates,
     instrumental_covariates,
     max_iter = 100,
-    tol = 1e-6
-) {
-  #TODO
+    tol = 1e-6) {
+  # TODO
   required_cols <- c(outcome_cols, refusal_col, common_covariates, instrumental_covariates)
   missing_cols <- setdiff(required_cols, names(data))
   if (length(missing_cols) > 0) {
@@ -17,21 +16,26 @@ run_em_nmar_nonparametric <- function(
 
   data_processed <- data
   data_processed$common_covariate_key <- apply(data_processed[, common_covariates, drop = FALSE],
-                                               1, paste, collapse = "_")
+    1, paste,
+    collapse = "_"
+  )
 
   total_observed <- rowSums(data_processed[, outcome_cols], na.rm = TRUE)
   p_cols <- paste0("p_", outcome_cols)
 
   for (col in outcome_cols) {
     data_processed[[paste0("p_", col)]] <- ifelse(total_observed == 0, 0,
-                                                  data_processed[[col]] / total_observed)
+      data_processed[[col]] / total_observed
+    )
   }
 
   outcome_classes <- outcome_cols
   common_covariate_keys <- unique(data_processed$common_covariate_key)
 
-  O_values <- matrix(1.0, nrow = length(outcome_classes), ncol = length(common_covariate_keys),
-                     dimnames = list(outcome_classes, common_covariate_keys))
+  O_values <- matrix(1.0,
+    nrow = length(outcome_classes), ncol = length(common_covariate_keys),
+    dimnames = list(outcome_classes, common_covariate_keys)
+  )
 
   # --- Main EM loop ---
   for (iter in 1:max_iter) {
@@ -52,11 +56,13 @@ run_em_nmar_nonparametric <- function(
     m_ij_t[is.na(m_ij_t) | is.infinite(m_ij_t)] <- 0
 
     # M-step: Update O_{j, i1}^{(t+1)}
-    O_values_next <- matrix(0.0, nrow = length(outcome_classes), ncol = length(common_covariate_keys),
-                            dimnames = list(outcome_classes, common_covariate_keys))
+    O_values_next <- matrix(0.0,
+      nrow = length(outcome_classes), ncol = length(common_covariate_keys),
+      dimnames = list(outcome_classes, common_covariate_keys)
+    )
 
     df_with_m_ij_t <- cbind(data_processed, m_ij_t)
-    colnames(df_with_m_ij_t)[(ncol(df_with_m_ij_t)-length(outcome_classes)+1):ncol(df_with_m_ij_t)] <-
+    colnames(df_with_m_ij_t)[(ncol(df_with_m_ij_t) - length(outcome_classes) + 1):ncol(df_with_m_ij_t)] <-
       paste0("m_", outcome_classes)
 
     for (key in common_covariate_keys) {
@@ -77,8 +83,6 @@ run_em_nmar_nonparametric <- function(
     }
 
     O_values <- O_values_next
-
-
   }
 
 

@@ -5,14 +5,14 @@
 #'   Consistent with the asymptotic results in Qin, Leung and Shao (2002).
 #' @keywords internal
 el_compute_score_contrib <- function(family,
-                                  response_model_matrix_scaled,
-                                  auxiliary_matrix_scaled,
-                                  mu_x_scaled,
-                                  eta_i_hat,
-                                  w_i_hat,
-                                  W_hat,
-                                  denominator_hat,
-                                  lambda_W_hat) {
+                                     response_model_matrix_scaled,
+                                     auxiliary_matrix_scaled,
+                                     mu_x_scaled,
+                                     eta_i_hat,
+                                     w_i_hat,
+                                     W_hat,
+                                     denominator_hat,
+                                     lambda_W_hat) {
   K_aux <- if (is.null(auxiliary_matrix_scaled) || ncol(auxiliary_matrix_scaled) == 0) 0 else ncol(auxiliary_matrix_scaled)
   # Score wrt eta for log-likelihood: d/deta log p(eta) = mu.eta / p
   p_hat <- family$linkinv(eta_i_hat)
@@ -32,14 +32,14 @@ compute_B_matrix <- function(U_matrix_resp, full_data, compute_score_variance_fu
 
 #' @keywords internal
 el_build_mean_fn <- function(family,
-                          response_model_matrix_scaled,
-                          auxiliary_matrix_scaled,
-                          mu_x_scaled,
-                          respondent_weights,
-                          N_pop,
-                          n_resp_weighted,
-                          trim_cap,
-                          outcome_vec) {
+                             response_model_matrix_scaled,
+                             auxiliary_matrix_scaled,
+                             mu_x_scaled,
+                             respondent_weights,
+                             N_pop,
+                             n_resp_weighted,
+                             trim_cap,
+                             outcome_vec) {
   K_beta <- ncol(response_model_matrix_scaled)
   K_aux <- if (is.null(auxiliary_matrix_scaled) || ncol(auxiliary_matrix_scaled) == 0) 0 else ncol(auxiliary_matrix_scaled)
   function(p) {
@@ -59,25 +59,25 @@ el_build_mean_fn <- function(family,
 
 #' @keywords internal
 el_compute_delta_variance <- function(A_matrix,
-                                   family,
-                                   response_model_matrix_scaled,
-                                   auxiliary_matrix_scaled,
-                                   mu_x_scaled,
-                                   eta_i_hat,
-                                   w_i_hat,
-                                   W_hat,
-                                   denominator_hat,
-                                   lambda_W_hat,
-                                   full_data,
-                                   compute_score_variance_func,
-                                   respondent_weights,
-                                   N_pop,
-                                   n_resp_weighted,
-                                   trim_cap,
-                                   outcome_vec,
-                                   estimates,
-                                   variance_ridge = FALSE,
-                                   variance_pseudoinverse = FALSE) {
+                                      family,
+                                      response_model_matrix_scaled,
+                                      auxiliary_matrix_scaled,
+                                      mu_x_scaled,
+                                      eta_i_hat,
+                                      w_i_hat,
+                                      W_hat,
+                                      denominator_hat,
+                                      lambda_W_hat,
+                                      full_data,
+                                      compute_score_variance_func,
+                                      respondent_weights,
+                                      N_pop,
+                                      n_resp_weighted,
+                                      trim_cap,
+                                      outcome_vec,
+                                      estimates,
+                                      variance_ridge = FALSE,
+                                      variance_pseudoinverse = FALSE) {
   inv_res <- invert_jacobian(A_matrix,
     variance_ridge = variance_ridge,
     variance_pseudoinverse = variance_pseudoinverse

@@ -14,8 +14,7 @@
 exptilt_nonparam_engine <- function(
     refusal_col,
     max_iter = 100,
-    tol_value = 1e-6
-) {
+    tol_value = 1e-6) {
   if (!is.character(refusal_col) || length(refusal_col) != 1L || !nzchar(refusal_col)) {
     stop("`refusal_col` must be a single non-empty character string.", call. = FALSE)
   }

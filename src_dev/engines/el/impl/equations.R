@@ -7,7 +7,7 @@
 #'   This matches the semiparametric EL system in Qin, Leung and Shao (2002).
 #' @keywords internal
 el_build_equation_system <- function(family, response_model_matrix, auxiliary_matrix,
-                                  respondent_weights, N_pop, n_resp_weighted, mu_x_scaled) {
+                                     respondent_weights, N_pop, n_resp_weighted, mu_x_scaled) {
   force(family)
   force(response_model_matrix)
   force(auxiliary_matrix)

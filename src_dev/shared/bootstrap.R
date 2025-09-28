@@ -166,7 +166,9 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
       fit <- suppressWarnings({
         do.call(estimator_func, call_args)
       })
-      if (!is.null(fit$converged) && !fit$converged) return(NA_real_)
+      if (!is.null(fit$converged) && !fit$converged) {
+        return(NA_real_)
+      }
       as.numeric(estimate(fit))
     },
     return.replicates = TRUE

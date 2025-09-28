@@ -18,7 +18,6 @@ validate_data <- function(data,
                           covariates_for_missingness = character(),
                           allow_outcome_in_missingness = FALSE,
                           allow_covariate_overlap = FALSE) {
-
   # Validate data object type
   if (!inherits(data, c("data.frame", "survey.design"))) {
     stop("'data' must be a data.frame or survey.design object. Received: ", class(data)[1])

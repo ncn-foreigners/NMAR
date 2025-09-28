@@ -1,6 +1,5 @@
 #' @exportS3Method NULL
 run_engine.nmar_engine_exptilt_nonparam <- function(engine, task) {
-
   # Nonparametric ET reuses the shared design prep to match the EL/ET data
   # workflow (common scaling, auxiliary handling, and survey support)
   design_info <- prepare_nmar_design(
