@@ -10,7 +10,8 @@ run_engine.nmar_engine_exptilt_nonparam <- function(engine, task) {
     include_auxiliary = TRUE
   )
 
-  outcome_cols <- task$outcome
+  # Use the normalized outcome list from the prepared design for consistency
+  outcome_cols <- design_info$outcome
   common_covariates_from_formula <- design_info$auxiliary_vars
   instrumental_covariates_from_formula <- design_info$response_predictors
 
