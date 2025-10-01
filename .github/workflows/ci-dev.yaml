@@ -135,7 +135,7 @@ jobs:
 
       - name: Run devtools::document()
         run: |
-          Rscript -e 'devtools::document(vignettes = FALSE)'
+          Rscript -e 'devtools::document()'
 
       - name: Run devtools::build()
         run: |
