@@ -50,7 +50,7 @@ jobs:
 
       - name: Run R CMD check
         run: |
-          R CMD check . --no-manual --no-build-vignettes --as-cran
+          R CMD check . --no-manual --as-cran
 
       - name: Build package tarball
         id: build
