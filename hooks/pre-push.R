@@ -9,7 +9,7 @@ cat("--- Running devtools::check() before git push... ---\n")
 
 check_result <- tryCatch({
   devtools::check(
-    document = FALSE,
+    document = TRUE,
     build_args = c("--no-build-vignettes", "--no-manual"),
     error_on = "error"
   )
