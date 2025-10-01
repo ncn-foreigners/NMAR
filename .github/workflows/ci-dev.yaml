@@ -38,13 +38,13 @@ jobs:
       - name: Regenerate documentation
         run: R -q -e "devtools::document(quiet = TRUE)"
 
-      - name: Check man and NAMESPACE changes
+      - name: Check man changes
         run: |
-          if git status --porcelain man/ NAMESPACE | grep -q '^ M'; then
+          if git status --porcelain man/ | grep -q '^ M'; then
             echo "❌ Documentation files were modified:"
-            git status man/ NAMESPACE
+            git status man/
             echo "Please run devtools::document() locally and commit changes to:"
-            git diff --name-only man/ NAMESPACE
+            git diff --name-only man/
             exit 1
           fi
 
@@ -132,6 +132,10 @@ jobs:
 
       - name: Run custom build script (src_dev/ -> R/)
         run: Rscript build_r_folder.R
+
+      - name: Run devtools::document()
+        run: |
+          Rscript -e 'devtools::document(vignettes = FALSE)'
 
       - name: Run devtools::build()
         run: |
