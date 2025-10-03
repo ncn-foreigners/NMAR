@@ -22,7 +22,13 @@ generate_conditional_density <- function(model) {
   #   the stored scaling recipe so the design fed to the density matches the fit.
 
   data_df <- data.frame(y = model$y_1, model$x_for_y_obs)
-  data_df$weights <- model$respondent_weights # Add weights to data frame
+  # Use respondent slice of design weights if available; otherwise weight 1
+  if (!is.null(model$design_weights) && !is.null(model$respondent_mask)) {
+    w_resp_local <- model$design_weights[model$respondent_mask]
+  } else {
+    w_resp_local <- rep(1, length(model$y_1))
+  }
+  data_df$weights <- w_resp_local
 
   # Get covariate names (excluding y and weights)
   covar_names <- setdiff(colnames(model$x_for_y_obs), c("y", "weights"))
@@ -240,30 +246,29 @@ generate_conditional_density_matrix <- function(model) {
   # fed to the fitted density function live on the SAME scale used during the
   # density fit. The model stores a scaling recipe, after unscaling the feature
   # matrices for reporting, we temporarily re-apply that recipe here
-  tryCatch(
-    {
-      n_unobs <- nrow(model$x_for_y_unobs)
-      n_resp <- length(model$y_1)
-      if (!n_unobs || !n_resp) {
-        return(matrix(numeric(0), nrow = n_unobs, ncol = n_resp))
-      }
-      out <- matrix(NA_real_, nrow = n_unobs, ncol = n_resp)
-      for (i in seq_len(n_unobs)) {
-        x_row <- model$x_for_y_unobs[i, , drop = FALSE]
-        # Re-apply scaling if the current feature matrices are on the original scale
-        if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
-          x_row <- apply_nmar_scaling(x_row, model$nmar_scaling_recipe)
-        }
-        for (j in seq_len(n_resp)) {
-          out[i, j] <- model$density_fun(model$y_1[j], x_row)
-        }
-      }
-      out
-    },
-    error = function(e) {
-      stop("Error in generate_conditional_density_matrix: ", e$message)
+  tryCatch({
+    n_unobs <- nrow(model$x_for_y_unobs)
+    n_resp <- length(model$y_1)
+    if (!n_unobs || !n_resp) {
+      return(matrix(numeric(0), nrow = n_unobs, ncol = n_resp))
     }
-  )
+
+    y_vals <- as.numeric(model$y_1)
+    out <- matrix(NA_real_, nrow = n_unobs, ncol = n_resp)
+
+    for (i in seq_len(n_unobs)) {
+      x_row <- model$x_for_y_unobs[i, , drop = FALSE]
+      # Re-apply scaling if the current feature matrices are on the original scale
+      if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
+        x_row <- apply_nmar_scaling(x_row, model$nmar_scaling_recipe)
+      }
+      # Evaluate densities for all y_j in a single vectorized call
+      out[i, ] <- vapply(y_vals, function(yj) model$density_fun(yj, x_row), numeric(1))
+    }
+    out
+  }, error = function(e) {
+    stop("Error in generate_conditional_density_matrix: ", e$message)
+  })
 }
 
 generate_C_matrix <- function(model) {
@@ -294,8 +299,11 @@ generate_C_matrix <- function(model) {
   }
 
   # Include respondent sampling weights if present (Remark 2)
-  w_resp <- model$respondent_weights
-  if (is.null(w_resp)) w_resp <- rep(1, nrow(X_obs))
+  if (!is.null(model$design_weights) && !is.null(model$respondent_mask)) {
+    w_resp <- model$design_weights[model$respondent_mask]
+  } else {
+    w_resp <- rep(1, nrow(X_obs))
+  }
 
   # C_j = sum_l w_l * f1(y_j | x_l)
   C_vec <- as.numeric(crossprod(w_resp, F_resp))
