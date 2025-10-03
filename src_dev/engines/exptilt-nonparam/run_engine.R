@@ -1,9 +1,19 @@
 #' @exportS3Method NULL
-run_engine.nmar_engine_exptilt_nonparam <- function(engine, spec) {
+run_engine.nmar_engine_exptilt_nonparam <- function(engine, task) {
+  # Nonparametric ET reuses the shared design prep to match the EL/ET data
+  # workflow (common scaling, auxiliary handling, and survey support)
+  design_info <- prepare_nmar_design(
+    task,
+    standardize = FALSE,
+    auxiliary_means = NULL,
+    include_response = TRUE,
+    include_auxiliary = TRUE
+  )
 
-  outcome_cols <- spec$outcome
-  common_covariates_from_formula <- spec$auxiliary_vars
-  instrumental_covariates_from_formula <- spec$response_predictors
+  # Use the normalized outcome list from the prepared design for consistency
+  outcome_cols <- design_info$outcome
+  common_covariates_from_formula <- design_info$auxiliary_vars
+  instrumental_covariates_from_formula <- design_info$response_predictors
 
 
   if (length(common_covariates_from_formula) == 0) {
@@ -17,7 +27,7 @@ run_engine.nmar_engine_exptilt_nonparam <- function(engine, spec) {
     instrumental_covariates_used <- instrumental_covariates_from_formula
   }
   model_results <- run_em_nmar_nonparametric(
-    data = spec$data,
+    data = design_info$data,
     outcome_cols = outcome_cols,
     refusal_col = engine$refusal_col,
     common_covariates = common_covariates_from_formula,

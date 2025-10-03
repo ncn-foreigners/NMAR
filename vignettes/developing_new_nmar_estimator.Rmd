@@ -45,10 +45,10 @@ User workflow:
 2. User calls `nmar(formula = ..., data = ..., engine = <engine>)`.
 3. `nmar()` creates an `nmar_input_spec` via `parse_nmar_spec()`, validates it with
    `validate_nmar_args()` (using engine-specific traits), and then dispatches to
-   `run_engine(engine, spec)` by S3.
-4. The engine’s `run_engine.<engine_class>()` extracts what it needs from `spec`
-   and passes control to a method-specific generic, which dispatches on `data`
-   type:
+   `run_engine(engine, task)` by S3.
+4. The engine’s `run_engine.<engine_class>()` extracts what it needs from `task`
+    (typically via `prepare_nmar_design()`) and passes control to a
+    method-specific generic, which dispatches on `data` type:
    - `*.data.frame(...)` for IID data
    - `*.survey.design(...)` for complex surveys
 5. The method computes the estimator and returns a result object of class
@@ -79,12 +79,22 @@ method_engine <- function(...) {
 ### 2) `run_engine.R` — run_engine method
 
 ```{r eval=FALSE}
-run_engine.nmar_engine_method <- function(engine, spec) {
+run_engine.nmar_engine_method <- function(engine, task) {
+  design <- prepare_nmar_design(
+    task,
+    standardize = engine$standardize,
+    auxiliary_means = engine$auxiliary_means,
+    include_response = TRUE,
+    include_auxiliary = TRUE
+  )
+
   args <- c(
     list(
-      data = spec$original_data,
-      formula = spec$formula,
-      response_predictors = if (length(spec$response_predictors)) spec$response_predictors else NULL
+      data = design$survey_design %||% design$data,
+      formula = task$formula,
+      response_predictors = if (length(design$response_predictors)) design$response_predictors else NULL,
+      auxiliary_means = design$auxiliary_means,
+      standardize = design$standardize
     ),
     as.list(engine)
   )

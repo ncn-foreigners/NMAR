@@ -30,7 +30,7 @@
 #' Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American
 #' Statistical Association, 97(457), 193–200.
-#' @export
+#' @exportS3Method el data.frame
 el.data.frame <- function(data, formula, response_predictors = NULL,
                           auxiliary_means = NULL, standardize = TRUE,
                           trim_cap = Inf, control = list(),
@@ -111,7 +111,7 @@ el.data.frame <- function(data, formula, response_predictors = NULL,
       extra = list(nmar_scaling_recipe = core_results$nmar_scaling_recipe),
       class = "nmar_result_el"
     )
-    return(validate_nmar_result(result, 'nmar_result_el'))
+    return(validate_nmar_result(result, "nmar_result_el"))
   }
 
   result <- new_nmar_result_el(
@@ -123,5 +123,5 @@ el.data.frame <- function(data, formula, response_predictors = NULL,
     fitted_values = core_results$fitted_values, call = cl
   )
 
-  validate_nmar_result(result, 'nmar_result_el')
+  validate_nmar_result(result, "nmar_result_el")
 }

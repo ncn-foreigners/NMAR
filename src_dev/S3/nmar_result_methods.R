@@ -39,7 +39,9 @@ estimate <- function(x, ...) UseMethod("estimate")
 estimate.nmar_result <- function(x, ...) {
   est <- nmar_result_get_estimate(x)
   nm <- nmar_result_get_estimate_name(x)
-  if (is.na(est)) return(NA_real_)
+  if (is.na(est)) {
+    return(NA_real_)
+  }
   setNames(as.numeric(est), nm)
 }
 
@@ -310,7 +312,9 @@ coef.nmar_result <- function(object, ...) {
 #' @export
 fitted.nmar_result <- function(object, ...) {
   fv <- object$extra$fitted_values %||% object$fitted_values
-  if (is.null(fv) || length(fv) == 0) return(numeric(0))
+  if (is.null(fv) || length(fv) == 0) {
+    return(numeric(0))
+  }
   as.numeric(fv)
 }
 
@@ -323,7 +327,9 @@ fitted.nmar_result <- function(object, ...) {
 weights.nmar_result <- function(object, ...) {
   info <- nmar_result_get_weights_info(object)
   w <- info$values
-  if (is.null(w)) return(numeric(0))
+  if (is.null(w)) {
+    return(numeric(0))
+  }
   w <- as.numeric(w)
   attr(w, "trimmed_fraction") <- info$trimmed_fraction
   w

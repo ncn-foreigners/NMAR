@@ -34,11 +34,16 @@ nmar <- function(formula, data, engine, response_predictors = NULL) {
     env = parent.frame()
   )
 
-  validate_nmar_args(spec, engine_traits(engine))
+  traits <- engine_traits(engine)
+  validate_nmar_args(spec, traits)
 
-  run_engine(engine, spec)
+  # Wrap the validated spec and engine traits into a task object so every
+  # engine sees the same downstream interface.
+  task <- new_nmar_task(spec, traits)
+
+  run_engine(engine, task)
 }
 
-run_engine <- function(engine, spec) {
+run_engine <- function(engine, task) {
   UseMethod("run_engine")
 }

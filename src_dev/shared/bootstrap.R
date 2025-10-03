@@ -30,18 +30,64 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
   n_obs <- nrow(data)
   estimates <- numeric(bootstrap_reps)
   dot_args <- list(...)
+  resample_guard <- NULL
+  if (!is.null(dot_args$resample_guard)) {
+    # Some estimators (exptilt) require the bootstrap replicate to contain at
+    # least one respondent. Allow callers to supply a simple guard to reject
+    # unsuitable resamples
+    resample_guard <- dot_args$resample_guard
+    dot_args$resample_guard <- NULL
+  }
 
   for (i in seq_len(bootstrap_reps)) {
-    resample_indices <- sample(seq_len(n_obs), size = n_obs, replace = TRUE)
+    resample_indices <- integer(0)
+    attempts <- 0
+    repeat {
+      resample_indices <- sample(seq_len(n_obs), size = n_obs, replace = TRUE)
+      attempts <- attempts + 1
+      if (!is.null(resample_guard)) {
+        guard_ok <- tryCatch(
+          resample_guard(resample_indices, data = data),
+          error = function(e) FALSE
+        )
+        if (isTRUE(guard_ok)) break
+      } else {
+        break
+      }
+      # Give up after a reasonable number of attempts; the caller will observe
+      # the NA replicate (and warning) if the guard keeps failing
+      if (attempts >= 20) break
+    }
+
+    if (length(resample_indices) == 0) {
+      estimates[i] <- NA_real_
+      next
+    }
     bootstrap_data <- data[resample_indices, , drop = FALSE]
 
     call_args <- c(list(data = bootstrap_data, on_failure = "return"), dot_args)
 
-    fit <- suppressWarnings({
-      do.call(estimator_func, call_args)
-    })
+    fit <- tryCatch(
+      suppressWarnings({
+        do.call(estimator_func, call_args)
+      }),
+      error = function(e) NULL
+    )
 
-    estimates[i] <- if (!is.null(fit$converged) && !fit$converged) NA else as.numeric(estimate(fit))
+    if (is.null(fit)) {
+      estimates[i] <- NA_real_
+      next
+    }
+
+    if (!is.null(fit$converged) && !fit$converged) {
+      estimates[i] <- NA_real_
+      next
+    }
+
+    # Map the replicate result back to a scalar.  We still guard against
+    # unexpected return types so the caller receives a warning instead of a
+    # hard failure mid-bootstrap
+    estimates[i] <- tryCatch(as.numeric(estimate(fit)), error = function(e) NA_real_)
   }
 
   failed_reps <- sum(is.na(estimates))
@@ -120,7 +166,9 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
       fit <- suppressWarnings({
         do.call(estimator_func, call_args)
       })
-      if (!is.null(fit$converged) && !fit$converged) return(NA_real_)
+      if (!is.null(fit$converged) && !fit$converged) {
+        return(NA_real_)
+      }
       as.numeric(estimate(fit))
     },
     return.replicates = TRUE
@@ -164,8 +212,25 @@ nmar_extract_svydesign_call <- function(design) {
 }
 
 nmar_reconstruct_design <- function(template_call, data_subset, weight_var = "..replicate_weights..") {
-  call_copy <- template_call
-  call_copy$data <- quote(data_subset)
-  call_copy$weights <- as.formula(paste0("~", weight_var))
-  eval(call_copy, envir = list(data_subset = data_subset), enclos = parent.frame())
+  # Rebuild a fresh survey::svydesign call using the structural pieces from the
+  # original call, but avoiding eval() in a deep parent frame to prevent stack
+  # growth under replicate evaluation.
+  tc <- template_call
+  # Extract known args if present
+  args <- as.list(tc)[-1]
+  get_arg <- function(nm) if (!is.null(args[[nm]])) args[[nm]] else NULL
+  ids <- get_arg("ids")
+  strata <- get_arg("strata")
+  fpc <- get_arg("fpc")
+  nest <- get_arg("nest")
+  # Assemble call, including only non-NULL components
+  call_list <- list(quote(survey::svydesign))
+  if (!is.null(ids))   call_list <- c(call_list, list(ids = ids))
+  if (!is.null(strata)) call_list <- c(call_list, list(strata = strata))
+  if (!is.null(fpc))    call_list <- c(call_list, list(fpc = fpc))
+  if (!is.null(nest))   call_list <- c(call_list, list(nest = nest))
+  call_list <- c(call_list,
+    list(data = quote(data_subset), weights = as.formula(paste0("~", weight_var))))
+  new_call <- as.call(call_list)
+  eval(new_call, envir = list(data_subset = data_subset))
 }

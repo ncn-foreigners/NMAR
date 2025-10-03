@@ -14,9 +14,7 @@ Encoding: UTF-8
 Imports: 
     stats,
     nleqslv,
-    bbmle,
     utils,
-    jsonlite,
     numDeriv,
     generics
 RoxygenNote: 7.3.3

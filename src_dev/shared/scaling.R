@@ -170,7 +170,8 @@ prepare_nmar_scaling <- function(Z_un, X_un, mu_x_un, standardize,
     mu_x <- numeric(0)
   }
   recipe <- create_nmar_scaling_recipe(Z_un, if (is.null(X_un)) matrix(nrow = nrow(Z_un), ncol = 0) else X_un,
-                                       weights = weights, weight_mask = weight_mask)
+    weights = weights, weight_mask = weight_mask
+  )
   Z <- apply_nmar_scaling(Z_un, recipe)
   X <- if (is.null(X_un)) X_un else apply_nmar_scaling(X_un, recipe)
   if (length(mu_x)) {

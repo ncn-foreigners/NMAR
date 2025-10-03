@@ -17,7 +17,7 @@
 #'   auxiliary covariates.
 #' @param control Optional list of additional solver controls.
 #' @param family Missingness link function (`"logit"` or `"probit"`).
-#' @param y_dens Outcome density model (`"auto"`, `"normal"`, or `"gamma"`).
+#' @param y_dens Outcome density model (`"auto"`, `"normal"`, `"lognormal"`, or `"exponential"`).
 #' @param min_iter Minimum number of solver iterations. (Will be migrated to
 #'   `control` in a future release.)
 #' @param max_iter Maximum number of solver iterations. (Will be migrated to
@@ -39,12 +39,12 @@ exptilt_engine <- function(
     auxiliary_means = NULL,
     control = list(),
     family = c("logit", "probit"),
-    y_dens = c("auto", "normal", "gamma"),
+    y_dens = c("auto", "normal", "lognormal", "exponential"),
     min_iter = 10, # TODO move to control
     max_iter = 100, # TODO move to control
     optim_method = c("Newton", "Broyden"), # TODO move to control
     tol_value = 1e-5 # TODO move to control
-) {
+    ) {
   on_failure <- match.arg(on_failure)
   variance_method <- match.arg(variance_method)
   family <- match.arg(family)
@@ -56,7 +56,7 @@ exptilt_engine <- function(
   validator$assert_positive_integer(bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)
   validator$assert_logical(supress_warnings, name = "supress_warnings")
   validator$assert_choice(family, choices = c("logit", "probit"), name = "family")
-  validator$assert_choice(y_dens, choices = c("auto", "normal", "gamma"), name = "y_dens")
+  validator$assert_choice(y_dens, choices = c("auto", "normal", "lognormal", "exponential"), name = "y_dens")
   validator$assert_choice(variance_method, choices = c("delta", "bootstrap"), name = "variance_method")
   validator$assert_positive_integer(min_iter, name = "min_iter")
   validator$assert_positive_integer(max_iter, name = "max_iter")
