@@ -212,8 +212,25 @@ nmar_extract_svydesign_call <- function(design) {
 }
 
 nmar_reconstruct_design <- function(template_call, data_subset, weight_var = "..replicate_weights..") {
-  call_copy <- template_call
-  call_copy$data <- quote(data_subset)
-  call_copy$weights <- as.formula(paste0("~", weight_var))
-  eval(call_copy, envir = list(data_subset = data_subset), enclos = parent.frame())
+  # Rebuild a fresh survey::svydesign call using the structural pieces from the
+  # original call, but avoiding eval() in a deep parent frame to prevent stack
+  # growth under replicate evaluation.
+  tc <- template_call
+  # Extract known args if present
+  args <- as.list(tc)[-1]
+  get_arg <- function(nm) if (!is.null(args[[nm]])) args[[nm]] else NULL
+  ids <- get_arg("ids")
+  strata <- get_arg("strata")
+  fpc <- get_arg("fpc")
+  nest <- get_arg("nest")
+  # Assemble call, including only non-NULL components
+  call_list <- list(quote(survey::svydesign))
+  if (!is.null(ids))   call_list <- c(call_list, list(ids = ids))
+  if (!is.null(strata)) call_list <- c(call_list, list(strata = strata))
+  if (!is.null(fpc))    call_list <- c(call_list, list(fpc = fpc))
+  if (!is.null(nest))   call_list <- c(call_list, list(nest = nest))
+  call_list <- c(call_list,
+    list(data = quote(data_subset), weights = as.formula(paste0("~", weight_var))))
+  new_call <- as.call(call_list)
+  eval(new_call, envir = list(data_subset = data_subset))
 }
