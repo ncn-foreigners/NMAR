@@ -1,7 +1,7 @@
 generate_conditional_density <- function(model) {
 
   data_df <- data.frame(y = model$y_1, model$x_for_y_obs)
-  data_df$weights <- model$respondent_weights # Add weights to data frame
+  # data_df$weights <- model$respondent_weights # Add weights to data frame
 
 # Get covariate names (excluding y and weights)
   covar_names <- setdiff(colnames(model$x_for_y_obs), c("y", "weights"))
@@ -42,7 +42,7 @@ generate_conditional_density <- function(model) {
     normal = list(
       family = gaussian(link = "identity"),
       fit = function(formula, data) {
-        fit <- lm(formula, data = data, weights = weights)
+        fit <- lm(formula, data = data)
         return(fit)
       },
       extra = "sigma",
@@ -56,7 +56,7 @@ generate_conditional_density <- function(model) {
       family = gaussian(link = "identity"),
       transform = log,
       fit = function(formula, data) {
-        fit <- lm(formula, data = data, weights = weights)
+        fit <- lm(formula, data = data)
         return(fit)
       },
       extra = "sigma",
@@ -67,7 +67,7 @@ generate_conditional_density <- function(model) {
     exponential = list(
       family = Gamma(link = "log"),
       fit = function(formula, data) {
-        fit <- glm(formula, data = data, family = Gamma(link = "log"), weights = weights)
+        fit <- glm(formula, data = data, family = Gamma(link = "log"))
         return(fit)
       },
       density = function(y, mean_val, coefs) {
