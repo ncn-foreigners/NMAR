@@ -97,31 +97,31 @@ new_nmar_engine_el <- function(engine) {
 #' @keywords internal
 validate_nmar_engine_el <- function(engine) {
   stopifnot(is.list(engine))
-  # Logical flags
+# Logical flags
   if (!is.logical(engine$standardize) || length(engine$standardize) != 1) stop("standardize must be a single logical")
   if (!is.logical(engine$variance_pseudoinverse) || length(engine$variance_pseudoinverse) != 1) stop("variance_pseudoinverse must be a single logical")
   if (!is.logical(engine$suppress_warnings) || length(engine$suppress_warnings) != 1) stop("suppress_warnings must be a single logical")
-  # Numeric settings
+# Numeric settings
   if (!is.numeric(engine$trim_cap) || length(engine$trim_cap) != 1 || (!is.infinite(engine$trim_cap) && engine$trim_cap <= 0)) stop("trim_cap must be a positive number or Inf")
   if (!is.numeric(engine$bootstrap_reps) || length(engine$bootstrap_reps) != 1 || engine$bootstrap_reps < 1) stop("bootstrap_reps must be a positive integer")
-  # Factors handled via match.arg upstream; here we assert presence
+# Factors handled via match.arg upstream; here we assert presence
   if (!engine$on_failure %in% c("return", "error")) stop("on_failure must be 'return' or 'error'")
   if (!engine$variance_method %in% c("delta", "bootstrap")) stop("variance_method must be 'delta' or 'bootstrap'")
   if (!engine$variance_jacobian %in% c("auto", "analytic", "numeric")) stop("variance_jacobian must be one of 'auto','analytic','numeric'")
   if (!engine$solver_jacobian %in% c("auto", "analytic", "none")) stop("solver_jacobian must be one of 'auto','analytic','none'")
-  # Auxiliary means: NULL or named numeric
+# Auxiliary means: NULL or named numeric
   if (!is.null(engine$auxiliary_means)) {
     if (!is.numeric(engine$auxiliary_means) || is.null(names(engine$auxiliary_means)) || anyNA(names(engine$auxiliary_means))) {
       stop("auxiliary_means must be a named numeric vector or NULL")
     }
   }
-  # Control should be a list (passed through)
+# Control should be a list (passed through)
   if (!is.list(engine$control)) stop("control must be a list")
   fam <- engine$family
   if (!is.list(fam) || is.null(fam$name) || !is.function(fam$linkinv) || !is.function(fam$mu.eta) || !is.function(fam$score_eta)) {
     stop("family must be 'logit'/'probit' or a valid family object with linkinv, mu.eta, score_eta")
   }
-  # variance_ridge can be logical or positive numeric epsilon
+# variance_ridge can be logical or positive numeric epsilon
   if (!(is.logical(engine$variance_ridge) || (is.numeric(engine$variance_ridge) && is.finite(engine$variance_ridge) && engine$variance_ridge > 0))) {
     stop("variance_ridge must be logical or a positive numeric epsilon")
   }

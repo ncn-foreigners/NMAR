@@ -60,11 +60,11 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     inv_denom_sq <- inv_denom^2
     dden_dTheta <- d_lambda_W_dTheta * (p_i - W_bounded) - lambda_W * dWb_dTheta
     dden_deta <- lambda_W * m_i
-    # Score wrt eta for log-likelihood: d/deta log p(eta) = m_i / p_i
+# Score wrt eta for log-likelihood: d/deta log p(eta) = m_i / p_i
     p_i_clipped <- pmin(pmax(p_i, 1e-12), 1 - 1e-12)
     dlw_i <- m_i / p_i_clipped
     scalar_beta_term <- dlw_i - lambda_W * m_i * inv_denom
-    # Derivative wrt eta: d/deta(m/p) = (m2*p - m^2)/p^2
+# Derivative wrt eta: d/deta(m/p) = (m2*p - m^2)/p^2
     d_deta_logw <- (m2_i * p_i_clipped - m_i^2) / (p_i_clipped^2)
     dscalar_deta <- d_deta_logw - lambda_W * m2_i * inv_denom + (lambda_W^2) * (m_i^2) * inv_denom_sq
     dscalar_dTheta <- -d_lambda_W_dTheta * m_i * inv_denom + lambda_W * m_i * inv_denom_sq * dden_dTheta

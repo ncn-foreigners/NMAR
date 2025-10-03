@@ -57,10 +57,10 @@ engine = el_engine(auxiliary_means = c(X = 0), variance_method = "delta", standa
   )
 # Fit EL estimator (delta variance)
 fit <- nmar(
-  formula =  Y_miss ~ X,
+  formula = Y_miss ~ X,
   data = dat,
-  engine=engine,
-  response_predictors =  NULL
+  engine = engine,
+  response_predictors = NULL
 )
 
 summary(fit)
@@ -70,7 +70,7 @@ confint(fit)
 Probit family (optional):
 
 ```{r}
-  engine = el_engine(auxiliary_means = c(X = 0), family = "probit", variance_method = "delta", standardize = TRUE)
+engine = el_engine(auxiliary_means = c(X = 0), family = "probit", variance_method = "delta", standardize = TRUE)
 
 fit_probit <- nmar(
   formula = Y_miss ~ X,
@@ -106,7 +106,7 @@ str(fit$diagnostics)
 Bootstrap variance (keep reps small for speed):
 
 ```{r}
-  engine = el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap", bootstrap_reps = 15, standardize = TRUE, suppress_warnings = TRUE)
+engine = el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap", bootstrap_reps = 15, standardize = TRUE, suppress_warnings = TRUE)
 
 fit_boot <- nmar(
   formula = Y_miss ~ X,
@@ -174,7 +174,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
     data = dclus1,
     engine = engine,
     response_predictors = NULL
-    
+
   )
   summary(fit_svy)
 }

@@ -1,0 +1,26 @@
+repos:
+-   repo: https://github.com/lorenzwalthert/precommit
+    rev: v0.4.3.9014
+    #files: ^src_dev/.*\.(R|r|Rmd|rmd|qmd)$
+    stages: [pre-commit]
+    hooks:
+    -   id: style-files
+        args: [--scope=spaces, --reindention=specify_reindention('#')]      
+    -   id: readme-rmd-rendered
+    -   id: parsable-R
+    -   id: no-browser-statement
+    -   id: no-debug-statement
+    -   id: roxygenize
+ #   -   id: deps-in-desc
+    -   id: use-tidy-description
+    
+- repo: local
+  hooks:
+    - id: devtools-check
+      name: Full R CMD check (Pre-push)
+      entry: Rscript ./hooks/pre-push.R
+      language: system
+      stages: [push] 
+      pass_filenames: false 
+      always_run: true
+      files: \.(R|r|Rmd|rmd|qmd)$ 

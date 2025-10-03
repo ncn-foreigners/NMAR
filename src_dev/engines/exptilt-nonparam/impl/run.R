@@ -37,7 +37,7 @@ run_em_nmar_nonparametric <- function(
     dimnames = list(outcome_classes, common_covariate_keys)
   )
 
-  # --- Main EM loop ---
+# --- Main EM loop ---
   for (iter in 1:max_iter) {
     P_j_i_matrix <- as.matrix(data_processed[, p_cols])
     colnames(P_j_i_matrix) <- outcome_classes
@@ -76,7 +76,7 @@ run_em_nmar_nonparametric <- function(
       }
     }
 
-    # Check for convergence
+# Check for convergence
     if (iter > 1 && max(abs(O_values_next - O_values)) < tol) {
       O_values <- O_values_next
       break

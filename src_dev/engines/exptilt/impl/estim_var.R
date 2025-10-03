@@ -24,7 +24,7 @@ estim_var.nmar_exptilt <- function(model) {
 
   weights <- common_term / denominator # TODO test if dim is matching
 
-  # Zastąp pi_func rodziną
+# Zastąp pi_func rodziną
   x_mat_obs <- as.matrix(model$x_1[, model$cols_delta])
   x_aug_obs <- cbind(1, x_mat_obs, model$y_1)
   eta_obs <- as.vector(x_aug_obs %*% model$theta)
@@ -91,12 +91,12 @@ estim_var.nmar_exptilt <- function(model) {
 
       w_i <- weights[i, ]
 
-      # browser()
+# browser()
       s_bar_0i <- colSums(w_i * s_ij_matrix)
 
       s_dev_matrix <- s_ij_matrix - matrix(s_bar_0i, nrow = n_obs, ncol = num_phi_params, byrow = TRUE)
 
-      # t(A) %*% (w * B) oblicza sum_j(w_j * A_j^T * B_j)
+# t(A) %*% (w * B) oblicza sum_j(w_j * A_j^T * B_j)
       cov_i <- t(s_dev_matrix) %*% (w_i * s1_ij_matrix)
 
       FI21 <- FI21 + nonresp_wts[i] * cov_i
@@ -105,10 +105,10 @@ estim_var.nmar_exptilt <- function(model) {
     return(-FI21)
   }
   FI21 <- calculate_FI21()
-  # browser()
+# browser()
 
   z_function <- function(model, x, theta = model$theta) {
-    # Zastąp pi_func rodziną
+# Zastąp pi_func rodziną
     x_mat <- as.matrix(x)
     x_aug <- cbind(1, x_mat, model$y_1[1:nrow(x_mat)])
     eta <- as.vector(x_aug %*% theta)
@@ -154,14 +154,14 @@ estim_var.nmar_exptilt <- function(model) {
   # TODO - CHECK Below. Fi22 Too big and K seems too low comparing to author
   FI22 <- calculate_FI22(model, weights)
   K <- FI21 %*% solve(F11)
-  # browser()
+# browser()
 
   calculate_B <- function(model, esty, FI22) {
-    # Pobierz zmienne dla respondentów
+# Pobierz zmienne dla respondentów
     x_obs_delta <- model$x_1[, model$cols_delta, drop = FALSE]
     y_obs <- model$y_1
 
-    # Zastąp pi_func rodziną
+# Zastąp pi_func rodziną
     x_mat_obs <- as.matrix(x_obs_delta)
     x_aug_obs <- cbind(1, x_mat_obs, y_obs)
     eta_obs <- as.vector(x_aug_obs %*% model$theta)
@@ -174,7 +174,7 @@ estim_var.nmar_exptilt <- function(model) {
     # W artykule autora `B1`
     sum_term <- t(u_i * resp_wts / p_obs) %*% pi_deriv_obs
 
-    # B = suma %*% odwrotność(FI22)
+# B = suma %*% odwrotność(FI22)
     B <- sum_term %*% solve(FI22)
 
     return(B)
@@ -186,15 +186,15 @@ estim_var.nmar_exptilt <- function(model) {
 
     S2 <- matrix(0, nrow = n_total, ncol = num_phi_params)
 
-    # Identyfikatory respondentów i nierespondentów w pełnym zbiorze danych
+# Identyfikatory respondentów i nierespondentów w pełnym zbiorze danych
     respondent_indices <- which(!is.na(model$x[, model$col_y]))
     non_respondent_indices <- which(is.na(model$x[, model$col_y]))
 
-    # --- 1. Obliczenia dla respondentów ---
+# --- 1. Obliczenia dla respondentów ---
     x_obs_delta <- model$x_1[, model$cols_delta, drop = FALSE]
     S2[respondent_indices, ] <- resp_wts * s_function.nmar_exptilt(model, delta = 1, x = x_obs_delta, theta = model$theta)
 
-    # --- 2. Obliczenia dla nierespondentów ---
+# --- 2. Obliczenia dla nierespondentów ---
     n_unobs <- nrow(model$x_0)
     n_obs <- nrow(model$x_1)
 
@@ -215,7 +215,7 @@ estim_var.nmar_exptilt <- function(model) {
     return(S2)
   }
 
-  # Użyj już obliczonego p zamiast wywoływać pi_func ponownie
+# Użyj już obliczonego p zamiast wywoływać pi_func ponownie
   p_obs <- p
   esty <- sum(model$y_1 / p_obs) / sum(1 / p_obs)
 

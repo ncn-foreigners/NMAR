@@ -2,12 +2,13 @@ name: CI - Dev Branch
 
 on:
   push:
-    branches: [ package-dev ]
+    branches-ignore:
+      - 'main'
+      - 'package-pre_prod'
   pull_request:
     branches: [ package-dev ]
 
 jobs:
-
   build-package:
     name: Build Package
     runs-on: ubuntu-latest
@@ -31,13 +32,25 @@ jobs:
       - name: Run custom build script (src_dev/ -> R/)
         run: Rscript build_r_folder.R
 
-      - name: Run devtools::document()
-        run: |
-          Rscript -e 'devtools::document()'
+      # - name: Run devtools::document()
+      #   run: |
+      #     Rscript -e 'devtools::document()'
+      - name: Regenerate documentation
+        run: R -q -e "devtools::document(quiet = TRUE)"
 
-      - name: Run tests with devtools
+      - name: Check man changes
         run: |
-          Rscript -e "devtools::test(stop_on_failure = TRUE, reporter = 'summary')"
+          if git status --porcelain man/ | grep -q '^ M'; then
+            echo "❌ Documentation files were modified:"
+            git status man/
+            echo "Please run devtools::document() locally and commit changes to:"
+            git diff --name-only man/
+            exit 1
+          fi
+
+      - name: Run R CMD check
+        run: |
+          R CMD check . --no-manual --as-cran
 
       - name: Build package tarball
         id: build
@@ -137,6 +150,8 @@ jobs:
 
           mv .gitignore-prod .gitignore
           rm -rf src_dev/
+          rm -f .pre-commit-config.yaml
+          rm -rf hooks/
           rm -f build_r_folder.R
           echo "Production environment ready."
 

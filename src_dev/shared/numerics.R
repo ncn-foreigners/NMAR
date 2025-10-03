@@ -38,10 +38,10 @@ invert_jacobian <- function(A_matrix,
                             kappa_threshold = 1e8,
                             ridge_scale = NULL,
                             svd_tol = NULL) {
-  # Compute condition number (may error on singular matrices)
+# Compute condition number (may error on singular matrices)
   kappa_val <- tryCatch(kappa(A_matrix), error = function(e) Inf)
 
-  # 1) Try plain inverse if seemingly well-conditioned.
+# 1) Try plain inverse if seemingly well-conditioned.
   if (is.finite(kappa_val) && kappa_val <= kappa_threshold) {
     plain <- tryCatch(
       {
@@ -54,12 +54,12 @@ invert_jacobian <- function(A_matrix,
     }
   }
 
-  # 2) If ridge requested, attempt adaptive ridge.
-  # variance_ridge may be logical or a positive numeric epsilon.
+# 2) If ridge requested, attempt adaptive ridge.
+# variance_ridge may be logical or a positive numeric epsilon.
   if (!identical(variance_ridge, FALSE)) {
     eps <- NA_real_
     if (isTRUE(variance_ridge)) {
-      # Adaptive epsilon: scale by spectral norm
+# Adaptive epsilon: scale by spectral norm
       smax <- tryCatch(max(svd(A_matrix, nu = 0, nv = 0)$d), error = function(e) NA_real_)
       if (!is.finite(smax) || smax <= 0) smax <- 1
       base <- if (is.numeric(ridge_scale) && is.finite(ridge_scale) && ridge_scale > 0) ridge_scale else 1e-8
@@ -81,7 +81,7 @@ invert_jacobian <- function(A_matrix,
     }
   }
 
-  # 3) If pseudo-inverse requested, use an SVD-based construction.
+# 3) If pseudo-inverse requested, use an SVD-based construction.
   if (isTRUE(variance_pseudoinverse)) {
     if (!requireNamespace("MASS", quietly = TRUE)) {
       stop("Jacobian matrix is singular; pseudo-inverse requested but 'MASS' is not installed.", call. = FALSE)
@@ -101,7 +101,7 @@ invert_jacobian <- function(A_matrix,
     return(list(inv = -pinv, invert_rule = "pinv", used_pinv = TRUE, used_ridge = FALSE, kappa = kappa_val))
   }
 
-  # 4) Final attempt: plain inverse (even if ill-conditioned), else error.
+# 4) Final attempt: plain inverse (even if ill-conditioned), else error.
   plain2 <- tryCatch(
     {
       list(inv = -solve(A_matrix), invert_rule = "plain", used_pinv = FALSE, used_ridge = FALSE, kappa = kappa_val)

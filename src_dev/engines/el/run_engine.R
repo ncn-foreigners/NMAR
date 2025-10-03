@@ -33,10 +33,10 @@ run_engine.nmar_engine_el <- function(engine, task) {
     family = engine$family
   )
 
-  # Dispatch to EL implementation (data.frame or survey.design)
+# Dispatch to EL implementation (data.frame or survey.design)
   res <- do.call(el, args)
 
-  # Ensure class includes the NMAR parent for downstream compatibility
+# Ensure class includes the NMAR parent for downstream compatibility
   if (!inherits(res, "nmar_result_el")) {
     stop("EL engine did not return an 'nmar_result_el' object.")
   }

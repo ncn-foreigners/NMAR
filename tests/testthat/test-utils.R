@@ -10,7 +10,7 @@ test_that("logit family functions behave numerically", {
 })
 
 test_that("choose_jacobian returns reasonable structure", {
-  # Simple quadratic function f(x) = Ax; Jacobian is A.
+# Simple quadratic function f(x) = Ax; Jacobian is A.
   A <- matrix(c(2, 0, 0, 3), 2, 2)
   f <- function(x) as.numeric(A %*% x)
   res <- nmar:::choose_jacobian(analytic_fun = function(x) A, numeric_fun = function(x) numDeriv::jacobian(f, x), at = c(1, 1))

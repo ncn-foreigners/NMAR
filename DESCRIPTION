@@ -2,13 +2,8 @@ Package: nmar
 Type: Package
 Title: Not Missing at Random
 Version: 0.0.0.9
-Authors@R: c(
-    person(
-      "Jane", "Doe",
-      email = "jane@example.com",
-      role = c("aut", "cre")
-    )
-  )
+Author: Jane Doe [aut, cre]
+Maintainer: Jane Doe <jane@example.com>
 Description: Tools for estimation under Not Missing at Random (NMAR)
     mechanisms, including an empirical likelihood (EL) estimator for
     population means with optional auxiliary moment constraints. Supports

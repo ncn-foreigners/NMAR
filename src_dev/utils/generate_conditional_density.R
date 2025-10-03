@@ -30,14 +30,14 @@ generate_conditional_density <- function(model) {
   }
   data_df$weights <- w_resp_local
 
-  # Get covariate names (excluding y and weights)
+# Get covariate names (excluding y and weights)
   covar_names <- setdiff(colnames(model$x_for_y_obs), c("y", "weights"))
   n_covars <- length(covar_names)
   rhs_terms <- if (n_covars > 0) paste(covar_names, collapse = " + ") else "1"
 
   respondent_support_positive <- all(is.finite(model$y_1) & model$y_1 > 0)
 
-  # Gradient and Hessian for normal distribution
+# Gradient and Hessian for normal distribution
   normal_gradient <- function(y, mean_val, coefs, x_vector) {
     sigma <- coefs[["sigma"]]
     residual <- y - mean_val
@@ -67,7 +67,7 @@ generate_conditional_density <- function(model) {
     return(H)
   }
 
-  # Supported distributions with families and link functions
+# Supported distributions with families and link functions
   dist_list <- list(
     normal = list(
       family = gaussian(link = "identity"),
@@ -144,11 +144,11 @@ generate_conditional_density <- function(model) {
     .model <- fit_distribution(chosen_dist)
   }
 
-  # Extract coefficients and create design matrix function
+# Extract coefficients and create design matrix function
   coefs <- coef(.model)
   beta_names <- names(coefs)
 
-  # Design matrix function - only include covariates, not weights
+# Design matrix function - only include covariates, not weights
   design_mat <- function(x) {
     as.matrix(cbind(Intercept = 1, x[covar_names]))
   }
@@ -170,11 +170,11 @@ generate_conditional_density <- function(model) {
     coefs <- c(coefs, sigma = sigma_val)
   }
 
-  # Density function
+# Density function
   density_fun <- function(y, x) {
     x_mat <- design_mat(x)
 
-    # Ensure coefficient vector is aligned with design matrix
+# Ensure coefficient vector is aligned with design matrix
     if (ncol(x_mat) != length(coefs[beta_names])) {
       stop(paste(
         "Design matrix has", ncol(x_mat), "columns but coefficients have",
@@ -186,7 +186,7 @@ generate_conditional_density <- function(model) {
     dist_list[[chosen_dist]]$density(y, mean_val, coefs)
   }
 
-  # Gradient and Hessian functions (only for normal)
+# Gradient and Hessian functions (only for normal)
   density_grad_fun <- if (chosen_dist == "normal") {
     function(y, x) {
       x_vector <- c(1, as.numeric(x[covar_names]))

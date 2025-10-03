@@ -8,7 +8,7 @@
 validate_nmar_result <- function(x, class_name) {
   stopifnot(is.list(x), inherits(x, class_name), inherits(x, "nmar_result"))
 
-  # Core scalars
+# Core scalars
   if (is.null(x$estimate)) stop("`estimate` must be supplied by the result object.")
   if (length(x$estimate) != 1 || !is.numeric(x$estimate)) stop("`estimate` must be a numeric scalar.")
 
@@ -21,24 +21,24 @@ validate_nmar_result <- function(x, class_name) {
   if (is.null(x$converged)) x$converged <- NA
   if (length(x$converged) != 1 || !is.logical(x$converged)) stop("`converged` must be a logical scalar.")
 
-  # Model
+# Model
   if (is.null(x$model) || !is.list(x$model)) x$model <- list()
   if (is.null(x$model$coefficients)) x$model$coefficients <- NULL
   if (is.null(x$model$vcov)) x$model$vcov <- NULL
 
-  # Weights
+# Weights
   if (is.null(x$weights_info) || !is.list(x$weights_info)) x$weights_info <- list()
   if (is.null(x$weights_info$values)) x$weights_info$values <- NULL
   if (is.null(x$weights_info$trimmed_fraction)) x$weights_info$trimmed_fraction <- NA_real_
 
-  # Sample metadata
+# Sample metadata
   sample_defaults <- list(n_total = NA_integer_, n_respondents = NA_integer_, is_survey = FALSE, design = NULL)
   if (is.null(x$sample) || !is.list(x$sample)) x$sample <- list()
   for (nm in names(sample_defaults)) {
     if (is.null(x$sample[[nm]])) x$sample[[nm]] <- sample_defaults[[nm]]
   }
 
-  # Inference metadata
+# Inference metadata
   inference_defaults <- list(
     variance_method = NA_character_,
     df = NA_real_,
@@ -51,7 +51,7 @@ validate_nmar_result <- function(x, class_name) {
     if (is.null(x$inference[[nm]])) x$inference[[nm]] <- inference_defaults[[nm]]
   }
 
-  # Diagnostics / metadata
+# Diagnostics / metadata
   if (is.null(x$diagnostics) || !is.list(x$diagnostics)) x$diagnostics <- list()
   if (is.null(x$meta) || !is.list(x$meta)) x$meta <- list()
   meta_defaults <- list(engine_name = NA_character_, call = NULL, formula = NULL)
