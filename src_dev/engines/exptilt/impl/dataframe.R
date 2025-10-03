@@ -139,11 +139,8 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   model$features_are_scaled <- TRUE
 
 
-  # model$respondent_weights <- weights(model$x_1)
-  # Keep weight vectors even when one of the groups is empty so downstream code
-  # (score, variance, bootstrap guards) can safely rely on zero-length vectors
-  model$respondent_weights <- if (any(respondent_mask)) model$design_weights[respondent_mask] else numeric(0)
-  model$nonrespondent_weights <- if (any(!respondent_mask)) model$design_weights[!respondent_mask] else numeric(0)
+  # We will derive respondent/nonrespondent weight slices on the fly from
+  # design_weights using the stored masks to avoid duplicating state
 
   model$theta <- stats::runif(length(model$cols_delta) + 2, 0, 0.1)
   # Name the parameter vector to align with the design vector used throughout
@@ -229,8 +226,6 @@ exptilt_estimator_core <- function(model, bootstrap_template, respondent_mask,
   # density helpers will internally re-apply the scaling recipe captured during
   # model fitting so that gamma_hat remains consistent
   model$features_are_scaled <- FALSE
-  model$respondent_weights <- if (any(respondent_mask)) model$design_weights[respondent_mask] else numeric(0)
-  model$nonrespondent_weights <- if (any(!respondent_mask)) model$design_weights[!respondent_mask] else numeric(0)
 
   model$O_matrix_nieobs <- generate_Odds(model)
   model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
@@ -296,8 +291,9 @@ exptilt_estimator_core <- function(model, bootstrap_template, respondent_mask,
     # respondents or highly uneven weights, steering to the bootstrap tends to
     # give more stable uncertainty estimates
 
-    n_resp <- length(model$respondent_weights)
-    design_varies <- n_resp > 1 && max(abs(model$respondent_weights - model$respondent_weights[1])) > 1e-6
+    resp_w_local <- model$design_weights[respondent_mask]
+    n_resp <- length(resp_w_local)
+    design_varies <- n_resp > 1 && max(abs(resp_w_local - resp_w_local[1])) > 1e-6
     few_resp <- n_resp < 40
     if (design_varies || few_resp) {
       warning("Delta variance may be unreliable with the current sample; using bootstrap instead.", call. = FALSE)
@@ -360,7 +356,7 @@ exptilt_estimator_core <- function(model, bootstrap_template, respondent_mask,
     vcov = var_results$vcov,
     model = model,
     converged = TRUE,
-    weights = model$respondent_weights,
+    weights = model$design_weights[respondent_mask],
     variance_message = NA_character_
   )
 

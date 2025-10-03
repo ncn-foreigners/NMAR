@@ -4,6 +4,15 @@ estim_var.nmar_exptilt <- function(model) {
   # Fisher blocks using respondent/nonrespondent weights so the influence
   # function matches the weighted score equation
 
+  # Derive respondent/nonrespondent weight slices from design_weights once
+  if (!is.null(model$design_weights) && !is.null(model$respondent_mask)) {
+    resp_wts <- model$design_weights[model$respondent_mask]
+    nonresp_wts <- model$design_weights[!model$respondent_mask]
+  } else {
+    resp_wts <- rep(1, if (!is.null(model$x_1)) nrow(model$x_1) else 0)
+    nonresp_wts <- rep(1, if (!is.null(model$x_0)) nrow(model$x_0) else 0)
+  }
+
 
   # Removed unused precomputation of s_values_unobs, respondent-only score at
   # delta=0 is not used in the variance path
@@ -62,8 +71,6 @@ estim_var.nmar_exptilt <- function(model) {
 
     # Match Remark 2, nonrespondent contributions are weighted by their design
     # weights so the FI blocks reflect the weighted mean-score equation
-    nonresp_wts <- model$nonrespondent_weights
-    if (is.null(nonresp_wts)) nonresp_wts <- rep(1, n_unobs)
 
     for (i in 1:n_unobs) {
       x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
@@ -123,9 +130,7 @@ estim_var.nmar_exptilt <- function(model) {
     FI22 <- matrix(0, nrow = num_phi_params, ncol = num_phi_params)
 
     # TODO optimize
-    # Same weighting logic for FI22
-    nonresp_wts <- model$nonrespondent_weights
-    if (is.null(nonresp_wts)) nonresp_wts <- rep(1, n_unobs)
+    # Same weighting logic for FI22 (use nonresp_wts from parent scope)
 
     for (i in 1:n_unobs) {
       x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
@@ -167,7 +172,7 @@ estim_var.nmar_exptilt <- function(model) {
 
     # Oblicz pierwszą część formuły B (suma)
     # W artykule autora `B1`
-    sum_term <- t(u_i * model$respondent_weights / p_obs) %*% pi_deriv_obs
+    sum_term <- t(u_i * resp_wts / p_obs) %*% pi_deriv_obs
 
     # B = suma %*% odwrotność(FI22)
     B <- sum_term %*% solve(FI22)
@@ -187,16 +192,12 @@ estim_var.nmar_exptilt <- function(model) {
 
     # --- 1. Obliczenia dla respondentów ---
     x_obs_delta <- model$x_1[, model$cols_delta, drop = FALSE]
-    resp_wts <- model$respondent_weights
-    if (is.null(resp_wts)) resp_wts <- rep(1, length(respondent_indices))
     S2[respondent_indices, ] <- resp_wts * s_function.nmar_exptilt(model, delta = 1, x = x_obs_delta, theta = model$theta)
 
     # --- 2. Obliczenia dla nierespondentów ---
     n_unobs <- nrow(model$x_0)
     n_obs <- nrow(model$x_1)
 
-    nonresp_wts <- model$nonrespondent_weights
-    if (is.null(nonresp_wts)) nonresp_wts <- rep(1, n_unobs)
 
     # W pętli, ponieważ każda `s_bar_0i` jest specyficzna dla `x_i` nierespondenta
     for (i in 1:n_unobs) {
@@ -230,19 +231,15 @@ estim_var.nmar_exptilt <- function(model) {
   u_i_obs <- model$y_1 - esty
 
   correction_term_obs <- S2[respondent_indices, ] - S1 %*% t(K)
-  resp_wts <- model$respondent_weights
-  if (is.null(resp_wts)) resp_wts <- rep(1, length(respondent_indices))
   eta_resp <- (u_i_obs / p_obs) - as.numeric(B %*% t(correction_term_obs))
   eta[respondent_indices] <- resp_wts * eta_resp
 
   non_respondent_indices <- which(is.na(model$x[, model$col_y]))
   correction_term_unobs <- S2[non_respondent_indices, ]
-  nonresp_wts <- model$nonrespondent_weights
-  if (is.null(nonresp_wts)) nonresp_wts <- rep(1, length(non_respondent_indices))
   eta_nonresp <- -as.numeric(B %*% t(correction_term_unobs))
   eta[non_respondent_indices] <- nonresp_wts * eta_nonresp
 
-  tau <- sum(model$respondent_weights / p_obs)
+  tau <- sum(resp_wts / p_obs)
 
   total_weight <- if (!is.null(model$design_weights)) sum(model$design_weights) else n_total
   var_est <- total_weight * stats::var(eta) / (tau^2)
