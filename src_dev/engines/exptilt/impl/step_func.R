@@ -6,6 +6,7 @@ step_func <- function(model, theta, O_matrix_nieobs) {
   inv_C <- 1 * model$respondent_weights / as.vector(model$C_matrix_nieobs)
   common_term <- O_matrix_nieobs * model$f_matrix_nieobs * rep(inv_C, each = nrow(O_matrix_nieobs)) * model$respondent_weights
 
+  # browser()
   denominator <- rowSums(common_term)
 
   numerators <- common_term %*% s_values_unobs

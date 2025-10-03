@@ -102,12 +102,14 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   # all see the same vector. For plain data frames, fall back to weight 1 if
   # the caller has not already supplied model$design_weights (the survey
   # method pre-populates this vector)
-  if (is.null(model$design_weights) || length(model$design_weights) != nrow(model$x)) {
-    model$design_weights <- rep(1, nrow(model$x))
-  }
+  # if (is.null(model$design_weights) || length(model$design_weights) != nrow(model$x)) {
+  #   model$design_weights <- rep(1, nrow(model$x))
+  # }
 
   respondent_mask <- !is.na(model$x[, model$col_y])
   model$respondent_mask <- respondent_mask
+  # browser()
+
   scaling_weights <- model$design_weights
   # When scaling we only want respondent rows to contribute; pass a mask so the
   # helper can zero-out nonrespondents without reallocating weights
@@ -132,6 +134,10 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   model$y_1 <- if (nrow(model$x_1)) model$x_1[, model$col_y, drop = TRUE] else numeric(0) # observed y
   model$x_for_y_obs <- auxiliary_matrix_scaled[respondent_mask, , drop = FALSE]
   model$x_for_y_unobs <- auxiliary_matrix_scaled[!respondent_mask, , drop = FALSE]
+
+  if(model$is_survey==F) model$respondent_weights <- rep(1, nrow(model$x_1)) else model$respondent_weights <-weights(model$x_1)
+
+
   # Track the current scale of feature matrices. We fit f1(.) on the scaled
   # space and compute EM steps there. After unscaling coefficients for
   # presentation we flip this flag to FALSE so downstream density evaluations
