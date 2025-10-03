@@ -1,41 +1,11 @@
 generate_conditional_density <- function(model) {
-  # Conditional density fit for f_1(y | x_1; gamma)
-  #
-  # Rationale and safeguards (what can go wrong):
-  # - Support mismatch (lognormal/exponential): both families require y>0.
-  #   If any observed respondent outcome is nonpositive, fitting
-  #   log(y) ~ x_1 (lognormal) or Gamma(log) (exponential) will produce domain
-  #   errors or NaNs. We therefore exclude these families from the "auto"
-  #   selection unless all observed y are strictly positive. If the user
-  #   explicitly requests one of these but the data violate support, we warn and
-  #   revert to the normal family.
-  # - Non-finite likelihood evaluations: even with a feasible family, extreme
-  #   parameter estimates (e.g., sigma <= 0) or numerical issues can yield
-  #   non-finite density values during EM. After selecting a family we probe the
-  #   observed support; if any evaluation is non-finite we conservatively fall
-  #   back to the normal family at the same design to keep the EM step defined.
-  # - Design-matrix alignment: the design for f_1(y | x_1) must match the
-  #   fitted coefficient vector. We check dimensions and throw an explicit error
-  #   if they disagree (prevents silent recycling or misaligned multiplications).
-  # - Scaling: f_1 is fit on the scaled auxiliary space when the ET solver works
-  #   in scaled coordinates. For density evaluation on unobserved x_1 we apply
-  #   the stored scaling recipe so the design fed to the density matches the fit.
 
   data_df <- data.frame(y = model$y_1, model$x_for_y_obs)
-  # Use respondent slice of design weights if available; otherwise weight 1
-  if (!is.null(model$design_weights) && !is.null(model$respondent_mask)) {
-    w_resp_local <- model$design_weights[model$respondent_mask]
-  } else {
-    w_resp_local <- rep(1, length(model$y_1))
-  }
-  data_df$weights <- w_resp_local
+  data_df$weights <- model$respondent_weights # Add weights to data frame
 
 # Get covariate names (excluding y and weights)
   covar_names <- setdiff(colnames(model$x_for_y_obs), c("y", "weights"))
   n_covars <- length(covar_names)
-  rhs_terms <- if (n_covars > 0) paste(covar_names, collapse = " + ") else "1"
-
-  respondent_support_positive <- all(is.finite(model$y_1) & model$y_1 > 0)
 
 # Gradient and Hessian for normal distribution
   normal_gradient <- function(y, mean_val, coefs, x_vector) {
@@ -106,42 +76,37 @@ generate_conditional_density <- function(model) {
     )
   )
 
-  # Choose distribution
-  fit_distribution <- function(dist_name) {
-    formula_str <- if (dist_name == "lognormal") {
-      paste("log(y) ~", rhs_terms)
-    } else {
-      paste("y ~", rhs_terms)
-    }
-    dist_list[[dist_name]]$fit(as.formula(formula_str), data_df)
-  }
-
+# Choose distribution
   chosen_dist <- model$y_dens
   if (chosen_dist == "auto") {
-    candidate_dists <- names(dist_list)
-    if (!respondent_support_positive) {
-      candidate_dists <- setdiff(candidate_dists, c("lognormal", "exponential"))
-    }
     aics <- c()
     fits <- list()
-    for (d in candidate_dists) {
-      fit_try <- try(fit_distribution(d), silent = TRUE)
+    for (d in names(dist_list)) {
+# Create formula with explicit covariates (not using .)
+      formula_str <- if (d == "lognormal") {
+        paste("log(y) ~", paste(covar_names, collapse = " + "))
+      } else {
+        paste("y ~", paste(covar_names, collapse = " + "))
+      }
+      fit_try <- try(
+        dist_list[[d]]$fit(as.formula(formula_str), data = data_df),
+        silent = TRUE
+      )
       if (!inherits(fit_try, "try-error")) {
         fits[[d]] <- fit_try
         aics[d] <- AIC(fit_try)
       }
     }
-    if (!length(fits)) {
-      stop("Unable to fit any conditional outcome density.", call. = FALSE)
-    }
     chosen_dist <- names(which.min(aics))
     .model <- fits[[chosen_dist]]
   } else {
-    if (chosen_dist %in% c("lognormal", "exponential") && !respondent_support_positive) {
-      warning("Selected y_dens='", chosen_dist, "' requires positive observed outcomes; using normal instead.", call. = FALSE)
-      chosen_dist <- "normal"
+# Create formula with explicit covariates (not using .)
+    formula_str <- if (chosen_dist == "lognormal") {
+      paste("log(y) ~", paste(covar_names, collapse = " + "))
+    } else {
+      paste("y ~", paste(covar_names, collapse = " + "))
     }
-    .model <- fit_distribution(chosen_dist)
+    .model <- dist_list[[chosen_dist]]$fit(as.formula(formula_str), data_df)
   }
 
 # Extract coefficients and create design matrix function
@@ -153,20 +118,9 @@ generate_conditional_density <- function(model) {
     as.matrix(cbind(Intercept = 1, x[covar_names]))
   }
 
-  # Add sigma coefficient for normal and lognormal using the model's
-  # weighted residual standard error (design-consistent when weights are
-  # provided to lm()). Fallback to an epsilon if undefined
+# Add sigma coefficient for normal and lognormal
   if (chosen_dist %in% c("normal", "lognormal")) {
-    sigma_val <- tryCatch(
-      {
-        s <- summary(.model)$sigma
-        if (!is.finite(s) || s <= 0) NA_real_ else s
-      },
-      error = function(e) NA_real_
-    )
-    if (!is.finite(sigma_val) || is.na(sigma_val) || sigma_val <= 0) {
-      sigma_val <- .Machine$double.eps
-    }
+    sigma_val <- sd(resid(.model))
     coefs <- c(coefs, sigma = sigma_val)
   }
 
@@ -176,10 +130,8 @@ generate_conditional_density <- function(model) {
 
 # Ensure coefficient vector is aligned with design matrix
     if (ncol(x_mat) != length(coefs[beta_names])) {
-      stop(paste(
-        "Design matrix has", ncol(x_mat), "columns but coefficients have",
-        length(coefs[beta_names]), "elements"
-      ))
+      stop(paste("Design matrix has", ncol(x_mat), "columns but coefficients have",
+                 length(coefs[beta_names]), "elements"))
     }
 
     mean_val <- x_mat %*% coefs[beta_names]
@@ -207,31 +159,6 @@ generate_conditional_density <- function(model) {
     NULL
   }
 
-  # Guard against densities that fail on the observed support. If detected and
-  # a non-normal family was selected, refit using the normal helper instead
-  if (!identical(chosen_dist, "normal")) {
-    finite_eval <- tryCatch(
-      {
-        vals <- vapply(seq_along(model$y_1), function(idx) {
-          x_row <- model$x_for_y_obs[idx, , drop = FALSE]
-          if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
-            x_row <- apply_nmar_scaling(x_row, model$nmar_scaling_recipe)
-          }
-          density_fun(model$y_1[idx], x_row)
-        }, numeric(1))
-        all(is.finite(vals))
-      },
-      error = function(e) FALSE
-    )
-
-    if (!finite_eval) {
-      warning("Density '", chosen_dist, "' produced non-finite evaluations; reverting to normal.", call. = FALSE)
-      model_fallback <- model
-      model_fallback$y_dens <- "normal"
-      return(generate_conditional_density(model_fallback))
-    }
-  }
-
   return(list(
     model = .model,
     density_function = density_fun,
@@ -242,70 +169,21 @@ generate_conditional_density <- function(model) {
   ))
 }
 generate_conditional_density_matrix <- function(model) {
-  # Add error handling for dimension mismatches and ensure that the covariates
-  # fed to the fitted density function live on the SAME scale used during the
-  # density fit. The model stores a scaling recipe, after unscaling the feature
-  # matrices for reporting, we temporarily re-apply that recipe here
+# Add error handling for dimension mismatches
   tryCatch({
-    n_unobs <- nrow(model$x_for_y_unobs)
-    n_resp <- length(model$y_1)
-    if (!n_unobs || !n_resp) {
-      return(matrix(numeric(0), nrow = n_unobs, ncol = n_resp))
-    }
-
-    y_vals <- as.numeric(model$y_1)
-    out <- matrix(NA_real_, nrow = n_unobs, ncol = n_resp)
-
-    for (i in seq_len(n_unobs)) {
-      x_row <- model$x_for_y_unobs[i, , drop = FALSE]
-      # Re-apply scaling if the current feature matrices are on the original scale
-      if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
-        x_row <- apply_nmar_scaling(x_row, model$nmar_scaling_recipe)
-      }
-      # Evaluate densities for all y_j in a single vectorized call
-      out[i, ] <- vapply(y_vals, function(yj) model$density_fun(yj, x_row), numeric(1))
-    }
-    out
+    matrix(
+      outer(1:nrow(model$x_for_y_unobs), model$y_1,
+            FUN = function(i, y) model$density_fun(y, model$x_for_y_unobs[i, , drop = FALSE])),
+      ncol = length(model$y_1),
+      nrow = nrow(model$x_for_y_unobs)
+    )
   }, error = function(e) {
     stop("Error in generate_conditional_density_matrix: ", e$message)
   })
 }
 
 generate_C_matrix <- function(model) {
-  # C(y_j; gamma) must sum over RESPONDENTS, not nonrespondents.
-  # Paper (eq. 15): C(y; gamma) = sum_{l: delta_l=1} f1(y | x_l; gamma). In the survey case,
-  # this becomes a weighted sum with design weights d_l. This term depends only
-  # on y_j and gamma_hat; it must not depend on any nonrespondent covariates.
-  #
-  # Earlier implementation incorrectly computed C as colSums of f_matrix_nieobs,
-  # which sums over nonrespondents i: sum_i f1(y_j | x_i^unobs). That is
-  # inconsistent with the derivation and breaks the fractional weights.
-
-  y_obs <- as.numeric(model$y_1)
-  X_obs <- model$x_for_y_obs
-  n_obs <- length(y_obs)
-  if (!length(y_obs) || is.null(X_obs) || !nrow(X_obs)) {
-    return(matrix(numeric(0), ncol = 1))
-  }
-
-  # Build F_resp[l, j] = f1(y_j | x_l^obs; gamma_hat), honoring the scale used during fit.
-  F_resp <- matrix(NA_real_, nrow = nrow(X_obs), ncol = n_obs)
-  for (l in seq_len(nrow(X_obs))) {
-    x_row <- X_obs[l, , drop = FALSE]
-    if (isFALSE(model$features_are_scaled) && !is.null(model$nmar_scaling_recipe)) {
-      x_row <- apply_nmar_scaling(x_row, model$nmar_scaling_recipe)
-    }
-    F_resp[l, ] <- vapply(y_obs, function(yj) model$density_fun(yj, x_row), numeric(1))
-  }
-
-  # Include respondent sampling weights if present (Remark 2)
-  if (!is.null(model$design_weights) && !is.null(model$respondent_mask)) {
-    w_resp <- model$design_weights[model$respondent_mask]
-  } else {
-    w_resp <- rep(1, nrow(X_obs))
-  }
-
-  # C_j = sum_l w_l * f1(y_j | x_l)
-  C_vec <- as.numeric(crossprod(w_resp, F_resp))
-  matrix(C_vec, ncol = 1)
+  stopifnot(is.matrix(model$f_matrix_nieobs))
+  col_sums <- colSums(model$f_matrix_nieobs)
+  return(matrix(col_sums, ncol = 1))
 }
