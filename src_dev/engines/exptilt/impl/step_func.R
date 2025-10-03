@@ -1,26 +1,43 @@
 #' @exportS3Method NULL
 step_func <- function(model, theta, O_matrix_nieobs) {
-  # Solve the mean score equation S2(phi) = 0 by combining respondent scores
-  # with the fractional imputation terms for nonrespondents (see eq. 13 in the
-  # paper). We explicitly build s(phi; delta, x1, y) so that each nonrespondent i
-  # uses their covariates x1i while averaging over respondent outcomes yj with
-  # weights w_ij proportional to O(x1i, yj; phi) * f1(yj | x1i; gamma_hat) / C(yj; gamma_hat)
+  # Previous implementation computed
+  #   s_values_unobs <- s_function(delta = 0, x = X_obs, theta)
+  # and then multiplied by the fractional weight matrix O_{ij}f_{ij} / C_j).
+  # That evaluates s(phi; 0, x_{1j}, y_j) at RESPONDENT covariates x_{1j},
+  # not at the NONRESPONDENT covariates x_{1i}. In the ET E-step (discrete case),
+  # the nonrespondent contribution must be
+  #   E_0[s(phi; 0, x_{1i}, Y)] = sum_j w_{ij}s(phi; 0, x_{1i}, y_j),
+  # i.e., hold x_{1i} fixed and average over the respondent grid y_j.
+  #
+  # Below we keep the vectorized structure but compute
+  # s(phi; 0, x_{1i}, y_j) by replicating x_{1i} across the y_j grid and
+  # calling s_function with an explicit y argument. This matches the papers
+  # E-step, is algebraically correct, and preserves the performance of the
+  # original vectorization.
+  # We solve the mean score equation S_2(phi)=0 by combining respondent scores
+  # with fractional-imputation terms for nonrespondents (eq. 13).
+  # We explicitly build s(phi; delta, x_1, y) so that each nonrespondent i
+  # uses their covariates x_{1i} while averaging over respondent outcomes y_j with
+  # weights w_{ij} ~ O(x_{1i},y_j; phi)f_1(y_j | x_{1i}; gamma_har) / C(y_j; gamma_hat).
 
   x_obs_delta <- model$x_1[, model$cols_delta, drop = FALSE]
   y_obs <- model$y_1
   n_obs_rows <- if (is.null(dim(x_obs_delta))) length(x_obs_delta) else nrow(x_obs_delta)
-  respondent_weights <- model$respondent_weights
-  if (is.null(respondent_weights) || !length(respondent_weights)) {
+  # Derive weights
+  if (!is.null(model$design_weights) && !is.null(model$respondent_mask)) {
+    respondent_weights <- model$design_weights[model$respondent_mask]
+  } else {
     respondent_weights <- rep(1, n_obs_rows)
   }
   x_unobs_delta <- model$x_0[, model$cols_delta, drop = FALSE]
   n_non_rows <- if (is.null(dim(x_unobs_delta))) length(x_unobs_delta) else nrow(x_unobs_delta)
-  nonrespondent_weights <- model$nonrespondent_weights
-  if (is.null(nonrespondent_weights) || !length(nonrespondent_weights)) {
+  if (!is.null(model$design_weights) && !is.null(model$respondent_mask)) {
+    nonrespondent_weights <- model$design_weights[!model$respondent_mask]
+  } else {
     nonrespondent_weights <- rep(1, n_non_rows)
   }
 
-  # Respondent contribution: sum_j d_j * s(phi; delta = 1, x1j, yj)
+  # Respondent contribution: sum_j d_j s(\phi; 1, x_{1j}y_j)
   s_obs <- s_function(model, delta = 1, x = x_obs_delta, theta = theta, y = y_obs)
   if (!is.null(s_obs) && length(respondent_weights)) {
     s_obs <- s_obs * respondent_weights
@@ -43,16 +60,26 @@ step_func <- function(model, theta, O_matrix_nieobs) {
   weight_denominator[weight_denominator == 0] <- 1
   fractional_weights <- common_term / weight_denominator
 
-  # Nonrespondent contribution: sum_i d_i * sum_j w_ij * s(phi; delta = 0, x1i, yj)
-  score_nonresp <- numeric(length(theta))
+  # Nonrespondent contribution (vectorised):
+  # Build replicated design for all (i,j) pairs: i repeats, j varies fastest
+  if (n_nonrespondents > 0) {
+    x_rep <- model$x_0[, model$cols_delta, drop = FALSE]
+    x_rep <- x_rep[rep(seq_len(n_nonrespondents), each = length(y_obs)), , drop = FALSE]
+    y_rep <- rep(y_obs, times = n_nonrespondents)
 
-  for (i in seq_len(n_nonrespondents)) {
-    x_i_delta <- model$x_0[i, model$cols_delta, drop = FALSE]
-    x_i_rep <- matrix(rep(x_i_delta, each = length(y_obs)), nrow = length(y_obs), byrow = TRUE)
-
-    s_ij <- s_function(model, delta = 0, x = x_i_rep, theta = theta, y = y_obs)
-    score_nonresp <- score_nonresp + nonrespondent_weights[i] * as.numeric(crossprod(fractional_weights[i, ], s_ij))
+    s_ij <- s_function(model, delta = 0, x = x_rep, theta = theta, y = y_rep)
+    # Weight by fractional weights: flatten by row-major order (i blocks)
+    w_flat <- as.vector(t(fractional_weights))
+    s_ij_weighted <- s_ij * w_flat
+    # Sum within each i block of length length(y_obs)
+    grp <- rep(seq_len(n_nonrespondents), each = length(y_obs))
+    S_non_by_i <- rowsum(s_ij_weighted, group = grp, reorder = FALSE)
+    # Apply nonrespondent design weights and sum across i
+    score_nonresp <- as.numeric(colSums(S_non_by_i * nonrespondent_weights))
+  } else {
+    score_nonresp <- rep(0, length(theta))
   }
 
+  # Final score
   as.numeric(score_obs + score_nonresp)
 }
