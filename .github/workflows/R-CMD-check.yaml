@@ -4,6 +4,7 @@ on:
   push:
     branches: [package-pre_prod]#TODO on prod should be main
   pull_request:
+    branches: [package-pre_prod]
 
 name: R-CMD-check.yaml
 
