@@ -16,3 +16,4 @@
 ^pkgdown\.yml$
 ^\.gitignore-prod$
 ^src_dev$
+^\.pre-commit-config\.yaml$
