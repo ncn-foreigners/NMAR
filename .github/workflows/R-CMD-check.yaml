@@ -2,10 +2,7 @@
 # Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
 on:
   workflow_dispatch:
-  push:
-    branches: [package-pre_prod]
-  pull_request:
-    branches: [package-pre_prod]
+
 
 name: R-CMD-check.yaml
 
