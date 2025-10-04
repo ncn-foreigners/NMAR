@@ -112,6 +112,7 @@ jobs:
     name: Deploy to pre-prod
     needs: build-package
     runs-on: ubuntu-latest
+    if: github.head_ref == 'package-dev' || github.ref_name == 'package-dev' #save of injection, github vars are immutable
     steps:
       - name: Checkout dev branch
         uses: actions/checkout@v4

@@ -10,7 +10,7 @@ test_that("response_predictors can include non-auxiliary variables", {
   df$Y_miss[!R] <- NA_real_
 
 # Outcome RHS contains only X (auxiliary). Include Z as response-only predictor.
-  res <- nmar:::el.data.frame(
+  res <- NMAR:::el.data.frame(
     data = df,
     formula = Y_miss ~ X,
     response_predictors = c("Z"),

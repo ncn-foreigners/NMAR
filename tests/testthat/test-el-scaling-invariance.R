@@ -9,7 +9,7 @@ test_that("standardize vs manual scaling yields identical y_hat (df)", {
   df[!R, "Y_miss"] <- NA_real_
 
 # Auto scaling
-  fit_auto <- nmar:::el.data.frame(df, Y_miss ~ X,
+  fit_auto <- NMAR:::el.data.frame(df, Y_miss ~ X,
     response_predictors = NULL,
     auxiliary_means = c(X = 0), standardize = TRUE,
     variance_method = "delta"
@@ -20,7 +20,7 @@ test_that("standardize vs manual scaling yields identical y_hat (df)", {
   resp_df <- df[!is.na(df$Y_miss), ]
   Z_un <- model.matrix(~Y_miss, data = resp_df)
   X_un <- model.matrix(~ X - 1, data = resp_df)
-  recipe <- nmar:::create_nmar_scaling_recipe(Z_un, X_un)
+  recipe <- NMAR:::create_nmar_scaling_recipe(Z_un, X_un)
   df_scaled <- df
 # Scale both Y_miss and X in the data (affects response model and outcome)
   if ("Y_miss" %in% names(recipe)) {
@@ -32,7 +32,7 @@ test_that("standardize vs manual scaling yields identical y_hat (df)", {
   aux_mean_scaled <- c(X = 0)
   if ("X" %in% names(recipe)) aux_mean_scaled["X"] <- (0 - recipe$X$mean) / recipe$X$sd
 
-  fit_manual <- nmar:::el.data.frame(df_scaled, Y_miss ~ X,
+  fit_manual <- NMAR:::el.data.frame(df_scaled, Y_miss ~ X,
     response_predictors = NULL,
     auxiliary_means = aux_mean_scaled, standardize = FALSE,
     variance_method = "delta"
@@ -54,7 +54,7 @@ test_that("multi-predictor scaling matches manual rescaling", {
   df <- data.frame(Y_miss = Y, X1 = X1, X2 = X2)
   df[!R, "Y_miss"] <- NA_real_
 
-  fit_auto <- nmar:::el.data.frame(df, Y_miss ~ X1 + X2,
+  fit_auto <- NMAR:::el.data.frame(df, Y_miss ~ X1 + X2,
     response_predictors = NULL,
     auxiliary_means = c(X1 = 0, X2 = 0), standardize = TRUE,
     variance_method = "delta"
@@ -64,7 +64,7 @@ test_that("multi-predictor scaling matches manual rescaling", {
   resp_df <- df[!is.na(df$Y_miss), ]
   Z_un <- model.matrix(~ Y_miss + X1 + X2, data = resp_df)
   X_un <- model.matrix(~ X1 + X2 - 1, data = resp_df)
-  recipe <- nmar:::create_nmar_scaling_recipe(Z_un, X_un)
+  recipe <- NMAR:::create_nmar_scaling_recipe(Z_un, X_un)
   df_scaled <- df
   for (nm in names(recipe)) {
     if (nm %in% names(df_scaled)) {
@@ -76,7 +76,7 @@ test_that("multi-predictor scaling matches manual rescaling", {
     X2 = (0 - recipe$X2$mean) / recipe$X2$sd
   )
 
-  fit_manual <- nmar:::el.data.frame(df_scaled, Y_miss ~ X1 + X2,
+  fit_manual <- NMAR:::el.data.frame(df_scaled, Y_miss ~ X1 + X2,
     response_predictors = NULL,
     auxiliary_means = aux_means_scaled, standardize = FALSE,
     variance_method = "delta"

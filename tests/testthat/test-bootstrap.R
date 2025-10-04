@@ -24,7 +24,7 @@ test_that("bootstrap_variance handles iid data", {
   set.seed(123)
   df <- data.frame(y = c(1, 2, 3, 4))
   point_est <- mean(df$y)
-  res <- nmar:::bootstrap_variance(df,
+  res <- NMAR:::bootstrap_variance(df,
     estimator_func = bootstrap_dummy_estimator,
     point_estimate = point_est,
     bootstrap_reps = 10
@@ -40,7 +40,7 @@ test_that("bootstrap_variance handles survey designs", {
   df <- data.frame(y = c(1, 2, 3, 4), w = c(1, 2, 1, 3))
   design <- survey::svydesign(ids = ~1, data = df, weights = ~w)
   point_est <- sum(df$y * df$w) / sum(df$w)
-  res <- nmar:::bootstrap_variance(design,
+  res <- NMAR:::bootstrap_variance(design,
     estimator_func = bootstrap_dummy_estimator,
     point_estimate = point_est,
     bootstrap_reps = 5
@@ -70,7 +70,7 @@ test_that("bootstrap_variance forwards settings to svrep", {
     .package = "svrep"
   )
 
-  res <- suppressWarnings(nmar:::bootstrap_variance(design,
+  res <- suppressWarnings(NMAR:::bootstrap_variance(design,
     estimator_func = bootstrap_dummy_estimator,
     point_estimate = point_est,
     bootstrap_reps = 4,
@@ -89,7 +89,7 @@ test_that("bootstrap_variance errors when design call not svydesign", {
   base_design <- survey::svydesign(ids = ~1, data = df, weights = ~w)
   subset_design <- subset(base_design, y > 1)
   expect_error(
-    nmar:::bootstrap_variance(subset_design,
+    NMAR:::bootstrap_variance(subset_design,
       estimator_func = bootstrap_dummy_estimator,
       point_estimate = 1,
       bootstrap_reps = 3

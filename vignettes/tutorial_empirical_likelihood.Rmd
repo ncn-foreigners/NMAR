@@ -10,7 +10,7 @@ vignette: >
 ```{r}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 set.seed(123)
-library(nmar)
+library(NMAR)
 ```
 
 # Overview
