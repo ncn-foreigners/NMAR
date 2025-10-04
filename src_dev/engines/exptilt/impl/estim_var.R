@@ -211,7 +211,7 @@ estim_var.nmar_exptilt <- function(model) {
 
 # TODO below for test only
 # cat("Estimated Mean (esty):", esty, "\n")
-  cat("Estimated Variance (var_est):", var_est, "\n")
+  # cat("Estimated Variance (var_est):", var_est, "\n")
   respondent_indices <- which(!is.na(model$x[, model$col_y]))
   diff_S2_S1 <- S2[respondent_indices, ] - S1 %*% t(K)
   var_S2_S1 <- cov(diff_S2_S1)
