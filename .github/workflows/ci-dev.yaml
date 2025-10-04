@@ -131,7 +131,7 @@ jobs:
             echo "🟡 Skipping deployment for branch: ${{ steps.set_vars.outputs.current_branch }}"
             echo "✅ Expected branch: ${{ steps.set_vars.outputs.allowed_branch }}"
             exit 0
-        fi
+          fi
 
       - name: Checkout dev branch
         uses: actions/checkout@v4
