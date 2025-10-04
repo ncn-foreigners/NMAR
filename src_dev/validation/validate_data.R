@@ -12,6 +12,7 @@
 #' @param allow_covariate_overlap Logical; allow overlap between outcome and response
 #'   covariate sets (default `FALSE`).
 #' @return Returns `invisible(NULL)` on success, stopping with a descriptive error on failure.
+#' @keywords internal
 validate_data <- function(data,
                           outcome_variable,
                           covariates_for_outcome,

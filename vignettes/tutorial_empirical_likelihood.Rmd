@@ -31,7 +31,7 @@ Key features:
   - Variables in `covariates_missingness` enter only the response model (no auxiliary constraint). They do not need population means.
 - Choose the engine: `el_engine(...)`, e.g., `el_engine(auxiliary_means = c(X1 = 0), variance_method = "delta", standardize = TRUE)`.
 - Fit: `nmar(formula = <list>, data = df_or_design, engine = el_engine(...))`.
-- Inspect: `summary()`, `confint()`, `estimate()`, `weights()`, `fitted()`, and `fit$diagnostics`.
+- Inspect: `summary()`, `confint()`, `weights()`, `fitted()`, and `fit$diagnostics`.
 # 
 # Data-frame example (IID)
 
@@ -90,14 +90,13 @@ if (requireNamespace("broom", quietly = TRUE)) {
   broom::glance(fit)
 }
 
-plot(fit, which = "weights")
-plot(fit, which = "fitted")
+# plot(fit, which = "weights")
+# plot(fit, which = "fitted")
 ```
 
 Outputs and diagnostics at a glance:
 
 ```{r}
-estimate(fit)
 weights(fit)[1:10]
 fitted(fit)[1:10]
 str(fit$diagnostics)

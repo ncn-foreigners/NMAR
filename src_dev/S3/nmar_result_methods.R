@@ -25,25 +25,7 @@
 #' @importFrom stats fitted weights coef
 NULL
 
-#' Extract the primary estimate
-#' @description Generic to extract the quantity of interest (typically the population mean).
-#' @param x A fitted object.
-#' @param ... Ignored.
-#' @export
-estimate <- function(x, ...) UseMethod("estimate")
 
-#' Estimate for base NMAR results
-#' @param x An object of class `nmar_result`.
-#' @param ... Ignored.
-#' @export
-estimate.nmar_result <- function(x, ...) {
-  est <- nmar_result_get_estimate(x)
-  nm <- nmar_result_get_estimate_name(x)
-  if (is.na(est)) {
-    return(NA_real_)
-  }
-  setNames(as.numeric(est), nm)
-}
 
 #' Variance-covariance for base NMAR results
 #' @param object An object of class `nmar_result`.
@@ -202,7 +184,7 @@ glance.nmar_result <- function(x, ...) {
 #' @param x An object of class `nmar_result`.
 #' @param which Which plot: one of `"weights"`, `"fitted"`, `"constraints"`, `"diagnostics"`.
 #' @param ... Ignored.
-#' @export
+#' @keywords internal
 plot.nmar_result <- function(x, which = c("weights", "fitted", "constraints", "diagnostics"), ...) {
   which <- match.arg(which)
   op <- graphics::par(no.readonly = TRUE)
@@ -256,7 +238,7 @@ plot.nmar_result <- function(x, which = c("weights", "fitted", "constraints", "d
 #' @description Generic for autoplot; methods provide plotting for NMAR results.
 #' @param object An object.
 #' @param ... Passed to methods.
-#' @export
+#' @keywords internal
 autoplot <- function(object, ...) UseMethod("autoplot")
 
 #' Default ggplot2 autoplot for NMAR results
@@ -265,7 +247,7 @@ autoplot <- function(object, ...) UseMethod("autoplot")
 #' @param type One of "weights", "fitted", or "constraints".
 #' @param ... Ignored.
 #' @return A `ggplot` object.
-#' @export
+#' @keywords internal
 autoplot.nmar_result <- function(object, type = c("weights", "fitted", "constraints"), ...) {
   type <- match.arg(type)
   if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 is required for autoplot.nmar_result", call. = FALSE)

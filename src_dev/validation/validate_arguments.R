@@ -25,6 +25,7 @@ is_positive <- function(x) {
 #' @param name A string representing the name of the argument being checked.
 #' @return Returns nothing on success, stops with an error on failure.
 #' @name validator_assert_choice
+#' @keywords internal
 validator$assert_choice <- function(x, choices, name) {
   if (!x %in% choices) {
     stop(
@@ -46,6 +47,7 @@ validator$assert_choice <- function(x, choices, name) {
 #' @param max The maximum allowed value (inclusive). Defaults to Inf.
 #' @return Returns nothing on success, stops with an error on failure.
 #' @name validator_assert_number
+#' @keywords internal
 validator$assert_number <- function(x, name, min = -Inf, max = Inf) {
   if (!is.numeric(x) || x < min || x > max) {
     stop(
@@ -64,6 +66,7 @@ validator$assert_number <- function(x, name, min = -Inf, max = Inf) {
 #' @param is.finite A logical value. If TRUE (default), checks if the number is finite.
 #' @return Returns nothing on success. Stops with a clear error on failure.
 #' @name validator_assert_positive_integer
+#' @keywords internal
 validator$assert_positive_integer <- function(x, name, is.finite = TRUE) {
   if (!is.numeric(x) || x != as.integer(x)) {
     stop(paste0("Argument '", name, "' must be an integer. Value is ", x, "."))
@@ -85,6 +88,7 @@ validator$assert_positive_integer <- function(x, name, is.finite = TRUE) {
 #' @param name A string representing the name of the argument being checked.
 #' @return Returns nothing on success, stops with an error on failure.
 #' @name validator_assert_logical
+#' @keywords internal
 validator$assert_logical <- function(x, name) {
   if (!is.logical(x)) {
     stop(
