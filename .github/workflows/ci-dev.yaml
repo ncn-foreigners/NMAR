@@ -136,7 +136,13 @@ jobs:
       - name: Run devtools::document()
         run: |
           Rscript -e 'devtools::document()'
-      - name: Run devtools::build_readme()
+
+      - name: Debug before build_readme
+        run: |
+          echo "WD: $(pwd)"
+          ls -la | grep README
+
+      - name: Run devtools::build_readme(rmd=README.Rmd)
         run: |
           Rscript -e 'devtools::build_readme()'
 
