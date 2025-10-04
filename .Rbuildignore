@@ -17,3 +17,5 @@
 ^\.gitignore-prod$
 ^src_dev$
 ^\.pre-commit-config\.yaml$
+^README\.Rmd$
+^codecov\.yml$

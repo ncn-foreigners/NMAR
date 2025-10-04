@@ -2,7 +2,7 @@ repos:
 -   repo: https://github.com/lorenzwalthert/precommit
     rev: v0.4.3.9015
     #files: ^src_dev/.*\.(R|r|Rmd|rmd|qmd)$
-    stages: [pre-commit]
+    #stages: [pre-commit]
     hooks:
     -   id: style-files
         args: [--scope=spaces, --reindention=specify_reindention('#')]      
