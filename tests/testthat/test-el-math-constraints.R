@@ -8,7 +8,7 @@ test_that("estimating equations solved to tight tolerance (max residual small)",
   df <- data.frame(Y_miss = Y, X = X)
   df[!R, "Y_miss"] <- NA_real_
 
-  fit <- nmar:::el.data.frame(df, Y_miss ~ X,
+  fit <- NMAR:::el.data.frame(df, Y_miss ~ X,
     response_predictors = NULL,
     auxiliary_means = c(X = 0), standardize = FALSE,
     trim_cap = Inf, variance_method = "delta"

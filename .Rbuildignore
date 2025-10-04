@@ -19,3 +19,4 @@
 ^\.pre-commit-config\.yaml$
 ^README\.Rmd$
 ^codecov\.yml$
+^.venv$

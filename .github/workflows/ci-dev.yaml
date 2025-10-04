@@ -113,6 +113,26 @@ jobs:
     needs: build-package
     runs-on: ubuntu-latest
     steps:
+      - name: Set branch variables (to avoid injection)
+        id: set_vars
+        run: |
+          CURRENT_BRANCH="${{ github.head_ref || github.ref_name }}"
+          ALLOWED_BRANCH="package-dev"
+
+          echo "current_branch=${CURRENT_BRANCH}" >> $GITHUB_OUTPUT
+          echo "allowed_branch=${ALLOWED_BRANCH}" >> $GITHUB_OUTPUT
+
+          echo "Current branch: ${CURRENT_BRANCH}"
+          echo "Allowed branch: ${ALLOWED_BRANCH}"
+
+      - name: Skip non-dev branches
+        run: |
+          if [ "${{ steps.set_vars.outputs.current_branch }}" != "${{ steps.set_vars.outputs.allowed_branch }}" ]; then
+            echo "🟡 Skipping deployment for branch: ${{ steps.set_vars.outputs.current_branch }}"
+            echo "✅ Expected branch: ${{ steps.set_vars.outputs.allowed_branch }}"
+            exit 0
+        fi
+
       - name: Checkout dev branch
         uses: actions/checkout@v4
         with:

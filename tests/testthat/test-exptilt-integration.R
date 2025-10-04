@@ -14,10 +14,10 @@ test_that("exptilt converges on simple IID example", {
   y_obs <- ifelse(respond == 1, y_true, NA)
   dat <- data.frame(y = y_obs, x1 = x1, x2 = x2)
 
-  fit <- nmar::nmar(
+  fit <- NMAR::nmar(
     y ~ x1 + x2,
     data = dat,
-    engine = nmar::exptilt_engine(
+    engine = NMAR::exptilt_engine(
       y_dens = "normal",
       variance_method = "delta",
       min_iter = 1,
@@ -52,10 +52,10 @@ test_that("exptilt handles simple survey design", {
   dat <- data.frame(y = y_obs, x1 = x1, x2 = x2, w = w)
   des <- survey::svydesign(ids = ~1, weights = ~w, data = dat)
 
-  fit <- nmar::nmar(
+  fit <- NMAR::nmar(
     y ~ x1 + x2,
     data = des,
-    engine = nmar::exptilt_engine(
+    engine = NMAR::exptilt_engine(
       y_dens = "normal",
       variance_method = "bootstrap",
       bootstrap_reps = 3,

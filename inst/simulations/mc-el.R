@@ -13,7 +13,7 @@ simulate_df <- function(N, alpha, seed = NULL) {
 }
 
 fit_el_df <- function(df, standardize = FALSE) {
-  nmar::nmar(
+  NMAR::nmar(
     formula = list(outcome = ~Y_miss, covariates_outcome = ~X, covariates_missingness = ~NULL),
     data = df,
     engine = el_engine(auxiliary_means = c(X = 0), variance_method = "delta", standardize = standardize)

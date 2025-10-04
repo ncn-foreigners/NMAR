@@ -18,7 +18,7 @@ test_that("analytic Jacobian matches numeric Jacobian for probit (standardize=FA
   expect_true(fit$converged)
 
 # Reconstruct inputs and functions
-  parsed <- nmar:::prepare_el_inputs(Y_miss ~ X, df, NULL)
+  parsed <- NMAR:::prepare_el_inputs(Y_miss ~ X, df, NULL)
   dat2 <- parsed$data
   fmls <- parsed$formula_list
   resp_var <- all.vars(fmls$response)[1]
@@ -27,7 +27,7 @@ test_that("analytic Jacobian matches numeric Jacobian for probit (standardize=FA
   Z_un <- model.matrix(update(fmls$response, NULL ~ .), data = resp_df)
   X_un <- model.matrix(fmls$auxiliary, data = resp_df)
   aux_means <- c(X = 0)
-  sc <- nmar:::validate_and_apply_nmar_scaling(FALSE, !is.null(fmls$auxiliary), Z_un, if (is.null(fmls$auxiliary)) matrix(nrow = nrow(Z_un), ncol = 0) else X_un, if (is.null(fmls$auxiliary)) NULL else aux_means)
+  sc <- NMAR:::validate_and_apply_nmar_scaling(FALSE, !is.null(fmls$auxiliary), Z_un, if (is.null(fmls$auxiliary)) matrix(nrow = nrow(Z_un), ncol = 0) else X_un, if (is.null(fmls$auxiliary)) NULL else aux_means)
 
   Z <- sc$response_model_matrix_scaled
   Xc <- sc$auxiliary_matrix_scaled
@@ -36,9 +36,9 @@ test_that("analytic Jacobian matches numeric Jacobian for probit (standardize=FA
   N_pop <- nrow(dat2)
   wts <- rep(1, length(obs_idx))
 
-  fam <- nmar:::probit_family()
-  eq_fun <- nmar:::el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
-  jac_fun <- nmar:::build_el_jacobian(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
+  fam <- NMAR:::probit_family()
+  eq_fun <- NMAR:::el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
+  jac_fun <- NMAR:::build_el_jacobian(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
 
   beta_hat <- fit$model$coefficients
   z <- stats::qlogis(fit$model$nuisance$W_hat)

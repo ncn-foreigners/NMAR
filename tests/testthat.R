@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(nmar)
+library(NMAR)
 
-test_check("nmar")
+test_check("NMAR")

@@ -9,7 +9,7 @@ test_that("on_failure=return yields converged=FALSE on inconsistent aux means", 
   df <- data.frame(Y_miss = Y, X1 = X1, X2 = X2)
   df[!R, "Y_miss"] <- NA_real_
   bad_aux <- c(X1 = 10, X2 = -10)
-  fit <- nmar:::el.data.frame(df, Y_miss ~ X1 + X2, response_predictors = NULL, auxiliary_means = bad_aux, on_failure = "return", variance_method = "delta")
+  fit <- NMAR:::el.data.frame(df, Y_miss ~ X1 + X2, response_predictors = NULL, auxiliary_means = bad_aux, on_failure = "return", variance_method = "delta")
   expect_false(fit$converged)
   expect_true(is.na(fit[['estimate']]))
 })

@@ -16,7 +16,7 @@ test_that("constraint sums are near zero at solution (no trimming)", {
   )
   expect_true(fit$converged)
 # Reconstruct components to compute raw constraint sums from stored diagnostics inputs
-  parsed <- nmar:::prepare_el_inputs(Y_miss ~ X, df, NULL)
+  parsed <- NMAR:::prepare_el_inputs(Y_miss ~ X, df, NULL)
   dat2 <- parsed$data
   fmls <- parsed$formula_list
   resp_var <- all.vars(fmls$response)[1]
@@ -24,7 +24,7 @@ test_that("constraint sums are near zero at solution (no trimming)", {
   resp_df <- dat2[obs_idx, ]
   Z_un <- model.matrix(update(fmls$response, NULL ~ .), data = resp_df)
   X_un <- model.matrix(fmls$auxiliary, data = resp_df)
-  sc <- nmar:::validate_and_apply_nmar_scaling(FALSE, !is.null(fmls$auxiliary), Z_un, if (is.null(fmls$auxiliary)) matrix(nrow = nrow(Z_un), ncol = 0) else X_un, if (is.null(fmls$auxiliary)) NULL else c(X = 0))
+  sc <- NMAR:::validate_and_apply_nmar_scaling(FALSE, !is.null(fmls$auxiliary), Z_un, if (is.null(fmls$auxiliary)) matrix(nrow = nrow(Z_un), ncol = 0) else X_un, if (is.null(fmls$auxiliary)) NULL else c(X = 0))
   Z <- sc$response_model_matrix_scaled
   Xc <- sc$auxiliary_matrix_scaled
   mu_x <- sc$mu_x_scaled
@@ -32,8 +32,8 @@ test_that("constraint sums are near zero at solution (no trimming)", {
   N_pop <- nrow(dat2)
   wts <- rep(1, length(obs_idx))
 
-  fam <- nmar:::logit_family()
-  eq_fun <- nmar:::el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
+  fam <- NMAR:::logit_family()
+  eq_fun <- NMAR:::el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
   beta_hat <- fit$model$coefficients
   z <- stats::qlogis(fit$model$nuisance$W_hat)
   lambda_hat <- if (!is.null(fit$model$nuisance$lambda_x)) as.numeric(fit$model$nuisance$lambda_x) else numeric(0)
