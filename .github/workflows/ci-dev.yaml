@@ -116,7 +116,7 @@ jobs:
       - name: Checkout dev branch
         uses: actions/checkout@v4
         with:
-          ref: package-dev
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: Setup R and dependencies
@@ -137,12 +137,7 @@ jobs:
         run: |
           Rscript -e 'devtools::document()'
 
-      - name: Debug before build_readme
-        run: |
-          echo "WD: $(pwd)"
-          ls -la | grep README
-
-      - name: Run devtools::build_readme(rmd=README.Rmd)
+      - name: Run devtools::build_readme()
         run: |
           Rscript -e 'devtools::build_readme()'
 
