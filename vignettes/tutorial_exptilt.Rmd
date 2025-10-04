@@ -56,8 +56,8 @@ generate_test_data <- function(n_rows = 400, n_cols = 2, case = 2, x_var = 0.5, 
 
 ```{r}
 res_test_data <- generate_test_data(n_rows = 500, n_cols = 2, case = 1)
-  x <- res_test_data$X
-  y_original <- res_test_data$Y_original # to compare with true values
+x <- res_test_data$X
+y_original <- res_test_data$Y_original # to compare with true values
 ```
 
 

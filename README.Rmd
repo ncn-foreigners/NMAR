@@ -22,36 +22,80 @@ knitr::opts_chunk$set(
 
 The goal of nmar is to ...
 
-## Installation
+## Overview
+NMAR library provides functions to estimate the mean of Not Missing At Random (NMAR) data.
+Estimators are built upon the engine which is a wrapper of arguments to each method
 
-You can install the development version of nmar from [GitHub](https://github.com/) with:
+- `exptilt_engine` - Riddles et al (2016) DOI:xxx
+- `exptilt_nonparam_engine` - Riddles et al (2016) DOI:xxx (Appendix 2)
+- `el_engine` - Kim and Yu (2011) DOI:xxx
+
+Eventually `nmar()` function is the wrapper of engine functions. and additional params depending on the method (data, formula)
+
+## Installation
+You can install the development version of NMAR from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("pak")
 pak::pak("ncn-foreigners/NMAR")
 ```
 
+or
+```
+remotes::install_github("ncn-foreigners/NMAR@package-pre_prod", force = T, build = T, build_manual = T, build_vignettes = T)
+```
+
+### Project branches:
+- `main` - stable version
+- `package-pre_prod` - development version (1:1 clone of `package-dev`)
+- `package-dev` - development version in development format. **Do not download this branch**. It consists of different project structure which is later transformed to R suitable form. If you want to contribute to the project, read more about package-dev (TODO add link to webpage)
+
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+- Y is outcome variable (with missing values)
+- x1,x2 describe Y value 
+- x3 describes missingness of Y
+
+For example, if we had salary survey where rich people prefer not to answer, Y would be salary, x1 and x2 would be years of experience and education level, and x3 would be gender (if we assume that gender has no affect on salary, but f.e women are less likely to answer the question about salary).
 
 ```{r example}
-library(nmar)
-## basic example code
+generate_test_data <- function(n_rows = 400, n_cols = 2, case = 2, x_var = 0.5, eps_var = 0.5, a = 0.8, b = -0.2) {
+  X <- as.data.frame(replicate(n_cols, rnorm(n_rows, 0, x_var)^1))
+  colnames(X) <- paste0("x", 1:n_cols)
+  coefs <- runif(n_cols, 0.95, 1.05)
+  eps <- rnorm(n_rows, 0, eps_var)
+  if (case == 1) {
+  X$Y <- as.vector(-1 + as.matrix(X) %*% coefs + eps)
+  }
+  X <- X[order(X$Y), ]
+  Y_original = X$Y
+  pi_obs <- 1 / (1 + exp(-(a + b * X$Y)))
+  mask <- runif(nrow(X)) > pi_obs
+  mask[1] <- FALSE
+  X$Y[mask] <- NA
+  return(list(X = X, Y_original = Y_original))
+}
+
+library(nmar, quietly = T)
+res_test_data <- generate_test_data(n_rows = 500, n_cols = 3, case = 1)
+data <- res_test_data$X
+
+exptilt_config <- exptilt_engine(
+  y_dens = 'normal',
+  family = 'probit', # or logit
+  variance_method='delta', #or delta
+)
+
+
+formula = Y ~ x1 + x2
+res <- nmar(formula = formula, data = data, engine = exptilt_config, response_predictors = c('x3'))
+
+print(res)
+
+
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
 
-```{r cars}
-summary(cars)
-```
+## Getting help
+If you encounter a clear bug, please file an issue with a minimal reproducible example on [GitHub](https://github.com/ncn-foreigners/NMAR/issues)
 
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
-
-You can also embed plots, for example:
-
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
-
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.

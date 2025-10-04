@@ -136,10 +136,13 @@ jobs:
       - name: Run devtools::document()
         run: |
           Rscript -e 'devtools::document()'
+      - name: Run devtools::build_readme()
+        run: |
+          Rscript -e 'devtools::build_readme()'
 
       - name: Run devtools::build()
         run: |
-          Rscript -e 'devtools::build(vignettes = FALSE)'
+          Rscript -e 'devtools::build(vignettes = T)'
 
       - name: Switch to production gitignore and remove dev files
         run: |
