@@ -37,12 +37,13 @@ reference:
   - title: Engines
     contents:
       - has_keyword("engine")
+  - title: NMAR
+    contents:
+      - has_keyword("nmar")
   - title: Result analysis
     contents:
       - has_keyword("result_view")
   - title: Result params
     contents:
       - has_keyword("result_param")
-  - title: nmar()
-    contents:
-      - has_keyword("nmar")
+
