@@ -2,6 +2,7 @@ Package: NMAR
 Type: Package
 Title: Not Missing at Random
 Version: 0.0.0.1
+Maintainer: Maciej Beręsewicz <maciej.beresewicz@uep.pl>
 Author: Maciej Beręsewicz [aut, cre],
     Igor Kołodziej [aut],
     Mateusz Iwaniuk [aut]
