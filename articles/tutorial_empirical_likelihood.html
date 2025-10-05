@@ -112,21 +112,24 @@ robustness.</li>
 <h3 id="quick-start">Quick start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h3>
 <ul>
-<li>Specify the model via a formula list:
-<code>list(outcome = ~ Y_miss, covariates_outcome = ~ X1 + X2, covariates_missingness = ~ Z1 + Z2)</code>.
+<li>Specify the model with a two-sided formula:
+<code>Y_miss ~ X1 + X2</code> (auxiliaries are the RHS variables). If
+you have response‑only predictors that should enter the missingness
+model but not as auxiliaries, pass them via
+<code>response_predictors = c("Z1","Z2")</code>.
 <ul>
 <li>Variables on the outcome RHS (e.g., <code>X1 + X2</code>) are
-auxiliaries; you can supply their known population means via
+auxiliaries; supply their known population means via
 <code>auxiliary_means = c(X1 = ..., X2 = ...)</code>.</li>
-<li>Variables in <code>covariates_missingness</code> enter only the
-response model (no auxiliary constraint). They do not need population
+<li>Predictors in <code>response_predictors</code> enter only the
+response model (no auxiliary constraint) and do not need population
 means.</li>
 </ul>
 </li>
 <li>Choose the engine: <code>el_engine(...)</code>, e.g.,
 <code>el_engine(auxiliary_means = c(X1 = 0), variance_method = "delta", standardize = TRUE)</code>.</li>
 <li>Fit:
-<code>nmar(formula = &lt;list&gt;, data = df_or_design, engine = el_engine(...))</code>.</li>
+<code>nmar(formula = Y_miss ~ X1 + X2, data = df_or_design, engine = el_engine(...), response_predictors = c("Z1","Z2"))</code>.</li>
 <li>Inspect: <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>,
 <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, and
 <code>fit$diagnostics</code>. # # Data-frame example (IID)</li>
@@ -359,7 +362,8 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;     response_predictors = NULL, auxiliary_means = c(X = 0), standardize = TRUE, </span></span>
 <span><span class="co">#&gt;     trim_cap = Inf, control = list(), on_failure = "return", </span></span>
 <span><span class="co">#&gt;     variance_method = "delta", variance_jacobian = "auto", solver_jacobian = "auto", </span></span>
-<span><span class="co">#&gt;     variance_pseudoinverse = FALSE, bootstrap_reps = 500, suppress_warnings = FALSE, </span></span>
+<span><span class="co">#&gt;     solver_method = "auto", solver_args = list(), variance_pseudoinverse = FALSE, </span></span>
+<span><span class="co">#&gt;     variance_ridge = FALSE, bootstrap_reps = 500, suppress_warnings = FALSE, </span></span>
 <span><span class="co">#&gt;     family = list(name = "logit", linkinv = function (eta) </span></span>
 <span><span class="co">#&gt;     stats::plogis(eta), mu.eta = function (eta) </span></span>
 <span><span class="co">#&gt;     {</span></span>
@@ -379,9 +383,9 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;     }))</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model coefficients:</span></span>
-<span><span class="co">#&gt;               Estimate Std. Error   z value    Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -1.5706942  0.5001079 -3.140711 0.001685384</span></span>
-<span><span class="co">#&gt; Y_miss       0.3667545  0.2793335  1.312963 0.189195444</span></span>
+<span><span class="co">#&gt;               Estimate Std. Error    z value     Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; (Intercept) -1.5706942  0.1239364 -12.673394 8.304254e-37</span></span>
+<span><span class="co">#&gt; Y_miss       0.3667545  0.3251176   1.128067 2.592915e-01</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;          2.5 % 97.5 %</span></span>
 <span><span class="co">#&gt; Y_miss 1.38592 2.3714</span></span></code></pre></div>
@@ -599,7 +603,8 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;     response_predictors = NULL, auxiliary_means = c(X = 0), standardize = TRUE, </span></span>
 <span><span class="co">#&gt;     trim_cap = Inf, control = list(), on_failure = "return", </span></span>
 <span><span class="co">#&gt;     variance_method = "delta", variance_jacobian = "auto", solver_jacobian = "auto", </span></span>
-<span><span class="co">#&gt;     variance_pseudoinverse = FALSE, bootstrap_reps = 500, suppress_warnings = FALSE, </span></span>
+<span><span class="co">#&gt;     solver_method = "auto", solver_args = list(), variance_pseudoinverse = FALSE, </span></span>
+<span><span class="co">#&gt;     variance_ridge = FALSE, bootstrap_reps = 500, suppress_warnings = FALSE, </span></span>
 <span><span class="co">#&gt;     family = list(name = "probit", linkinv = function (eta) </span></span>
 <span><span class="co">#&gt;     stats::pnorm(eta), mu.eta = function (eta) </span></span>
 <span><span class="co">#&gt;     stats::dnorm(eta), d2mu.deta2 = function (eta) </span></span>
@@ -635,9 +640,9 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;     }))</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model coefficients:</span></span>
-<span><span class="co">#&gt;               Estimate Std. Error   z value     Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -0.9496775  0.2795960 -3.396606 0.0006822712</span></span>
-<span><span class="co">#&gt; Y_miss       0.2175044  0.1592956  1.365414 0.1721230033</span></span></code></pre></div>
+<span><span class="co">#&gt;               Estimate Std. Error    z value     Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; (Intercept) -0.9496775 0.07636296 -12.436364 1.658849e-35</span></span>
+<span><span class="co">#&gt; Y_miss       0.2175044 0.18540493   1.173132 2.407429e-01</span></span></code></pre></div>
 <p>Tidy/glance summaries, and plots:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"broom"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -664,14 +669,18 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;  [1] 0.2385382 0.2237686 0.4564170 0.1384020 0.2873926 0.2792951 0.3336042</span></span>
 <span><span class="co">#&gt;  [8] 0.3145361 0.2706197 0.2550132</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">diagnostics</span><span class="op">)</span></span>
-<span><span class="co">#&gt; List of 20</span></span>
+<span><span class="co">#&gt; List of 25</span></span>
 <span><span class="co">#&gt;  $ convergence_code           : int 1</span></span>
 <span><span class="co">#&gt;  $ message                    : chr "Function criterion near zero"</span></span>
 <span><span class="co">#&gt;  $ vcov_message               : chr "Calculation successful"</span></span>
 <span><span class="co">#&gt;  $ trimmed_fraction           : num 0</span></span>
 <span><span class="co">#&gt;  $ solver_jacobian            : chr "analytic"</span></span>
-<span><span class="co">#&gt;  $ solver_method              : logi NA</span></span>
+<span><span class="co">#&gt;  $ solver_method              : chr "Newton"</span></span>
+<span><span class="co">#&gt;  $ nleqslv_global             : chr NA</span></span>
+<span><span class="co">#&gt;  $ nleqslv_xscalm             : chr NA</span></span>
 <span><span class="co">#&gt;  $ solver_iterations          : int 7</span></span>
+<span><span class="co">#&gt;  $ solver_time                : num 0.004</span></span>
+<span><span class="co">#&gt;  $ variance_time              : num 0.006</span></span>
 <span><span class="co">#&gt;  $ reparam_W                  : chr "logit"</span></span>
 <span><span class="co">#&gt;  $ max_equation_residual      : num 3.35e-14</span></span>
 <span><span class="co">#&gt;  $ jacobian_condition_number  : num 36.8</span></span>
@@ -685,7 +694,8 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;   ..- attr(*, "names")= chr "X"</span></span>
 <span><span class="co">#&gt;  $ used_pseudoinverse         : logi FALSE</span></span>
 <span><span class="co">#&gt;  $ used_ridge                 : logi FALSE</span></span>
-<span><span class="co">#&gt;  $ invert_rule                : chr "plain"</span></span></code></pre></div>
+<span><span class="co">#&gt;  $ invert_rule                : chr "plain"</span></span>
+<span><span class="co">#&gt;  $ variance_auto_rule         : chr NA</span></span></code></pre></div>
 <p>Bootstrap variance (keep reps small for speed):</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">engine</span> <span class="op">=</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"bootstrap"</span>, bootstrap_reps <span class="op">=</span> <span class="fl">15</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span>, suppress_warnings <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -998,7 +1008,8 @@ the RHS of the outcome formula.</p>
 <span><span class="co">#&gt; 0.361492966730684)), formula = Y_miss ~ X, response_predictors = "Z", </span></span>
 <span><span class="co">#&gt;     auxiliary_means = c(X = 0), standardize = TRUE, trim_cap = Inf, </span></span>
 <span><span class="co">#&gt;     control = list(), on_failure = "return", variance_method = "delta", </span></span>
-<span><span class="co">#&gt;     variance_jacobian = "auto", solver_jacobian = "auto", variance_pseudoinverse = FALSE, </span></span>
+<span><span class="co">#&gt;     variance_jacobian = "auto", solver_jacobian = "auto", solver_method = "auto", </span></span>
+<span><span class="co">#&gt;     solver_args = list(), variance_pseudoinverse = FALSE, variance_ridge = FALSE, </span></span>
 <span><span class="co">#&gt;     bootstrap_reps = 500, suppress_warnings = FALSE, family = list(</span></span>
 <span><span class="co">#&gt;         name = "logit", linkinv = function (eta) </span></span>
 <span><span class="co">#&gt;         stats::plogis(eta), mu.eta = function (eta) </span></span>
@@ -1019,10 +1030,10 @@ the RHS of the outcome formula.</p>
 <span><span class="co">#&gt;         }))</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model coefficients:</span></span>
-<span><span class="co">#&gt;                Estimate Std. Error    z value    Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -0.85089950  0.2662728 -3.1955929 0.001395439</span></span>
-<span><span class="co">#&gt; Y_miss       0.28631609  0.2429661  1.1784201 0.238629155</span></span>
-<span><span class="co">#&gt; Z            0.05802273  0.1829562  0.3171401 0.751137329</span></span></code></pre></div>
+<span><span class="co">#&gt;                Estimate Std. Error     z value     Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; (Intercept) -0.85089950 0.05032983 -16.9064642 4.031846e-64</span></span>
+<span><span class="co">#&gt; Y_miss       0.28631609 0.27162827   1.0540733 2.918494e-01</span></span>
+<span><span class="co">#&gt; Z            0.05802273 0.19033451   0.3048461 7.604834e-01</span></span></code></pre></div>
 <p>Auxiliary means and formulas:</p>
 <ul>
 <li>Names of <code>auxiliary_means</code> must match the variables on
@@ -2138,7 +2149,8 @@ not need auxiliary means.</li>
 <span><span class="co">#&gt;     ell, response_predictors = NULL, auxiliary_means = c(ell = 27.6120218579235), </span></span>
 <span><span class="co">#&gt;     standardize = TRUE, trim_cap = Inf, control = list(), on_failure = "return", </span></span>
 <span><span class="co">#&gt;     variance_method = "delta", variance_jacobian = "auto", solver_jacobian = "auto", </span></span>
-<span><span class="co">#&gt;     variance_pseudoinverse = FALSE, bootstrap_reps = 500, suppress_warnings = FALSE, </span></span>
+<span><span class="co">#&gt;     solver_method = "auto", solver_args = list(), variance_pseudoinverse = FALSE, </span></span>
+<span><span class="co">#&gt;     variance_ridge = FALSE, bootstrap_reps = 500, suppress_warnings = FALSE, </span></span>
 <span><span class="co">#&gt;     family = list(name = "logit", linkinv = function (eta) </span></span>
 <span><span class="co">#&gt;     stats::plogis(eta), mu.eta = function (eta) </span></span>
 <span><span class="co">#&gt;     {</span></span>
@@ -2158,9 +2170,9 @@ not need auxiliary means.</li>
 <span><span class="co">#&gt;     }))</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model coefficients:</span></span>
-<span><span class="co">#&gt;                 Estimate  Std. Error   z value     Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -19.67790829 4.350556756 -4.523078 0.0004776363</span></span>
-<span><span class="co">#&gt; api00_miss    0.03520924 0.008837221  3.984198 0.0013574811</span></span></code></pre></div>
+<span><span class="co">#&gt;                 Estimate Std. Error      z value     Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; (Intercept) -19.67790829  1.4801595 -13.29445081 2.484954e-09</span></span>
+<span><span class="co">#&gt; api00_miss    0.03520924  0.9135567   0.03854083 9.698007e-01</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="practical-guidance">Practical guidance<a class="anchor" aria-label="anchor" href="#practical-guidance"></a>
@@ -2171,6 +2183,29 @@ is often preferred for moderate samples, trimming, or near-boundary
 cases.</li>
 <li>Trimming: Use a finite <code>trim_cap</code> to improve robustness
 when large weights occur; prefer bootstrap variance when trimming.</li>
+<li>Solver method and Jacobian:
+<ul>
+<li>
+<code>solver_method = "auto"</code> (default) tries Newton (with the
+analytic Jacobian when available) and falls back to Broyden if needed.
+Force Broyden with <code>solver_method = "broyden"</code> for large‑p
+problems.</li>
+<li>
+<code>solver_jacobian = "analytic"</code> uses the analytic Jacobian
+for solving; set <code>"none"</code> to force secant updates.</li>
+</ul>
+</li>
+<li>Advanced nleqslv tuning:
+<ul>
+<li>Top‑level nleqslv args via
+<code>solver_args = list(global = "dbldog", xscalm = "auto")</code>.</li>
+<li>Control‑list tolerances via
+<code>control = list(xtol = 1e-10, ftol = 1e-10, maxit = 200)</code>.</li>
+<li>The effective settings used are recorded in
+<code>fit$diagnostics</code> (e.g., <code>solver_method</code>,
+<code>nleqslv_global</code>, <code>nleqslv_xscalm</code>).</li>
+</ul>
+</li>
 <li>Standardization: <code>standardize = TRUE</code> typically improves
 numerical stability and comparability across predictors and auxiliary
 means.</li>
@@ -2211,7 +2246,7 @@ American Statistical Association, 97(457), 193–200. <a href="doi:10.1198/01621
 </li>
 <li>For practical scripts and experiments that informed this
 implementation, see the package’s development materials and the
-validation script under <code>inst/validation/mc-el.R</code>.</li>
+simulation script under <code>inst/simulations/mc-el.R</code>.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -2271,6 +2306,22 @@ details.</li>
 <span><span class="co">#&gt; [40] mitools_2.4         ragg_1.5.0          rmarkdown_2.30     </span></span>
 <span><span class="co">#&gt; [43] purrr_1.1.0         tools_4.5.1         pkgconfig_2.0.3    </span></span>
 <span><span class="co">#&gt; [46] htmltools_0.5.8.1</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="notes-on-variance-choices">Notes on variance choices<a class="anchor" aria-label="anchor" href="#notes-on-variance-choices"></a>
+</h2>
+<ul>
+<li>
+<code>variance_method = "delta"</code> uses an analytic sandwich; it
+is very fast but may under‑estimate variability in tougher regimes
+(heavy nonresponse, ill‑conditioned Jacobians, or trimming). Prefer
+<code>variance_method = "bootstrap"</code> for more robust SEs.</li>
+<li>For speed‑critical bootstraps, you can set
+<code>variance_method = "none"</code> for point fits and let the
+bootstrap call use it internally for replicates (this is the default
+behavior when you request bootstrap SEs through
+<code>el_engine(...)</code>).</li>
+</ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
