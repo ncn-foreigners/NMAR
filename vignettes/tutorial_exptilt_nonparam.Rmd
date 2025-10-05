@@ -1,5 +1,5 @@
 ---
-title: "tutorial_exptilt_nonparam"
+title: "Tutorial Exponential Tilting (nonparam) Estimator for NMAR"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{tutorial_exptilt_nonparam}

@@ -9,7 +9,7 @@
 #' @param tol_value Convergence tolerance for the EM updates.
 #'
 #' @return A list of class `c("nmar_engine_exptilt_nonparam", "nmar_engine")`.
-#'
+#' @keywords engine
 #' @export
 exptilt_nonparam_engine <- function(
     refusal_col,

@@ -1,5 +1,5 @@
 ---
-title: "tutorial_exptilt"
+title: "Tutorial Exponential Tilting Estimator for NMAR"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{tutorial_exptilt}

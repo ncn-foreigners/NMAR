@@ -30,6 +30,7 @@ NULL
 #' Variance-covariance for base NMAR results
 #' @param object An object of class `nmar_result`.
 #' @param ... Ignored.
+#' @keywords result_param
 #' @export
 vcov.nmar_result <- function(object, ...) {
   se <- nmar_result_get_std_error(object)
@@ -48,6 +49,7 @@ vcov.nmar_result <- function(object, ...) {
 #' @param parm Ignored.
 #' @param level Confidence level.
 #' @param ... Ignored.
+#' @keywords result_param
 #' @export
 confint.nmar_result <- function(object, parm, level = 0.95, ...) {
   se <- nmar_result_get_std_error(object)
@@ -76,6 +78,7 @@ confint.nmar_result <- function(object, parm, level = 0.95, ...) {
 #' @param x An object of class `nmar_result`.
 #' @param conf.level Confidence level for the primary estimate.
 #' @param ... Ignored.
+#' @keywords result_param
 #' @exportS3Method tidy nmar_result
 tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
   est <- nmar_result_get_estimate(x)
@@ -142,6 +145,7 @@ tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
 #' @description One-row diagnostics for NMAR fits.
 #' @param x An object of class `nmar_result`.
 #' @param ... Ignored.
+#' @keywords result_param
 #' @exportS3Method glance nmar_result
 glance.nmar_result <- function(x, ...) {
   est <- nmar_result_get_estimate(x)
@@ -281,6 +285,7 @@ autoplot.nmar_result <- function(object, type = c("weights", "fitted", "constrai
 #' @param object An `nmar_result` object.
 #' @param ... Ignored.
 #' @return A named numeric vector or `NULL`.
+#' @keywords result_param
 #' @export
 coef.nmar_result <- function(object, ...) {
   nmar_result_get_model(object)$coefficients
@@ -291,6 +296,7 @@ coef.nmar_result <- function(object, ...) {
 #' @param object An `nmar_result` object.
 #' @param ... Ignored.
 #' @return A numeric vector (possibly length 0).
+#' @keywords result_param
 #' @export
 fitted.nmar_result <- function(object, ...) {
   fv <- object$extra$fitted_values %||% object$fitted_values
@@ -305,6 +311,7 @@ fitted.nmar_result <- function(object, ...) {
 #' @param object An `nmar_result` object.
 #' @param ... Ignored.
 #' @return A numeric vector (possibly length 0); attribute `trimmed_fraction` may be set.
+#' @keywords result_param
 #' @export
 weights.nmar_result <- function(object, ...) {
   info <- nmar_result_get_weights_info(object)
@@ -322,6 +329,7 @@ weights.nmar_result <- function(object, ...) {
 #' @param x An `nmar_result` object.
 #' @param ... Ignored.
 #' @return A formula or `NULL`.
+#' @keywords result_param
 #' @export
 formula.nmar_result <- function(x, ...) {
   x$meta$formula %||% NULL

@@ -38,7 +38,7 @@
 #' Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American
 #' Statistical Association, 97(457), 193–200.
-#'
+#' @keywords engine
 #' @export
 el_engine <- function(
     standardize = TRUE,

@@ -1,5 +1,5 @@
 ---
-title: "Empirical Likelihood Estimator for NMAR"
+title: "Tutorial Empirical Likelihood Estimator for NMAR"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Empirical Likelihood Estimator for NMAR}

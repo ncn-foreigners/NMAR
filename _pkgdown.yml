@@ -1,0 +1,31 @@
+template:
+  bootstrap: 5
+  light-switch: true
+
+articles:
+  - title: Theory
+    navbar: ~
+    contents:
+      - el_empirical_likelihood_theory
+  - title: Developer
+    contents:
+      - developing_new_nmar_estimator
+  - title: Estimators
+    contents:
+      - tutorial_empirical_likelihood
+      - tutorial_exptilt
+      - tutorial_exptilt_nonparam
+
+reference:
+  - title: Engines
+    contents:
+      - has_keyword("engine")
+  - title: Result analysis
+    contents:
+      - has_keyword("result_view")
+  - title: Result params
+    contents:
+      - has_keyword("result_param")
+  - title: nmar()
+    contents:
+      - has_keyword("nmar")
