@@ -11,11 +11,11 @@ NULL
 #' @export
 print.nmar_result_el <- function(x, ...) {
   meta <- x$meta %||% list()
-  call_obj <- meta$call %||% x$call
-  if (!is.null(call_obj)) {
-    cat("Call:\n")
-    print(call_obj)
-    cat("\n")
+# Print an abridged call line instead of the full captured call to avoid
+# dumping large data objects
+  call_line <- nmar_format_call_line(x)
+  if (is.character(call_line) && nzchar(call_line)) {
+    cat(call_line, "\n\n", sep = "")
   }
 
   NextMethod()
@@ -53,7 +53,9 @@ summary.nmar_result_el <- function(object, ...) {
   model <- nmar_result_get_model(object)
   base$response_model <- model$coefficients
   base$response_vcov <- model$vcov
-  base$call <- object$meta$call %||% object$call
+# Keep an abridged call string for printing; avoid storing the full call
+# (which may embed the entire data frame)
+  base$call_line <- nmar_format_call_line(object)
   base$df <- nmar_result_get_inference(object)$df
   class(base) <- c("summary_nmar_result_el", class(base))
   base
@@ -63,9 +65,8 @@ summary.nmar_result_el <- function(object, ...) {
 #' @export
 print.summary_nmar_result_el <- function(x, ...) {
   NextMethod()
-  if (!is.null(x$call)) {
-    cat("Call:\n")
-    print(x$call)
+  if (!is.null(x$call_line) && isTRUE(getOption("nmar.show_call", TRUE))) {
+    cat(x$call_line, "\n", sep = "")
   }
   if (!is.null(x$response_model)) {
     cat("\nResponse-model coefficients:\n")
