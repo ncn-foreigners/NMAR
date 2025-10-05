@@ -22,7 +22,7 @@
 #' @return An object containing the estimation results, whose structure will be
 #'   specific to the `engine` used. This might include estimated parameters,
 #'   convergence information, and other relevant output from the chosen NMAR method.
-#'
+#' @keywords nmar
 #' @export
 nmar <- function(formula, data, engine, response_predictors = NULL) {
   stopifnot(inherits(engine, "nmar_engine"))

@@ -25,29 +25,12 @@
 #' @importFrom stats fitted weights coef
 NULL
 
-#' Extract the primary estimate
-#' @description Generic to extract the quantity of interest (typically the population mean).
-#' @param x A fitted object.
-#' @param ... Ignored.
-#' @export
-estimate <- function(x, ...) UseMethod("estimate")
 
-#' Estimate for base NMAR results
-#' @param x An object of class `nmar_result`.
-#' @param ... Ignored.
-#' @export
-estimate.nmar_result <- function(x, ...) {
-  est <- nmar_result_get_estimate(x)
-  nm <- nmar_result_get_estimate_name(x)
-  if (is.na(est)) {
-    return(NA_real_)
-  }
-  setNames(as.numeric(est), nm)
-}
 
 #' Variance-covariance for base NMAR results
 #' @param object An object of class `nmar_result`.
 #' @param ... Ignored.
+#' @keywords result_param
 #' @export
 vcov.nmar_result <- function(object, ...) {
   se <- nmar_result_get_std_error(object)
@@ -66,6 +49,7 @@ vcov.nmar_result <- function(object, ...) {
 #' @param parm Ignored.
 #' @param level Confidence level.
 #' @param ... Ignored.
+#' @keywords result_param
 #' @export
 confint.nmar_result <- function(object, parm, level = 0.95, ...) {
   se <- nmar_result_get_std_error(object)
@@ -94,6 +78,7 @@ confint.nmar_result <- function(object, parm, level = 0.95, ...) {
 #' @param x An object of class `nmar_result`.
 #' @param conf.level Confidence level for the primary estimate.
 #' @param ... Ignored.
+#' @keywords result_view
 #' @exportS3Method tidy nmar_result
 tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
   est <- nmar_result_get_estimate(x)
@@ -160,6 +145,7 @@ tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
 #' @description One-row diagnostics for NMAR fits.
 #' @param x An object of class `nmar_result`.
 #' @param ... Ignored.
+#' @keywords result_view
 #' @exportS3Method glance nmar_result
 glance.nmar_result <- function(x, ...) {
   est <- nmar_result_get_estimate(x)
@@ -202,7 +188,7 @@ glance.nmar_result <- function(x, ...) {
 #' @param x An object of class `nmar_result`.
 #' @param which Which plot: one of `"weights"`, `"fitted"`, `"constraints"`, `"diagnostics"`.
 #' @param ... Ignored.
-#' @export
+#' @keywords internal
 plot.nmar_result <- function(x, which = c("weights", "fitted", "constraints", "diagnostics"), ...) {
   which <- match.arg(which)
   op <- graphics::par(no.readonly = TRUE)
@@ -256,7 +242,7 @@ plot.nmar_result <- function(x, which = c("weights", "fitted", "constraints", "d
 #' @description Generic for autoplot; methods provide plotting for NMAR results.
 #' @param object An object.
 #' @param ... Passed to methods.
-#' @export
+#' @keywords internal
 autoplot <- function(object, ...) UseMethod("autoplot")
 
 #' Default ggplot2 autoplot for NMAR results
@@ -265,7 +251,7 @@ autoplot <- function(object, ...) UseMethod("autoplot")
 #' @param type One of "weights", "fitted", or "constraints".
 #' @param ... Ignored.
 #' @return A `ggplot` object.
-#' @export
+#' @keywords internal
 autoplot.nmar_result <- function(object, type = c("weights", "fitted", "constraints"), ...) {
   type <- match.arg(type)
   if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 is required for autoplot.nmar_result", call. = FALSE)
@@ -299,6 +285,7 @@ autoplot.nmar_result <- function(object, type = c("weights", "fitted", "constrai
 #' @param object An `nmar_result` object.
 #' @param ... Ignored.
 #' @return A named numeric vector or `NULL`.
+#' @keywords result_param
 #' @export
 coef.nmar_result <- function(object, ...) {
   nmar_result_get_model(object)$coefficients
@@ -309,6 +296,7 @@ coef.nmar_result <- function(object, ...) {
 #' @param object An `nmar_result` object.
 #' @param ... Ignored.
 #' @return A numeric vector (possibly length 0).
+#' @keywords result_param
 #' @export
 fitted.nmar_result <- function(object, ...) {
   fv <- object$extra$fitted_values %||% object$fitted_values
@@ -323,6 +311,7 @@ fitted.nmar_result <- function(object, ...) {
 #' @param object An `nmar_result` object.
 #' @param ... Ignored.
 #' @return A numeric vector (possibly length 0); attribute `trimmed_fraction` may be set.
+#' @keywords result_param
 #' @export
 weights.nmar_result <- function(object, ...) {
   info <- nmar_result_get_weights_info(object)
@@ -340,6 +329,7 @@ weights.nmar_result <- function(object, ...) {
 #' @param x An `nmar_result` object.
 #' @param ... Ignored.
 #' @return A formula or `NULL`.
+#' @keywords result_param
 #' @export
 formula.nmar_result <- function(x, ...) {
   x$meta$formula %||% NULL

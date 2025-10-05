@@ -28,7 +28,7 @@
 #' nonignorable nonresponse or informative sampling. Journal of the American
 #' Statistical Association, 97(457), 193–200.
 #' @return `c('nmar_result_el','nmar_result')`.
-#' @exportS3Method el survey.design
+#' @keywords internal
 el.survey.design <- function(data, formula, response_predictors = NULL,
                              auxiliary_means = NULL, standardize = TRUE,
                              trim_cap = Inf, control = list(),

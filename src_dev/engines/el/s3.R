@@ -7,6 +7,7 @@ NULL
 #' @description Compact print for objects of class `nmar_result_el`.
 #' @param x An object of class `nmar_result_el`.
 #' @param ... Ignored.
+#' @keywords result_view
 #' @export
 print.nmar_result_el <- function(x, ...) {
   meta <- x$meta %||% list()
@@ -45,6 +46,7 @@ print.nmar_result_el <- function(x, ...) {
 #' @description Summarize estimation, standard error and response-model coefficients.
 #' @param object An object of class `nmar_result_el`.
 #' @param ... Ignored.
+#' @keywords result_view
 #' @export
 summary.nmar_result_el <- function(object, ...) {
   base <- NextMethod()
@@ -57,6 +59,7 @@ summary.nmar_result_el <- function(object, ...) {
   base
 }
 
+#' @keywords result_view
 #' @export
 print.summary_nmar_result_el <- function(x, ...) {
   NextMethod()

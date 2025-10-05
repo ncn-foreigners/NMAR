@@ -28,7 +28,7 @@
 #'   migrated to `control` in a future release.)
 #'
 #' @return A list of class `c("nmar_engine_exptilt", "nmar_engine")`.
-#'
+#' @keywords engine
 #' @export
 exptilt_engine <- function(
     standardize = TRUE,

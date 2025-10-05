@@ -4,7 +4,7 @@
 #' @param data A `data.frame` or a `survey.design`.
 #' @param ... Passed to class-specific methods.
 #' @seealso `exptilt.data.frame()`, `exptilt.survey.design()`, `exptilt_engine()`
-#' @export
+#' @keywords internal
 exptilt <- function(data, ...) {
   UseMethod("exptilt")
 }

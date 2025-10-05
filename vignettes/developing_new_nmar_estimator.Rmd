@@ -1,5 +1,7 @@
 ---
 title: "Developing a New NMAR Estimator"
+description: >
+  Guide for adding a new NMAR estimator to the `nmar` package
 output: rmarkdown::html_document
 vignette: >
   %\VignetteIndexEntry{Developing a New NMAR Estimator}
@@ -76,6 +78,7 @@ method_engine <- function(...) {
 }
 ```
 
+Important: add `@keywords engine` in roxygen
 ### 2) `run_engine.R` — run_engine method
 
 ```{r eval=FALSE}

@@ -4,7 +4,7 @@
 #' @param data A `data.frame` or a `survey.design`.
 #' @param ... Passed to class-specific methods.
 #' @seealso `el.data.frame()`, `el.survey.design()`, `el_engine()`
-#' @export
+#' @keywords internal
 el <- function(data, ...) {
   UseMethod("el")
 }

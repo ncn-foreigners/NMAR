@@ -1,5 +1,7 @@
 ---
-title: "tutorial_exptilt"
+title: "Exponential Tilting"
+description: >
+  Riddles et al 2016 DOI:
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{tutorial_exptilt}
@@ -87,7 +89,7 @@ print(res)
 
 ```{r}
 cat('True Y mean:          ', sprintf('%.4f', mean(y_original)), '\n')
-est <- as.numeric(estimate(res))
+est <- as.numeric(res$estimate)
 se <- res$std_error
 cat('Est Y mean (NMAR):    ', sprintf('%.4f', est),
     '  3σ interval: (', sprintf('%.4f', est - 3 * se),
