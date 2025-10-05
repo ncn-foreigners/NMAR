@@ -13,7 +13,10 @@ get_eta_cap <- function() {
 #' @keywords internal
 #' @noRd
 grad_numeric <- function(x, func) {
-  numDeriv::grad(func = func, x = x)
+# Allow users to tune finite-difference settings via options; fall back to stable defaults
+  eps <- getOption("nmar.grad_eps", default = 1e-6)
+  d <- getOption("nmar.grad_d", default = 1e-3)
+  numDeriv::grad(func = func, x = x, method.args = list(d = d, eps = eps))
 }
 
 #' Invert a Jacobian matrix with numerically robust fallbacks.
@@ -62,7 +65,9 @@ invert_jacobian <- function(A_matrix,
 # Adaptive epsilon: scale by spectral norm
       smax <- tryCatch(max(svd(A_matrix, nu = 0, nv = 0)$d), error = function(e) NA_real_)
       if (!is.finite(smax) || smax <= 0) smax <- 1
-      base <- if (is.numeric(ridge_scale) && is.finite(ridge_scale) && ridge_scale > 0) ridge_scale else 1e-8
+# Make the base epsilon more aggressive; allow override via option
+      base_opt <- getOption("nmar.var_ridge_base", default = 1e-6)
+      base <- if (is.numeric(ridge_scale) && is.finite(ridge_scale) && ridge_scale > 0) ridge_scale else base_opt
       eps <- base * smax
     } else if (is.numeric(variance_ridge) && is.finite(variance_ridge) && variance_ridge > 0) {
       eps <- variance_ridge
@@ -113,4 +118,36 @@ invert_jacobian <- function(A_matrix,
   }
 
   stop("Jacobian is singular or ill-conditioned; try variance_pseudoinverse=TRUE or variance_ridge=TRUE, or use variance_method='bootstrap'.", call. = FALSE)
+}
+
+#' Sanitize nleqslv control list for compatibility
+#' @keywords internal
+sanitize_nleqslv_control <- function(ctrl) {
+  if (is.null(ctrl) || !is.list(ctrl)) return(list())
+# Keep a conservative whitelist to avoid unknown-name errors on older versions
+  allowed <- c("xtol", "ftol", "btol", "maxit", "trace", "stepmax", "delta", "allowSing")
+  ctrl[names(ctrl) %in% allowed]
+}
+
+#' Extract top-level nleqslv arguments from a control-like list
+#' @keywords internal
+extract_nleqslv_top <- function(ctrl) {
+  if (is.null(ctrl) || !is.list(ctrl)) return(list())
+  out <- list()
+  if (!is.null(ctrl$global)) out$global <- ctrl$global
+  if (!is.null(ctrl$xscalm)) out$xscalm <- ctrl$xscalm
+  if (!is.null(ctrl$method)) out$method <- ctrl$method
+  out
+}
+
+#' Prefer explicit solver_args over control-provided top-level args
+#' @keywords internal
+merge_nleqslv_top <- function(solver_args, control_top) {
+  res <- control_top %||% list()
+  if (!is.list(res)) res <- list()
+  if (is.list(solver_args)) {
+    if (!is.null(solver_args$global)) res$global <- solver_args$global
+    if (!is.null(solver_args$xscalm)) res$xscalm <- solver_args$xscalm
+  }
+  res
 }

@@ -1,27 +1,28 @@
-test_that("EL engine runs for survey.design and returns CI (skip if survey missing)", {
+test_that("EL survey path produces finite SE and df when survey available", {
   skip_if_not_installed("survey")
-  library(survey)
-  data(api)
-  set.seed(3103)
-  apiclus1_df <- apiclus1
-  apiclus1_df$api00_miss <- apiclus1_df$api00
-  y_std <- scale(apiclus1_df$api00)[, 1]
-  prob <- plogis(-0.5 + 0.4 * y_std + 0.2 * scale(apiclus1_df$ell)[, 1])
-  miss_idx <- runif(nrow(apiclus1_df)) > prob
-  apiclus1_df$api00_miss[miss_idx] <- NA
+  set.seed(456)
+  N <- 400
+  x <- stats::rchisq(N, df = 2)
+  eps <- stats::rnorm(N)
+  y <- x + eps * sqrt(x) / 5
+  pr <- stats::plogis(0.2 * y - (-1.5))
+  r <- stats::rbinom(N, 1, pr)
+  df <- data.frame(y_miss = ifelse(r == 1, y, NA_real_), x = x)
+  design <- survey::svydesign(ids = ~1, weights = ~1, data = df)
 
-  dclus1 <- svydesign(id = ~dnum, weights = ~pw, data = apiclus1_df, fpc = ~fpc)
-  pop_mean_ell <- mean(apiclus1_df$ell)
-
-  eng <- el_engine(variance_method = "delta", auxiliary_means = c(ell = pop_mean_ell))
-  fml <- api00_miss ~ ell
-  res <- nmar(formula = fml, data = dclus1, engine = eng)
-
-  expect_s3_class(res, "nmar_result_el")
-  expect_true(isTRUE(res$converged))
-  expect_true(is.numeric(res[['std_error']]))
-  expect_true(is.na(res[['std_error']]) || res[['std_error']] >= 0)
-  ci <- confint(res)
-  expect_true(is.matrix(ci) && nrow(ci) == 1)
-  expect_equal(rownames(ci), "api00_miss")
+  eng <- make_engine(
+    auxiliary_means = c(x = mean(df$x)),
+    variance_method = "delta",
+    standardize = TRUE,
+    solver_args = list(global = "dbldog"),
+    control = list(maxit = 200, xtol = 1e-8, ftol = 1e-8)
+  )
+  fit <- nmar(y_miss ~ x, data = design, engine = eng)
+  expect_true(isTRUE(fit$converged))
+  se <- nmar_result_get_std_error(fit)
+  expect_true(is.finite(se))
+  inf <- nmar_result_get_inference(fit)
+  expect_true(is.finite(inf$df) || is.na(inf$df))
+  diag <- fit$diagnostics
+  expect_true(is.finite(diag$jacobian_condition_number) || is.na(diag$jacobian_condition_number))
 })

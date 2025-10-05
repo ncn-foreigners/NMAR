@@ -1,12 +1,5 @@
 test_that("standardize vs manual scaling yields identical y_hat (df)", {
-  set.seed(3403)
-  N <- 200
-  X <- rnorm(N)
-  Y <- 2 + 0.5 * X + rnorm(N)
-  p <- plogis(-1 + 0.4 * scale(Y)[, 1])
-  R <- runif(N) < p
-  df <- data.frame(Y_miss = Y, X = X)
-  df[!R, "Y_miss"] <- NA_real_
+  df <- make_iid_nmar(n = 200, alpha = 0.4, seed = 3403)
 
 # Auto scaling
   fit_auto <- NMAR:::el.data.frame(df, Y_miss ~ X,
@@ -46,8 +39,7 @@ test_that("standardize vs manual scaling yields identical y_hat (df)", {
 test_that("multi-predictor scaling matches manual rescaling", {
   set.seed(1234)
   N <- 150
-  X1 <- rnorm(N)
-  X2 <- runif(N, -1, 1)
+  X1 <- rnorm(N); X2 <- runif(N, -1, 1)
   Y <- 1.5 + 0.7 * X1 - 0.3 * X2 + rnorm(N)
   p <- plogis(-0.2 + 0.5 * scale(Y)[, 1])
   R <- runif(N) < p

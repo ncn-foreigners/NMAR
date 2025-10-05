@@ -323,13 +323,56 @@ With this $A = \frac{\partial F}{\partial \theta}$, we have the analytic Jacobia
 
 ### Delta Variance for $\hat{Y}$
 
-- **Define the estimator functional** $g(\theta) = \hat{Y}(\theta)$: recompute $p_i^{\text{EL}}(\theta)$ from $\theta$ via $D_i(\theta)$, then $\hat{Y} = \sum p_i^{\text{EL}} Y_i / \sum p_i^{\text{EL}}$
-- **Gradient**: $\nabla g(\theta) \approx$ numeric gradient (`numDeriv::grad`)
-- **Variance**: $\text{Var}(\hat{Y}) \approx \nabla g \, A^{-1} B (A^{-1})^T \nabla g^T$
+- **Estimator functional** $g(\theta) = \hat{Y}(\theta)$: recompute $p_i^{\text{EL}}(\theta)$ from $\theta$ via $D_i(\theta)$, then $\hat{Y} = \sum p_i^{\text{EL}} Y_i / \sum p_i^{\text{EL}}$.
+- **Gradient**:
+  - When there is no trimming ($\text{cap} = \infty$), we use a closed‑form analytic gradient of the ratio $\hat Y(\theta)$, with $\partial \pi_i/\partial \theta$ derived under the same denominator guard $D_i \ge \varepsilon$ used in the estimating equations. This yields a smooth, numerically stable $\nabla g(\theta)$.
+  - When trimming is active (non‑smooth map), we use a stabilized numeric gradient with finite‑difference settings tuned for this problem.
+- **Variance**: $\mathrm{Var}(\hat{Y}) \approx \nabla g \, A^{-1} B (A^{-1})^T \nabla g^T$ using the (totals‑scale) $A$ and $B$ as defined above.
 
-Practical note on stability: when the unconditional response rate $W$ is low and auxiliaries are weak, $\lambda_W$ can be large and some denominators $D_i$ may approach zero, creating very large EL weights and a heavy‑tailed sampling distribution for $\hat Y$. In such regimes a first‑order (delta) approximation may understate across‑sample variability. Prefer `variance_method = "bootstrap"` or strengthen auxiliary constraints.
+Practical note on stability: when the unconditional response rate $W$ is low and auxiliaries are weak, $\lambda_W$ can be large and some denominators $D_i$ may approach zero, creating very large EL weights and a heavy‑tailed sampling distribution for $\hat Y$. In such regimes a first‑order (delta) approximation may understate across‑sample variability. Prefer `variance_method = "bootstrap"` or strengthen auxiliary constraints. With trimming, the estimator is non‑smooth, so bootstrap is recommended for inference.
 
-Implementation: `compute_delta_variance()` in `src/engines/el/impl/el_variance.R` assembles $B$ from `U_matrix_resp` and the provided `compute_score_variance_func` (IID vs survey), computes $\nabla g$ numerically, and returns $\mathrm{Var}(\hat{Y})$ and the (scaled) sandwich vcov for $\beta$.
+Implementation: `el_compute_delta_variance()` in `src_dev/engines/el/impl/variance.R` assembles $B$ from `U_matrix_resp` and the provided `compute_score_variance_func` (IID vs survey), computes $\nabla g$ (analytic when smooth; stabilized numeric otherwise), and returns $\mathrm{Var}(\hat{Y})$ and the (scaled) sandwich vcov for $\beta$.
+
+### Worked Example: Analytic $\nabla g$ in a 1‑Covariate Logit Case
+
+Consider the simple, smooth setting with no trimming (cap $=\infty$), no auxiliary constraints ($L=0$), and a logit response model
+$$
+\eta_i = Z_i\,\beta = \beta_0 + \beta_1 x_i,\qquad w_i = \operatorname{logit}^{-1}(\eta_i),\qquad \mu_{\eta,i} = \frac{dw_i}{d\eta_i} = w_i (1-w_i).
+$$
+Let $C = N_{\text{pop}}/n_{\text{resp\_weighted}} - 1$ and $W = \operatorname{logit}^{-1}(z)$, so
+$$
+\lambda_W = \frac{C}{1-W},\qquad \frac{dW}{dz} = W(1-W),\qquad \frac{d\lambda_W}{dz} = \frac{C\,W}{(1-W)} = \lambda_W\,\frac{W}{1-W}.
+$$
+With no auxiliaries, the EL denominator and weights for respondents are
+$$
+D_i = 1 + \lambda_W (w_i - W),\qquad \pi_i = \frac{a_i}{D_i},\qquad B = \sum_i \pi_i,\qquad \hat Y = g(\theta) = \frac{\sum_i \pi_i Y_i}{B},
+$$
+where $a_i$ are base weights ($a_i\equiv 1$ for IID; design weights for survey). The analytic gradient of $g$ follows from the ratio rule and $\partial\pi_i/\partial\theta$.
+
+1) Gradient w.r.t. $\beta$.
+
+Since $\partial D_i/\partial\beta = \lambda_W\,\mu_{\eta,i}\,Z_i$, we have $\partial\pi_i/\partial\beta = -\,a_i\,\lambda_W\,\mu_{\eta,i}\,Z_i/ D_i^2$, and therefore
+$$
+\boxed{\;\frac{\partial g}{\partial \beta} \,=\, \frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{\partial \pi_i}{\partial\beta}
+\;=\; -\,\frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{a_i\,\lambda_W\,\mu_{\eta,i}}{D_i^2}\,Z_i\; }.
+$$
+
+2) Gradient w.r.t. the reparametrized $z = \operatorname{logit}(W)$.
+
+Using $\partial D_i/\partial z = (d\lambda_W/dz)\,(w_i - W) - \lambda_W\,\frac{dW}{dz}$,
+$$
+\boxed{\;\frac{\partial g}{\partial z} \,=\, \frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{\partial \pi_i}{\partial z}
+\;=\; -\,\frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{a_i}{D_i^2}\,\Big[\,\frac{d\lambda_W}{dz}\,(w_i - W) - \lambda_W\,\frac{dW}{dz}\,\Big]\; }.
+$$
+
+3) (Optional) With auxiliaries $X_i$ and centered $X_{c,i}=X_i-\mu_x$, $D_i = 1 + \lambda_W(w_i - W) + X_{c,i}^\top\lambda_x$ and $\partial D_i/\partial\lambda_x = X_{c,i}$, hence
+$$
+\boxed{\;\frac{\partial g}{\partial \lambda_x} \,=\, -\,\frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{a_i}{D_i^2}\,X_{c,i}\; }.
+$$
+
+Numerical safeguards. In practice we enforce $D_i \ge \varepsilon$ (e.g., $\varepsilon=10^{-8}$) when forming the gradient and the score contributions used in $\widehat B$. The same guard is used in the estimating equations and in the analytic Jacobian, ensuring consistency between $F(\theta)$, $A=\partial F/\partial\theta$, and $\nabla g(\theta)$.
+
+Code mapping. The implementation uses these expressions when `trim_cap = Inf` (smooth case) inside `el_compute_delta_variance()`; otherwise it falls back to a stabilized numeric gradient. See `src_dev/engines/el/impl/variance.R` for the exact code paths and `src_dev/engines/el/impl/jacobian.R` for the matching $A$.
 
 ### Solving Strategy and Initialization
 
@@ -337,7 +380,7 @@ Implementation: `compute_delta_variance()` in `src/engines/el/impl/el_variance.R
   - Newton with analytic Jacobian when available;
   - Perturbation‑based re‑starts that seed $z$ at $\mathrm{logit}(\text{observed response rate})$ to align with the binomial part; and
   - A Broyden fallback without Jacobian if needed.
-- This reparameterization and initialization improve stability in strong NMAR settings. See `src/engines/el/impl/el_core.R`.
+- This reparameterization and initialization improve stability in strong NMAR settings. See `src_dev/engines/el/impl/core.R`.
 
 ### Jacobian Inversion Policy and Numerical Stability
 
@@ -360,6 +403,21 @@ Let $A = \frac{\partial F}{\partial \theta}$ be the Jacobian of the estimating s
 - With finite weight trimming, the delta-variance is only approximate because $g(\theta)$ incorporates trimming; prefer `variance_method = "bootstrap"` in that case (as implemented).
 
 Example: If $\kappa(A) \approx 10^{10}$ and `variance_ridge = TRUE`, the inversion applies an adaptive ridge with $\epsilon \approx 10^{-8} \times \sigma_{\max}(A)$ and inverts $A + \epsilon I$. This typically reduces ill-conditioning and stabilizes both the Newton linear solve and the sandwich variance.
+
+### Practical Identifiability and Diagnostics
+
+The EL system balances the parametric response-model score against calibration constraints. Identifiability can weaken in the following situations:
+
+- Weak or nearly collinear auxiliaries: if $X_i-\mu_x$ have little variation or are nearly collinear with the response score direction, the constraint block in $A=\partial F/\partial\theta$ becomes ill‑conditioned.
+- Inconsistent auxiliary means: if supplied $\mu_x$ are far from what the respondent sample can support (under the response model), denominators $D_i$ cluster near 0 and $\kappa(A)$ inflates.
+- Heavy nonresponse or near‑boundary $W$: when $W$ approaches 0 or 1, $\lambda_W=C/(1-W)$ can spike and amplify sensitivity.
+
+Diagnostics exposed by the implementation help assess these issues:
+
+- `jacobian_condition_number` ($\kappa(A)$), `jacobian_source` (analytic vs numeric), `jacobian_auto_rule` (why numeric was chosen), `max_equation_residual`, and the trimming fraction.
+- For variance, whether ridge or pseudoinverse was used (`used_ridge`, `used_pseudoinverse`, `invert_rule`).
+
+Mitigations include standardizing predictors, trimming extreme weights (`trim_cap`), adding informative response‑model predictors, and preferring bootstrap variance when diagnostics indicate fragility.
 
 ## Survey Design Details
 
@@ -437,6 +495,18 @@ These definitions match the semiparametric MLE equations in Qin–Leung–Shao (
 - IID case: $a_i = 1$, and $\widehat B$ is the empirical crossproduct of per‑unit scores (with zeros for nonrespondents).
 - Survey case: $a_i$ equals the design weight; $\widehat B$ is obtained from `svytotal`/`vcov` so that clustering, stratification, and unequal probabilities are reflected in the covariance of the score totals.
 
+Remark on calibration under complex designs: the analytic delta variance is derived from a first‑order expansion of the score‑total map. Under strong weighting or complex designs, the linearization can under‑estimate variability even though the form of $\widehat B$ is correct. In such cases, prefer bootstrap variance via replicate weights (`svrep`) for more reliable calibration.
+
+### Trimming and Delta Approximation
+
+When a finite trimming cap is used (non‑smooth map in $\theta$), the delta method is only approximate because $g(\theta)$ includes thresholding. The implementation therefore:
+
+- Uses a closed‑form analytic $\nabla g$ only in the smooth, untrimmed case ($\text{cap}=\infty$).
+- Falls back to a stabilized numeric gradient when trimming is active.
+
+In practice, for trimmed fits or ill‑conditioned Jacobians, prefer `variance_method = "bootstrap"` for reliable uncertainty quantification.
+
+
 ### Choosing Analytic vs Numeric Jacobian ("auto")
 
 When both analytic and numeric versions of $A$ are available, the default selection is "auto":
@@ -449,18 +519,18 @@ This balances accuracy/speed (analytic) with numerical robustness (numeric) and 
 
 ## End-to-End Mapping to Code
 
-- Engine: `el_engine(..., family, standardize, trim_cap, variance_method, ...)` in `src/engines/el/engine.R`
+- Engine: `el_engine(..., family, standardize, trim_cap, variance_method, ...)` in `src_dev/engines/el/engine.R`
   - Validated by `validate_nmar_engine_el()`.
-  - Family objects: `logit_family()`, `probit_family()` in `src/shared/families.R`.
-- Dispatch: `run_engine.nmar_engine_el(...)` in `src/engines/el/run.R` adapts the formula and forwards arguments to `el()` methods.
+  - Family objects: `logit_family()`, `probit_family()` in `src_dev/shared/families.R`.
+- Dispatch: `run_engine.nmar_engine_el(...)` in `src_dev/engines/el/run_engine.R` adapts the formula and forwards arguments to internal `el()` methods.
 - Methods:
-  - `el.data.frame()` / `el.survey.design()` in `src/engines/el/impl/el_dataframe.R` and `el_survey.R` prepare inputs, call `el_estimator_core()`, and wrap results.
-- EL Core: `el_estimator_core(...)` in `src/engines/el/impl/el_core.R` runs:
+  - `el.data.frame()` / `el.survey.design()` in `src_dev/engines/el/impl/dataframe.R` and `src_dev/engines/el/impl/survey.R` prepare inputs, call `el_estimator_core()`, and wrap results.
+- EL Core: `el_estimator_core(...)` in `src_dev/engines/el/impl/core.R` runs:
   - Scaling via `validate_and_apply_nmar_scaling()`
   - Build equations via `el_build_equation_system(family, ...)`
   - Solve with `nleqslv` (multi-start fallback and Broyden if needed)
   - Compute EL weights, Y_hat, diagnostics, constraints
-  - Variance (delta or bootstrap), with A via `build_el_jacobian(family, ...)` and B via `compute_score_variance_func` (IID vs survey), grad_g via `numDeriv::grad`
+  - Variance (delta or bootstrap), with A via `build_el_jacobian(family, ...)` and B via `compute_score_variance_func` (IID vs survey), and analytic/numeric `∇g` inside `el_compute_delta_variance()` depending on trimming
   - Unscale coefficients and vcov if needed
 - Jacobian: `build_el_jacobian(...)` in `src_dev/engines/el/impl/jacobian.R` returns analytic A whenever family supplies `d2mu.deta2` (logit, probit).
 - Variance: `src_dev/engines/el/impl/variance.R` assembles B and computes delta variance; bootstrap variance in `src_dev/shared/bootstrap.R`.
@@ -542,19 +612,20 @@ How to run (code)
 ```
 eng <- el_engine(auxiliary_means = c(X = mu_x), family = "logit", standardize = TRUE)
 res <- nmar(
-  formula = list(outcome = ~ Y_miss, covariates_outcome = ~ X, covariates_missingness = ~ NULL),
+  formula = Y_miss ~ X,
   data = df,
-  engine = eng
+  engine = eng,
+  response_predictors = NULL
 )
 estimate(res); confint(res)
 ```
 
 Where it maps in code
 
-- Equations: `src/engines/el/impl/el_equations.R`
-- Jacobian: `src/engines/el/impl/el_jacobian.R`
-- Core solve + weights + variance: `src/engines/el/impl/el_core.R`, `src/engines/el/impl/el_variance.R`
-- Scaling: `src/shared/scaling.R`
+- Equations: `src_dev/engines/el/impl/equations.R`
+- Jacobian: `src_dev/engines/el/impl/jacobian.R`
+- Core solve + weights + variance: `src_dev/engines/el/impl/core.R`, `src_dev/engines/el/impl/variance.R`
+- Scaling: `src_dev/shared/scaling.R`
 
 ## Worked Example: Probit + One Auxiliary Mean
 
@@ -569,9 +640,10 @@ How to run (code)
 ```
 eng <- el_engine(auxiliary_means = c(X = mu_x), family = "probit", standardize = TRUE)
 res <- nmar(
-  formula = list(outcome = ~ Y_miss, covariates_outcome = ~ X, covariates_missingness = ~ NULL),
+  formula = Y_miss ~ X,
   data = df,
-  engine = eng
+  engine = eng,
+  response_predictors = NULL
 )
 estimate(res); confint(res)
 ```

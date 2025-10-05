@@ -1,15 +1,8 @@
 test_that("tidy/glance produce expected shapes", {
   set.seed(42)
-  N <- 200
-  X <- rnorm(N)
-  Y <- 2 + 0.5 * X + rnorm(N)
-  p <- plogis(-1 + 0.4 * scale(Y)[, 1])
-  R <- runif(N) < p
-  df <- data.frame(Y_miss = Y, X = X)
-  df[!R, "Y_miss"] <- NA_real_
-  eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "delta")
-  fml <- Y_miss ~ X
-  fit <- nmar(formula = fml, data = df, engine = eng)
+  df <- make_iid_nmar(n = 200, alpha = 0.4, seed = 42)
+  fit <- nmar(formula = Y_miss ~ X, data = df,
+              engine = make_engine(auxiliary_means = c(X = 0), variance_method = "delta"))
 
   td <- tidy(fit)
   gl <- glance(fit)
@@ -21,16 +14,9 @@ test_that("tidy/glance produce expected shapes", {
 
 test_that("plot/autoplot run (skip ggplot2 if missing)", {
   set.seed(43)
-  N <- 150
-  X <- rnorm(N)
-  Y <- 2 + 0.5 * X + rnorm(N)
-  p <- plogis(-1 + 0.4 * scale(Y)[, 1])
-  R <- runif(N) < p
-  df <- data.frame(Y_miss = Y, X = X)
-  df[!R, "Y_miss"] <- NA_real_
-  eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "delta")
-  fml <- Y_miss ~ X
-  fit <- nmar(formula = fml, data = df, engine = eng)
+  df <- make_iid_nmar(n = 150, alpha = 0.4, seed = 43)
+  fit <- nmar(formula = Y_miss ~ X, data = df,
+              engine = make_engine(auxiliary_means = c(X = 0), variance_method = "delta"))
 
 # Open a temporary PDF device to avoid creating Rplots.pdf in the test dir
   tmp <- tempfile(fileext = ".pdf")
