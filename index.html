@@ -42,7 +42,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="articles/tutorial_empirical_likelihood.html">Empirical Likelihood</a></li>
     <li><a class="dropdown-item" href="articles/tutorial_exptilt.html">Exponential Tilting</a></li>
-    <li><a class="dropdown-item" href="articles/tutorial_exptilt_nonparam.html">Exponential Tilting (nonparam)</a></li>
+    <li><a class="dropdown-item" href="articles/tutorial_exptilt_nonparam.html">Exponential Tilting (Nonparametric)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="articles/index.html">More articles...</a></li>
   </ul>
@@ -70,14 +70,18 @@
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>The <strong>NNMAR</strong> library provides functions to estimate the mean of <strong>Not Missing At Random (NMAR)</strong> data. The estimation functions are built upon the following engine functions, each implementing a distinct method:</p>
+<p>The <strong>NMAR</strong> library provides functions to estimate the mean of <strong>Not Missing At Random (NMAR)</strong> data. The estimation functions are built upon the following engine functions, each implementing a distinct method:</p>
 <ul>
-<li>
-<code>exptilt_engine</code>: Exponential Tilting Estimator (Riddles et al, 2016, <a href="https://doi.org/10.xxxx/xxxx" class="external-link">DOI:10.xxxx/xxxx</a>)</li>
-<li>
-<code>exptilt_nonparam_engine</code>: Nonparametric Exponential Tilting Estimator (Riddles et al, 2016, Appendix 2, <a href="https://doi.org/10.xxxx/xxxx" class="external-link">DOI:10.xxxx/xxxx</a>)</li>
-<li>
-<code>el_engine</code>: Empirical Likelihood Estimator (Kim and Yu, 2011, <a href="https://doi.org/10.xxxx/xxxx" class="external-link">DOI:10.xxxx/xxxx</a>)</li>
+<li><p><code>exptilt_engine</code>: Exponential Tilting Estimator<br>
+Minsun Kim Riddles, Jae Kwang Kim, Jongho Im<br>
+A Propensity-score-adjustment Method for Nonignorable Nonresponse<br><a href="https://doi.org/10.1093/jssam/smv047" class="external-link uri">https://doi.org/10.1093/jssam/smv047</a></p></li>
+<li><p><code>exptilt_nonparam_engine</code>: Nonparametric Exponential Tilting Estimator<br>
+Minsun Kim Riddles, Jae Kwang Kim, Jongho Im<br>
+A Propensity-score-adjustment Method for Nonignorable Nonresponse<br>
+Appendix 2<br><a href="https://doi.org/10.1093/jssam/smv047" class="external-link uri">https://doi.org/10.1093/jssam/smv047</a></p></li>
+<li><p><code>el_engine</code>: Empirical Likelihood Estimator<br>
+Jing Qin, Denis Leung, Jun Shao<br>
+Estimation With Survey Data Under Nonignorable Nonresponse or Informative Sampling<br><a href="http://dx.doi.org/10.1198/016214502753479338" class="external-link uri">http://dx.doi.org/10.1198/016214502753479338</a></p></li>
 </ul>
 <p>The main user-facing function is <code><a href="reference/nmar.html">nmar()</a></code>, which acts as a unified wrapper around these engine functions.</p>
 </div>
@@ -157,12 +161,12 @@
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Result</span></span>
 <span><span class="co">#&gt; ------------</span></span>
-<span><span class="co">#&gt; Y: -1.022341</span></span>
-<span><span class="co">#&gt; Std. Error: 0.088009</span></span>
+<span><span class="co">#&gt; Y: -1.110670</span></span>
+<span><span class="co">#&gt; Std. Error: 0.094912</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: delta </span></span>
 <span><span class="co">#&gt; Estimator: exponential_tilting </span></span>
-<span><span class="co">#&gt; Sample size: 500 (respondents: 362)</span></span></code></pre></div>
+<span><span class="co">#&gt; Sample size: 500 (respondents: 376)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -173,11 +177,11 @@
 <div class="section level2">
 <h2 id="authors-and-acknowledgments">Authors and acknowledgments<a class="anchor" aria-label="anchor" href="#authors-and-acknowledgments"></a>
 </h2>
-<p>Research grant: <a href="#">OPUS 20 #2020/39/B/HS4/00941</a></p>
+<p>Research grant: <a href="https://ncn-foreigners.ue.poznan.pl/" class="external-link">OPUS 20 #2020/39/B/HS4/00941</a></p>
 <ul>
-<li><a href="#">Maciej Beręsewicz</a></li>
-<li><a href="#">Igor Kołodziej</a></li>
-<li><a href="#">Mateusz Iwaniuk</a></li>
+<li><a href="https://github.com/berenz" class="external-link">Maciej Beręsewicz</a></li>
+<li><a href="https://github.com/IgorKolodziej" class="external-link">Igor Kołodziej</a></li>
+<li><a href="https://github.com/Iwaniukooo11" class="external-link">Mateusz Iwaniuk</a></li>
 </ul>
 </div>
 </div>
