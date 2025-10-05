@@ -1,18 +1,9 @@
 set.seed(2025)
 
 test_that("EL engine runs and returns expected structure (data.frame)", {
-  N <- 400
-  X <- rnorm(N)
-  Z <- rnorm(N)
-  Y <- 2 + 0.5 * X + Z
-  p <- plogis(-1.0 + 0.4 * scale(Y)[, 1])
-  R <- runif(N) < p
-  dat <- data.frame(Y_miss = Y, X = X)
-  dat$Y_miss[!R] <- NA
-
-  eng <- el_engine(variance_method = "delta", auxiliary_means = c(X = 0))
-  fml <- Y_miss ~ X
-  res <- nmar(formula = fml, data = dat, engine = eng)
+  dat <- make_iid_nmar(n = 400, alpha = 0.4, seed = 2025)
+  eng <- make_engine(variance_method = "delta", auxiliary_means = c(X = 0))
+  res <- nmar(formula = Y_miss ~ X, data = dat, engine = eng)
 
   expect_s3_class(res, "nmar_result_el")
   expect_true(isTRUE(res$converged))

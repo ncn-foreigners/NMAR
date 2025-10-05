@@ -1,13 +1,6 @@
 test_that("response_predictors can include non-auxiliary variables", {
   set.seed(4242)
-  N <- 350
-  X <- rnorm(N)
-  Z <- rnorm(N)
-  Y <- 1 + 0.7 * X + 0.3 * Z + rnorm(N)
-  p <- plogis(-0.4 + 0.6 * scale(Y)[, 1] + 0.3 * Z)
-  R <- runif(N) < p
-  df <- data.frame(Y_miss = Y, X = X, Z = Z)
-  df$Y_miss[!R] <- NA_real_
+  df <- make_iid_nmar(n = 350, alpha = 0.6, include_z = TRUE, seed = 4242)
 
 # Outcome RHS contains only X (auxiliary). Include Z as response-only predictor.
   res <- NMAR:::el.data.frame(

@@ -1,18 +1,10 @@
 test_that("constraint sums are near zero at solution (no trimming)", {
-  set.seed(1234)
-  N <- 300
-  X <- rnorm(N)
-  Y <- 1 + 0.5 * X + rnorm(N)
-  p <- plogis(-0.5 + 0.6 * scale(Y)[, 1])
-  R <- runif(N) < p
-  df <- data.frame(Y_miss = Y, X = X)
-  df$Y_miss[!R] <- NA_real_
+  df <- make_iid_nmar(n = 300, alpha = 0.6, seed = 1234)
 
   fit <- nmar(
     formula = Y_miss ~ X,
     data = df,
-    engine = el_engine(auxiliary_means = c(X = 0), trim_cap = Inf, variance_method = "delta", standardize = FALSE)
-
+    engine = make_engine(auxiliary_means = c(X = 0), trim_cap = Inf, variance_method = "delta", standardize = FALSE)
   )
   expect_true(fit$converged)
 # Reconstruct components to compute raw constraint sums from stored diagnostics inputs

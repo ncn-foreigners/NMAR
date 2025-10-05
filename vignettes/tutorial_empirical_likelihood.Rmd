@@ -30,11 +30,11 @@ Key features:
 
 ## Quick start
 
-- Specify the model via a formula list: `list(outcome = ~ Y_miss, covariates_outcome = ~ X1 + X2, covariates_missingness = ~ Z1 + Z2)`.
-  - Variables on the outcome RHS (e.g., `X1 + X2`) are auxiliaries; you can supply their known population means via `auxiliary_means = c(X1 = ..., X2 = ...)`.
-  - Variables in `covariates_missingness` enter only the response model (no auxiliary constraint). They do not need population means.
+- Specify the model with a two-sided formula: `Y_miss ~ X1 + X2` (auxiliaries are the RHS variables). If you have response‑only predictors that should enter the missingness model but not as auxiliaries, pass them via `response_predictors = c("Z1","Z2")`.
+  - Variables on the outcome RHS (e.g., `X1 + X2`) are auxiliaries; supply their known population means via `auxiliary_means = c(X1 = ..., X2 = ...)`.
+  - Predictors in `response_predictors` enter only the response model (no auxiliary constraint) and do not need population means.
 - Choose the engine: `el_engine(...)`, e.g., `el_engine(auxiliary_means = c(X1 = 0), variance_method = "delta", standardize = TRUE)`.
-- Fit: `nmar(formula = <list>, data = df_or_design, engine = el_engine(...))`.
+- Fit: `nmar(formula = Y_miss ~ X1 + X2, data = df_or_design, engine = el_engine(...), response_predictors = c("Z1","Z2"))`.
 - Inspect: `summary()`, `confint()`, `weights()`, `fitted()`, and `fit$diagnostics`.
 # 
 # Data-frame example (IID)
@@ -187,6 +187,13 @@ if (requireNamespace("survey", quietly = TRUE)) {
 
 - Variance method: The delta method is fast but asymptotic; bootstrap is often preferred for moderate samples, trimming, or near-boundary cases.
 - Trimming: Use a finite `trim_cap` to improve robustness when large weights occur; prefer bootstrap variance when trimming.
+- Solver method and Jacobian:
+  - `solver_method = "auto"` (default) tries Newton (with the analytic Jacobian when available) and falls back to Broyden if needed. Force Broyden with `solver_method = "broyden"` for large‑p problems.
+  - `solver_jacobian = "analytic"` uses the analytic Jacobian for solving; set `"none"` to force secant updates.
+- Advanced nleqslv tuning:
+  - Top‑level nleqslv args via `solver_args = list(global = "dbldog", xscalm = "auto")`.
+  - Control‑list tolerances via `control = list(xtol = 1e-10, ftol = 1e-10, maxit = 200)`.
+  - The effective settings used are recorded in `fit$diagnostics` (e.g., `solver_method`, `nleqslv_global`, `nleqslv_xscalm`).
 - Standardization: `standardize = TRUE` typically improves numerical stability and comparability across predictors and auxiliary means.
 - Diagnostics: Inspect `fit$diagnostics` (Jacobian condition number, max equation residuals, trimming fraction) to assess numerical health and identification strength.
 - Response-only predictors: Variables in `covariates_missingness` do not need to appear on the RHS of the outcome formula; they enter only the response model. Auxiliary means must be supplied only for variables on the outcome RHS.
@@ -201,7 +208,7 @@ Troubleshooting:
 # References and further reading
 
 - Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193–200. doi:10.1198/016214502753479338
-- For practical scripts and experiments that informed this implementation, see the package’s development materials and the validation script under `inst/validation/mc-el.R`.
+- For practical scripts and experiments that informed this implementation, see the package’s development materials and the simulation script under `inst/simulations/mc-el.R`.
 
 
 # Families and numerical stability
@@ -213,3 +220,8 @@ Troubleshooting:
 ```{r}
 sessionInfo()
 ```
+
+# Notes on variance choices
+
+- `variance_method = "delta"` uses an analytic sandwich; it is very fast but may under‑estimate variability in tougher regimes (heavy nonresponse, ill‑conditioned Jacobians, or trimming). Prefer `variance_method = "bootstrap"` for more robust SEs.
+- For speed‑critical bootstraps, you can set `variance_method = "none"` for point fits and let the bootstrap call use it internally for replicates (this is the default behavior when you request bootstrap SEs through `el_engine(...)`).
