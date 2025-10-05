@@ -173,3 +173,18 @@ jobs:
           git push --force origin package-pre_prod_tmp:package-pre_prod
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+      - name: Install dependencies
+        run: |
+          Rscript -e "install.packages('pkgdown')"
+
+      - name: Build site
+        run: |
+          Rscript -e "pkgdown::build_site()"
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs
