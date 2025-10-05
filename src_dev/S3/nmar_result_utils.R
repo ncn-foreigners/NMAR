@@ -58,3 +58,33 @@ nmar_result_get_model <- function(x) {
   model$vcov <- model$vcov %||% NULL
   model
 }
+
+#' Format an abridged call line for printing
+#'
+#' Builds a concise one-line summary of the original call without
+#' materializing large objects (e.g., full data frames). Intended for
+#' use by print/summary methods.
+#'
+#' Uses option `nmar.show_call` (default TRUE). Width can be tuned via
+#' option `nmar.call_width` (default 120), but the formatter aims to keep
+#' the line compact regardless of width.
+#'
+#' @keywords internal
+nmar_format_call_line <- function(x) {
+  if (!isTRUE(getOption("nmar.show_call", TRUE))) return(NULL)
+  meta <- x$meta %||% list()
+  sample <- nmar_result_get_sample(x)
+# Formula
+  fml <- meta$formula %||% NULL
+  fml_str <- if (!is.null(fml) && inherits(fml, "formula")) {
+    paste(deparse(fml, width.cutoff = max(60L, getOption("nmar.call_width", 120L))), collapse = " ")
+  } else {
+    "<formula>"
+  }
+# Data descriptor (avoid printing the object itself)
+  n_str <- if (is.finite(sample$n_total)) paste0("N=", sample$n_total) else "N=?"
+  data_desc <- if (isTRUE(sample$is_survey)) paste0("<survey.design: ", n_str, ">") else paste0("<data.frame: ", n_str, ">")
+# Engine label
+  eng <- meta$engine_name %||% "nmar_engine"
+  sprintf("Call: nmar(%s, data = %s, engine = %s)", fml_str, data_desc, eng)
+}
