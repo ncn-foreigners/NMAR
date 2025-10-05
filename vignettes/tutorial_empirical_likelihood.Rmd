@@ -1,5 +1,7 @@
 ---
-title: "Tutorial Empirical Likelihood Estimator for NMAR"
+title: "Empirical Likelihood"
+description: >
+  Empirical Likelihood Estimator for NMAR data (Qin, Leung, and Shao 2002) DOI:
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Empirical Likelihood Estimator for NMAR}

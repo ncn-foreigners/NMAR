@@ -1,5 +1,7 @@
 ---
-title: "Tutorial Exponential Tilting Estimator for NMAR"
+title: "Exponential Tilting"
+description: >
+  Riddles et al 2016 DOI:
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{tutorial_exptilt}

@@ -1,19 +1,33 @@
+url: https://ncn-foreigners.github.io/NMAR
 template:
   bootstrap: 5
   light-switch: true
 
+
+
+navbar:
+  structure:
+    left: [reference, articles, news]
+    right: [search,github]
+
+
 articles:
   - title: Estimators
+    # desc: >
+    #   Estimators implemented in nmar package
     navbar: ~
     contents:
       - tutorial_empirical_likelihood
       - tutorial_exptilt
       - tutorial_exptilt_nonparam
   - title: Developer
+    # desc: >
+    #   Guide to develop new estimators in nmar package
     contents:
       - developing_new_nmar_estimator
   - title: Theory
-    # navbar: ~
+    # desc: >
+    #   Theoretical background of estimators
     contents:
       - el_empirical_likelihood_theory
 

@@ -18,7 +18,7 @@
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Not Missing at Random">
 <meta name="description" content="NMAR provides a set of functions to estimate the population mean of data subject to Not Missing At Random (NMAR) mechanisms using advanced statistical methods">
 <meta property="og:description" content="NMAR provides a set of functions to estimate the population mean of data subject to Not Missing At Random (NMAR) mechanisms using advanced statistical methods">
-<meta property="og:image" content="/logo.png">
+<meta property="og:image" content="https://ncn-foreigners.github.io/NMAR/logo.png">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -38,21 +38,23 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="articles/index.html">Articles</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="articles/tutorial_empirical_likelihood.html">Empirical Likelihood</a></li>
+    <li><a class="dropdown-item" href="articles/tutorial_exptilt.html">Exponential Tilting</a></li>
+    <li><a class="dropdown-item" href="articles/tutorial_exptilt_nonparam.html">Exponential Tilting (nonparam)</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="articles/index.html">More articles...</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json">
 </form></li>
-<li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-lightswitch" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-label="Light switch"><span class="fa fa-sun"></span></button>
-  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-lightswitch">
-<li><button class="dropdown-item" data-bs-theme-value="light"><span class="fa fa-sun"></span> Light</button></li>
-    <li><button class="dropdown-item" data-bs-theme-value="dark"><span class="fa fa-moon"></span> Dark</button></li>
-    <li><button class="dropdown-item" data-bs-theme-value="auto"><span class="fa fa-adjust"></span> Auto</button></li>
-  </ul>
-</li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/ncn-foreigners/NMAR/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -187,7 +189,15 @@
 </ul>
 </div>
 </div>
-  </main><aside class="col-md-3"><div class="license">
+  </main><aside class="col-md-3"><div class="links">
+<h2 data-toc-skip>Links</h2>
+<ul class="list-unstyled">
+<li><a href="https://github.com/ncn-foreigners/NMAR/" class="external-link">Browse source code</a></li>
+<li><a href="https://github.com/ncn-foreigners/NMAR/issues" class="external-link">Report a bug</a></li>
+</ul>
+</div>
+
+<div class="license">
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
 <li><a href="LICENSE.html">Full license</a></li>
@@ -206,7 +216,9 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Maciej Beręsewicz <br><small class="roles"> Maintainer </small>   </li>
+<li>Maciej Beręsewicz <br><small class="roles"> Author, maintainer </small>   </li>
+<li>Igor Kołodziej <br><small class="roles"> Author </small>   </li>
+<li>Mateusz Iwaniuk <br><small class="roles"> Author </small>   </li>
 </ul>
 </div>
 
@@ -223,7 +235,7 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Maciej Beręsewicz.</p>
+  <p>Developed by Maciej Beręsewicz, Igor Kołodziej, Mateusz Iwaniuk.</p>
 </div>
 
 <div class="pkgdown-footer-right">
