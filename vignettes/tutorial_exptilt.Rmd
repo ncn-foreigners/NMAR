@@ -1,7 +1,9 @@
 ---
 title: "Exponential Tilting"
-description: >
-  Riddles et al 2016 DOI:
+description: |
+  Minsun Kim Riddles, Jae Kwang Kim, Jongho Im <br>
+  A Propensity-score-adjustment Method for Nonignorable Nonresponse <br>
+  https://doi.org/10.1093/jssam/smv047
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{tutorial_exptilt}

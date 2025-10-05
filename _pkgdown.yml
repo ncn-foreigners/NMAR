@@ -13,8 +13,8 @@ navbar:
 
 articles:
   - title: Estimators
-    # desc: >
-    #   Estimators implemented in nmar package
+    desc: >
+      Step-by-step tutorials for using estimators in nmar package including both data.frame and survey design objects
     navbar: ~
     contents:
       - tutorial_empirical_likelihood

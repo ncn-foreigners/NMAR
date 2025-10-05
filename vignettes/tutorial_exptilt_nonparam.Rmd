@@ -1,7 +1,11 @@
 ---
-title: "Exponential Tilting (nonparam)"
-description: >
-  Riddles et al 2016 (Appendix 2) DOI:
+title: "Exponential Tilting (Nonparametric)"
+description: |
+  Minsun Kim Riddles, Jae Kwang Kim, Jongho Im <br>
+  A Propensity-score-adjustment Method for Nonignorable Nonresponse <br>
+  Appendix 2 <br>
+  https://doi.org/10.1093/jssam/smv047
+  
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{tutorial_exptilt_nonparam}
