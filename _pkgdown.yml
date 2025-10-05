@@ -3,18 +3,21 @@ template:
   light-switch: true
 
 articles:
-  - title: Theory
-    navbar: ~
-    contents:
-      - el_empirical_likelihood_theory
-  - title: Developer
-    contents:
-      - developing_new_nmar_estimator
   - title: Estimators
+    navbar: ~
     contents:
       - tutorial_empirical_likelihood
       - tutorial_exptilt
       - tutorial_exptilt_nonparam
+  - title: Developer
+    contents:
+      - developing_new_nmar_estimator
+  - title: Theory
+    # navbar: ~
+    contents:
+      - el_empirical_likelihood_theory
+
+
 
 reference:
   - title: Engines
