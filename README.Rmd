@@ -23,11 +23,24 @@ knitr::opts_chunk$set(
 The goal of **NMAR** is to provide a set of functions to **estimate the population mean** of data subject to Not Missing At Random (NMAR) mechanisms using advanced statistical methods 
 
 ## Overview
-The **NNMAR** library provides functions to estimate the mean of **Not Missing At Random (NMAR)** data. The estimation functions are built upon the following engine functions, each implementing a distinct method:
+The **NMAR** library provides functions to estimate the mean of **Not Missing At Random (NMAR)** data. The estimation functions are built upon the following engine functions, each implementing a distinct method:
 
-* `exptilt_engine`: Exponential Tilting Estimator (Riddles et al, 2016, [DOI:10.xxxx/xxxx](https://doi.org/10.xxxx/xxxx))
-* `exptilt_nonparam_engine`: Nonparametric Exponential Tilting Estimator (Riddles et al, 2016, Appendix 2, [DOI:10.xxxx/xxxx](https://doi.org/10.xxxx/xxxx))
-* `el_engine`: Empirical Likelihood Estimator (Kim and Yu, 2011, [DOI:10.xxxx/xxxx](https://doi.org/10.xxxx/xxxx))
+* `exptilt_engine`: Exponential Tilting Estimator\
+Minsun Kim Riddles, Jae Kwang Kim, Jongho Im\
+A Propensity-score-adjustment Method for Nonignorable Nonresponse\
+https://doi.org/10.1093/jssam/smv047
+
+* `exptilt_nonparam_engine`: Nonparametric Exponential Tilting Estimator\
+Minsun Kim Riddles, Jae Kwang Kim, Jongho Im\
+A Propensity-score-adjustment Method for Nonignorable Nonresponse\
+Appendix 2\
+https://doi.org/10.1093/jssam/smv047
+
+
+* `el_engine`: Empirical Likelihood Estimator \
+Jing Qin, Denis Leung, Jun Shao\
+Estimation With Survey Data Under Nonignorable Nonresponse or Informative Sampling\
+http://dx.doi.org/10.1198/016214502753479338
 
 The main user-facing function is `nmar()`, which acts as a unified wrapper around these engine functions.
 
@@ -103,9 +116,9 @@ print(res)
 If you encounter a clear bug, please file an issue with a minimal reproducible example on [GitHub](https://github.com/ncn-foreigners/NMAR/issues)
 
 ## Authors and acknowledgments
-Research grant: [OPUS 20 #2020/39/B/HS4/00941](#)
+Research grant: [OPUS 20 #2020/39/B/HS4/00941](https://ncn-foreigners.ue.poznan.pl/)
 
-- [Maciej Beręsewicz](#)
-- [Igor Kołodziej](#)
-- [Mateusz Iwaniuk](#)
+- [Maciej Beręsewicz](https://github.com/berenz)
+- [Igor Kołodziej](https://github.com/IgorKolodziej)
+- [Mateusz Iwaniuk](https://github.com/Iwaniukooo11)
 

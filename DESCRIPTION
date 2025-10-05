@@ -2,12 +2,12 @@ Package: NMAR
 Type: Package
 Title: Not Missing at Random
 Version: 0.0.0.1
-Maintainer: Maciej Beręsewicz <maciej.beresewicz@uep.pl>
+Maintainer: Maciej Beręsewicz <Maciej.Beresewicz@ue.poznan.pl>
 Author: Maciej Beręsewicz [aut, cre],
     Igor Kołodziej [aut],
     Mateusz Iwaniuk [aut]
 Authors@R: c(
-    person("Maciej", "Beręsewicz", email = "maciej.beresewicz@uep.pl", role = c("aut", "cre")),
+    person("Maciej", "Beręsewicz", email = "Maciej.Beresewicz@ue.poznan.pl", role = c("aut", "cre")),
     person("Igor", "Kołodziej", email = "igor.kolodziej@protonmail.com", role = "aut"),
     person("Mateusz", "Iwaniuk", email = "mateusz.iwaniuk11@gmail.com", role = "aut"))
 Description: NMAR provides a set of functions to estimate the population mean of data subject to Not Missing At Random (NMAR) mechanisms using advanced statistical methods

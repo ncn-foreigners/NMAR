@@ -1,7 +1,9 @@
 ---
 title: "Empirical Likelihood"
-description: >
-  Empirical Likelihood Estimator for NMAR data (Qin, Leung, and Shao 2002) DOI:
+description: |
+  Jing Qin, Denis Leung, Jun Shao <br>
+  Estimation With Survey Data Under Nonignorable Nonresponse or Informative Sampling <br>
+  http://dx.doi.org/10.1198/016214502753479338
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Empirical Likelihood Estimator for NMAR}
