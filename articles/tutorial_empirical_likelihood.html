@@ -149,7 +149,7 @@ on the unobserved outcome.</p>
 <span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Y_miss <span class="op">=</span> <span class="va">Y</span>, X <span class="op">=</span> <span class="va">X</span><span class="op">)</span></span>
 <span><span class="va">dat</span><span class="op">$</span><span class="va">Y_miss</span><span class="op">[</span><span class="op">!</span><span class="va">R</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NA_real_</span></span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">engine</span> <span class="op">=</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"delta"</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span></span>
+<code class="sourceCode R"><span><span class="va">engine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"delta"</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="co"># Fit EL estimator (delta variance)</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
@@ -181,7 +181,7 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt; Y_miss 1.38592 2.3714</span></span></code></pre></div>
 <p>Probit family (optional):</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">engine</span> <span class="op">=</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, family <span class="op">=</span> <span class="st">"probit"</span>, variance_method <span class="op">=</span> <span class="st">"delta"</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">engine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, family <span class="op">=</span> <span class="st">"probit"</span>, variance_method <span class="op">=</span> <span class="st">"delta"</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">fit_probit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
 <span>  formula <span class="op">=</span> <span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>,</span>
@@ -218,7 +218,7 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;   variance_method solver_jacobian jacobian_source jacobian_condition_number</span></span>
 <span><span class="co">#&gt; 1           delta        analytic        analytic                  36.83019</span></span>
 <span><span class="co">#&gt;   jacobian_rel_diff max_equation_residual min_denominator</span></span>
-<span><span class="co">#&gt; 1      6.884968e-12          3.347322e-14       0.4613402</span></span>
+<span><span class="co">#&gt; 1      1.036866e-11          3.330669e-14       0.4613402</span></span>
 <span><span class="co">#&gt;   fraction_small_denominators used_pseudoinverse nobs nobs_resp is_survey</span></span>
 <span><span class="co">#&gt; 1                           0              FALSE  500       150     FALSE</span></span>
 <span></span>
@@ -244,17 +244,17 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;  $ nleqslv_xscalm             : chr NA</span></span>
 <span><span class="co">#&gt;  $ solver_iterations          : int 7</span></span>
 <span><span class="co">#&gt;  $ solver_time                : num 0.004</span></span>
-<span><span class="co">#&gt;  $ variance_time              : num 0.006</span></span>
+<span><span class="co">#&gt;  $ variance_time              : num 0.005</span></span>
 <span><span class="co">#&gt;  $ reparam_W                  : chr "logit"</span></span>
-<span><span class="co">#&gt;  $ max_equation_residual      : num 3.35e-14</span></span>
+<span><span class="co">#&gt;  $ max_equation_residual      : num 3.33e-14</span></span>
 <span><span class="co">#&gt;  $ jacobian_condition_number  : num 36.8</span></span>
 <span><span class="co">#&gt;  $ jacobian_source            : chr "analytic"</span></span>
-<span><span class="co">#&gt;  $ jacobian_rel_diff          : num 6.88e-12</span></span>
+<span><span class="co">#&gt;  $ jacobian_rel_diff          : num 1.04e-11</span></span>
 <span><span class="co">#&gt;  $ jacobian_auto_rule         : chr "default"</span></span>
 <span><span class="co">#&gt;  $ min_denominator            : num 0.461</span></span>
 <span><span class="co">#&gt;  $ fraction_small_denominators: num 0</span></span>
-<span><span class="co">#&gt;  $ constraint_sum_W           : num 6.73e-15</span></span>
-<span><span class="co">#&gt;  $ constraint_sum_aux         : Named num 4.22e-15</span></span>
+<span><span class="co">#&gt;  $ constraint_sum_W           : num 5.63e-15</span></span>
+<span><span class="co">#&gt;  $ constraint_sum_aux         : Named num -2.22e-16</span></span>
 <span><span class="co">#&gt;   ..- attr(*, "names")= chr "X"</span></span>
 <span><span class="co">#&gt;  $ used_pseudoinverse         : logi FALSE</span></span>
 <span><span class="co">#&gt;  $ used_ridge                 : logi FALSE</span></span>
@@ -262,7 +262,7 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;  $ variance_auto_rule         : chr NA</span></span></code></pre></div>
 <p>Bootstrap variance (keep reps small for speed):</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">engine</span> <span class="op">=</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"bootstrap"</span>, bootstrap_reps <span class="op">=</span> <span class="fl">15</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span>, suppress_warnings <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">engine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"bootstrap"</span>, bootstrap_reps <span class="op">=</span> <span class="fl">15</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span>, suppress_warnings <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">fit_boot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
 <span>  formula <span class="op">=</span> <span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>,</span>
@@ -291,7 +291,7 @@ the RHS of the outcome formula.</p>
 <span><span class="va">R</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span> <span class="op">&lt;</span> <span class="va">p</span></span>
 <span><span class="va">df2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Y_miss <span class="op">=</span> <span class="va">Y</span>, X <span class="op">=</span> <span class="va">X</span>, Z <span class="op">=</span> <span class="va">Z</span><span class="op">)</span></span>
 <span><span class="va">df2</span><span class="op">$</span><span class="va">Y_miss</span><span class="op">[</span><span class="op">!</span><span class="va">R</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NA_real_</span></span>
-<span><span class="va">engine</span> <span class="op">=</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"delta"</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">engine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"delta"</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Use X as auxiliary (known population mean 0), and Z as response-only predictor</span></span>
 <span><span class="va">fit_resp_only</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
@@ -304,8 +304,8 @@ the RHS of the outcome formula.</p>
 <span><span class="co">#&gt; NMAR Model Summary</span></span>
 <span><span class="co">#&gt; =================</span></span>
 <span><span class="co">#&gt; Y_miss estimate: 1.258792</span></span>
-<span><span class="co">#&gt; Std. Error: 0.140526</span></span>
-<span><span class="co">#&gt; 95% CI: (0.983365, 1.534218)</span></span>
+<span><span class="co">#&gt; Std. Error: 0.166677</span></span>
+<span><span class="co">#&gt; 95% CI: (0.932112, 1.585472)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: delta </span></span>
 <span><span class="co">#&gt; Variance notes: Calculation successful </span></span>
@@ -314,10 +314,10 @@ the RHS of the outcome formula.</p>
 <span><span class="co">#&gt; Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=400&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model coefficients:</span></span>
-<span><span class="co">#&gt;                Estimate Std. Error     z value     Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -0.85089950 0.05032983 -16.9064642 4.031846e-64</span></span>
-<span><span class="co">#&gt; Y_miss       0.28631609 0.27162827   1.0540733 2.918494e-01</span></span>
-<span><span class="co">#&gt; Z            0.05802273 0.19033451   0.3048461 7.604834e-01</span></span></code></pre></div>
+<span><span class="co">#&gt;                Estimate  Std. Error    z value     Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; (Intercept) -0.85089950 0.074995551 -11.346000 7.763389e-30</span></span>
+<span><span class="co">#&gt; Y_miss       0.28631609 0.260913013   1.097362 2.724831e-01</span></span>
+<span><span class="co">#&gt; Z            0.05802273 0.005795718  10.011309 1.359412e-23</span></span></code></pre></div>
 <p>Auxiliary means and formulas:</p>
 <ul>
 <li>Names of <code>auxiliary_means</code> must match the variables on
@@ -349,14 +349,13 @@ not need auxiliary means.</li>
 <span></span>
 <span>  <span class="va">dclus1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survey/man/svydesign.html" class="external-link">svydesign</a></span><span class="op">(</span>id <span class="op">=</span> <span class="op">~</span><span class="va">dnum</span>, weights <span class="op">=</span> <span class="op">~</span><span class="va">pw</span>, data <span class="op">=</span> <span class="va">apiclus1</span>, fpc <span class="op">=</span> <span class="op">~</span><span class="va">fpc</span><span class="op">)</span></span>
 <span>  <span class="va">pop_mean_ell</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">apiclus1</span><span class="op">$</span><span class="va">ell</span><span class="op">)</span></span>
-<span>  <span class="va">engine</span> <span class="op">=</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>ell <span class="op">=</span> <span class="va">pop_mean_ell</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"delta"</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>  <span class="va">engine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>ell <span class="op">=</span> <span class="va">pop_mean_ell</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"delta"</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span>  <span class="va">fit_svy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
 <span>    formula <span class="op">=</span> <span class="va">api00_miss</span> <span class="op">~</span> <span class="va">ell</span>,</span>
 <span>    data <span class="op">=</span> <span class="va">dclus1</span>,</span>
 <span>    engine <span class="op">=</span> <span class="va">engine</span>,</span>
 <span>    response_predictors <span class="op">=</span> <span class="cn">NULL</span></span>
-<span></span>
 <span>  <span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_svy</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
