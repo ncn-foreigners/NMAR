@@ -212,7 +212,7 @@ math here (e.g., likelihood, gradients, constraints).
 Call `new_nmar_result()` inside your constructor so the object carries class
 `c("nmar_result_<method>", "nmar_result")` and shares the standard layout:
 
-- Scalar fields: `estimate`, `estimate_name`, `std_error`, `converged`.
+- Scalar fields: `estimate`, `estimate_name`, `se`, `converged`.
 - Lists: `model` (coefficients/vcov), `weights_info`, `sample`, `inference`,
   `diagnostics`, `meta`, `extra`.
 
@@ -224,7 +224,7 @@ Minimal constructor example (inside `src_dev/engines/<method>/impl/constructors.
 
 ```r
 #' @keywords internal
-new_nmar_result_method <- function(estimate, std_error,
+new_nmar_result_method <- function(estimate, se,
                                    coefficients = NULL, vcov = NULL,
                                    weights = NULL, sample = list(),
                                    inference = list(variance_method = NA_character_,
@@ -241,7 +241,7 @@ new_nmar_result_method <- function(estimate, std_error,
   result <- new_nmar_result(
     estimate = estimate,
     estimate_name = sample$outcome_var,
-    std_error = std_error,
+    se = se,
     converged = TRUE,
     model = list(coefficients = coefficients, vcov = vcov),
     weights_info = list(values = weights, trimmed_fraction = NA_real_),

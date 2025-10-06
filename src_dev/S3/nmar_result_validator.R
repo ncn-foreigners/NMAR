@@ -12,8 +12,8 @@ validate_nmar_result <- function(x, class_name) {
   if (is.null(x$estimate)) stop("`estimate` must be supplied by the result object.")
   if (length(x$estimate) != 1 || !is.numeric(x$estimate)) stop("`estimate` must be a numeric scalar.")
 
-  if (is.null(x$std_error)) x$std_error <- NA_real_
-  if (length(x$std_error) != 1 || !is.numeric(x$std_error)) stop("`std_error` must be a numeric scalar (NA allowed).")
+  if (is.null(x$se)) x$se <- NA_real_
+  if (length(x$se) != 1 || !is.numeric(x$se)) stop("`se` must be a numeric scalar (NA allowed).")
 
   if (is.null(x$estimate_name)) x$estimate_name <- NA_character_
   if (length(x$estimate_name) != 1) stop("`estimate_name` must be a character scalar (NA allowed).")

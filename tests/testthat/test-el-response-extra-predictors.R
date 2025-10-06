@@ -16,8 +16,8 @@ test_that("response_predictors can include non-auxiliary variables", {
 
   expect_s3_class(res, "nmar_result_el")
   expect_true(isTRUE(res$converged))
-  expect_true(is.numeric(res[['std_error']]))
-  expect_true(is.na(res[['std_error']]) || res[['std_error']] >= 0)
+  expect_true(is.numeric(res[['se']]))
+  expect_true(is.na(res[['se']]) || res[['se']] >= 0)
 # Coefficient vector should include Z as a response predictor
   expect_true(any(grepl("(^|\\b)Z(\\b|$)", names(res$model$coefficients))))
 })

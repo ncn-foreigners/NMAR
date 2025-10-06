@@ -6,7 +6,7 @@
 #' @export
 print.nmar_result <- function(x, ...) {
   est <- nmar_result_get_estimate(x)
-  se <- nmar_result_get_std_error(x)
+  se <- nmar_result_get_se(x)
   nm <- nmar_result_get_estimate_name(x)
   inference <- nmar_result_get_inference(x)
   sample <- nmar_result_get_sample(x)
@@ -14,12 +14,14 @@ print.nmar_result <- function(x, ...) {
 
   cat("NMAR Result\n")
   cat("------------\n")
-  if (is.finite(est)) {
-    cat(sprintf("%s: %0.6f\n", nm, est))
+  d <- nmar_get_digits()
+  if (is.finite(est) && is.finite(se)) {
+    cat(sprintf("%s mean: %s (%s)\n", nm, nmar_fmt_num(est, d), nmar_fmt_num(se, d)))
+  } else if (is.finite(est)) {
+    cat(sprintf("%s mean: %s\n", nm, nmar_fmt_num(est, d)))
   } else {
-    cat(sprintf("%s: NA\n", nm))
+    cat(sprintf("%s mean: NA\n", nm))
   }
-  if (is.finite(se)) cat(sprintf("Std. Error: %0.6f\n", se))
   cat("Converged:", isTRUE(x$converged), "\n")
   if (!is.null(inference$variance_method)) {
     cat("Variance method:", inference$variance_method, "\n")
@@ -47,7 +49,7 @@ print.nmar_result <- function(x, ...) {
 
 summary.nmar_result <- function(object, conf.level = 0.95, ...) {
   est <- nmar_result_get_estimate(object)
-  se <- nmar_result_get_std_error(object)
+  se <- nmar_result_get_se(object)
   nm <- nmar_result_get_estimate_name(object)
   inference <- nmar_result_get_inference(object)
   sample <- nmar_result_get_sample(object)
@@ -58,7 +60,7 @@ summary.nmar_result <- function(object, conf.level = 0.95, ...) {
     list(
       estimate = as.numeric(est),
       estimate_name = nm,
-      std_error = se,
+      se = se,
       conf_int = ci,
       converged = isTRUE(object$converged),
       variance_method = inference$variance_method,
@@ -82,12 +84,17 @@ summary.nmar_result <- function(object, conf.level = 0.95, ...) {
 print.summary_nmar_result <- function(x, ...) {
   cat("NMAR Model Summary\n")
   cat("=================\n")
-  cat(sprintf("%s estimate: %0.6f\n", x$estimate_name, x$estimate))
-  if (is.finite(x$std_error)) {
-    cat(sprintf("Std. Error: %0.6f\n", x$std_error))
+  d <- nmar_get_digits()
+# Print as: <name> mean: value (SE)
+  if (is.finite(x$estimate) && is.finite(x$se)) {
+    cat(sprintf("%s mean: %s (%s)\n", x$estimate_name, nmar_fmt_num(x$estimate, d), nmar_fmt_num(x$se, d)))
+  } else if (is.finite(x$estimate)) {
+    cat(sprintf("%s mean: %s\n", x$estimate_name, nmar_fmt_num(x$estimate, d)))
+  } else {
+    cat(sprintf("%s mean: NA\n", x$estimate_name))
   }
   if (!anyNA(x$conf_int)) {
-    cat(sprintf("%g%% CI: (%0.6f, %0.6f)\n", 100 * x$conf.level, x$conf_int[1, 1], x$conf_int[1, 2]))
+    cat(sprintf("%g%% CI: (%s, %s)\n", 100 * x$conf.level, nmar_fmt_num(x$conf_int[1, 1], d), nmar_fmt_num(x$conf_int[1, 2], d)))
   }
   cat("Converged:", x$converged, "\n")
   if (!is.null(x$variance_method) && !is.na(x$variance_method)) {

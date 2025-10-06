@@ -19,7 +19,7 @@ test_that("EL survey path produces finite SE and df when survey available", {
   )
   fit <- nmar(y_miss ~ x, data = design, engine = eng)
   expect_true(isTRUE(fit$converged))
-  se <- nmar_result_get_std_error(fit)
+  se <- NMAR:::nmar_result_get_se(fit)
   expect_true(is.finite(se))
   inf <- nmar_result_get_inference(fit)
   expect_true(is.finite(inf$df) || is.na(inf$df))

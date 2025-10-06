@@ -29,7 +29,7 @@ test_that("variance_method = 'none' skips variance for IID and survey", {
                                   variance_method = "none",
                                   bootstrap_reps = 10))
     }
-    expect_true(is.na(fit$std_error))
+    expect_true(is.na(fit$se))
     expect_true(all(is.na(fit$model$vcov)))
     expect_match(fit$diagnostics$vcov_message, "Variance skipped")
   }
