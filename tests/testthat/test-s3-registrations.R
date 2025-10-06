@@ -3,7 +3,7 @@ skip_if_not_installed("generics")
 make_test_result <- function() {
   NMAR:::new_nmar_result(
     estimate = 1.2,
-    std_error = 0.05,
+    se = 0.05,
     converged = TRUE,
     inference = list(variance_method = "delta"),
     sample = list(n_total = 10L, n_respondents = 8L, is_survey = FALSE, design = NULL),
@@ -29,5 +29,5 @@ test_that("nmar_result S3 generics are registered", {
   capture.output(print(res))
   capture.output(print(sum_obj))
 
-  # expect_true(utils::isS3stdGeneric("autoplot"))
+# expect_true(utils::isS3stdGeneric("autoplot"))
 })

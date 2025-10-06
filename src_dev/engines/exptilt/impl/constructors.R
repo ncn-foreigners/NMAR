@@ -1,5 +1,5 @@
 #' @keywords internal
-new_nmar_result_exptilt <- function(estimate, std_error, coefficients, vcov, model,
+new_nmar_result_exptilt <- function(estimate, se, coefficients, vcov, model,
                                     converged = TRUE, weights = NULL,
                                     variance_message = NA_character_) {
   outcome_name <- model$col_y %||% NA_character_
@@ -19,9 +19,9 @@ new_nmar_result_exptilt <- function(estimate, std_error, coefficients, vcov, mod
     tol_value = model$tol_value
   )
 
-  # The unified data-frame/survey path populates model$is_survey, we also
-  # honor designs that arrive directly via the survey method so result
-  # metadata reflects the original call
+# The unified data-frame/survey path populates model$is_survey, we also
+# honor designs that arrive directly via the survey method so result
+# metadata reflects the original call
   is_survey <- isTRUE(model$is_survey) || inherits(model$design, "survey.design")
   sample <- list(
     n_total = n_total,
@@ -50,7 +50,7 @@ new_nmar_result_exptilt <- function(estimate, std_error, coefficients, vcov, mod
   result <- new_nmar_result(
     estimate = estimate,
     estimate_name = outcome_name,
-    std_error = std_error,
+    se = se,
     converged = converged,
     model = list(
       coefficients = coeffs_vec,

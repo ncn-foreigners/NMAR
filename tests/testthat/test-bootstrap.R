@@ -10,7 +10,7 @@ bootstrap_dummy_estimator <- function(data, on_failure = "return") {
     list(
       estimate = est,
       estimate_name = "y",
-      std_error = NA_real_,
+      se = NA_real_,
       converged = TRUE,
       sample = list(is_survey = inherits(data, "survey.design")),
       inference = list(),

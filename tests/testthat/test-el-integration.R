@@ -8,7 +8,7 @@ test_that("EL engine runs and returns expected structure (data.frame)", {
   expect_s3_class(res, "nmar_result_el")
   expect_true(isTRUE(res$converged))
   expect_true(is.numeric(res[['estimate']]))
-  expect_true(is.numeric(res[['std_error']]))
+  expect_true(is.numeric(res[['se']]))
 
   est <- res[['estimate']]
   expect_equal(as.numeric(est), res[['estimate']])

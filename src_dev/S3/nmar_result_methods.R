@@ -7,7 +7,7 @@
 #'   or extend behavior.
 #' @details
 #'   Result objects expose a universal schema:
-#'   - `estimate`, `estimate_name`, `std_error`, `converged`.
+#'   - `estimate`, `estimate_name`, `se`, `converged`.
 #'   - `model`: list with `coefficients`, `vcov`, plus optional extras.
 #'   - `weights_info`: list with respondent weights and trimming metadata.
 #'   - `sample`: list with total units, respondent count, survey flag, and `design`.
@@ -33,7 +33,7 @@ NULL
 #' @keywords result_param
 #' @export
 vcov.nmar_result <- function(object, ...) {
-  se <- nmar_result_get_std_error(object)
+  se <- nmar_result_get_se(object)
   if (length(se) == 1 && is.finite(se)) {
     mat <- matrix(as.numeric(se)^2, 1, 1)
   } else {
@@ -52,7 +52,7 @@ vcov.nmar_result <- function(object, ...) {
 #' @keywords result_param
 #' @export
 confint.nmar_result <- function(object, parm, level = 0.95, ...) {
-  se <- nmar_result_get_std_error(object)
+  se <- nmar_result_get_se(object)
   nm <- nmar_result_get_estimate_name(object)
   est <- nmar_result_get_estimate(object)
   if (!is.finite(se)) {
@@ -82,7 +82,7 @@ confint.nmar_result <- function(object, parm, level = 0.95, ...) {
 #' @exportS3Method tidy nmar_result
 tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
   est <- nmar_result_get_estimate(x)
-  se <- nmar_result_get_std_error(x)
+  se <- nmar_result_get_se(x)
   nm <- nmar_result_get_estimate_name(x)
   inference <- nmar_result_get_inference(x)
   sample <- nmar_result_get_sample(x)
@@ -149,7 +149,7 @@ tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
 #' @exportS3Method glance nmar_result
 glance.nmar_result <- function(x, ...) {
   est <- nmar_result_get_estimate(x)
-  se <- nmar_result_get_std_error(x)
+  se <- nmar_result_get_se(x)
   inference <- nmar_result_get_inference(x)
   sample <- nmar_result_get_sample(x)
   diagnostics <- nmar_result_get_diagnostics(x)
@@ -334,3 +334,21 @@ weights.nmar_result <- function(object, ...) {
 formula.nmar_result <- function(x, ...) {
   x$meta$formula %||% NULL
 }
+
+#' Extract standard error (SE) for NMAR results
+#'
+#' Convenience extractor for the standard error of the reported mean.
+#' Returns a single numeric value or NA if unavailable.
+#' @param object An `nmar_result`.
+#' @param ... Ignored.
+#' @return Numeric scalar.
+#' Extract standard error (SE)
+#' @description Returns the standard error of the primary mean estimate.
+#' @param object An `nmar_result` or subclass.
+#' @param ... Ignored.
+#' @return Numeric scalar.
+#' @export
+se <- function(object, ...) UseMethod("se")
+
+#' @export
+se.nmar_result <- function(object, ...) nmar_result_get_se(object)

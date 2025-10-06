@@ -45,7 +45,7 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
   result <- new_nmar_result(
     estimate = y_hat,
     estimate_name = outcome_name,
-    std_error = se,
+    se = se,
     converged = converged,
     model = list(
       coefficients = response_coeffs,

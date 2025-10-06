@@ -5,7 +5,7 @@ test_that("EL engine runs with probit family (data.frame)", {
   fit <- nmar(formula = Y_miss ~ X, data = df, engine = eng)
   expect_true(fit$converged)
   expect_true(is.finite(fit[['estimate']]))
-  expect_true(is.finite(fit[['std_error']]))
+  expect_true(is.finite(fit[['se']]))
 })
 
 test_that("Estimating equations solved for probit family (max residual small)", {

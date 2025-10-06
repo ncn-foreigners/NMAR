@@ -34,7 +34,7 @@ run_mc_once <- function(N, alpha, i) {
   if (inherits(fit, "try-error") || !isTRUE(fit$converged)) {
     return(list(ok = FALSE))
   }
-  list(ok = TRUE, y_hat = fit$estimate, se = fit$std_error)
+  list(ok = TRUE, y_hat = fit$estimate, se = fit$se)
 }
 
 run_mc <- function(N, alpha, reps = 20L, true_mean = 2.0, seed = 1L) {
@@ -64,7 +64,7 @@ run_mc_bootstrap <- function(N, alpha, reps = 20L, true_mean = 2.0, seed = 1L, b
     if (inherits(fit, "try-error") || !isTRUE(fit$converged)) {
       list(ok = FALSE)
     } else {
-      list(ok = TRUE, y_hat = fit$estimate, se = fit$std_error)
+      list(ok = TRUE, y_hat = fit$estimate, se = fit$se)
     }
   }, simplify = FALSE)
   ok <- vapply(vals, function(v) isTRUE(v$ok), logical(1))
@@ -145,7 +145,7 @@ run_mc_survey_once <- function(N, alpha, gamma, i) {
   if (inherits(fit, "try-error") || !isTRUE(fit$converged)) {
     return(list(ok = FALSE))
   }
-  list(ok = TRUE, y_hat = fit$estimate, se = fit$std_error)
+  list(ok = TRUE, y_hat = fit$estimate, se = fit$se)
 }
 
 run_mc_survey <- function(N, alpha, gamma = 0.7, reps = 20L, true_mean = 2.0, seed = 1L) {
@@ -177,7 +177,7 @@ run_mc_survey_bootstrap <- function(N, alpha, gamma = 0.7, reps = 20L, true_mean
     if (inherits(fit, "try-error") || !isTRUE(fit$converged)) {
       list(ok = FALSE)
     } else {
-      list(ok = TRUE, y_hat = fit$estimate, se = fit$std_error)
+      list(ok = TRUE, y_hat = fit$estimate, se = fit$se)
     }
   }, simplify = FALSE)
   ok <- vapply(vals, function(v) isTRUE(v$ok), logical(1))

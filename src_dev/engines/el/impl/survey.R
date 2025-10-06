@@ -109,7 +109,7 @@ el.survey.design <- function(data, formula, response_predictors = NULL,
     result <- new_nmar_result(
       estimate = NA_real_,
       estimate_name = sample_info$outcome_var,
-      std_error = NA_real_,
+      se = NA_real_,
       converged = FALSE,
       model = list(coefficients = NULL, vcov = NULL),
       weights_info = list(values = numeric(0), trimmed_fraction = NA_real_),

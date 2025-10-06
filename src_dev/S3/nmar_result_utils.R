@@ -5,10 +5,7 @@ nmar_result_get_estimate <- function(x) {
   x$estimate %||% NA_real_
 }
 
-#' @keywords internal
-nmar_result_get_std_error <- function(x) {
-  x$std_error %||% NA_real_
-}
+
 
 #' @keywords internal
 nmar_result_get_estimate_name <- function(x) {
@@ -57,6 +54,26 @@ nmar_result_get_model <- function(x) {
   model$coefficients <- model$coefficients %||% NULL
   model$vcov <- model$vcov %||% NULL
   model
+}
+
+#' @keywords internal
+nmar_result_get_se <- function(x) {
+  x$se %||% NA_real_
+}
+
+#' Resolve global digits setting for printing
+#' @keywords internal
+nmar_get_digits <- function() {
+  d <- getOption("nmar.digits", 6L)
+  if (!is.numeric(d) || length(d) != 1L || is.na(d) || d < 0) return(6L)
+  as.integer(d)
+}
+
+#' Format a number with fixed decimal places using nmar.digits
+#' @keywords internal
+nmar_fmt_num <- function(x, digits = nmar_get_digits()) {
+  if (!is.finite(x)) return("NA")
+  sprintf(paste0("%0.", digits, "f"), as.numeric(x))
 }
 
 #' Format an abridged call line for printing

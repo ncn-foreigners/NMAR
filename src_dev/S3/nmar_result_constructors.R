@@ -8,7 +8,7 @@ new_nmar_result <- function(...) {
   dots <- list(...)
 
   estimate <- dots$estimate
-  std_error <- dots$std_error
+  se <- dots$se
   estimate_name <- dots$estimate_name %||% NA_character_
   converged <- dots$converged
   model <- dots$model %||% list()
@@ -53,7 +53,7 @@ new_nmar_result <- function(...) {
   result <- list(
     estimate = estimate,
     estimate_name = estimate_name,
-    std_error = std_error,
+    se = se,
     converged = converged,
     model = model,
     weights_info = weights_info,
