@@ -72,8 +72,13 @@ nmar_get_digits <- function() {
 #' Format a number with fixed decimal places using nmar.digits
 #' @keywords internal
 nmar_fmt_num <- function(x, digits = nmar_get_digits()) {
-  if (!is.finite(x)) return("NA")
-  sprintf(paste0("%0.", digits, "f"), as.numeric(x))
+  x <- as.numeric(x)
+  if (length(x) == 0) return(character(0))
+  fin <- is.finite(x)
+  out <- character(length(x))
+  out[fin] <- sprintf(paste0("%0.", digits, "f"), x[fin])
+  out[!fin] <- "NA"
+  out
 }
 
 #' Format an abridged call line for printing

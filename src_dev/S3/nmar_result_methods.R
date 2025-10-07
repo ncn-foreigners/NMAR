@@ -352,3 +352,94 @@ se <- function(object, ...) UseMethod("se")
 
 #' @export
 se.nmar_result <- function(object, ...) nmar_result_get_se(object)
+
+#' Coefficient table for summary objects
+#'
+#' Returns a coefficients table (Estimate, Std. Error, statistic, p-value)
+#' from a `summary_nmar_result*` object when response-model coefficients and a
+#' variance matrix are available. If the summary does not carry response-model
+#' coefficients, returns `NULL`.
+#'
+#' The statistic column is labelled "t value" when finite degrees of freedom
+#' are available (e.g., survey designs); otherwise, it is labelled "z value".
+#'
+#' @param object An object of class `summary_nmar_result` (or subclass).
+#' @param ... Ignored.
+#' @return A data.frame with rows named by coefficient, or `NULL` if not available.
+#' @keywords result_view
+#' @export
+coef.summary_nmar_result <- function(object, ...) {
+  beta <- object$response_model
+  if (is.null(beta) || length(beta) == 0) return(NULL)
+  beta_names <- names(beta)
+  beta_vec <- as.numeric(beta)
+  se <- rep(NA_real_, length(beta_vec))
+  if (!is.null(object$response_vcov) && is.matrix(object$response_vcov)) {
+    se <- sqrt(diag(object$response_vcov))
+  }
+  stat <- beta_vec / se
+  df <- object$df %||% NA_real_
+  stat_label <- if (is.finite(df)) "t value" else "z value"
+  pval <- if (is.finite(df)) 2 * stats::pt(-abs(stat), df = df) else 2 * stats::pnorm(-abs(stat))
+  if (is.null(beta_names) || length(beta_names) != length(beta_vec) || anyNA(beta_names)) {
+    beta_names <- paste0("coef", seq_along(beta_vec))
+  }
+  tab <- data.frame(Estimate = beta_vec, `Std. Error` = se, check.names = FALSE)
+  tab[[stat_label]] <- stat
+  p_label <- if (is.finite(df)) "Pr(>|t|)" else "Pr(>|z|)"
+  tab[[p_label]] <- pval
+  rownames(tab) <- beta_names
+  tab
+}
+
+#' Confidence intervals for coefficient table (summary objects)
+#'
+#' Returns Wald-style confidence intervals for response-model coefficients from
+#' a `summary_nmar_result*` object. Uses t-quantiles when finite degrees of
+#' freedom are available, otherwise normal quantiles.
+#'
+#' @param object An object of class `summary_nmar_result` (or subclass).
+#' @param parm A specification of which coefficients are to be given confidence intervals,
+#'   either a vector of names or a vector of indices; by default, all coefficients are considered.
+#' @param level The confidence level required.
+#' @param ... Ignored.
+#' @return A numeric matrix with columns giving lower and upper confidence limits for each parameter.
+#'   Row names correspond to coefficient names. Returns `NULL` if coefficients are unavailable.
+#' @keywords result_view
+#' @export
+confint.summary_nmar_result <- function(object, parm, level = 0.95, ...) {
+  beta <- object$response_model
+  if (is.null(beta) || length(beta) == 0) return(NULL)
+  beta_names <- names(beta)
+  beta_vec <- as.numeric(beta)
+  vc <- object$response_vcov
+  if (is.null(vc) || !is.matrix(vc)) {
+# No variance; return NA intervals with proper shape
+    idx <- seq_along(beta_vec)
+    if (!missing(parm)) {
+      if (is.character(parm)) idx <- match(parm, beta_names, nomatch = 0L) else idx <- as.integer(parm)
+      idx <- idx[idx > 0 & idx <= length(beta_vec)]
+      if (!length(idx)) return(NULL)
+    }
+    out <- cbind(`2.5 %` = rep(NA_real_, length(idx)), `97.5 %` = rep(NA_real_, length(idx)))
+    rownames(out) <- if (!is.null(beta_names)) beta_names[idx] else paste0("coef", idx)
+    return(out)
+  }
+  se <- sqrt(diag(vc))
+# Subset if requested
+  idx <- seq_along(beta_vec)
+  if (!missing(parm)) {
+    if (is.character(parm)) idx <- match(parm, beta_names, nomatch = 0L) else idx <- as.integer(parm)
+    idx <- idx[idx > 0 & idx <= length(beta_vec)]
+    if (!length(idx)) return(NULL)
+  }
+  alpha <- 1 - level
+  df <- object$df %||% NA_real_
+  crit <- if (is.finite(df)) stats::qt(1 - alpha / 2, df = df) else stats::qnorm(1 - alpha / 2)
+  lo <- beta_vec[idx] - crit * se[idx]
+  hi <- beta_vec[idx] + crit * se[idx]
+  out <- cbind(lo, hi)
+  colnames(out) <- paste0(format(100 * c(alpha / 2, 1 - alpha / 2)), " %")
+  rownames(out) <- if (!is.null(beta_names)) beta_names[idx] else paste0("coef", idx)
+  out
+}

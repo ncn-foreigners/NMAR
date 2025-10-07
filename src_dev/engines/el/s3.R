@@ -75,15 +75,26 @@ print.summary_nmar_result_el <- function(x, ...) {
       se <- sqrt(diag(x$response_vcov))
       stat <- beta / se
       df <- x$df %||% NA_real_
-      if (is.finite(df)) {
-        pval <- 2 * stats::pt(-abs(stat), df = df)
-      } else {
-        pval <- 2 * stats::pnorm(-abs(stat))
-      }
-      tab <- data.frame(Estimate = beta, `Std. Error` = se, `z value` = stat, `Pr(>|z|)` = pval, check.names = FALSE)
-      print(tab)
+      use_t <- is.finite(df)
+      pval <- if (use_t) 2 * stats::pt(-abs(stat), df = df) else 2 * stats::pnorm(-abs(stat))
+      stat_label <- if (use_t) "t value" else "z value"
+      p_label <- if (use_t) "Pr(>|t|)" else "Pr(>|z|)"
+# Apply nmar.digits formatting for visual consistency
+      d <- nmar_get_digits()
+      tab <- data.frame(
+        Estimate = nmar_fmt_num(beta, d),
+        `Std. Error` = nmar_fmt_num(se, d),
+        check.names = FALSE
+      )
+      tab[[stat_label]] <- nmar_fmt_num(stat, d)
+      tab[[p_label]] <- nmar_fmt_num(pval, d)
+      rownames(tab) <- names(beta)
+      print(tab, row.names = TRUE)
     } else {
-      print(data.frame(Estimate = beta))
+      d <- nmar_get_digits()
+      tb <- data.frame(Estimate = nmar_fmt_num(beta, d))
+      rownames(tb) <- names(beta)
+      print(tb, row.names = TRUE)
     }
   }
   invisible(x)
