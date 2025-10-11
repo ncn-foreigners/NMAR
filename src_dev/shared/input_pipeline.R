@@ -58,15 +58,25 @@ parse_nmar_spec <- function(formula, data, response_predictors = NULL, env = par
 
 #' Engine trait declarations
 #'
-#' Engines can override this generic to relax or tighten validation checks. The
-#' defaults match the historical behavior for the exponential tilting engines.
+#' Public S3 generic returning a small list of declarative flags that describe
+#' how an engine expects input validation to behave. This function is also used
+#' internally by the input pipeline. Users can call it on an engine object to
+#' introspect behaviour such as whether outcome variables may appear in the
+#' missingness model or whether multiple outcomes are supported.
 #'
-#' @keywords internal
+#' @param engine An object inheriting from class `nmar_engine`.
+#' @return A named list of trait flags. The current fields are:
+#'   - `allow_outcome_in_missingness`: logical.
+#'   - `allow_covariate_overlap`: logical.
+#'   - `requires_single_outcome`: logical.
+#'   Engines may add traits over time; callers should use `$` with care
+#'   and rely on presence checks when needed.
+#' @export
 engine_traits <- function(engine) {
   UseMethod("engine_traits")
 }
 
-#' @keywords internal
+#' @export
 engine_traits.default <- function(engine) {
   list(
     allow_outcome_in_missingness = FALSE,
@@ -75,7 +85,14 @@ engine_traits.default <- function(engine) {
   )
 }
 
-#' @keywords internal
+#' @export
+engine_traits.nmar_engine <- function(engine) {
+# Parent class falls back to the baseline defaults; specific engines
+# override in their class-specific methods.
+  engine_traits.default(engine)
+}
+
+#' @export
 engine_traits.nmar_engine_el <- function(engine) {
   utils::modifyList(
     engine_traits.default(engine),
@@ -86,12 +103,12 @@ engine_traits.nmar_engine_el <- function(engine) {
   )
 }
 
-#' @keywords internal
+#' @export
 engine_traits.nmar_engine_exptilt <- function(engine) {
   engine_traits.default(engine)
 }
 
-#' @keywords internal
+#' @export
 engine_traits.nmar_engine_exptilt_nonparam <- function(engine) {
   utils::modifyList(
     engine_traits.default(engine),
@@ -109,7 +126,7 @@ validate_nmar_args <- function(spec, traits = list()) {
   if (!inherits(spec, "nmar_input_spec")) {
     stop("`spec` must be created by `parse_nmar_spec()`.", call. = FALSE)
   }
-  default_traits <- engine_traits.default(NULL)
+  default_traits <- engine_traits(NULL)
   traits <- utils::modifyList(default_traits, traits)
 
   if (traits$requires_single_outcome && length(spec$outcome) != 1L) {
