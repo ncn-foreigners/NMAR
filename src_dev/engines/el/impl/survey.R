@@ -37,7 +37,8 @@ el.survey.design <- function(data, formula, response_predictors = NULL,
                              solver_method = c("auto", "newton", "broyden"),
                              solver_args = list(),
                              variance_pseudoinverse = FALSE, variance_ridge = FALSE,
-                             bootstrap_reps = 500, suppress_warnings = FALSE, ...) {
+                             bootstrap_reps = 500, suppress_warnings = FALSE,
+                             n_total = NULL, ...) {
   cl <- match.call()
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
@@ -48,7 +49,14 @@ el.survey.design <- function(data, formula, response_predictors = NULL,
 
   design <- data
 
-  parsed_inputs <- prepare_el_inputs(formula, design$variables, response_predictors)
+  # If respondents-only design is supplied (no NA in outcome), require n_total
+  outcome_var_check <- all.vars(formula[[2]])
+  if (length(outcome_var_check) == 1 && !anyNA(design$variables[[outcome_var_check]]) && is.null(n_total)) {
+    stop("Respondents-only survey design detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total design weight or population total>).", call. = FALSE)
+  }
+
+  parsed_inputs <- prepare_el_inputs(formula, design$variables, response_predictors,
+                                     require_na = is.null(n_total))
   design$variables <- parsed_inputs$data
   internal_formula <- parsed_inputs$formula_list
   response_var <- all.vars(internal_formula$response)[1]
@@ -56,7 +64,7 @@ el.survey.design <- function(data, formula, response_predictors = NULL,
   observed_indices <- which(observed_mask)
   resp_design <- subset(design, observed_mask)
   respondent_weights <- weights(resp_design)
-  N_pop <- sum(weights(design))
+  N_pop <- n_total %||% sum(weights(design))
 
   compute_score_covariance_func_survey <- function(U_matrix_resp, full_design) {
     U_full <- matrix(0, nrow = nrow(full_design$variables), ncol = ncol(U_matrix_resp))

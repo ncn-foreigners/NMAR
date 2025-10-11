@@ -39,7 +39,8 @@ el.data.frame <- function(data, formula, response_predictors = NULL,
                           solver_method = c("auto", "newton", "broyden"),
                           solver_args = list(),
                           variance_pseudoinverse = FALSE, variance_ridge = FALSE,
-                          bootstrap_reps = 500, suppress_warnings = FALSE, ...) {
+                          bootstrap_reps = 500, suppress_warnings = FALSE,
+                          n_total = NULL, ...) {
   cl <- match.call()
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
@@ -48,14 +49,21 @@ el.data.frame <- function(data, formula, response_predictors = NULL,
   solver_jacobian <- match.arg(solver_jacobian)
   solver_method <- match.arg(solver_method)
 
-  parsed_inputs <- prepare_el_inputs(formula, data, response_predictors)
+# If respondents-only data is supplied (no NA in outcome), require n_total
+  outcome_var_check <- all.vars(formula[[2]])
+  if (length(outcome_var_check) == 1 && !anyNA(data[[outcome_var_check]]) && is.null(n_total)) {
+    stop("Respondents-only data detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total sample size>).", call. = FALSE)
+  }
+
+  parsed_inputs <- prepare_el_inputs(formula, data, response_predictors,
+                                     require_na = is.null(n_total))
   estimation_data <- parsed_inputs$data
   internal_formula <- parsed_inputs$formula_list
   response_var <- all.vars(internal_formula$response)[1]
   observed_indices <- which(estimation_data[[response_var]] == 1)
 
   respondent_weights <- rep(1, length(observed_indices))
-  N_pop <- nrow(estimation_data)
+  N_pop <- n_total %||% nrow(estimation_data)
 
   compute_score_covariance_func_df <- function(U_matrix_resp, full_df) {
     U_full <- matrix(0, nrow = nrow(full_df), ncol = ncol(U_matrix_resp))

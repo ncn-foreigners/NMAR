@@ -11,6 +11,9 @@
 #'   response-model covariates (default `FALSE`).
 #' @param allow_covariate_overlap Logical; allow overlap between outcome and response
 #'   covariate sets (default `FALSE`).
+#' @param allow_respondents_only Logical; allow datasets with no missing outcome
+#'   values (respondents-only). When TRUE, the caller is expected to provide any
+#'   additional information required by the engine (e.g., total sample size).
 #' @return Returns `invisible(NULL)` on success, stopping with a descriptive error on failure.
 #' @keywords internal
 validate_data <- function(data,
@@ -18,8 +21,9 @@ validate_data <- function(data,
                           covariates_for_outcome,
                           covariates_for_missingness = character(),
                           allow_outcome_in_missingness = FALSE,
-                          allow_covariate_overlap = FALSE) {
-  # Validate data object type
+                          allow_covariate_overlap = FALSE,
+                          allow_respondents_only = FALSE) {
+# Validate data object type
   if (!inherits(data, c("data.frame", "survey.design"))) {
     stop("'data' must be a data.frame or survey.design object. Received: ", class(data)[1])
   }
@@ -83,9 +87,11 @@ validate_data <- function(data,
     )
   }
 
-# Check for required NAs in outcome
+# Check for required NAs in outcome unless respondents-only is allowed
   if (!anyNA(data[[outcome_variable]])) {
-    stop("Outcome variable '", outcome_variable, "' must contain NA values.")
+    if (!isTRUE(allow_respondents_only)) {
+      stop("Outcome variable '", outcome_variable, "' must contain NA values.")
+    }
   }
 
 # Check for at least one non-NA value in outcome

@@ -81,7 +81,8 @@ engine_traits.default <- function(engine) {
   list(
     allow_outcome_in_missingness = FALSE,
     allow_covariate_overlap = FALSE,
-    requires_single_outcome = TRUE
+    requires_single_outcome = TRUE,
+    allow_respondents_only = FALSE
   )
 }
 
@@ -98,7 +99,8 @@ engine_traits.nmar_engine_el <- function(engine) {
     engine_traits.default(engine),
     list(
       allow_outcome_in_missingness = TRUE,
-      allow_covariate_overlap = TRUE
+      allow_covariate_overlap = TRUE,
+      allow_respondents_only = TRUE
     )
   )
 }
@@ -140,7 +142,8 @@ validate_nmar_args <- function(spec, traits = list()) {
       covariates_for_outcome = spec$auxiliary_vars,
       covariates_for_missingness = spec$response_predictors,
       allow_outcome_in_missingness = traits$allow_outcome_in_missingness,
-      allow_covariate_overlap = traits$allow_covariate_overlap
+      allow_covariate_overlap = traits$allow_covariate_overlap,
+      allow_respondents_only = isTRUE(traits$allow_respondents_only)
     )
   } else {
     missing_outcomes <- setdiff(spec$outcome, names(spec$data))

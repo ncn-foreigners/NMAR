@@ -78,7 +78,7 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
 #'   names in `auxiliary_means`. See Qin, Leung and Shao (2002) for the EL
 #'   formulation.
 #' @keywords internal
-prepare_el_inputs <- function(formula, data, response_predictors) {
+prepare_el_inputs <- function(formula, data, response_predictors, require_na = TRUE) {
   if (!inherits(formula, "formula") || length(formula) != 3 || length(all.vars(formula[[2]])) != 1) {
     stop("`formula` must be a two-sided formula with a single variable on the LHS, e.g., y ~ x1 + x2.", call. = FALSE)
   }
@@ -87,7 +87,7 @@ prepare_el_inputs <- function(formula, data, response_predictors) {
   outcome_var <- all.vars(formula[[2]])
   rhs_vars <- all.vars(formula[[3]])
   if (!outcome_var %in% names(data)) stop(sprintf("Outcome variable '%s' not found in the data.", outcome_var), call. = FALSE)
-  if (!anyNA(data[[outcome_var]])) stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_var), call. = FALSE)
+  if (isTRUE(require_na) && !anyNA(data[[outcome_var]])) stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_var), call. = FALSE)
   response_predictors_full <- c(outcome_var, response_predictors)
   if (!is.null(response_predictors)) {
     if (!is.character(response_predictors)) stop("`response_predictors` must be a character vector of variable names.", call. = FALSE)

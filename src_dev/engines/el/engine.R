@@ -39,6 +39,12 @@
 #'   `global` (e.g., "dbldog", "qline") and `xscalm` (e.g., "auto", "fixed").
 #'   These are passed at the top level of the `nleqslv` call and take precedence
 #'   over similarly named entries provided in `control`.
+#' @param n_total Optional when supplying respondents-only data (no NA in the
+#'   outcome). For `data.frame` inputs, set to the total number of sampled
+#'   units before filtering to respondents. For `survey.design` inputs, set to
+#'   the total design weight or known population total. If omitted and the
+#'   outcome contains no NAs, the estimator errors with an instruction to
+#'   provide `n_total`.
 #'
 #' @return An engine object of class `c('nmar_engine_el','nmar_engine')`.
 #'   This is a configuration list; it is not a fit. Pass it to `nmar()`.
@@ -54,11 +60,13 @@
 #' \donttest{
 #' set.seed(1)
 #' n <- 200
-#' X <- rnorm(n); Z <- rnorm(n)
+#' X <- rnorm(n)
+#' Z <- rnorm(n)
 #' Y <- 2 + 0.5 * X + Z
 #' p <- plogis(-0.7 + 0.4 * scale(Y)[, 1])
 #' R <- runif(n) < p
-#' df <- data.frame(Y_miss = Y, X = X); df$Y_miss[!R] <- NA_real_
+#' df <- data.frame(Y_miss = Y, X = X)
+#' df$Y_miss[!R] <- NA_real_
 #' eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "delta")
 #' fit <- nmar(Y_miss ~ X, data = df, engine = eng)
 #' summary(fit)
@@ -78,6 +86,7 @@ el_engine <- function(
     suppress_warnings = FALSE,
     auxiliary_means = NULL,
     control = list(),
+    n_total = NULL,
     family = c("logit", "probit")) {
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
@@ -108,6 +117,7 @@ el_engine <- function(
     suppress_warnings = suppress_warnings,
     auxiliary_means = auxiliary_means,
     control = control,
+    n_total = n_total,
     family = family
   )
   validate_nmar_engine_el(engine)
@@ -147,6 +157,12 @@ validate_nmar_engine_el <- function(engine) {
 # Control should be a list (passed through)
   if (!is.list(engine$control)) stop("control must be a list")
   if (!is.list(engine$solver_args)) stop("solver_args must be a list of top-level nleqslv args (e.g., global, xscalm)")
+# Optional n_total must be a positive integer-like scalar if provided
+  if (!is.null(engine$n_total)) {
+    if (!is.numeric(engine$n_total) || length(engine$n_total) != 1 || !is.finite(engine$n_total) || engine$n_total <= 0) {
+      stop("n_total must be a positive number when provided")
+    }
+  }
 # Shallow validation of known top-level args
   if (!is.null(engine$solver_args$global) && !(is.character(engine$solver_args$global) && length(engine$solver_args$global) == 1)) {
     stop("solver_args$global must be a single character value (e.g., 'dbldog', 'qline').")
