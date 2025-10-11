@@ -31,7 +31,7 @@
 #' @keywords engine
 #' @export
 exptilt_engine <- function(
-    standardize = TRUE,
+    standardize = FALSE,
     on_failure = c("return", "error"),
     variance_method = c("delta", "bootstrap"),
     bootstrap_reps = 10,
@@ -43,7 +43,7 @@ exptilt_engine <- function(
     min_iter = 10, # TODO move to control
     max_iter = 100, # TODO move to control
     optim_method = c("Newton", "Broyden"), # TODO move to control
-    tol_value = 1e-5 # TODO move to control
+    tol_value = 0.1 # TODO move to control
     ) {
   on_failure <- match.arg(on_failure)
   variance_method <- match.arg(variance_method)

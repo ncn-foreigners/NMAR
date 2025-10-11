@@ -148,7 +148,14 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
 # We will derive respondent/nonrespondent weight slices on the fly from
 # design_weights using the stored masks to avoid duplicating state
 
-  model$theta <- stats::runif(length(model$cols_delta) + 2, 0, 0.1)
+  # model$theta <- stats::runif(length(model$cols_delta) + 2, 0, 1)
+  model$theta <- c(0.66,-0.36)
+  # reg_model <- glm('Y ~ .', data = model$x[!is.na(model$x$Y), ], family = gaussian)
+  # # summary(reg_model)
+  # model$theta <- coef(reg_model)
+  #everything apart of 1st index should be 0
+  # model$theta[-c(1, length(model$theta))] <- 0
+  # model$theta[1]<- 0
 # Name the parameter vector to align with the design vector used throughout
 # the ET implementation: [ (Intercept), x1 (cols_delta...), y ].  These names
 # are required by the shared scaling unscaler so coefficients are returned on
@@ -162,7 +169,7 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   model$density_fun_hess <- dens_response$density_function_hess
   model$density_num_of_coefs <- dens_response$num_of_coefs
   model$chosen_y_dens <- dens_response$chosen_distribution
-  model$O_matrix_nieobs <- generate_Odds(model)
+  model$O_matrix_nieobs <- generate_Odds(model,model$theta)
 
 # const
   model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
@@ -184,35 +191,40 @@ exptilt_estimator_core <- function(model, bootstrap_template, respondent_mask,
   bootstrap_template$cols_required <- model$cols_required
 
   target_function <- function(theta) {
+    # theta=c(0.67,-0.32)
+    # theta=c(0.8,-0.1)
     model$theta <<- theta
-    step_func(model, theta, model$O_matrix_nieobs)
+    O_matrix_nieobs_current <- generate_Odds(model,theta)
+    step_func(model, theta, O_matrix_nieobs_current)
   }
 
   solution <- nleqslv(
     x = model$theta,
     fn = target_function,
     method = "Newton",
+    # jacobian = T,
     control = list(maxit = 1)
   )
 
   theta_prev <- model$theta
   model$theta <- solution$x
   model$loss_value <- solution$fvec
-  iter <- 0
+  iter <- 1
 
-  while (sum((model$theta - theta_prev)^2) > model$tol_value ||
-    (iter < model$min_iter && iter < model$max_iter)) {
+  while (sum((model$theta - theta_prev)^2) > model$tol_value &&
+    (model$min_iter <=iter && iter <=model$max_iter)) {
     solution <- nleqslv(
       x = model$theta,
       fn = target_function,
       method = "Newton",
+      # jacobian = T,
       control = list(maxit = 1)
     )
 
     theta_prev <- model$theta
     model$theta <- solution$x
     model$loss_value <- solution$fvec
-    model$O_matrix_nieobs <- generate_Odds(model)
+    model$O_matrix_nieobs <- generate_Odds(model,model$theta)
     iter <- iter + 1
   }
   model$iterations <- iter
@@ -233,7 +245,7 @@ exptilt_estimator_core <- function(model, bootstrap_template, respondent_mask,
 # model fitting so that gamma_hat remains consistent
   model$features_are_scaled <- FALSE
 
-  model$O_matrix_nieobs <- generate_Odds(model)
+  model$O_matrix_nieobs <- generate_Odds(model,model$theta)
   model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
   model$C_matrix_nieobs <- generate_C_matrix(model)
 

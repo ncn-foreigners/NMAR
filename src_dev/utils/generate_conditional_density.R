@@ -42,7 +42,7 @@ generate_conditional_density <- function(model) {
     normal = list(
       family = gaussian(link = "identity"),
       fit = function(formula, data) {
-        fit <- lm(formula, data = data)
+        fit <- glm(formula, data = data,family = gaussian())
         return(fit)
       },
       extra = "sigma",
@@ -107,6 +107,8 @@ generate_conditional_density <- function(model) {
       paste("y ~", paste(covar_names, collapse = " + "))
     }
     .model <- dist_list[[chosen_dist]]$fit(as.formula(formula_str), data_df)
+    print(summary(.model))
+    browser()
   }
 
 # Extract coefficients and create design matrix function
@@ -182,8 +184,36 @@ generate_conditional_density_matrix <- function(model) {
   })
 }
 
+# generate_C_matrix <- function(model) {
+#   cat('Dim of f_matrix_nieobs:', dim(model$f_matrix_nieobs), '\n')
+#   # cat(model$density_fun(-1,0))
+#   stopifnot(is.matrix(model$f_matrix_nieobs))
+#   col_sums <- colSums(model$f_matrix_nieobs)
+#   test <- matrix(col_sums, ncol = 1)
+#   test2 <- model$f_matrix_nieobs
+#   browser()
+#   return(matrix(col_sums, ncol = 1))
+# }
 generate_C_matrix <- function(model) {
-  stopifnot(is.matrix(model$f_matrix_nieobs))
-  col_sums <- colSums(model$f_matrix_nieobs)
-  return(matrix(col_sums, ncol = 1))
+  # --- Step 1: Generate the Conditional Density Matrix for OBSERVED Data ---
+  # This matrix, f_matrix_obs, will have one row for each observed person
+  # and one column for each possible y value in the support set.
+  # The value at [i, j] is the density f(y_j | x_i) for observed person i.
+
+  # We assume model$density_fun is vectorized over its first argument (y).
+  # sapply calculates the density for all possible y values for each observed person i.
+  # The result is transposed to get individuals in rows and y_values in columns.
+  f_matrix_obs <- t(sapply(1:nrow(model$x_for_y_obs), function(i) {
+    model$density_fun(model$y_1, model$x_for_y_obs[i, , drop = FALSE])
+  }))
+
+  # --- Step 2: Calculate C by Summing the Columns ---
+  # According to the formula C(y) = sum_{l:delta_l=1} f(y | x_l), we need to
+  # sum the densities for each possible y over all observed individuals.
+  # This is equivalent to summing the columns of f_matrix_obs.
+  C_vector <- colSums(f_matrix_obs)
+
+  # --- Step 3: Format as a Single-Column Matrix ---
+  browser()
+  return(matrix(C_vector, ncol = 1))
 }
