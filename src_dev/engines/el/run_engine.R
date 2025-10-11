@@ -21,6 +21,7 @@ run_engine.nmar_engine_el <- function(engine, task) {
     response_predictors = response_predictors,
     auxiliary_means = design_info$auxiliary_means,
     standardize = design_info$standardize,
+    n_total = engine$n_total,
     trim_cap = engine$trim_cap,
     control = engine$control,
     solver_args = engine$solver_args,
