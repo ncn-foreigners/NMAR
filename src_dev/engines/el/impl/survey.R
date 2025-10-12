@@ -49,7 +49,7 @@ el.survey.design <- function(data, formula, response_predictors = NULL,
 
   design <- data
 
-  # If respondents-only design is supplied (no NA in outcome), require n_total
+# If respondents-only design is supplied (no NA in outcome), require n_total
   outcome_var_check <- all.vars(formula[[2]])
   if (length(outcome_var_check) == 1 && !anyNA(design$variables[[outcome_var_check]]) && is.null(n_total)) {
     stop("Respondents-only survey design detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total design weight or population total>).", call. = FALSE)

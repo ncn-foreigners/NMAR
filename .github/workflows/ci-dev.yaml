@@ -47,7 +47,21 @@ jobs:
             git diff --name-only man/
             exit 1
           fi
+      - name: Build vignettes
+        run: |
+          R -q -e "
+            unlink('doc', recursive = TRUE)
+            unlink('inst/doc', recursive = TRUE)
+            devtools::build_vignettes()
+          "
 
+      - name: Build README
+        run: |
+          R -q -e "devtools::build_readme()"
+
+      - name: Check pkgdown
+        run: |
+          R -q -e "pkgdown::check_pkgdown()"
       - name: Run R CMD check
         run: |
           R CMD check . --no-manual --as-cran

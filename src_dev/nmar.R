@@ -35,16 +35,16 @@ nmar <- function(formula, data, engine, response_predictors = NULL) {
   )
 
   traits <- engine_traits(engine)
-  # Activate respondents-only relaxation only when the engine supplies
-  # the required extra information (currently: n_total for EL).
+# Activate respondents-only relaxation only when the engine supplies
+# the required extra information (currently: n_total for EL).
   if (isTRUE(traits$allow_respondents_only)) {
     has_n_total <- !is.null(engine$n_total)
     traits$allow_respondents_only <- isTRUE(has_n_total)
   }
   validate_nmar_args(spec, traits)
 
-  # Wrap the validated spec and engine traits into a task object so every
-  # engine sees the same downstream interface.
+# Wrap the validated spec and engine traits into a task object so every
+# engine sees the same downstream interface.
   task <- new_nmar_task(spec, traits)
 
   run_engine(engine, task)
