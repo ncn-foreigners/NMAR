@@ -68,6 +68,7 @@ Pass the returned object to `nmar()` together with a formula and data.</p>
 <span>  suppress_warnings <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  auxiliary_means <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  n_total <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"logit"</span>, <span class="st">"probit"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -142,6 +143,15 @@ Recognized fields include `xtol`, `ftol`, `btol`, `maxit`, `trace`, `stepmax`,
 and `delta`.</p></dd>
 
 
+<dt id="arg-n-total">n_total<a class="anchor" aria-label="anchor" href="#arg-n-total"></a></dt>
+<dd><p>Optional when supplying respondents-only data (no NA in the
+outcome). For `data.frame` inputs, set to the total number of sampled
+units before filtering to respondents. For `survey.design` inputs, set to
+the total design weight or known population total. If omitted and the
+outcome contains no NAs, the estimator errors with an instruction to
+provide `n_total`.</p></dd>
+
+
 <dt id="arg-family">family<a class="anchor" aria-label="anchor" href="#arg-family"></a></dt>
 <dd><p>Response model family; a string ("logit" or "probit") or a
 family object created by `logit_family()` / `probit_family()`.</p></dd>
@@ -178,18 +188,19 @@ Statistical Association, 97(457), 193–200.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">200</span></span></span>
-<span class="r-in"><span><span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>; <span class="va">Z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">Z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fl">2</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">X</span> <span class="op">+</span> <span class="va">Z</span></span></span>
 <span class="r-in"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.7</span> <span class="op">+</span> <span class="fl">0.4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/scale.html" class="external-link">scale</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">R</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">&lt;</span> <span class="va">p</span></span></span>
-<span class="r-in"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Y_miss <span class="op">=</span> <span class="va">Y</span>, X <span class="op">=</span> <span class="va">X</span><span class="op">)</span>; <span class="va">df</span><span class="op">$</span><span class="va">Y_miss</span><span class="op">[</span><span class="op">!</span><span class="va">R</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NA_real_</span></span></span>
+<span class="r-in"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Y_miss <span class="op">=</span> <span class="va">Y</span>, X <span class="op">=</span> <span class="va">X</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">df</span><span class="op">$</span><span class="va">Y_miss</span><span class="op">[</span><span class="op">!</span><span class="va">R</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NA_real_</span></span></span>
 <span class="r-in"><span><span class="va">eng</span> <span class="op">&lt;-</span> <span class="fu">el_engine</span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"delta"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="nmar.html">nmar</a></span><span class="op">(</span><span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>, data <span class="op">=</span> <span class="va">df</span>, engine <span class="op">=</span> <span class="va">eng</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NMAR Model Summary</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> =================</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss estimate: 3.090401</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Std. Error: 0.281894</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss mean: 3.090401 (0.281894)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 95% CI: (2.537898, 3.642903)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Converged: TRUE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Variance method: delta </span>
@@ -199,9 +210,9 @@ Statistical Association, 97(457), 193–200.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=200&gt;, engine = empirical_likelihood)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Response-model coefficients:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              Estimate Std. Error   z value     Pr(&gt;|z|)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.250571  0.4834881  6.723167 1.778169e-11</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss      -1.239524  0.4592639 -2.698936 6.956151e-03</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              Estimate Std. Error   z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  3.250571   0.483488  6.723167 0.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss      -1.239524   0.459264 -2.698936 0.006956</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

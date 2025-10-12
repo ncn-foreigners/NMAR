@@ -162,8 +162,7 @@ on the unobserved outcome.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Model Summary</span></span>
 <span><span class="co">#&gt; =================</span></span>
-<span><span class="co">#&gt; Y_miss estimate: 1.878660</span></span>
-<span><span class="co">#&gt; Std. Error: 0.251403</span></span>
+<span><span class="co">#&gt; Y_miss mean: 1.878660 (0.251403)</span></span>
 <span><span class="co">#&gt; 95% CI: (1.385920, 2.371400)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: delta </span></span>
@@ -173,9 +172,9 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt; Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=500&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model coefficients:</span></span>
-<span><span class="co">#&gt;               Estimate Std. Error    z value     Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -1.5706942  0.1239364 -12.673394 8.304254e-37</span></span>
-<span><span class="co">#&gt; Y_miss       0.3667545  0.3251176   1.128067 2.592915e-01</span></span>
+<span><span class="co">#&gt;              Estimate Std. Error    z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; (Intercept) -1.570694   0.123936 -12.673394 0.000000</span></span>
+<span><span class="co">#&gt; Y_miss       0.366754   0.325118   1.128067 0.259292</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;          2.5 % 97.5 %</span></span>
 <span><span class="co">#&gt; Y_miss 1.38592 2.3714</span></span></code></pre></div>
@@ -193,8 +192,7 @@ on the unobserved outcome.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_probit</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Model Summary</span></span>
 <span><span class="co">#&gt; =================</span></span>
-<span><span class="co">#&gt; Y_miss estimate: 1.880128</span></span>
-<span><span class="co">#&gt; Std. Error: 0.248300</span></span>
+<span><span class="co">#&gt; Y_miss mean: 1.880128 (0.248300)</span></span>
 <span><span class="co">#&gt; 95% CI: (1.393469, 2.366787)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: delta </span></span>
@@ -204,9 +202,9 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt; Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=500&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model coefficients:</span></span>
-<span><span class="co">#&gt;               Estimate Std. Error    z value     Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -0.9496775 0.07636296 -12.436364 1.658849e-35</span></span>
-<span><span class="co">#&gt; Y_miss       0.2175044 0.18540493   1.173132 2.407429e-01</span></span></code></pre></div>
+<span><span class="co">#&gt;              Estimate Std. Error    z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; (Intercept) -0.949678   0.076363 -12.436364 0.000000</span></span>
+<span><span class="co">#&gt; Y_miss       0.217504   0.185405   1.173132 0.240743</span></span></code></pre></div>
 <p>Tidy/glance summaries, and plots:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"broom"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -218,7 +216,7 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;   variance_method solver_jacobian jacobian_source jacobian_condition_number</span></span>
 <span><span class="co">#&gt; 1           delta        analytic        analytic                  36.83019</span></span>
 <span><span class="co">#&gt;   jacobian_rel_diff max_equation_residual min_denominator</span></span>
-<span><span class="co">#&gt; 1      1.036866e-11          3.330669e-14       0.4613402</span></span>
+<span><span class="co">#&gt; 1      6.884968e-12          3.347322e-14       0.4613402</span></span>
 <span><span class="co">#&gt;   fraction_small_denominators used_pseudoinverse nobs nobs_resp is_survey</span></span>
 <span><span class="co">#&gt; 1                           0              FALSE  500       150     FALSE</span></span>
 <span></span>
@@ -243,18 +241,18 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;  $ nleqslv_global             : chr NA</span></span>
 <span><span class="co">#&gt;  $ nleqslv_xscalm             : chr NA</span></span>
 <span><span class="co">#&gt;  $ solver_iterations          : int 7</span></span>
-<span><span class="co">#&gt;  $ solver_time                : num 0.004</span></span>
-<span><span class="co">#&gt;  $ variance_time              : num 0.005</span></span>
+<span><span class="co">#&gt;  $ solver_time                : num 0.005</span></span>
+<span><span class="co">#&gt;  $ variance_time              : num 0.006</span></span>
 <span><span class="co">#&gt;  $ reparam_W                  : chr "logit"</span></span>
-<span><span class="co">#&gt;  $ max_equation_residual      : num 3.33e-14</span></span>
+<span><span class="co">#&gt;  $ max_equation_residual      : num 3.35e-14</span></span>
 <span><span class="co">#&gt;  $ jacobian_condition_number  : num 36.8</span></span>
 <span><span class="co">#&gt;  $ jacobian_source            : chr "analytic"</span></span>
-<span><span class="co">#&gt;  $ jacobian_rel_diff          : num 1.04e-11</span></span>
+<span><span class="co">#&gt;  $ jacobian_rel_diff          : num 6.88e-12</span></span>
 <span><span class="co">#&gt;  $ jacobian_auto_rule         : chr "default"</span></span>
 <span><span class="co">#&gt;  $ min_denominator            : num 0.461</span></span>
 <span><span class="co">#&gt;  $ fraction_small_denominators: num 0</span></span>
-<span><span class="co">#&gt;  $ constraint_sum_W           : num 5.63e-15</span></span>
-<span><span class="co">#&gt;  $ constraint_sum_aux         : Named num -2.22e-16</span></span>
+<span><span class="co">#&gt;  $ constraint_sum_W           : num 6.73e-15</span></span>
+<span><span class="co">#&gt;  $ constraint_sum_aux         : Named num 4.22e-15</span></span>
 <span><span class="co">#&gt;   ..- attr(*, "names")= chr "X"</span></span>
 <span><span class="co">#&gt;  $ used_pseudoinverse         : logi FALSE</span></span>
 <span><span class="co">#&gt;  $ used_ridge                 : logi FALSE</span></span>
@@ -272,7 +270,7 @@ on the unobserved outcome.</p>
 <span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">fit_boot</span><span class="op">$</span><span class="va">se</span></span>
-<span><span class="co">#&gt; NULL</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.4188276</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -303,9 +301,8 @@ the RHS of the outcome formula.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_resp_only</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Model Summary</span></span>
 <span><span class="co">#&gt; =================</span></span>
-<span><span class="co">#&gt; Y_miss estimate: 1.258792</span></span>
-<span><span class="co">#&gt; Std. Error: 0.166677</span></span>
-<span><span class="co">#&gt; 95% CI: (0.932112, 1.585472)</span></span>
+<span><span class="co">#&gt; Y_miss mean: 1.258792 (0.140526)</span></span>
+<span><span class="co">#&gt; 95% CI: (0.983365, 1.534218)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: delta </span></span>
 <span><span class="co">#&gt; Variance notes: Calculation successful </span></span>
@@ -314,10 +311,10 @@ the RHS of the outcome formula.</p>
 <span><span class="co">#&gt; Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=400&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model coefficients:</span></span>
-<span><span class="co">#&gt;                Estimate  Std. Error    z value     Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -0.85089950 0.074995551 -11.346000 7.763389e-30</span></span>
-<span><span class="co">#&gt; Y_miss       0.28631609 0.260913013   1.097362 2.724831e-01</span></span>
-<span><span class="co">#&gt; Z            0.05802273 0.005795718  10.011309 1.359412e-23</span></span></code></pre></div>
+<span><span class="co">#&gt;              Estimate Std. Error    z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; (Intercept) -0.850899   0.050330 -16.906464 0.000000</span></span>
+<span><span class="co">#&gt; Y_miss       0.286316   0.271628   1.054073 0.291849</span></span>
+<span><span class="co">#&gt; Z            0.058023   0.190335   0.304846 0.760483</span></span></code></pre></div>
 <p>Auxiliary means and formulas:</p>
 <ul>
 <li>Names of <code>auxiliary_means</code> must match the variables on
@@ -369,8 +366,7 @@ not need auxiliary means.</li>
 <span><span class="co">#&gt;     dotchart</span></span>
 <span><span class="co">#&gt; NMAR Model Summary</span></span>
 <span><span class="co">#&gt; =================</span></span>
-<span><span class="co">#&gt; api00_miss estimate: 561.429381</span></span>
-<span><span class="co">#&gt; Std. Error: 34.832435</span></span>
+<span><span class="co">#&gt; api00_miss mean: 561.429381 (34.832435)</span></span>
 <span><span class="co">#&gt; 95% CI: (486.721237, 636.137525)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: delta </span></span>
@@ -380,9 +376,9 @@ not need auxiliary means.</li>
 <span><span class="co">#&gt; Call: nmar(api00_miss ~ ell, data = &lt;survey.design: N=183&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model coefficients:</span></span>
-<span><span class="co">#&gt;                 Estimate Std. Error      z value     Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -19.67790829  1.4801595 -13.29445081 2.484954e-09</span></span>
-<span><span class="co">#&gt; api00_miss    0.03520924  0.9135567   0.03854083 9.698007e-01</span></span></code></pre></div>
+<span><span class="co">#&gt;               Estimate Std. Error    t value Pr(&gt;|t|)</span></span>
+<span><span class="co">#&gt; (Intercept) -19.677908   1.480160 -13.294451 0.000000</span></span>
+<span><span class="co">#&gt; api00_miss    0.035209   0.913557   0.038541 0.969801</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="practical-guidance">Practical guidance<a class="anchor" aria-label="anchor" href="#practical-guidance"></a>
@@ -503,7 +499,7 @@ details.</li>
 <span><span class="co">#&gt;  [1] jsonlite_2.0.0      dplyr_1.1.4         compiler_4.5.1     </span></span>
 <span><span class="co">#&gt;  [4] Rcpp_1.1.0          tidyselect_1.2.1    nleqslv_3.3.5      </span></span>
 <span><span class="co">#&gt;  [7] tidyr_1.3.1         jquerylib_0.1.4     splines_4.5.1      </span></span>
-<span><span class="co">#&gt; [10] systemfonts_1.3.1   textshaping_1.0.3   yaml_2.3.10        </span></span>
+<span><span class="co">#&gt; [10] systemfonts_1.3.1   textshaping_1.0.4   yaml_2.3.10        </span></span>
 <span><span class="co">#&gt; [13] fastmap_1.2.0       lattice_0.22-7      R6_2.6.1           </span></span>
 <span><span class="co">#&gt; [16] generics_0.1.4      knitr_1.50          htmlwidgets_1.6.4  </span></span>
 <span><span class="co">#&gt; [19] backports_1.5.0     tibble_3.3.0        desc_1.4.3         </span></span>

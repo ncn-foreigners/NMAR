@@ -329,7 +329,7 @@ object carries class
 the standard layout:</p>
 <ul>
 <li>Scalar fields: <code>estimate</code>, <code>estimate_name</code>,
-<code>std_error</code>, <code>converged</code>.</li>
+<code>se</code>, <code>converged</code>.</li>
 <li>Lists: <code>model</code> (coefficients/vcov),
 <code>weights_info</code>, <code>sample</code>, <code>inference</code>,
 <code>diagnostics</code>, <code>meta</code>, <code>extra</code>.</li>
@@ -342,7 +342,7 @@ structure is complete.</p>
 <code>src_dev/engines/&lt;method&gt;/impl/constructors.R</code>):</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">#' @keywords internal</span></span>
-<span><span class="va">new_nmar_result_method</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">estimate</span>, <span class="va">std_error</span>,</span>
+<span><span class="va">new_nmar_result_method</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">estimate</span>, <span class="va">se</span>,</span>
 <span>                                   <span class="va">coefficients</span> <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">vcov</span> <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>                                   <span class="va">weights</span> <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">sample</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>                                   <span class="va">inference</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>variance_method <span class="op">=</span> <span class="cn">NA_character_</span>,</span>
@@ -359,7 +359,7 @@ structure is complete.</p>
 <span>  <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_nmar_result.html">new_nmar_result</a></span><span class="op">(</span></span>
 <span>    estimate <span class="op">=</span> <span class="va">estimate</span>,</span>
 <span>    estimate_name <span class="op">=</span> <span class="va">sample</span><span class="op">$</span><span class="va">outcome_var</span>,</span>
-<span>    std_error <span class="op">=</span> <span class="va">std_error</span>,</span>
+<span>    se <span class="op">=</span> <span class="va">se</span>,</span>
 <span>    converged <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>    model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>coefficients <span class="op">=</span> <span class="va">coefficients</span>, vcov <span class="op">=</span> <span class="va">vcov</span><span class="op">)</span>,</span>
 <span>    weights_info <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">weights</span>, trimmed_fraction <span class="op">=</span> <span class="cn">NA_real_</span><span class="op">)</span>,</span>

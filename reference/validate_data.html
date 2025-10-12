@@ -59,7 +59,8 @@ and inappropriate variable overlaps. It provides detailed, actionable error mess
 <span>  <span class="va">covariates_for_outcome</span>,</span>
 <span>  covariates_for_missingness <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  allow_outcome_in_missingness <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  allow_covariate_overlap <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  allow_covariate_overlap <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  allow_respondents_only <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -91,6 +92,12 @@ response-model covariates (default `FALSE`).</p></dd>
 <dt id="arg-allow-covariate-overlap">allow_covariate_overlap<a class="anchor" aria-label="anchor" href="#arg-allow-covariate-overlap"></a></dt>
 <dd><p>Logical; allow overlap between outcome and response
 covariate sets (default `FALSE`).</p></dd>
+
+
+<dt id="arg-allow-respondents-only">allow_respondents_only<a class="anchor" aria-label="anchor" href="#arg-allow-respondents-only"></a></dt>
+<dd><p>Logical; allow datasets with no missing outcome
+values (respondents-only). When TRUE, the caller is expected to provide any
+additional information required by the engine (e.g., total sample size).</p></dd>
 
 </dl></div>
     <div class="section level2">
