@@ -15,7 +15,7 @@
 #'   list for programmatic inspection.
 #'
 #' @name nmar_engine_helpers
-#' @keywords engine
+#' @keywords engine_view
 NULL
 
 #' Canonical engine name
@@ -26,20 +26,25 @@ NULL
 #'
 #' @param x An object inheriting from class `nmar_engine`.
 #' @return A single character string, e.g. "empirical_likelihood".
+#' @keywords engine_view
 #' @export
 engine_name <- function(x) {
   UseMethod("engine_name")
 }
 
+#' @keywords engine_view
 #' @export
 engine_name.nmar_engine <- function(x) "nmar_engine"
 
+#' @keywords engine_view
 #' @export
 engine_name.nmar_engine_el <- function(x) "empirical_likelihood"
 
+#' @keywords engine_view
 #' @export
 engine_name.nmar_engine_exptilt <- function(x) "exponential_tilting"
 
+#' @keywords engine_view
 #' @export
 engine_name.nmar_engine_exptilt_nonparam <- function(x) "exponential_tilting_nonparam"
 
@@ -96,6 +101,7 @@ s3_engine_display_keys <- function(x) {
 #'
 #' @param x An engine object inheriting from `nmar_engine`.
 #' @param ... Unused.
+#' @keywords engine_view
 #' @export
 print.nmar_engine <- function(x, ...) {
   nm <- engine_name(x)
@@ -126,6 +132,7 @@ print.nmar_engine <- function(x, ...) {
 #' @param x An engine object inheriting from `nmar_engine`.
 #' @param ... Unused.
 #' @return A length-1 character vector.
+#' @keywords engine_view
 #' @export
 format.nmar_engine <- function(x, ...) {
   nm <- s3_engine_label(engine_name(x))
@@ -153,6 +160,7 @@ format.nmar_engine <- function(x, ...) {
 #'
 #' @param x An object inheriting from class `nmar_engine`.
 #' @return A named list of configuration fields.
+#' @keywords engine_view
 #' @export
 engine_config <- function(x) {
   UseMethod("engine_config")

@@ -71,11 +71,12 @@ parse_nmar_spec <- function(formula, data, response_predictors = NULL, env = par
 #'   - `requires_single_outcome`: logical.
 #'   Engines may add traits over time; callers should use `$` with care
 #'   and rely on presence checks when needed.
+#' @keywords engine_view
 #' @export
 engine_traits <- function(engine) {
   UseMethod("engine_traits")
 }
-
+#' @keywords engine_view
 #' @export
 engine_traits.default <- function(engine) {
   list(
@@ -85,7 +86,7 @@ engine_traits.default <- function(engine) {
     allow_respondents_only = FALSE
   )
 }
-
+#' @keywords engine_view
 #' @export
 engine_traits.nmar_engine <- function(engine) {
 # Parent class falls back to the baseline defaults; specific engines
@@ -93,6 +94,7 @@ engine_traits.nmar_engine <- function(engine) {
   engine_traits.default(engine)
 }
 
+#' @keywords engine_view
 #' @export
 engine_traits.nmar_engine_el <- function(engine) {
   utils::modifyList(

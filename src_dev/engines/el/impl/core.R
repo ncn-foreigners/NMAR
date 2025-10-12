@@ -64,27 +64,27 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   response_model_matrix_unscaled <- model.matrix(response_model_formula, data = respondent_data)
 
   if (has_aux) {
-    # Build auxiliary design on respondents
+# Build auxiliary design on respondents
     auxiliary_matrix_unscaled <- model.matrix(internal_formula$auxiliary, data = respondent_data)
 
-    # If user did not supply population moments, infer from the full sample
+# If user did not supply population moments, infer from the full sample
     if (is.null(auxiliary_means)) {
       if (inherits(full_data, "survey.design")) {
         mm_full <- model.matrix(internal_formula$auxiliary, data = full_data$variables)
         w_full <- as.numeric(weights(full_data))
-        # Align columns with respondent design (drop absent levels in respondents)
+# Align columns with respondent design (drop absent levels in respondents)
         common_cols <- intersect(colnames(auxiliary_matrix_unscaled), colnames(mm_full))
         if (length(common_cols) == 0L) {
-          # No overlap; disable auxiliaries gracefully
+# No overlap; disable auxiliaries gracefully
           auxiliary_matrix_unscaled <- matrix(nrow = nrow(respondent_data), ncol = 0)
           mu_x_unscaled <- NULL
           has_aux <- FALSE
         } else {
           mm_full <- mm_full[, common_cols, drop = FALSE]
-          # Weighted means of model-matrix columns
+# Weighted means of model-matrix columns
           mu <- as.numeric(colSums(mm_full * w_full) / sum(w_full))
           names(mu) <- colnames(mm_full)
-          # Reorder to respondent design
+# Reorder to respondent design
           auxiliary_matrix_unscaled <- auxiliary_matrix_unscaled[, common_cols, drop = FALSE]
           mu_x_unscaled <- mu[colnames(auxiliary_matrix_unscaled)]
           message("No auxiliary_means supplied; inferred from design-weighted sample and treated as fixed.")
@@ -99,7 +99,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
         } else {
           mm_full <- mm_full[, common_cols, drop = FALSE]
           mu <- colMeans(mm_full)
-          # Ensure naming and order
+# Ensure naming and order
           auxiliary_matrix_unscaled <- auxiliary_matrix_unscaled[, common_cols, drop = FALSE]
           mu_x_unscaled <- as.numeric(mu[colnames(auxiliary_matrix_unscaled)])
           names(mu_x_unscaled) <- colnames(auxiliary_matrix_unscaled)
@@ -107,7 +107,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
         }
       }
     } else {
-      # Use provided means; restrict/reorder to match respondent design
+# Use provided means; restrict/reorder to match respondent design
       keep <- intersect(names(auxiliary_means), colnames(auxiliary_matrix_unscaled))
       auxiliary_matrix_unscaled <- auxiliary_matrix_unscaled[, keep, drop = FALSE]
       mu_x_unscaled <- as.numeric(auxiliary_means[keep])
