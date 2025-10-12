@@ -347,11 +347,13 @@ formula.nmar_result <- function(x, ...) {
 #' @param object An `nmar_result` or subclass.
 #' @param ... Ignored.
 #' @return Numeric scalar.
-#' @export
-se <- function(object, ...) UseMethod("se")
-
+#' @keywords result_param
 #' @export
 se.nmar_result <- function(object, ...) nmar_result_get_se(object)
+
+
+
+
 
 #' Coefficient table for summary objects
 #'

@@ -168,7 +168,6 @@ exptilt_estimator_core <- function(model, respondent_mask,
     O_matrix_nieobs_current <- generate_Odds(model, theta)
     step_func(model, theta, O_matrix_nieobs_current)
   }
-
   solution <- nleqslv(
     x = model$theta,
     fn = target_function,
@@ -253,11 +252,10 @@ exptilt_estimator_core <- function(model, respondent_mask,
     }
 
 # Check sample size and weight conditions
-    resp_w_local <- model$design_weights[respondent_mask]
-    n_resp <- length(resp_w_local)
-    design_varies <- n_resp > 1 && max(abs(resp_w_local - resp_w_local[1])) > 1e-6
-    few_resp <- n_resp < 40
 
+    n_resp <- as.numeric(length(model$design_weights))
+    design_varies <- (n_resp > 1) && (max(abs(model$design_weights - model$design_weights[1])) > 1e-6)
+    few_resp <- n_resp < 40
     if (design_varies || few_resp) {
       warning("Delta variance may be unreliable with the current sample; using bootstrap instead.",
               call. = FALSE)

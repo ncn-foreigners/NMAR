@@ -76,7 +76,7 @@ exptilt_config <- exptilt_engine(
   min_iter = 3,
   max_iter = 10,
   tol_value = 0.01,
-  standardize = T,
+  standardize = F,
   family = 'logit', # or logit
   bootstrap_reps = 50
 # standardize = TRUE

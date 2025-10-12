@@ -1,4 +1,4 @@
-#' #' @exportS3Method NULL
+#' @exportS3Method NULL
 
 step_func <- function(model, theta, O_matrix_nieobs) {
 
@@ -9,7 +9,7 @@ step_func <- function(model, theta, O_matrix_nieobs) {
   theta_numeric <- as.numeric(theta)
   p <- length(theta_numeric)
 
-  inv_C <- 1 * model$respondent_weights / as.vector(model$C_matrix_nieobs)
+  inv_C <- 1 * model$design_weights / as.vector(model$C_matrix_nieobs)
   inv_C[!is.finite(inv_C)] <- 0
   W_numerator_matrix <- O_matrix_nieobs * model$f_matrix_nieobs
 
@@ -19,7 +19,7 @@ step_func <- function(model, theta, O_matrix_nieobs) {
 
   s_values_obs <- s_function(model, 1, X_obs_for_s_func, theta_numeric)
 
-  s_values_obs <- s_values_obs * model$respondent_weights[1:n_x1]
+  s_values_obs <- s_values_obs * model$design_weights[1:n_x1]
 
   s_values_unobs_expanded <- s_function(model, 0, model$x_0[, model$cols_delta], theta_numeric)
 
