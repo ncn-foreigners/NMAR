@@ -1,7 +1,7 @@
 generate_conditional_density <- function(model) {
 
   data_df <- data.frame(y = model$y_1, model$x_for_y_obs)
-  # data_df$weights <- model$respondent_weights # Add weights to data frame
+# data_df$weights <- model$respondent_weights # Add weights to data frame
 
 # Get covariate names (excluding y and weights)
   covar_names <- setdiff(colnames(model$x_for_y_obs), c("y", "weights"))
@@ -42,7 +42,7 @@ generate_conditional_density <- function(model) {
     normal = list(
       family = gaussian(link = "identity"),
       fit = function(formula, data) {
-        fit <- lm(formula, data = data)
+        fit <- glm(formula, data = data, family = gaussian())
         return(fit)
       },
       extra = "sigma",
@@ -107,6 +107,8 @@ generate_conditional_density <- function(model) {
       paste("y ~", paste(covar_names, collapse = " + "))
     }
     .model <- dist_list[[chosen_dist]]$fit(as.formula(formula_str), data_df)
+# print(summary(.model))
+# browser()
   }
 
 # Extract coefficients and create design matrix function
@@ -182,8 +184,13 @@ generate_conditional_density_matrix <- function(model) {
   })
 }
 
+
 generate_C_matrix <- function(model) {
-  stopifnot(is.matrix(model$f_matrix_nieobs))
-  col_sums <- colSums(model$f_matrix_nieobs)
-  return(matrix(col_sums, ncol = 1))
+  f_matrix_obs <- t(sapply(1:nrow(model$x_for_y_obs), function(i) {
+    model$density_fun(model$y_1, model$x_for_y_obs[i, , drop = FALSE])
+  }))
+
+  C_vector <- colSums(f_matrix_obs)
+
+  return(matrix(C_vector, ncol = 1))
 }

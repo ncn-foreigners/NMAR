@@ -9,8 +9,8 @@ estim_mean.nmar_exptilt <- function(model) {
 
   probabilities <- model$family$linkinv(eta)
 
-  numerator <- sum(model$y_1 * model$respondent_weights / probabilities)
-  denominator <- sum(model$respondent_weights / probabilities)
+  numerator <- sum(model$y_1 * model$design_weights / probabilities)
+  denominator <- sum(model$design_weights / probabilities)
 
   return(numerator / denominator)
 }

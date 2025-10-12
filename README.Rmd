@@ -78,36 +78,59 @@ If, in a salary survey, richer people were less likely to answer, `Y` is salary,
 
 
 ```{r example}
-generate_test_data <- function(n_rows = 400, n_cols = 2, case = 2, x_var = 0.5, eps_var = 0.5, a = 0.8, b = -0.2) {
+generate_test_data <- function(n_rows = 400, n_cols = 2, case = 2, x_var = 0.5, eps_var = 0.5, a = 0.8, b = -0.2, c = NULL) {
+# Generate main features (only the actual predictors)
   X <- as.data.frame(replicate(n_cols, rnorm(n_rows, 0, x_var)^1))
   colnames(X) <- paste0("x", 1:n_cols)
+
+# Generate Y using ONLY the main predictors
   coefs <- runif(n_cols, 0.95, 1.05)
   eps <- rnorm(n_rows, 0, eps_var)
+
   if (case == 1) {
-  X$Y <- as.vector(-1 + as.matrix(X) %*% coefs + eps)
+    X$Y <- as.vector(-1 + as.matrix(X) %*% coefs + eps)
   }
+
+# Add additional column AFTER generating Y
+  if (!is.null(c)) {
+    X$x_additional <- runif(n_rows, 0, 2)
+  }
+
+# Sort by Y
   X <- X[order(X$Y), ]
-  Y_original = X$Y
-  pi_obs <- 1 / (1 + exp(-(a + b * X$Y)))
+  Y_original <- X$Y
+
+# Generate missingness
+  if (is.null(c)) {
+    pi_obs <- 1 / (1 + exp(-(a + b * X$Y)))
+  } else {
+    pi_obs <- 1 / (1 + exp(-(a + b * X$Y + c * X$x_additional)))
+  }
+
   mask <- runif(nrow(X)) > pi_obs
-  mask[1] <- FALSE
+  mask[1] <- FALSE # Ensure at least one observation
   X$Y[mask] <- NA
+
   return(list(X = X, Y_original = Y_original))
 }
 
 library(NMAR, quietly = T)
-res_test_data <- generate_test_data(n_rows = 500, n_cols = 3, case = 1)
+set.seed(1106)
+res_test_data <- generate_test_data(n_rows = 500, n_cols = 3, case = 1, c = NULL)
 data <- res_test_data$X
 
 exptilt_config <- exptilt_engine(
   y_dens = 'normal',
   family = 'probit', # or logit
-  variance_method='delta', #or delta
+  variance_method = 'delta', # or delta
 )
 
 formula = Y ~ x1 + x2
-res <- nmar(formula = formula, data = data, engine = exptilt_config, response_predictors = c('x3'))
-
+res <- nmar(formula = formula, data = data, engine = exptilt_config, response_predictors =
+# c('x_additional')
+  c(NULL)
+            )
+print(coef(res))
 print(res)
 ```
 

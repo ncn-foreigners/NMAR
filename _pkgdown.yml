@@ -1,4 +1,4 @@
-url: https://ncn-foreigners.github.io/NMAR
+url: https://ncn-foreigners.ue.poznan.pl/NMAR/index.html
 template:
   bootstrap: 5
   light-switch: true
@@ -17,6 +17,9 @@ articles:
       Step-by-step tutorials for using estimators in nmar package including both data.frame and survey design objects
     navbar: ~
     contents:
+      # - Empirical Likelihood
+      # - Exponential Tilting
+      # - Exponential Tilting (Nonparametric)
       - tutorial_empirical_likelihood
       - tutorial_exptilt
       - tutorial_exptilt_nonparam
