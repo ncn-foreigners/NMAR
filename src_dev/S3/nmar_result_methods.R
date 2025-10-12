@@ -44,6 +44,7 @@ vcov.nmar_result <- function(object, ...) {
   mat
 }
 
+
 #' Wald confidence interval for base NMAR results
 #' @param object An object of class `nmar_result`.
 #' @param parm Ignored.
