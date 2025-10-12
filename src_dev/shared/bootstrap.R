@@ -71,13 +71,7 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
       suppressWarnings({
         do.call(estimator_func, call_args)
       }),
-      error = function(e) {
-# Print the error message
-        message(sprintf("Estimation failed: %s", conditionMessage(e)))
-# Optional: print the call stack for debugging
-        message("Call: ", deparse(conditionCall(e)))
-        NULL
-      }
+      error = function(e) NULL
     )
 
     if (is.null(fit)) {
@@ -93,15 +87,7 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
 # Map the replicate result back to a scalar.  We still guard against
 # unexpected return types so the caller receives a warning instead of a
 # hard failure mid-bootstrap
-# estimates[i] <- tryCatch(as.numeric(fit$estimate), error = function(e) NA_real_)
-    estimates[i] <- tryCatch({
-      as.numeric(fit$estimate)
-    }, error = function(e) {
-# Print the error message
-      message(sprintf("Bootstrap replicate %d failed: %s", i, conditionMessage(e)))
-# browser()
-      NA_real_
-    })
+    estimates[i] <- tryCatch(as.numeric(fit$estimate), error = function(e) NA_real_)
   }
 
   failed_reps <- sum(is.na(estimates))
