@@ -17,9 +17,12 @@ articles:
       Step-by-step tutorials for using estimators in nmar package including both data.frame and survey design objects
     navbar: ~
     contents:
-      - Empirical Likelihood
-      - Exponential Tilting
-      - Exponential Tilting (Nonparametric)
+      # - Empirical Likelihood
+      # - Exponential Tilting
+      # - Exponential Tilting (Nonparametric)
+      - tutorial_empirical_likelihood
+      - tutorial_exptilt
+      - tutorial_exptilt_nonparam
   - title: Developer
     # desc: >
     #   Guide to develop new estimators in nmar package

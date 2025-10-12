@@ -14,14 +14,14 @@ step_func <- function(model, theta, O_matrix_nieobs) {
   W_numerator_matrix <- O_matrix_nieobs * model$f_matrix_nieobs
 
   common_term <- sweep(W_numerator_matrix, MARGIN = 2, STATS = inv_C, FUN = "*")
-
+# browser()
   X_obs_for_s_func <- cbind(model$x_1[, model$cols_delta], model$y_1[1:n_x1])
 
   s_values_obs <- s_function(model, 1, X_obs_for_s_func, theta_numeric)
 
   s_values_obs <- s_values_obs * model$design_weights[1:n_x1]
-
-  s_values_unobs_expanded <- s_function(model, 0, model$x_0[, model$cols_delta], theta_numeric)
+# browser()
+  s_values_unobs_expanded <- s_function(model, 0, model$x_0[, model$cols_delta, drop = F], theta_numeric)
 
   common_term_expanded <- as.vector(t(common_term))
 
@@ -52,6 +52,6 @@ step_func <- function(model, theta, O_matrix_nieobs) {
 # cat("\n")
 # cat(result_nieobs)
 # cat("\n")
-
+# browser()
   return(result_nieobs + result_obs)
 }

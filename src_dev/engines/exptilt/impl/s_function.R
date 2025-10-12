@@ -9,6 +9,7 @@ s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta) {
   if (delta == 1) {
     X_full_raw <- cbind(1, x)
   } else if (delta == 0) {
+# browser()
     n_rows <- nrow(x)
     n_y1 <- length(model$y_1)
 
@@ -39,6 +40,6 @@ s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta) {
   }
 
   result_matrix <- Numerator / Denominator
-
+# browser()
   return(result_matrix)
 }

@@ -339,7 +339,6 @@ formula.nmar_result <- function(x, ...) {
 #'
 #' Convenience extractor for the standard error of the reported mean.
 #' Returns a single numeric value or NA if unavailable.
-#' @param object An `nmar_result`.
 #' @param ... Ignored.
 #' @return Numeric scalar.
 #' Extract standard error (SE)
@@ -348,7 +347,7 @@ formula.nmar_result <- function(x, ...) {
 #' @param ... Ignored.
 #' @return Numeric scalar.
 #' @keywords result_param
-#' @export
+#' @exportS3Method se nmar_result
 se.nmar_result <- function(object, ...) nmar_result_get_se(object)
 
 
