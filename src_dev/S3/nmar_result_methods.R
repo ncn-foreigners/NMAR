@@ -336,20 +336,20 @@ formula.nmar_result <- function(x, ...) {
   x$meta$formula %||% NULL
 }
 
-#' Extract standard error (SE) for NMAR results
+
+#' Extract standard error for NMAR results
 #'
-#' Convenience extractor for the standard error of the reported mean.
-#' Returns a single numeric value or NA if unavailable.
-#' @param ... Ignored.
-#' @return Numeric scalar.
-#' Extract standard error (SE)
-#' @description Returns the standard error of the primary mean estimate.
+#' Returns the standard error of the primary mean estimate.
 #' @param object An `nmar_result` or subclass.
 #' @param ... Ignored.
 #' @return Numeric scalar.
 #' @keywords result_param
 #' @exportS3Method se nmar_result
 se.nmar_result <- function(object, ...) nmar_result_get_se(object)
+
+se <- function(...) {
+  UseMethod("se", ...)
+}
 
 
 
