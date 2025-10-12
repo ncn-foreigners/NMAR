@@ -25,14 +25,14 @@ library(NMAR)
 ```{r}
 # Function to generate testdata, basing on riddle(2016)
 generate_test_data <- function(n_rows = 500, n_cols = 1, case = 1, x_var = 0.5, eps_var = 0.9, a = 0.8, b = -0.2) {
-  # Generate X variables - fixed to match comparison
+# Generate X variables - fixed to match comparison
   X <- as.data.frame(replicate(n_cols, rnorm(n_rows, 0, sqrt(x_var))))
   colnames(X) <- paste0("x", 1:n_cols)
-  
-  # Generate Y - fixed coefficients to match comparison
+
+# Generate Y - fixed coefficients to match comparison
   eps <- rnorm(n_rows, 0, sqrt(eps_var))
   if (case == 1) {
-    # Use fixed coefficient of 1 for all x variables to match: y = -1 + x1 + epsilon
+# Use fixed coefficient of 1 for all x variables to match: y = -1 + x1 + epsilon
     X$Y <- as.vector(-1 + as.matrix(X) %*% rep(1, n_cols) + eps)
   }
   else if (case == 2) {
@@ -44,63 +44,49 @@ generate_test_data <- function(n_rows = 500, n_cols = 1, case = 1, x_var = 0.5, 
   else if (case == 4) {
     X$Y <- -1 + 0.4 * as.matrix(X)^3 %*% rep(1, n_cols) + eps
   }
-  
+
   Y_original <- X$Y
-  
-  # Missingness mechanism - identical to comparison
+
+# Missingness mechanism - identical to comparison
   pi_obs <- 1 / (1 + exp(-(a + b * X$Y)))
-  
-  # Create missing values
+
+# Create missing values
   mask <- runif(nrow(X)) > pi_obs
-  mask[1] <- FALSE  # Ensure at least one observation is not missing
+  mask[1] <- FALSE # Ensure at least one observation is not missing
   X$Y[mask] <- NA
-  
+
   return(list(X = X, Y_original = Y_original))
 }
-
 ```
 
 
 ```{r}
-# set.seed(1105)
-set.seed(1106)
+set.seed(1108)
 res_test_data <- generate_test_data(n_rows = 500, n_cols = 1, case = 1)
 x <- res_test_data$X
 y_original <- res_test_data$Y_original # to compare with true values
 ```
 
-```{r}
-# Regression MLE (only observed data)
-reg_model <- glm(Y ~ x1, data = x[!is.na(x$Y), ], family = gaussian())
-summary(reg_model)
-coef(reg_model)
 
-
-```
-
-```{r}
-# Logistic MLE (missingness indicator)  
-x$observed <- as.numeric(!is.na(x$Y))
-logit_model <- glm(observed ~ ., data = x[, c("observed", grep("^x", names(x), value = TRUE))], family = binomial)
-summary(logit_model)
-```
 
 ```{r}
 # Exptilt engine configuration
 exptilt_config <- exptilt_engine(
   y_dens = 'normal',
-  min_iter = 1,
-  max_iter = 3,
-  tol_value=10,
-  # standardize = T,
+  min_iter = 3,
+  max_iter = 10,
+  tol_value = 0.01,
+  standardize = T,
   family = 'logit', # or logit
+  bootstrap_reps = 50
 # standardize = TRUE
-# variance_method='bootstrap', #or delta
+# variance_method='bootstrap' #or delta
+# variance_method='delta' #or bootstrap
 # bootstrap_reps=10
 )
 
 
-formula = Y ~ x1 
+formula = Y ~ x1
 res <- nmar(formula = formula, data = x, engine = exptilt_config, response_predictors = NULL)
 ```
 
@@ -118,8 +104,8 @@ cat('True Y mean:          ', sprintf('%.4f', mean(y_original)), '\n')
 est <- as.numeric(res$estimate)
 se <- res$se
 cat('Est Y mean (NMAR):    ', sprintf('%.4f', est),
-    '  3σ interval: (', sprintf('%.4f', est - 3 * se),
-    ', ', sprintf('%.4f', est + 3 * se), 'σ=', sprintf('%.4f', se), ')\n')
+    '  3σ interval: (', sprintf('%.4f', est - 1.5 * se),
+    ', ', sprintf('%.4f', est + 1.5 * se), 'σ=', sprintf('%.4f', se), ')\n')
 cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(x[!is.na(x$Y), 'Y'])), '\n')
 ```
 
@@ -134,7 +120,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
   exptilt_config <- exptilt_engine(
      standardize = FALSE,
      on_failure = "error", # currently does nothing
-     bootstrap_reps = 10,
+     bootstrap_reps = 50,
      supress_warnings = FALSE, # currently does nothing
      auxiliary_means = NULL, # currently does nothing
      control = list(), # currently does nothing
@@ -148,7 +134,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
 )
 
 
-  formula = Y ~ x1 + x2
+  formula = Y ~ x1
   res <- nmar(formula = formula, data = x, engine = exptilt_config, response_predictors = NULL)
   print(res)
 

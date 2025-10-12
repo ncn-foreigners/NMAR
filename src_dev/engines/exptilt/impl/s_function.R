@@ -1,71 +1,44 @@
-
-
 #' @exportS3Method NULL
-s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta, i = NULL, j = NULL) {
-  # Define machine precision constant
+s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta) {
+
+  theta_numeric <- as.numeric(theta)
+
   EPS <- .Machine$double.eps
-  # Safe threshold to avoid extreme values
   SAFE_THRESHOLD <- 1e-3
 
-  # If i and j are provided, calculate for specific indices
-  if (!is.null(i) && !is.null(j)) {
-    # Use specific row i from x and element j from y_1
-    x_vec <- c(1, as.numeric(x[i, ]), model$y_1[j])
+  if (delta == 1) {
+    X_full_raw <- cbind(1, x)
+  } else if (delta == 0) {
+    n_rows <- nrow(x)
+    n_y1 <- length(model$y_1)
 
-    eta <- as.vector(sum(x_vec * theta))
-    pi_val <- model$family$linkinv(eta)
-    pi_deriv <- model$family$mu.eta(eta)
+    X_expanded <- as.matrix(x)[rep(1:n_rows, each = n_y1), ]
 
-    # Safe clamping of pi_val to prevent division by zero or near-zero
-    pi_val_safe <- pmin(pmax(pi_val, SAFE_THRESHOLD), 1 - SAFE_THRESHOLD)
+    Y_expanded <- rep(as.numeric(model$y_1), n_rows)
 
-    if (delta == 1) {
-      numerator <- pi_deriv * x_vec
-      denominator <- pi_val_safe
-    } else if (delta == 0) {
-      numerator <- -pi_deriv * x_vec
-      denominator <- 1 - pi_val_safe
-    } else {
-      stop("delta must be either 0 or 1")
-    }
-
-
-    # result <- (delta - pi_val_safe)*x_vec
-    result <- numerator / denominator
-    # result <- (delta-pi_val_safe)*pi_deriv
-    # Use more precise zero detection
-    # result[abs(result) < EPS | is.nan(result)] <- 0
-    # cat('s function outtput')
-    # print(as.numeric(result))
-    # browser()
-    return(as.numeric(result))
+    X_full_raw <- cbind(1, X_expanded, Y_expanded)
+  } else {
+    stop("delta must be 0 or 1 for vectorized calculation.")
   }
-  # Original behavior when no i,j provided
-  else {
-    x_mat <- as.matrix(x)
-    x_aug <- cbind(1, x_mat, model$y_1[1:nrow(x_mat)])
 
-    eta <- as.vector(x_aug %*% theta)
-    pi_vals <- model$family$linkinv(eta)
-    pi_deriv <- model$family$mu.eta(eta) * x_aug
+  X_full <- apply(X_full_raw, 2, as.numeric)
 
-    # Improved clamping with smooth boundaries
-    pi_vals_safe <- pmin(pmax(pi_vals, SAFE_THRESHOLD), 1 - SAFE_THRESHOLD)
+  eta_full <- as.vector(X_full %*% theta_numeric)
 
-    if (delta == 1) {
-      numerator <- pi_deriv
-      denominator <- pi_vals_safe
-    } else if (delta == 0) {
-      numerator <- -pi_deriv
-      denominator <- 1 - pi_vals_safe
-    } else {
-      stop("delta must be either 0 or 1")
-    }
+  pi_val_full <- model$family$linkinv(eta_full)
+  pi_deriv_full <- model$family$mu.eta(eta_full)
 
-    result <- numerator / denominator
-    # Better handling of numerical issues
-    result[abs(result) < EPS | is.nan(result) | is.infinite(result)] <- 0
+  pi_val_safe_full <- pmin(pmax(pi_val_full, SAFE_THRESHOLD), 1 - SAFE_THRESHOLD)
 
-    return(result)
+  if (delta == 1) {
+    Numerator <- pi_deriv_full * X_full
+    Denominator <- pi_val_safe_full
+  } else if (delta == 0) {
+    Numerator <- -pi_deriv_full * X_full
+    Denominator <- 1 - pi_val_safe_full
   }
+
+  result_matrix <- Numerator / Denominator
+
+  return(result_matrix)
 }
