@@ -40,7 +40,7 @@ el.data.frame <- function(data, formula, response_predictors = NULL,
                           solver_args = list(),
                           variance_pseudoinverse = FALSE, variance_ridge = FALSE,
                           bootstrap_reps = 500, suppress_warnings = FALSE,
-                          n_total = NULL, ...) {
+                          n_total = NULL, start = NULL, ...) {
   cl <- match.call()
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
@@ -89,7 +89,8 @@ el.data.frame <- function(data, formula, response_predictors = NULL,
     variance_method = variance_method, bootstrap_reps = bootstrap_reps,
     variance_jacobian = variance_jacobian, solver_jacobian = solver_jacobian,
     solver_method = solver_method, solver_args = solver_args,
-    variance_pseudoinverse = variance_pseudoinverse, variance_ridge = variance_ridge, user_args = user_args, ...
+    variance_pseudoinverse = variance_pseudoinverse, variance_ridge = variance_ridge,
+    user_args = user_args, start = start, ...
   )
 
   sample_info <- list(

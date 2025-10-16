@@ -48,7 +48,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
                               solver_args = list(),
                               variance_pseudoinverse = FALSE,
                               variance_ridge = FALSE,
-                              user_args, ...) {
+                              user_args, start = NULL, ...) {
   variance_jacobian <- match.arg(variance_jacobian)
   solver_jacobian <- match.arg(solver_jacobian)
   solver_method <- match.arg(solver_method)
@@ -150,8 +150,50 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 # 4. Solve for Parameters with Automated Multi-Start Strategy
   K_beta <- ncol(response_model_matrix_scaled)
   K_aux <- ncol(auxiliary_matrix_scaled)
+# Optional user-provided starting values on the original scale
   init_beta <- rep(0, K_beta)
-  init <- c(init_beta, 0, rep(0, K_aux))
+  names(init_beta) <- colnames(response_model_matrix_scaled)
+  init_lambda <- rep(0, K_aux)
+  names(init_lambda) <- colnames(auxiliary_matrix_scaled)
+  init_z <- 0
+  if (!is.null(start) && is.list(start)) {
+    if (!is.null(start$beta)) {
+# Warn on unmatched coefficient names
+      beta_names <- names(start$beta)
+      if (!is.null(beta_names)) {
+        unknown_beta <- setdiff(beta_names, colnames(response_model_matrix_scaled))
+        if (length(unknown_beta) > 0) {
+          warning(sprintf("Start 'beta' contains names not in the response model matrix and will be ignored: %s",
+                          paste(unknown_beta, collapse = ", ")),
+                  call. = FALSE)
+        }
+      }
+      init_beta <- scale_coefficients(start$beta, nmar_scaling_recipe, colnames(response_model_matrix_scaled))
+    }
+    if (!is.null(start$z)) {
+      init_z <- as.numeric(start$z)[1]
+      if (!is.finite(init_z)) init_z <- 0
+    } else if (!is.null(start$W)) {
+      W0 <- min(max(as.numeric(start$W)[1], 1e-12), 1 - 1e-12)
+      init_z <- stats::qlogis(W0)
+    }
+    if (K_aux > 0 && !is.null(start$lambda)) {
+# Warn on unmatched lambda names
+      lambda_names <- names(start$lambda)
+      if (!is.null(lambda_names)) {
+        unknown_lambda <- setdiff(lambda_names, colnames(auxiliary_matrix_scaled))
+        if (length(unknown_lambda) > 0) {
+          warning(sprintf("Start 'lambda' contains names not in the auxiliary design and will be ignored: %s",
+                          paste(unknown_lambda, collapse = ", ")),
+                  call. = FALSE)
+        }
+      }
+      init_lambda <- scale_aux_multipliers(start$lambda, nmar_scaling_recipe, colnames(auxiliary_matrix_scaled))
+    } else if (K_aux == 0 && !is.null(start$lambda)) {
+      warning("Start 'lambda' provided, but the current model has no auxiliary constraints; ignoring.", call. = FALSE)
+    }
+  }
+  init <- c(unname(init_beta), init_z, unname(init_lambda))
   final_control <- modifyList(list(ftol = 1e-8, xtol = 1e-8, maxit = 100), control)
   top_args_ctrl <- extract_nleqslv_top(control)
   top_args <- merge_nleqslv_top(solver_args, top_args_ctrl)

@@ -234,6 +234,66 @@ validate_and_apply_nmar_scaling <- function(standardize, has_aux, response_model
   )
 }
 
+#' Map unscaled coefficients to scaled space
+#' @keywords internal
+#' @param beta_unscaled named numeric vector of coefficients for the response
+#'   model on the original scale, including an intercept named `"(Intercept)"`.
+#' @param recipe `nmar_scaling_recipe` returned by scaling utilities.
+#' @param columns character vector of column names (order) for the scaled design
+#'   matrix (including intercept).
+#' @return numeric vector of coefficients in the scaled space, ordered by
+#'   `columns`.
+scale_coefficients <- function(beta_unscaled, recipe, columns) {
+  if (is.null(beta_unscaled) || length(beta_unscaled) == 0) {
+    return(setNames(numeric(length(columns)), columns))
+  }
+  beta_unscaled <- beta_unscaled[intersect(names(beta_unscaled), columns)]
+  out <- setNames(numeric(length(columns)), columns)
+# Non-intercept: multiply by sd
+  for (nm in columns) {
+    if (nm == "(Intercept)") next
+    if (nm %in% names(beta_unscaled)) {
+      sdj <- if (!is.null(recipe) && nm %in% names(recipe)) recipe[[nm]]$sd else 1
+      out[[nm]] <- beta_unscaled[[nm]] * sdj
+    }
+  }
+# Intercept: b0_scaled = b0_unscaled + sum_j b_j_unscaled * mean_j
+  b0_un <- beta_unscaled[["(Intercept)"]] %||% 0
+  adj <- 0
+  for (nm in columns) {
+    if (nm == "(Intercept)") next
+    if (nm %in% names(beta_unscaled)) {
+      mj <- if (!is.null(recipe) && nm %in% names(recipe)) recipe[[nm]]$mean else 0
+      adj <- adj + beta_unscaled[[nm]] * mj
+    }
+  }
+  out[["(Intercept)"]] <- b0_un + adj
+  out
+}
+
+#' Map unscaled auxiliary multipliers to scaled space
+#' @keywords internal
+#' @param lambda_unscaled named numeric vector of auxiliary multipliers aligned
+#'   to auxiliary design columns (no intercept) on original scale.
+#' @param recipe `nmar_scaling_recipe`.
+#' @param columns character vector of auxiliary column names (order) for the
+#'   scaled design.
+#' @return numeric vector of multipliers in the scaled space.
+scale_aux_multipliers <- function(lambda_unscaled, recipe, columns) {
+  if (is.null(lambda_unscaled) || length(lambda_unscaled) == 0) {
+    return(setNames(numeric(length(columns)), columns))
+  }
+  lambda_unscaled <- lambda_unscaled[intersect(names(lambda_unscaled), columns)]
+  out <- setNames(numeric(length(columns)), columns)
+  for (nm in columns) {
+    if (nm %in% names(lambda_unscaled)) {
+      sdj <- if (!is.null(recipe) && nm %in% names(recipe)) recipe[[nm]]$sd else 1
+      out[[nm]] <- lambda_unscaled[[nm]] / sdj
+    }
+  }
+  out
+}
+
 #' Unscale regression coefficients and covariance
 #' @keywords internal
 #' @param scaled_coeffs named numeric vector of coefficients estimated on the scaled space.

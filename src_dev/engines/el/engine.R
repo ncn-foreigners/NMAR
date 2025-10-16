@@ -45,6 +45,14 @@
 #'   the total design weight or known population total. If omitted and the
 #'   outcome contains no NAs, the estimator errors with an instruction to
 #'   provide `n_total`.
+#' @param start Optional list providing a starting point for the solver. Fields:
+#'   - `beta`: named numeric vector of response-model coefficients on the
+#'     original (unscaled) scale, including `(Intercept)`.
+#'   - `W` or `z`: starting value for population response rate (0<W<1) or its
+#'     logit (`z`). If both provided, `z` takes precedence.
+#'   - `lambda`: named numeric vector of auxiliary multipliers on the original
+#'     scale (names must match auxiliary design columns; no intercept). Values
+#'     are mapped to the scaled space internally.
 #'
 #' @return An engine object of class `c('nmar_engine_el','nmar_engine')`.
 #'   This is a configuration list; it is not a fit. Pass it to `nmar()`.
@@ -87,6 +95,7 @@ el_engine <- function(
     auxiliary_means = NULL,
     control = list(),
     n_total = NULL,
+    start = NULL,
     family = c("logit", "probit")) {
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
@@ -118,6 +127,7 @@ el_engine <- function(
     auxiliary_means = auxiliary_means,
     control = control,
     n_total = n_total,
+    start = start,
     family = family
   )
   validate_nmar_engine_el(engine)

@@ -121,6 +121,24 @@ print.nmar_engine <- function(x, ...) {
     }
   }
 
+# Brief indicator if a custom start was provided
+  st <- x$start
+  if (!is.null(st) && is.list(st)) {
+    kinds <- character()
+    if (!is.null(st$beta)) kinds <- c(kinds, "beta")
+    if (!is.null(st$z) && !is.null(st$W)) {
+      kinds <- c(kinds, "z/W")
+    } else if (!is.null(st$z)) {
+      kinds <- c(kinds, "z")
+    } else if (!is.null(st$W)) {
+      kinds <- c(kinds, "W")
+    }
+    if (!is.null(st$lambda)) kinds <- c(kinds, "lambda")
+    if (length(kinds)) {
+      cat(sprintf("\nstart: %s\n", paste(kinds, collapse = ", ")))
+    }
+  }
+
   cat("\nUse engine_config(x) for full parameters.\n")
   invisible(x)
 }
