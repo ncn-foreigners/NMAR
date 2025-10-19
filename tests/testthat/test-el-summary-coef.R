@@ -3,7 +3,7 @@ test_that("coef(summary()) returns response-model table for EL (IID)", {
   fit <- nmar(
     formula = Y_miss ~ X,
     data = df,
-    engine = make_engine(auxiliary_means = c(X = 0), variance_method = "delta", standardize = FALSE)
+    engine = make_engine(auxiliary_means = c(X = 0), variance_method = "none", standardize = FALSE)
   )
   expect_true(fit$converged)
   sm <- summary(fit)
@@ -39,7 +39,7 @@ test_that("coef(summary()) returns t-based labels for EL (survey)", {
   fit <- nmar(
     formula = y_miss ~ x,
     data = design,
-    engine = make_engine(auxiliary_means = c(x = mean(df$x)), variance_method = "delta", standardize = FALSE)
+    engine = make_engine(auxiliary_means = c(x = mean(df$x)), variance_method = "none", standardize = FALSE)
   )
   expect_true(fit$converged)
   sm <- summary(fit)

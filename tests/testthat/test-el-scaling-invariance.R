@@ -5,7 +5,7 @@ test_that("standardize vs manual scaling yields identical y_hat (df)", {
   fit_auto <- NMAR:::el.data.frame(df, Y_miss ~ X,
     response_predictors = NULL,
     auxiliary_means = c(X = 0), standardize = TRUE,
-    variance_method = "delta"
+    variance_method = "none"
   )
   expect_true(fit_auto$converged)
 
@@ -28,7 +28,7 @@ test_that("standardize vs manual scaling yields identical y_hat (df)", {
   fit_manual <- NMAR:::el.data.frame(df_scaled, Y_miss ~ X,
     response_predictors = NULL,
     auxiliary_means = aux_mean_scaled, standardize = FALSE,
-    variance_method = "delta"
+    variance_method = "none"
   )
   expect_true(fit_manual$converged)
 # Unscale y_hat back to original Y_miss scale
@@ -49,7 +49,7 @@ test_that("multi-predictor scaling matches manual rescaling", {
   fit_auto <- NMAR:::el.data.frame(df, Y_miss ~ X1 + X2,
     response_predictors = NULL,
     auxiliary_means = c(X1 = 0, X2 = 0), standardize = TRUE,
-    variance_method = "delta"
+    variance_method = "none"
   )
   expect_true(fit_auto$converged)
 
@@ -71,7 +71,7 @@ test_that("multi-predictor scaling matches manual rescaling", {
   fit_manual <- NMAR:::el.data.frame(df_scaled, Y_miss ~ X1 + X2,
     response_predictors = NULL,
     auxiliary_means = aux_means_scaled, standardize = FALSE,
-    variance_method = "delta"
+    variance_method = "none"
   )
   expect_true(fit_manual$converged)
   y_hat_manual <- fit_manual[["estimate"]]

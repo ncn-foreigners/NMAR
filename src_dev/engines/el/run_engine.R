@@ -22,18 +22,12 @@ run_engine.nmar_engine_el <- function(engine, task) {
     auxiliary_means = design_info$auxiliary_means,
     standardize = design_info$standardize,
     n_total = engine$n_total,
+    start = engine$start,
     trim_cap = engine$trim_cap,
     control = engine$control,
-    solver_args = engine$solver_args,
     on_failure = engine$on_failure,
     variance_method = engine$variance_method,
-    variance_jacobian = engine$variance_jacobian,
-    solver_jacobian = engine$solver_jacobian,
-    solver_method = engine$solver_method,
-    variance_pseudoinverse = engine$variance_pseudoinverse,
-    variance_ridge = engine$variance_ridge,
     bootstrap_reps = engine$bootstrap_reps,
-    suppress_warnings = engine$suppress_warnings,
     family = engine$family
   )
 

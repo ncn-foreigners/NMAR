@@ -40,6 +40,7 @@ test_that("analytic vs numeric gradient for g are close when untrimmed", {
 # Numeric gradient via mean function builder
   g_fn <- NMAR:::el_build_mean_fn(fam, Z, Xc, mu_x, wts, N_pop, sum(wts), Inf, resp_df$Y)
   g_num <- NMAR:::grad_numeric(est, g_fn)
-# Compare only for existing parameter length
-  expect_equal(g_anal, g_num, tolerance = 1e-4)
+# Attach names to numeric gradient to match analytic ordering for comparison
+  names(g_num) <- names(g_anal)
+  expect_equal(as.numeric(g_anal), as.numeric(g_num), tolerance = 1e-4)
 })

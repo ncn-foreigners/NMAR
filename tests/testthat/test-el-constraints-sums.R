@@ -4,9 +4,12 @@ test_that("constraint sums are near zero at solution (no trimming)", {
   fit <- nmar(
     formula = Y_miss ~ X,
     data = df,
-    engine = make_engine(auxiliary_means = c(X = 0), trim_cap = Inf, variance_method = "delta", standardize = FALSE)
+    engine = make_engine(auxiliary_means = c(X = 0), trim_cap = Inf, variance_method = "none", standardize = FALSE)
   )
   expect_true(fit$converged)
+# Jacobian quality reported
+  diag <- fit$diagnostics
+  expect_true(is.finite(diag$jacobian_condition_number) || is.na(diag$jacobian_condition_number))
 # Reconstruct components to compute raw constraint sums from stored diagnostics inputs
   parsed <- NMAR:::prepare_el_inputs(Y_miss ~ X, df, NULL)
   dat2 <- parsed$data

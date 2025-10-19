@@ -1,7 +1,7 @@
 #' Empirical likelihood for data frames (NMAR)
 #' @description Internal method dispatched by `el()` when `data` is a `data.frame`.
-#'   Returns `c('nmar_result_el','nmar_result')` with estimate, standard error, weights,
-#'   coefficients, diagnostics and metadata.
+#'   Returns `c('nmar_result_el','nmar_result')` with the point estimate, standard
+#'   error (when requested), weights, coefficients, diagnostics and metadata.
 #' @param data A `data.frame` where the outcome column contains `NA` for nonrespondents.
 #' @param formula Two-sided formula `Y_miss ~ auxiliaries`.
 #' @param response_predictors Optional character vector naming predictors for the response (missingness) model.
@@ -10,44 +10,31 @@
 #' @param standardize Logical; whether to standardize predictors prior to estimation.
 #' @param trim_cap Numeric; cap for EL weights (`Inf` = no trimming).
 #' @param control List; optional solver control parameters for `nleqslv(control=...)`.
-#' @param solver_args List; optional top-level `nleqslv` args (e.g., `global`, `xscalm`).
 #' @param on_failure Character; one of `"return"` or `"error"` on solver failure.
 #' @param variance_method Character; one of `"delta"`, `"bootstrap"`, or `"none"`.
-#' @param variance_jacobian Character; one of `"auto"`, `"analytic"`, or `"numeric"`.
-#' @param solver_jacobian Character; one of `"auto"`, `"analytic"`, or `"none"`.
-#' @param variance_pseudoinverse Logical; allow pseudo-inverse for variance when needed.
 #' @param bootstrap_reps Integer; number of bootstrap reps if `variance_method = "bootstrap"`.
-#' @param suppress_warnings Logical; suppress variance-related warnings.
-#' @param variance_ridge Logical or numeric; if TRUE, apply adaptive ridge in
-#'   Jacobian inversion; if numeric, treated as ridge epsilon.
 #' @param ... Additional arguments passed to the solver.
-#' @details
-#' Implements the empirical likelihood estimator of Qin, Leung and Shao (2002)
-#' for IID data. The response‑model score is the derivative of the Bernoulli
-#' log‑likelihood with respect to the linear predictor; auxiliary moment constraints
-#' are optional.
+#' @details Implements the empirical likelihood estimator for IID data with an
+#'   optional set of auxiliary moment constraints. The response-model score is the
+#'   derivative of the Bernoulli log-likelihood with respect to the linear predictor;
+#'   this supports both logit and probit links. See Qin, Leung and Shao (2002).
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
-#' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193–200.
+#' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
+#'
+#' @name el_dataframe
 #' @keywords internal
 el.data.frame <- function(data, formula, response_predictors = NULL,
                           auxiliary_means = NULL, standardize = TRUE,
                           trim_cap = Inf, control = list(),
                           on_failure = c("return", "error"),
                           variance_method = c("delta", "bootstrap", "none"),
-                          variance_jacobian = c("auto", "analytic", "numeric"),
-                          solver_jacobian = c("auto", "analytic", "none"),
-                          solver_method = c("auto", "newton", "broyden"),
-                          solver_args = list(),
-                          variance_pseudoinverse = FALSE, variance_ridge = FALSE,
-                          bootstrap_reps = 500, suppress_warnings = FALSE,
-                          n_total = NULL, ...) {
+                          bootstrap_reps = 500,
+                          n_total = NULL, start = NULL, ...) {
   cl <- match.call()
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
   variance_method <- match.arg(variance_method)
-  variance_jacobian <- match.arg(variance_jacobian)
-  solver_jacobian <- match.arg(solver_jacobian)
-  solver_method <- match.arg(solver_method)
+
 
 # If respondents-only data is supplied (no NA in outcome), require n_total
   outcome_var_check <- all.vars(formula[[2]])
@@ -66,17 +53,19 @@ el.data.frame <- function(data, formula, response_predictors = NULL,
   N_pop <- n_total %||% nrow(estimation_data)
 
   compute_score_covariance_func_df <- function(U_matrix_resp, full_df) {
-    U_full <- matrix(0, nrow = nrow(full_df), ncol = ncol(U_matrix_resp))
-    colnames(U_full) <- colnames(U_matrix_resp)
-    U_full[observed_indices, ] <- U_matrix_resp
-    crossprod(U_full)
+# IID meat B for totals: sum over respondents of U_i U_i^T.
+# Center across respondents only for finite-sample stability (asymptotically neutral).
+    if (!is.matrix(U_matrix_resp) || nrow(U_matrix_resp) == 0L) {
+      return(matrix(0, nrow = 0, ncol = 0))
+    }
+    U_resp_centered <- scale(U_matrix_resp, center = TRUE, scale = FALSE)
+    crossprod(U_resp_centered)
   }
 
   user_args <- list(
     formula = formula, response_predictors = response_predictors,
     auxiliary_means = auxiliary_means, standardize = standardize,
-    trim_cap = trim_cap, control = control,
-    suppress_warnings = suppress_warnings, ...
+    trim_cap = trim_cap, control = control, ...
   )
 
   core_results <- el_estimator_core(
@@ -87,9 +76,7 @@ el.data.frame <- function(data, formula, response_predictors = NULL,
     standardize = standardize, trim_cap = trim_cap, control = control,
     compute_score_variance_func = compute_score_covariance_func_df, on_failure = on_failure,
     variance_method = variance_method, bootstrap_reps = bootstrap_reps,
-    variance_jacobian = variance_jacobian, solver_jacobian = solver_jacobian,
-    solver_method = solver_method, solver_args = solver_args,
-    variance_pseudoinverse = variance_pseudoinverse, variance_ridge = variance_ridge, user_args = user_args, ...
+    user_args = user_args, start = start, ...
   )
 
   sample_info <- list(
@@ -116,7 +103,7 @@ el.data.frame <- function(data, formula, response_predictors = NULL,
       model = list(coefficients = NULL, vcov = NULL),
       weights_info = list(values = numeric(0), trimmed_fraction = NA_real_),
       sample = list(n_total = sample_info$nobs, n_respondents = sample_info$nobs_resp, is_survey = FALSE, design = NULL),
-      inference = list(variance_method = variance_method, df = NA_real_, message = msg, used_pseudoinverse = FALSE, used_ridge = FALSE),
+      inference = list(variance_method = variance_method, df = NA_real_, message = msg),
       diagnostics = diag_list,
       meta = list(engine_name = "empirical_likelihood", call = cl, formula = formula),
       extra = list(nmar_scaling_recipe = core_results$nmar_scaling_recipe),

@@ -84,7 +84,7 @@ s3_engine_display_keys <- function(x) {
   cls <- class(x)
   out <- c("standardize", "variance_method")
   if ("nmar_engine_el" %in% cls) {
-    out <- c(out, "family", "solver_method", "solver_jacobian", "variance_jacobian", "trim_cap")
+    out <- c(out, "family", "trim_cap")
   } else if ("nmar_engine_exptilt" %in% cls) {
     out <- c(out, "prob_model_type", "y_dens", "optim_method", "min_iter", "max_iter", "tol_value")
   } else if ("nmar_engine_exptilt_nonparam" %in% cls) {
@@ -118,6 +118,24 @@ print.nmar_engine <- function(x, ...) {
       } else {
         cat(sprintf("  %-18s %s\n", paste0(k, ":"), s3_fmt_val(val)))
       }
+    }
+  }
+
+# Brief indicator if a custom start was provided
+  st <- x$start
+  if (!is.null(st) && is.list(st)) {
+    kinds <- character()
+    if (!is.null(st$beta)) kinds <- c(kinds, "beta")
+    if (!is.null(st$z) && !is.null(st$W)) {
+      kinds <- c(kinds, "z/W")
+    } else if (!is.null(st$z)) {
+      kinds <- c(kinds, "z")
+    } else if (!is.null(st$W)) {
+      kinds <- c(kinds, "W")
+    }
+    if (!is.null(st$lambda)) kinds <- c(kinds, "lambda")
+    if (length(kinds)) {
+      cat(sprintf("\nstart: %s\n", paste(kinds, collapse = ", ")))
     }
   }
 

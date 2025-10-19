@@ -1,24 +1,28 @@
 #' EL core helpers
-#' @description Internal helpers for solving and post‑processing the EL system:
+#' @description Internal helpers for solving and post-processing the EL system:
 #'   `el_run_solver()` orchestrates nleqslv with restarts/fallback; `el_post_solution()`
 #'   computes weights and the point estimate with denominator guards and trimming.
+#' @name el_core_helpers
 #' @keywords internal
+NULL
 
-# Solver orchestration with staged policy
-#
-# @param equation_system_func Function mapping parameter vector to equation
-#   residuals.
-# @param analytical_jac_func Analytic Jacobian function; may be NULL if
-#   unavailable or when forcing Broyden.
-# @param init Numeric vector of initial parameter values.
-# @param final_control List passed to nleqslv control=.
-# @param top_args List of top-level nleqslv args (e.g., global, xscalm).
-# @param solver_method Character; one of "auto", "newton", or "broyden".
-# @param use_solver_jac Logical; whether to pass analytic Jacobian to Newton.
-# @param K_beta Integer; number of response model parameters.
-# @param K_aux Integer; number of auxiliary constraints.
-# @param respondent_weights Numeric vector of base sampling weights.
-# @param N_pop Numeric; population total (weighted when survey design).
+#' Solver orchestration with staged policy
+#'
+#' @param equation_system_func Function mapping parameter vector to equation
+#'   residuals.
+#' @param analytical_jac_func Analytic Jacobian function; may be NULL if
+#'   unavailable or when forcing Broyden.
+#' @param init Numeric vector of initial parameter values.
+#' @param final_control List passed to nleqslv control=.
+#' @param top_args List of top-level nleqslv args (e.g., global, xscalm).
+#' @param solver_method Character; one of "auto", "newton", or "broyden".
+#' @param use_solver_jac Logical; whether to pass analytic Jacobian to Newton.
+#' @param K_beta Integer; number of response model parameters.
+#' @param K_aux Integer; number of auxiliary constraints.
+#' @param respondent_weights Numeric vector of base sampling weights.
+#' @param N_pop Numeric; population total (weighted when survey design).
+#'
+#' @keywords internal
 el_run_solver <- function(equation_system_func,
                           analytical_jac_func,
                           init,
@@ -31,7 +35,6 @@ el_run_solver <- function(equation_system_func,
                           respondent_weights,
                           N_pop) {
   solver_method_used <- "Newton"
-# Prepare Newton args
   nl_args <- list(
     x = init,
     fn = equation_system_func,
@@ -39,10 +42,9 @@ el_run_solver <- function(equation_system_func,
     method = "Newton",
     control = final_control
   )
-  if (!is.null(top_args$global)) nl_args$global <- top_args$global
+  if (!is.null(top_args$global)) nl_args$global <- top_args$global else nl_args$global <- "dbldog"
   if (!is.null(top_args$xscalm)) nl_args$xscalm <- top_args$xscalm
 
-# Prepare Broyden args
   nl_args_b <- nl_args
   nl_args_b$x <- init
   nl_args_b$jac <- NULL
@@ -59,9 +61,7 @@ el_run_solver <- function(equation_system_func,
     return(list(solution = solution, method = solver_method_used, used_top = list(global = top_args$global %||% NULL, xscalm = top_args$xscalm %||% NULL)))
   }
 
-# Newton path (auto/newton)
   solution <- do.call(nleqslv::nleqslv, nl_args)
-# Perturbation restarts if needed
   if (any(is.na(solution$x)) || solution$termcd > 2) {
     for (i in seq_len(3)) {
       init_beta_perturbed <- init[seq_len(K_beta)] + stats::rnorm(K_beta, mean = 0, sd = 0.5)
@@ -74,7 +74,6 @@ el_run_solver <- function(equation_system_func,
       if (!any(is.na(solution$x)) && solution$termcd <= 2) break
     }
   }
-# Broyden fallback only for auto
   if (solver_method == "auto" && (any(is.na(solution$x)) || solution$termcd > 2)) {
     broyden_control <- final_control
     if (!is.null(broyden_control$maxit) && is.finite(broyden_control$maxit) && broyden_control$maxit < 5) {
@@ -87,22 +86,24 @@ el_run_solver <- function(equation_system_func,
   list(solution = solution, method = solver_method_used, used_top = list(global = top_args$global %||% NULL, xscalm = top_args$xscalm %||% NULL))
 }
 
-# Post-solution: compute weights and point estimate
-#
-# @param estimates Numeric vector (β, z, λ) at the solution.
-# @param response_model_matrix_scaled Scaled design matrix for response model.
-# @param response_model_matrix_unscaled Unscaled design matrix for response model.
-# @param auxiliary_matrix_scaled Scaled auxiliary matrix (or empty matrix).
-# @param mu_x_scaled Vector of population means for scaled auxiliaries (or NULL).
-# @param respondent_data Data frame of respondents.
-# @param outcome_var Character; outcome column name in respondent_data.
-# @param family Family object with linkinv and mu.eta.
-# @param N_pop Numeric; population total.
-# @param respondent_weights Base weights for respondents.
-# @param K_beta, K_aux Integers; sizes of β and λ.
-# @param nmar_scaling_recipe Scaling recipe object for unscaling.
-# @param standardize Logical; whether coefficients need unscaling.
-# @param trim_cap Numeric; weight trimming cap (Inf = no trimming).
+#' Post-solution: compute weights and point estimate
+#'
+#' @param estimates Numeric vector (beta, z, lambda) at the solution.
+#' @param response_model_matrix_scaled Scaled design matrix for response model.
+#' @param response_model_matrix_unscaled Unscaled design matrix for response model.
+#' @param auxiliary_matrix_scaled Scaled auxiliary matrix (or empty matrix).
+#' @param mu_x_scaled Vector of population means for scaled auxiliaries (or NULL).
+#' @param respondent_data Data frame of respondents.
+#' @param outcome_var Character; outcome column name in respondent_data.
+#' @param family Family object with linkinv and mu.eta.
+#' @param N_pop Numeric; population total.
+#' @param respondent_weights Base weights for respondents.
+#' @param K_beta, K_aux Integers; sizes of beta and lambda.
+#' @param nmar_scaling_recipe Scaling recipe object for unscaling.
+#' @param standardize Logical; whether coefficients need unscaling.
+#' @param trim_cap Numeric; weight trimming cap (Inf = no trimming).
+#'
+#' @keywords internal
 el_post_solution <- function(estimates,
                              response_model_matrix_scaled,
                              response_model_matrix_unscaled,

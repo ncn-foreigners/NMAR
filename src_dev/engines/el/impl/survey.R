@@ -1,6 +1,7 @@
 #' Empirical likelihood for survey designs (NMAR)
 #' @description Internal method dispatched by `el()` when `data` is a `survey.design`.
-#'   Uses design‑based covariance for variance estimation when `variance_method = 'delta'`.
+#'   Uses design-based covariance for variance estimation when
+#'   `variance_method = 'delta'`.
 #' @param data A `survey.design` created with [survey::svydesign()].
 #' @param formula Two-sided formula: NA-valued outcome on LHS; auxiliaries on RHS.
 #' @param response_predictors Optional character vector for the response model RHS. These may include variables not on
@@ -11,41 +12,30 @@
 #' @param control List; solver control for `nleqslv(control=...)`.
 #' @param on_failure Character; "return" or "error" on solver failure.
 #' @param variance_method Character; "delta" or "bootstrap".
-#' @param variance_jacobian Character; "auto", "analytic", or "numeric".
-#' @param solver_jacobian Character; "auto", "analytic", or "none".
-#' @param solver_args List; optional top-level `nleqslv` args (e.g., `global`, `xscalm`).
-#' @param variance_pseudoinverse Logical; allow pseudo-inverse for variance.
 #' @param bootstrap_reps Integer; reps when `variance_method = "bootstrap"`.
-#' @param suppress_warnings Logical; suppress variance method warnings.
 #' @param ... Passed to solver.
-#' @param variance_ridge Logical or numeric; if TRUE, apply adaptive ridge in
-#'   Jacobian inversion; if numeric, treated as ridge epsilon.
-#' @details Implements the empirical likelihood estimator of Qin, Leung and Shao (2002)
-#' with design weights and design‑based covariance of score totals for delta variance.
-#' Bootstrap variance via replicate weights is also supported.
+#' @details Implements the empirical likelihood estimator with design weights and
+#'   design-based covariance of score totals for delta variance (Qin, Leung and
+#'   Shao, 2002). Bootstrap variance via replicate weights is also supported and
+#'   is preferred under trimming or strong nonresponse.
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
-#' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193–200.
+#' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
 #' @return `c('nmar_result_el','nmar_result')`.
+#'
+#' @name el_survey
 #' @keywords internal
 el.survey.design <- function(data, formula, response_predictors = NULL,
                              auxiliary_means = NULL, standardize = TRUE,
                              trim_cap = Inf, control = list(),
                              on_failure = c("return", "error"),
                              variance_method = c("delta", "bootstrap", "none"),
-                             variance_jacobian = c("auto", "analytic", "numeric"),
-                             solver_jacobian = c("auto", "analytic", "none"),
-                             solver_method = c("auto", "newton", "broyden"),
-                             solver_args = list(),
-                             variance_pseudoinverse = FALSE, variance_ridge = FALSE,
-                             bootstrap_reps = 500, suppress_warnings = FALSE,
-                             n_total = NULL, ...) {
+                             bootstrap_reps = 500,
+                             n_total = NULL, start = NULL, ...) {
   cl <- match.call()
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
   variance_method <- match.arg(variance_method)
-  variance_jacobian <- match.arg(variance_jacobian)
-  solver_jacobian <- match.arg(solver_jacobian)
-  solver_method <- match.arg(solver_method)
+
 
   design <- data
 
@@ -81,8 +71,7 @@ el.survey.design <- function(data, formula, response_predictors = NULL,
   user_args <- list(
     formula = formula, response_predictors = response_predictors,
     auxiliary_means = auxiliary_means, standardize = standardize,
-    trim_cap = trim_cap, control = control,
-    suppress_warnings = suppress_warnings, ...
+    trim_cap = trim_cap, control = control, ...
   )
 
   core_results <- el_estimator_core(
@@ -93,9 +82,7 @@ el.survey.design <- function(data, formula, response_predictors = NULL,
     standardize = standardize, trim_cap = trim_cap, control = control,
     compute_score_variance_func = compute_score_covariance_func_survey, on_failure = on_failure,
     variance_method = variance_method, bootstrap_reps = bootstrap_reps,
-    variance_jacobian = variance_jacobian, solver_jacobian = solver_jacobian,
-    solver_method = solver_method, solver_args = solver_args,
-    variance_pseudoinverse = variance_pseudoinverse, variance_ridge = variance_ridge, user_args = user_args, ...
+    user_args = user_args, start = start, ...
   )
 
   sample_info <- list(
@@ -122,7 +109,7 @@ el.survey.design <- function(data, formula, response_predictors = NULL,
       model = list(coefficients = NULL, vcov = NULL),
       weights_info = list(values = numeric(0), trimmed_fraction = NA_real_),
       sample = list(n_total = sample_info$nobs, n_respondents = sample_info$nobs_resp, is_survey = TRUE, design = design),
-      inference = list(variance_method = variance_method, df = NA_real_, message = msg, used_pseudoinverse = FALSE, used_ridge = FALSE),
+      inference = list(variance_method = variance_method, df = NA_real_, message = msg),
       diagnostics = diag_list,
       meta = list(engine_name = "empirical_likelihood", call = cl, formula = formula),
       extra = list(nmar_scaling_recipe = core_results$nmar_scaling_recipe),
