@@ -1,6 +1,3 @@
-#' Numeric thresholds and options
-"_PACKAGE"
-
 #' NMAR numeric settings
 #'
 #' @details
