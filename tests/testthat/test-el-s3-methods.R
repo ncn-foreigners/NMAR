@@ -2,7 +2,7 @@ test_that("tidy/glance produce expected shapes", {
   set.seed(42)
   df <- make_iid_nmar(n = 200, alpha = 0.4, seed = 42)
   fit <- nmar(formula = Y_miss ~ X, data = df,
-              engine = make_engine(auxiliary_means = c(X = 0), variance_method = "delta"))
+              engine = make_engine(auxiliary_means = c(X = 0), variance_method = "none"))
 
   td <- tidy(fit)
   gl <- glance(fit)
@@ -16,7 +16,7 @@ test_that("plot/autoplot run (skip ggplot2 if missing)", {
   set.seed(43)
   df <- make_iid_nmar(n = 150, alpha = 0.4, seed = 43)
   fit <- nmar(formula = Y_miss ~ X, data = df,
-              engine = make_engine(auxiliary_means = c(X = 0), variance_method = "delta"))
+              engine = make_engine(auxiliary_means = c(X = 0), variance_method = "none"))
 
 # Open a temporary PDF device to avoid creating Rplots.pdf in the test dir
   tmp <- tempfile(fileext = ".pdf")

@@ -1,120 +1,26 @@
 #' Variance helper utilities
-#'
-#' Centralizes Jacobian selection for variance and the delta-variance pipeline
-#' to keep the core estimator compact and consistent.
-#'
-#' Tuning options (set via options()):
-#'  - nmar.var_auto_rel_diff_thr: relative Frobenius threshold between analytic
-#'    and numeric Jacobians for the "auto" selector (default 1e-3).
-#'  - nmar.var_auto_kappa_ratio_thr: condition-number ratio gate to switch from
-#'    analytic to numeric in "auto" mode (default 10).
-#'  - nmar.var_auto_kappa_ridge_thr: singularity threshold to enable ridge
-#'    stabilization in variance inversion (default 1e12).
-#'  - nmar.var_auto_kappa_pinv_thr: singularity threshold to enable pseudo-
-#'    inverse for variance inversion (default 1e14).
-#'  - nmar.var_ridge_base: base for adaptive ridge epsilon (default 1e-6).
-#' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
-#' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193–200.
-#' @keywords internal
 
-#' Select Jacobian for variance with diagnostics
+#' Delta variance computation helpers
 #'
-#' Applies a consistent policy across EL to choose between analytic and numeric
-#' Jacobians for variance, recording diagnostics to surface to users.
+#' Assembles the analytic sandwich variance at the EL solution using numerically
+#' robust two-solve identities, and returns the mean standard error and the
+#' response-model coefficient covariance. Specifically:
+#' - Mean: var(g) = x' B x with t(A) x = ∇g, which equals g' (A^{-1} B A^{-T}) g
+#'   but avoids explicit inversion and preserves non-negativity when B is PSD.
+#' - Coefficients: V_beta = X_beta' B X_beta with t(A) X_beta = E_beta, which is
+#'   the beta-block of A^{-1} B A^{-T} assembled without forming the full matrix.
+#' B is the covariance of respondent score totals (IID) or the design-based
+#' variance of totals (survey). A is the analytic Jacobian of the stacked EL
+#' system. In trimming or fragile regimes, the delta method returns NA with a
+#' clear warning; bootstrap is recommended in those cases. See Qin, Leung and
+#' Shao (2002).
 #'
-#' @param equation_system_func Function mapping parameter vector to equations.
-#' @param analytical_jac_func Analytic Jacobian function; may be NULL.
-#' @param estimates Numeric vector at the solution.
-#' @param variance_jacobian Character; one of "auto", "analytic", or "numeric".
-#' @return List with entries: `A_matrix_var`, `A_source`, `A_condition`,
-#'   `A_diff_norm`, and `jacobian_auto_rule`.
-el_select_variance_jacobian <- function(equation_system_func,
-                                        analytical_jac_func,
-                                        estimates,
-                                        variance_jacobian = c("auto", "analytic", "numeric")) {
-  variance_jacobian <- match.arg(variance_jacobian)
-  jac_choice <- choose_jacobian(
-    analytic_fun = analytical_jac_func,
-    numeric_fun = function(x) numDeriv::jacobian(func = equation_system_func, x = x),
-    at = estimates
-  )
-  A_matrix_analytic <- jac_choice$A_analytic
-  A_matrix_numeric <- jac_choice$A_numeric
-  A_diff_norm <- jac_choice$rel_diff
-  A_condition_numeric <- tryCatch(if (!is.null(A_matrix_numeric)) kappa(A_matrix_numeric) else NA_real_, error = function(e) NA_real_)
-  A_condition_analytic <- tryCatch(if (!is.null(A_matrix_analytic)) kappa(A_matrix_analytic) else NA_real_, error = function(e) NA_real_)
-  jacobian_auto_rule <- "default"
-  if (variance_jacobian == "numeric") {
-    A_matrix_var <- A_matrix_numeric
-    A_condition <- A_condition_numeric
-    A_source <- "numeric"
-  } else if (variance_jacobian == "analytic") {
-    A_matrix_var <- A_matrix_analytic
-    A_condition <- A_condition_analytic
-    A_source <- "analytic"
-  } else {
-# auto: prefer analytic when available, unless quality gates suggest numeric
-    REL_THR <- getOption("nmar.var_auto_rel_diff_thr", 1e-3)
-    KAPPA_RATIO_THR <- getOption("nmar.var_auto_kappa_ratio_thr", 10)
-    if (!is.null(A_matrix_analytic)) {
-# Start with analytic as default
-      A_matrix_var <- A_matrix_analytic
-      A_condition <- A_condition_analytic
-      A_source <- "analytic"
-# If numeric also available, evaluate quality gates
-      if (!is.null(A_matrix_numeric)) {
-# Gate 1: large relative difference between analytic and numeric
-        if (is.finite(A_diff_norm) && A_diff_norm > REL_THR) {
-          A_matrix_var <- A_matrix_numeric
-          A_condition <- A_condition_numeric
-          A_source <- "numeric"
-          jacobian_auto_rule <- "rel_diff_high"
-        } else {
-# Gate 2: analytic much worse conditioned than numeric
-          if (is.finite(A_condition_analytic) && is.finite(A_condition_numeric) &&
-              A_condition_analytic > KAPPA_RATIO_THR * A_condition_numeric) {
-            A_matrix_var <- A_matrix_numeric
-            A_condition <- A_condition_numeric
-            A_source <- "numeric"
-            jacobian_auto_rule <- "kappa_ratio_high"
-          }
-        }
-      }
-    } else if (!is.null(A_matrix_numeric)) {
-      A_matrix_var <- A_matrix_numeric
-      A_condition <- A_condition_numeric
-      A_source <- "numeric"
-    } else {
-# Fallback to whatever choose_jacobian provided
-      A_matrix_var <- jac_choice$A
-      A_source <- jac_choice$source
-      A_condition <- jac_choice$kappa
-    }
-  }
-  list(
-    A_matrix_var = A_matrix_var,
-    A_source = A_source,
-    A_condition = A_condition,
-    A_diff_norm = A_diff_norm,
-    jacobian_auto_rule = jacobian_auto_rule
-  )
-}
-
-#' Delta variance computation wrapper
-#'
-#' Encapsulates Jacobian selection, stability heuristics (ridge/pinv), and
-#' analytic vs numeric gradient selection for the mean functional, returning
-#' standard errors and diagnostics in a single place.
-#'
-#' @noRd
-#' @keywords internal
 #' @return List with entries: `se_y_hat`, `vcov_unscaled`, `vcov_result`, and
-#'   `diag` (a list of diagnostics: A_source/condition/diff/auto_rule, used_ridge,
-#'   used_pseudoinverse, invert_rule, and variance_auto_rule).
+#'   `diag` (a list of diagnostics: A_condition and grad_source).
+#' @keywords internal
 el_variance_delta <- function(equation_system_func,
                               analytical_jac_func,
                               estimates,
-                              variance_jacobian,
                               family,
                               response_model_matrix_scaled,
                               response_model_matrix_unscaled,
@@ -134,46 +40,25 @@ el_variance_delta <- function(equation_system_func,
                               outcome_vec,
                               K_beta,
                               standardize,
-                              nmar_scaling_recipe,
-                              variance_ridge,
-                              variance_pseudoinverse) {
-  sel <- el_select_variance_jacobian(
-    equation_system_func = equation_system_func,
-    analytical_jac_func = analytical_jac_func,
-    estimates = estimates,
-    variance_jacobian = variance_jacobian
-  )
-  A_matrix_var <- sel$A_matrix_var
-  A_source <- sel$A_source
-  A_condition <- sel$A_condition
-  A_diff_norm <- sel$A_diff_norm
-  jacobian_auto_rule <- sel$jacobian_auto_rule
+                              nmar_scaling_recipe) {
+  if (is.finite(trim_cap)) {
+    return(list(
+      se_y_hat = NA_real_,
+      vcov_unscaled = matrix(NA_real_, K_beta, K_beta, dimnames = list(colnames(response_model_matrix_unscaled), colnames(response_model_matrix_unscaled))),
+      vcov_result = NULL,
+      vcov_message = "Delta variance not applicable with trimming; use bootstrap.",
+      diag = list(
+        A_condition = NA_real_
+      )
+    ))
+  }
 
   se_y_hat <- NA_real_
   vcov_unscaled <- matrix(NA_real_, K_beta, K_beta, dimnames = list(colnames(response_model_matrix_unscaled), colnames(response_model_matrix_unscaled)))
-  auto_var_rule <- NA_character_
+  A_condition <- tryCatch(kappa(analytical_jac_func(estimates)), error = function(e) NA_real_)
 
   vcov_try <- tryCatch({
-    A_matrix <- if (!is.null(A_matrix_var)) A_matrix_var else if (!is.null(analytical_jac_func)) analytical_jac_func(estimates) else numDeriv::jacobian(func = equation_system_func, x = estimates)
-# Heuristic variance stabilization: if user did not request ridge/pinv, enable when diagnostics indicate fragility
-    var_ridge_eff <- variance_ridge
-    var_pinv_eff <- variance_pseudoinverse
-    if (identical(variance_ridge, FALSE) && !isTRUE(variance_pseudoinverse)) {
-      kappa_ridge_thr <- getOption("nmar.var_auto_kappa_ridge_thr", 1e12)
-      kappa_pinv_thr <- getOption("nmar.var_auto_kappa_pinv_thr", 1e14)
-      if (is.finite(A_condition) && A_condition > kappa_ridge_thr) {
-        var_ridge_eff <- TRUE
-        auto_var_rule <- "ridge_due_to_kappa"
-      }
-      if (is.finite(A_diff_norm) && A_diff_norm > getOption("nmar.var_auto_rel_diff_thr", 1e-3) && !isTRUE(var_ridge_eff)) {
-        var_ridge_eff <- TRUE
-        auto_var_rule <- "ridge_due_to_rel_diff"
-      }
-      if (is.finite(A_condition) && A_condition > kappa_pinv_thr) {
-        var_pinv_eff <- TRUE
-        auto_var_rule <- "pinv_due_to_kappa"
-      }
-    }
+    A_matrix <- analytical_jac_func(estimates)
     res <- el_compute_delta_variance(
       A_matrix = A_matrix,
       family = family,
@@ -192,63 +77,111 @@ el_variance_delta <- function(equation_system_func,
       n_resp_weighted = n_resp_weighted,
       trim_cap = trim_cap,
       outcome_vec = outcome_vec,
-      estimates = estimates,
-      variance_ridge = var_ridge_eff,
-      variance_pseudoinverse = var_pinv_eff
+      estimates = estimates
     )
-    list(result = res, message = "Calculation successful", var_ridge_eff = var_ridge_eff, var_pinv_eff = var_pinv_eff)
-  }, error = function(e) list(result = NULL, message = e$message))
+    list(A = A_matrix, result = res, message = "Calculation successful")
+  }, error = function(e) list(A = NULL, result = NULL, message = e$message))
 
   vcov_result <- vcov_try$result
   vcov_message <- vcov_try$message
-  var_ridge_eff <- vcov_try$var_ridge_eff
-  var_pinv_eff <- vcov_try$var_pinv_eff
 
-# Fallback: if numeric source failed and analytic is available, retry with analytic A
-  need_var_fb <- (is.null(vcov_result) || !is.finite(as.numeric(vcov_result$var_y_hat))) && (!is.null(analytical_jac_func)) && (variance_jacobian == "numeric" || (variance_jacobian == "auto" && A_source == "numeric"))
-  if (need_var_fb) {
-    vcov_try_fb <- tryCatch({
-      A_matrix_alt <- analytical_jac_func(estimates)
-      res <- el_compute_delta_variance(
-        A_matrix = A_matrix_alt,
-        family = family,
-        response_model_matrix_scaled = response_model_matrix_scaled,
-        auxiliary_matrix_scaled = auxiliary_matrix_scaled,
-        mu_x_scaled = mu_x_scaled,
-        eta_i_hat = eta_i_hat,
-        w_i_hat = w_i_hat,
-        W_hat = W_hat,
-        denominator_hat = denominator_hat,
-        lambda_W_hat = lambda_W_hat,
-        full_data = full_data,
-        compute_score_variance_func = compute_score_variance_func,
-        respondent_weights = respondent_weights,
-        N_pop = N_pop,
-        n_resp_weighted = n_resp_weighted,
-        trim_cap = trim_cap,
-        outcome_vec = outcome_vec,
-        estimates = estimates,
-        variance_ridge = variance_ridge,
-        variance_pseudoinverse = variance_pseudoinverse
-      )
-      list(result = res, message = "Calculation successful")
-    }, error = function(e) list(result = vcov_result, message = vcov_message))
-    vcov_result <- vcov_try_fb$result
-    vcov_message <- vcov_try_fb$message
-  }
-
+  grad_source <- NA_character_
+  diag_extra <- list(var_y_hat_val = NA_real_, var_anal2 = NA_real_, grad_l1 = NA_real_, sigma_min_eig = NA_real_)
+  B_min_eig_diag <- NA_real_
   if (!is.null(vcov_result)) {
     var_y_hat_val <- as.numeric(vcov_result$var_y_hat)
-    if (is.finite(var_y_hat_val)) se_y_hat <- sqrt(pmax(var_y_hat_val, 0))
-    vcov_beta_scaled <- vcov_result$vcov_matrix_sandwich_scaled[1:K_beta, 1:K_beta, drop = FALSE]
-    vcov_unscaled <- if (standardize) unscale_coefficients(estimates[1:K_beta], vcov_beta_scaled, nmar_scaling_recipe)$vcov else vcov_beta_scaled
-    used_pseudoinverse <- isTRUE(vcov_result$used_pseudoinverse)
-    used_ridge <- isTRUE(vcov_result$used_ridge)
-    invert_rule <- if (!is.null(vcov_result$invert_rule)) vcov_result$invert_rule else NA_character_
+    diag_extra$var_y_hat_val <- var_y_hat_val
+# Analytic gradient against the same Sigma
+    Sigma <- vcov_result$vcov_matrix_sandwich_scaled
+# propagate B minimum eigenvalue when available
+    B_min_eig_diag <- tryCatch(vcov_result$B_min_eig, error = function(e) NA_real_)
+    var_anal2 <- NA_real_
+    if (is.matrix(Sigma) && all(dim(Sigma) == length(estimates))) {
+# record Sigma min eigenvalue (symmetric)
+      diag_extra$sigma_min_eig <- tryCatch({
+        ev <- eigen(Sigma, symmetric = TRUE, only.values = TRUE)$values
+        suppressWarnings(min(ev))
+      }, error = function(e) NA_real_)
+      if (is.infinite(trim_cap)) {
+        K_aux <- if (is.null(auxiliary_matrix_scaled) || ncol(auxiliary_matrix_scaled) == 0) 0 else ncol(auxiliary_matrix_scaled)
+        X_beta <- response_model_matrix_scaled
+        Xc <- if (K_aux > 0) sweep(auxiliary_matrix_scaled, 2, mu_x_scaled, "-") else matrix(nrow = nrow(X_beta), ncol = 0)
+        g_anal <- tryCatch(
+          el_grad_g_analytic(
+            family = family,
+            X_beta = X_beta,
+            Xc = Xc,
+            mu_x_scaled = mu_x_scaled,
+            respondent_weights = respondent_weights,
+            eta_i_hat = eta_i_hat,
+            w_i_hat = w_i_hat,
+            W_hat = W_hat,
+            denominator_hat = denominator_hat,
+            lambda_W_hat = lambda_W_hat,
+            outcome_vec = outcome_vec,
+            n_resp_weighted = n_resp_weighted,
+            N_pop = N_pop
+          ), error = function(e) NULL
+        )
+        if (is.numeric(g_anal) && length(g_anal) == ncol(Sigma) && all(is.finite(g_anal))) {
+# Align gradient order to Sigma colnames if names available
+          if (!is.null(names(g_anal)) && !is.null(colnames(Sigma))) {
+            idx <- match(colnames(Sigma), names(g_anal))
+            if (all(is.finite(idx))) g_anal <- g_anal[idx]
+          }
+          diag_extra$grad_l1 <- sum(abs(g_anal))
+# Robust two-solve variance: solve t(A) x = g, then var = x' B x
+          var_anal2 <- tryCatch({
+            A_mat <- vcov_try$A
+            if (is.null(A_mat)) stop("Jacobian missing for two-solve variance")
+            x <- solve(t(A_mat), g_anal)
+# Use B from vcov_result path (PSD by construction)
+            as.numeric(t(x) %*% vcov_result$B %*% x)
+          }, error = function(e) NA_real_)
+          se_y_hat <- if (is.finite(var_anal2)) sqrt(pmax(var_anal2, 0)) else se_y_hat
+          grad_source <- "analytic"
+        }
+      }
+      diag_extra$var_anal2 <- var_anal2
+      if (!is.finite(se_y_hat) && is.finite(var_y_hat_val)) se_y_hat <- sqrt(pmax(var_y_hat_val, 0))
+    } else {
+      if (is.finite(var_y_hat_val)) se_y_hat <- sqrt(pmax(var_y_hat_val, 0))
+    }
+# Robust vcov(beta): V_beta = X_beta' B X_beta with t(A) X_beta = E_beta
+    vcov_beta_scaled <- NULL
+    A_mat <- vcov_try$A
+    B_mat <- vcov_result$B
+    if (is.matrix(A_mat) && is.matrix(B_mat)) {
+      p <- ncol(A_mat)
+      if (p == nrow(A_mat) && p >= K_beta) {
+        E_beta <- matrix(0, nrow = p, ncol = K_beta)
+        E_beta[seq_len(K_beta), ] <- diag(K_beta)
+        X_beta <- tryCatch(solve(t(A_mat), E_beta), error = function(e) NULL)
+        if (is.matrix(X_beta) && nrow(X_beta) == p && ncol(X_beta) == K_beta) {
+          Vb <- tryCatch({
+            M <- crossprod(X_beta, B_mat %*% X_beta)
+            0.5 * (M + t(M))
+          }, error = function(e) NULL)
+          if (is.matrix(Vb) && all(dim(Vb) == K_beta)) vcov_beta_scaled <- Vb
+        }
+      }
+    }
+# Fallback to Σ block if robust path failed
+    if (is.null(vcov_beta_scaled) && is.matrix(Sigma)) {
+      vcov_beta_scaled <- Sigma[1:K_beta, 1:K_beta, drop = FALSE]
+      vcov_beta_scaled <- 0.5 * (vcov_beta_scaled + t(vcov_beta_scaled))
+    }
+    if (is.null(vcov_beta_scaled)) vcov_beta_scaled <- matrix(NA_real_, K_beta, K_beta)
+# Ensure dimnames for beta block and names for scaled coefficients
+    beta_names_scaled <- colnames(response_model_matrix_scaled)
+    if (!is.null(beta_names_scaled) && all(length(beta_names_scaled) == K_beta)) {
+      dimnames(vcov_beta_scaled) <- list(beta_names_scaled, beta_names_scaled)
+    }
+    coeffs_scaled <- estimates[1:K_beta]
+    if (!is.null(beta_names_scaled) && length(coeffs_scaled) == K_beta) names(coeffs_scaled) <- beta_names_scaled
+    vcov_unscaled <- if (standardize) unscale_coefficients(coeffs_scaled, vcov_beta_scaled, nmar_scaling_recipe)$vcov else vcov_beta_scaled
   } else {
-    used_pseudoinverse <- FALSE
-    used_ridge <- FALSE
-    invert_rule <- NA_character_
+
   }
   if (!is.finite(se_y_hat)) se_y_hat <- NA_real_
 
@@ -259,22 +192,21 @@ el_variance_delta <- function(equation_system_func,
     vcov_message = vcov_message,
     diag = list(
       A_condition = A_condition,
-      A_source = A_source,
-      A_diff_norm = A_diff_norm,
-      jacobian_auto_rule = jacobian_auto_rule,
-      used_pseudoinverse = used_pseudoinverse,
-      used_ridge = used_ridge,
-      invert_rule = invert_rule,
-      variance_auto_rule = auto_var_rule
+      grad_source = grad_source,
+      var_y_hat_val = diag_extra$var_y_hat_val,
+      var_anal2 = diag_extra$var_anal2,
+      grad_l1 = diag_extra$grad_l1,
+      sigma_min_eig = diag_extra$sigma_min_eig,
+      B_min_eig = B_min_eig_diag
     )
   )
 }
 
-#' Analytic gradient of the mean functional g(θ)
+#' Analytic gradient of the mean functional g(theta)
 #'
 #' Computes the analytic gradient of the respondent-weighted mean functional
 #'   g = sum_i(pi_i y_i)/sum_i(pi_i) under smooth conditions (no trimming),
-#'   for the EL reparameterization (β, z = logit(W), λ_x). This mirrors the
+#'   for the EL reparameterization (beta, z = logit(W), lambda_x). This mirrors the
 #'   guarded denominators used in post-solution weight construction.
 #'
 #' @keywords internal
@@ -316,5 +248,11 @@ el_grad_g_analytic <- function(family,
   } else {
     grad_lambda <- numeric(0)
   }
-  c(grad_beta, grad_z, grad_lambda)
+# Name and order gradient components consistently with A/B matrices
+  nm_beta <- colnames(X_beta)
+  nm_z <- "(W) (logit)"
+  nm_lambda <- if (K_aux > 0) paste0("lambda_", colnames(Xc)) else character(0)
+  out <- c(grad_beta, grad_z, grad_lambda)
+  names(out) <- c(nm_beta, nm_z, nm_lambda)
+  out
 }

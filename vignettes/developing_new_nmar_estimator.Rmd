@@ -199,9 +199,9 @@ math here (e.g., likelihood, gradients, constraints).
 
 ### 7) `impl/<method>_variance.R`
 
-- For delta variance: assemble `A = \partial F/\partial \theta`, `B = Var(\sum scores)` and the gradient
-  of the functional `g(\theta)`. Reuse shared helpers:
-  - Jacobian inversion policy: `invert_jacobian()` (ridge/pinv options).
+- For delta variance: assemble $A = \partial F/\partial \theta$, $B = Var(\sum scores)$ and the gradient
+  of the functional $g(\theta)$. Reuse shared helpers:
+  - Delta variance: assemble A, B and $\nabla g$; use a two‑solve sandwich at the solution. When inversion is fragile or trimming is active, return NA and recommend bootstrap.
   - IID B: cross‑product of respondent score rows “expanded” to N (zeros
     for nonrespondents).
   - Survey B: covariance of design totals via `svytotal`.
@@ -229,9 +229,7 @@ new_nmar_result_method <- function(estimate, se,
                                    weights = NULL, sample = list(),
                                    inference = list(variance_method = NA_character_,
                                                     df = NA_real_,
-                                                    message = NA_character_,
-                                                    used_pseudoinverse = FALSE,
-                                                    used_ridge = FALSE),
+                                                    message = NA_character_),
                                    diagnostics = list(),
                                    meta = list(engine_name = "method", call = NULL, formula = NULL),
                                    extra = list()) {

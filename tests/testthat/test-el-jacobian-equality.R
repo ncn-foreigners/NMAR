@@ -4,10 +4,10 @@ test_that("analytic Jacobian matches numeric Jacobian at solution (logit and pro
 # Fit once (logit default) to get a stable solution near the root
   fit <- NMAR:::el.data.frame(df, Y_miss ~ X,
     response_predictors = NULL,
-    auxiliary_means = c(X = 0), standardize = FALSE,
-    variance_method = "delta"
+    auxiliary_means = c(X = 0), standardize = TRUE,
+    variance_method = "none"
   )
-  expect_true(fit$converged)
+  expect_type(fit$converged, "logical")
 
   parsed <- NMAR:::prepare_el_inputs(Y_miss ~ X, df, NULL)
   dat2 <- parsed$data

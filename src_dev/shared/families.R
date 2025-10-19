@@ -1,13 +1,13 @@
 #' Response model families
 #' @name nmar_response_families
 #' @description Small family objects used by NMAR engines to compute response
-#'   probabilities and derivatives in a link‑agnostic way (logit/probit).
+#'   probabilities and derivatives in a link-agnostic way (logit/probit).
 #' @details A family object is a list with components:
 #'   - `name`: character identifier (e.g., "logit", "probit").
 #'   - `linkinv(eta)`: mean function (Bernoulli), returns `p = P(R=1 | eta)`.
 #'   - `mu.eta(eta)`: derivative `dp/deta`.
 #'   - `d2mu.deta2(eta)`: second derivative `d^2p/deta^2` (used by analytic Jacobian).
-#'   - `score_eta(eta, delta)`: score of the Bernoulli log‑likelihood w.r.t. `eta`.
+#'   - `score_eta(eta, delta)`: score of the Bernoulli log-likelihood w.r.t. `eta`.
 #'     For respondents (delta=1), this reduces to `mu.eta(eta)/linkinv(eta)` and is
 #'     used in the EL estimating equations. Engines may ignore `delta`.
 #'   These functions allow engines to switch between links without changing the
@@ -15,7 +15,8 @@
 #' @section Stability:
 #'   - Logit: numerically well behaved for a wide range of eta; clip `p` away
 #'     from 0/1 when forming ratios.
-#'   - Probit: compute `phi/Phi` via a stable log‑ratio in tails to avoid 0/0.
+#'   - Probit: compute `phi/Phi` via a stable log-ratio in tails to avoid 0/0.
+#' @name response_families
 #' @keywords internal
 #' @noRd
 NULL

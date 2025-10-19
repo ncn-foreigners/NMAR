@@ -5,7 +5,7 @@
 #' @details
 #'   - For `data.frame` inputs, performs i.i.d. bootstrap by resampling rows and
 #'     rerunning `estimator_func`.
-#'   - For `survey.design` inputs, converts to a bootstrap replicate‑weight
+#'   - For `survey.design` inputs, converts to a bootstrap replicate-weight
 #'     design (`svrep::as_bootstrap_design`) and uses `survey::withReplicates` to
 #'     compute replicate estimates; variance is computed with `survey::svrVar`.
 #'   `estimator_func` is typically an engine method (e.g., `el()`), and is called
@@ -18,7 +18,19 @@
 #' @param ... passed through to `estimator_func`.
 #' @keywords internal
 bootstrap_variance <- function(data, estimator_func, point_estimate, ...) {
-  UseMethod("bootstrap_variance")
+  if (inherits(data, "survey.design")) {
+    return(bootstrap_variance.survey.design(data, estimator_func, point_estimate, ...))
+  }
+  if (is.data.frame(data)) {
+    return(bootstrap_variance.data.frame(data, estimator_func, point_estimate, ...))
+  }
+  stop("Unsupported data type for bootstrap_variance().", call. = FALSE)
+}
+
+#' Default method dispatch (internal safety net)
+#' @keywords internal
+bootstrap_variance.default <- function(data, estimator_func, point_estimate, ...) {
+  stop("Unsupported data type for bootstrap_variance().", call. = FALSE)
 }
 
 #' Bootstrap for i.i.d. data.frames

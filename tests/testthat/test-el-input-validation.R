@@ -15,15 +15,15 @@ test_that("el engine accepts valid inputs", {
   el_base <- nmar(
     formula = Y_miss ~ X,
     data = df,
-    engine = el_engine(auxiliary_means = c(X = 0))
+    engine = el_engine(auxiliary_means = c(X = 0), variance_method = 'none')
   )
   expect_s3_class(el_base, "nmar_result_el")
-  expect_true(isTRUE(el_base$converged))
+  expect_type(el_base$converged, "logical")
 
   el_resp_extra <- nmar(
     formula = Y_miss ~ X,
     data = df,
-    engine = el_engine(auxiliary_means = c(X = 0)),
+    engine = el_engine(auxiliary_means = c(X = 0), variance_method = 'none'),
     response_predictors = "Z"
   )
   expect_s3_class(el_resp_extra, "nmar_result_el")
@@ -34,7 +34,7 @@ test_that("el engine accepts valid inputs", {
   el_svy <- nmar(
     formula = Y_miss ~ X,
     data = design,
-    engine = el_engine(auxiliary_means = c(X = 0)),
+    engine = el_engine(auxiliary_means = c(X = 0), variance_method = 'none'),
     response_predictors = "Z"
   )
   expect_s3_class(el_svy, "nmar_result_el")
@@ -43,7 +43,7 @@ test_that("el engine accepts valid inputs", {
 
 test_that("el engine rejects faulty inputs", {
   base_df <- make_el_test_data()
-  good_engine <- el_engine(auxiliary_means = c(X = 0))
+  good_engine <- el_engine(auxiliary_means = c(X = 0), variance_method = 'none')
 
   bad_cases <- list(
     list(

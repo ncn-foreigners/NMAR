@@ -12,25 +12,25 @@ test_that("delta uses analytic ∇g when untrimmed and numeric when trimmed (ind
   eng_inf_1 <- make_engine(variance_method = "delta", family = "logit",
                            auxiliary_means = aux_means, trim_cap = Inf,
                            standardize = TRUE)
-  fit_inf_1 <- nmar(Y_miss ~ X, data = df, engine = eng_inf_1)
+  fit_inf_1 <- suppressWarnings(nmar(Y_miss ~ X, data = df, engine = eng_inf_1))
   se_inf_1 <- fit_inf_1$se
 
   options(nmar.grad_eps = 1e-2, nmar.grad_d = 1e-1)
   eng_inf_2 <- make_engine(variance_method = "delta", family = "logit",
                            auxiliary_means = aux_means, trim_cap = Inf,
                            standardize = TRUE)
-  fit_inf_2 <- nmar(Y_miss ~ X, data = df, engine = eng_inf_2)
+  fit_inf_2 <- suppressWarnings(nmar(Y_miss ~ X, data = df, engine = eng_inf_2))
   se_inf_2 <- fit_inf_2$se
 
 # Expect near equality under smooth case
   expect_equal(se_inf_1, se_inf_2, tolerance = 1e-6)
 
-# Trimmed: numeric gradient path; sensitivity to grad options likely
+# Trimmed: delta variance may be undefined (non-smooth); we expect NA under our policy
   options(nmar.grad_eps = 1e-6, nmar.grad_d = 1e-3)
   eng_trim_1 <- make_engine(variance_method = "delta", family = "logit",
                             auxiliary_means = aux_means, trim_cap = 1.1,
                             standardize = TRUE)
-  fit_trim_1 <- nmar(Y_miss ~ X, data = df, engine = eng_trim_1)
+  fit_trim_1 <- suppressWarnings(nmar(Y_miss ~ X, data = df, engine = eng_trim_1))
   se_trim_1 <- fit_trim_1$se
 # Ensure trimming engaged
   expect_gt(fit_trim_1$diagnostics$trimmed_fraction, 0)
@@ -39,9 +39,10 @@ test_that("delta uses analytic ∇g when untrimmed and numeric when trimmed (ind
   eng_trim_2 <- make_engine(variance_method = "delta", family = "logit",
                             auxiliary_means = aux_means, trim_cap = 1.1,
                             standardize = TRUE)
-  fit_trim_2 <- nmar(Y_miss ~ X, data = df, engine = eng_trim_2)
+  fit_trim_2 <- suppressWarnings(nmar(Y_miss ~ X, data = df, engine = eng_trim_2))
   se_trim_2 <- fit_trim_2$se
 
-# Expect larger difference under trimmed (non-smooth) case
-  expect_gt(abs(se_trim_1 - se_trim_2), 1e-5)
+# Expect NA under trimmed (non-smooth) case for delta variance
+  expect_true(is.na(se_trim_1))
+  expect_true(is.na(se_trim_2))
 })

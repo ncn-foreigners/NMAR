@@ -84,7 +84,7 @@ s3_engine_display_keys <- function(x) {
   cls <- class(x)
   out <- c("standardize", "variance_method")
   if ("nmar_engine_el" %in% cls) {
-    out <- c(out, "family", "solver_method", "solver_jacobian", "variance_jacobian", "trim_cap")
+    out <- c(out, "family", "trim_cap")
   } else if ("nmar_engine_exptilt" %in% cls) {
     out <- c(out, "prob_model_type", "y_dens", "optim_method", "min_iter", "max_iter", "tol_value")
   } else if ("nmar_engine_exptilt_nonparam" %in% cls) {

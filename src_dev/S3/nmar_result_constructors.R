@@ -36,9 +36,7 @@ new_nmar_result <- function(...) {
   inference_defaults <- list(
     variance_method = NA_character_,
     df = NA_real_,
-    message = NA_character_,
-    used_pseudoinverse = FALSE,
-    used_ridge = FALSE
+    message = NA_character_
   )
   if (!is.list(inference)) inference <- list()
   for (nm in names(inference_defaults)) if (is.null(inference[[nm]])) inference[[nm]] <- inference_defaults[[nm]]

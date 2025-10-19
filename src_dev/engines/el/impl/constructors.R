@@ -31,9 +31,7 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
   inference <- list(
     variance_method = data_info$variance_method %||% NA_character_,
     df = df_val,
-    message = diagnostics$vcov_message %||% NA_character_,
-    used_pseudoinverse = isTRUE(diagnostics$used_pseudoinverse),
-    used_ridge = isTRUE(diagnostics$used_ridge)
+    message = diagnostics$vcov_message %||% NA_character_
   )
 
   meta <- list(

@@ -30,8 +30,6 @@ nmar_result_get_inference <- function(x) {
   inference$variance_method <- inference$variance_method %||% NA_character_
   inference$df <- inference$df %||% NA_real_
   inference$message <- inference$message %||% NA_character_
-  inference$used_pseudoinverse <- inference$used_pseudoinverse %||% FALSE
-  inference$used_ridge <- inference$used_ridge %||% FALSE
   inference
 }
 

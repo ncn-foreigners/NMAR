@@ -169,14 +169,11 @@ glance.nmar_result <- function(x, ...) {
     converged = isTRUE(x$converged),
     trimmed_fraction = diagnostics$trimmed_fraction %||% NA_real_,
     variance_method = inference$variance_method,
-    solver_jacobian = diagnostics$solver_jacobian %||% NA_character_,
-    jacobian_source = diagnostics$jacobian_source %||% NA_character_,
     jacobian_condition_number = diagnostics$jacobian_condition_number %||% NA_real_,
-    jacobian_rel_diff = diagnostics$jacobian_rel_diff %||% NA_real_,
     max_equation_residual = diagnostics$max_equation_residual %||% NA_real_,
     min_denominator = diagnostics$min_denominator %||% NA_real_,
     fraction_small_denominators = diagnostics$fraction_small_denominators %||% NA_real_,
-    used_pseudoinverse = inference$used_pseudoinverse,
+
     nobs = sample$n_total,
     nobs_resp = sample$n_respondents,
     is_survey = isTRUE(sample$is_survey),
@@ -227,14 +224,14 @@ plot.nmar_result <- function(x, which = c("weights", "fitted", "constraints", "d
     txt <- c(
       sprintf("converged: %s", isTRUE(x$converged)),
       sprintf("variance_method: %s", (nmar_result_get_inference(x)$variance_method)),
-      sprintf("Jacobian source: %s  cond: %s", diagnostics$jacobian_source %||% NA_character_, format(diagnostics$jacobian_condition_number %||% NA_real_, digits = 3)),
-      sprintf("Jacobian rel diff: %s", format(diagnostics$jacobian_rel_diff %||% NA_real_, digits = 3)),
+      sprintf("Jacobian cond: %s", format(diagnostics$jacobian_condition_number %||% NA_real_, digits = 3)),
       sprintf("Max eq residual: %s", format(diagnostics$max_equation_residual %||% NA_real_, digits = 3)),
       sprintf("Min denominator: %s (frac<1e-6: %.2f%%)", format(diagnostics$min_denominator %||% NA_real_, digits = 3), 100 * (diagnostics$fraction_small_denominators %||% 0)),
       sprintf("Trimmed fraction: %.2f%%", 100 * (weights_info$trimmed_fraction %||% 0)),
-      sprintf("used_pseudoinverse: %s", isTRUE(nmar_result_get_inference(x)$used_pseudoinverse))
+      NULL
     )
-    graphics::text(0.02, 0.95, adj = c(0, 1), labels = paste(txt, collapse = "\n"), cex = 0.9)
+    txt <- txt[!vapply(txt, is.null, logical(1))]
+    graphics::text(0.02, 0.95, adj = c(0, 1), labels = paste(unlist(txt), collapse = "\n"), cex = 0.9)
   }
   invisible(x)
 }
