@@ -68,13 +68,8 @@ and diagnostic computation.</p>
 <span>  family <span class="op">=</span> <span class="fu"><a href="logit_family.html">logit_family</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  <span class="va">variance_method</span>,</span>
 <span>  <span class="va">bootstrap_reps</span>,</span>
-<span>  variance_jacobian <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"analytic"</span>, <span class="st">"numeric"</span><span class="op">)</span>,</span>
-<span>  solver_jacobian <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"analytic"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  solver_method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"newton"</span>, <span class="st">"broyden"</span><span class="op">)</span>,</span>
-<span>  solver_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  variance_pseudoinverse <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  variance_ridge <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">user_args</span>,</span>
+<span>  start <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -139,22 +134,6 @@ and diagnostic computation.</p>
 <dd><p>Integer. Number of bootstrap replications.</p></dd>
 
 
-<dt id="arg-variance-jacobian">variance_jacobian<a class="anchor" aria-label="anchor" href="#arg-variance-jacobian"></a></dt>
-<dd><p>Character. Jacobian method for variance computation.</p></dd>
-
-
-<dt id="arg-solver-jacobian">solver_jacobian<a class="anchor" aria-label="anchor" href="#arg-solver-jacobian"></a></dt>
-<dd><p>Character. Jacobian method for equation solving.</p></dd>
-
-
-<dt id="arg-variance-pseudoinverse">variance_pseudoinverse<a class="anchor" aria-label="anchor" href="#arg-variance-pseudoinverse"></a></dt>
-<dd><p>Logical. Use pseudoinverse for singular matrices.</p></dd>
-
-
-<dt id="arg-variance-ridge">variance_ridge<a class="anchor" aria-label="anchor" href="#arg-variance-ridge"></a></dt>
-<dd><p>Logical. Use ridge regularization for variance.</p></dd>
-
-
 <dt id="arg-user-args">user_args<a class="anchor" aria-label="anchor" href="#arg-user-args"></a></dt>
 <dd><p>List. Original user arguments for bootstrap replication.</p></dd>
 
@@ -169,13 +148,21 @@ and diagnostic computation.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>This function implements the complete empirical likelihood estimation algorithm:
+    <p>Implements the complete empirical likelihood pipeline under nonignorable
+nonresponse with optional auxiliary moment constraints. The solver uses the
+full stacked system in \((\beta, z, \lambda_x)\) with an analytic Jacobian
+and globalization via `nleqslv`. Numerical safeguards (denominator
+positivity guards, predictor standardization, and stable linear algebra)
+are applied. After solving, weights are constructed with denominator guards
+and optional trimming; delta variance is computed by a sandwich formula
+evaluated at the solution or via bootstrap when requested.</p>
+<p>Steps
 1. Data preparation and scaling
 2. Equation system construction
-3. Multi-stage nonlinear equation solving with robust fallback strategies
-4. Weight computation and trimming
-5. Variance estimation (delta method or bootstrap)
-6. Comprehensive diagnostic computation</p>
+3. Nonlinear equation solving with safeguards
+4. Weight construction and optional trimming
+5. Variance estimation
+6. Diagnostic computation</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

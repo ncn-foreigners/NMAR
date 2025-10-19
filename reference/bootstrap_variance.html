@@ -81,7 +81,7 @@ estimate is extracted via `$estimate` and convergence via `$converged`.</p></dd>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>- For `data.frame` inputs, performs i.i.d. bootstrap by resampling rows and
     rerunning `estimator_func`.
-  - For `survey.design` inputs, converts to a bootstrap replicate‑weight
+  - For `survey.design` inputs, converts to a bootstrap replicate-weight
     design (`svrep::as_bootstrap_design`) and uses `survey::withReplicates` to
     compute replicate estimates; variance is computed with `survey::svrVar`.
   `estimator_func` is typically an engine method (e.g., `el()`), and is called

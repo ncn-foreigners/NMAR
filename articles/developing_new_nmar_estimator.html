@@ -304,12 +304,16 @@ constraints).</p>
 </h4>
 <ul>
 <li>For delta variance: assemble
-<code>A = \partial F/\partial \theta</code>,
-<code>B = Var(\sum scores)</code> and the gradient of the functional
-<code>g(\theta)</code>. Reuse shared helpers:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mo>=</mo><mi>∂</mi><mi>F</mi><mi>/</mi><mi>∂</mi><mi>θ</mi></mrow><annotation encoding="application/x-tex">A = \partial F/\partial \theta</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>=</mo><mi>V</mi><mi>a</mi><mi>r</mi><mrow><mo stretchy="true" form="prefix">(</mo><mo>∑</mo><mi>s</mi><mi>c</mi><mi>o</mi><mi>r</mi><mi>e</mi><mi>s</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">B = Var(\sum scores)</annotation></semantics></math>
+and the gradient of the functional
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>g</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>θ</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">g(\theta)</annotation></semantics></math>.
+Reuse shared helpers:
 <ul>
-<li>Jacobian inversion policy: <code><a href="../reference/invert_jacobian.html">invert_jacobian()</a></code>
-(ridge/pinv options).</li>
+<li>Delta variance: assemble A, B and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∇</mi><mi>g</mi></mrow><annotation encoding="application/x-tex">\nabla g</annotation></semantics></math>;
+use a two‑solve sandwich at the solution. When inversion is fragile or
+trimming is active, return NA and recommend bootstrap.</li>
 <li>IID B: cross‑product of respondent score rows “expanded” to N (zeros
 for nonrespondents).</li>
 <li>Survey B: covariance of design totals via
@@ -347,9 +351,7 @@ structure is complete.</p>
 <span>                                   <span class="va">weights</span> <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">sample</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>                                   <span class="va">inference</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>variance_method <span class="op">=</span> <span class="cn">NA_character_</span>,</span>
 <span>                                                    df <span class="op">=</span> <span class="cn">NA_real_</span>,</span>
-<span>                                                    message <span class="op">=</span> <span class="cn">NA_character_</span>,</span>
-<span>                                                    used_pseudoinverse <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>                                                    used_ridge <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
+<span>                                                    message <span class="op">=</span> <span class="cn">NA_character_</span><span class="op">)</span>,</span>
 <span>                                   <span class="va">diagnostics</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>                                   <span class="va">meta</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>engine_name <span class="op">=</span> <span class="st">"method"</span>, call <span class="op">=</span> <span class="cn">NULL</span>, formula <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
 <span>                                   <span class="va">extra</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>

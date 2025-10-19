@@ -90,11 +90,11 @@ http://dx.doi.org/10.1198/016214502753479338
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
 <p>This vignette demonstrates the empirical likelihood (EL) estimator
-for Not Missing At Random (NMAR) data in the <code>nmar</code> package.
-The method implements the estimator of Qin, Leung, and Shao (2002),
-using empirical likelihood weights that satisfy estimating equations for
-the response mechanism and (optionally) auxiliary moment constraints.
-For full derivations and the analytic Jacobian/variance details, see the
+for Not Missing At Random (NMAR) data in the NMAR package. The method
+implements the estimator of Qin, Leung, and Shao (2002), using empirical
+likelihood weights that satisfy estimating equations for the response
+mechanism and (optionally) auxiliary moment constraints. For full
+derivations and the analytic Jacobian/variance details, see the
 companion article “Empirical Likelihood Theory for NMAR”.</p>
 <p>Key features:</p>
 <ul>
@@ -172,9 +172,9 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt; Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=500&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model coefficients:</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error    z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -1.570694   0.123936 -12.673394 0.000000</span></span>
-<span><span class="co">#&gt; Y_miss       0.366754   0.325118   1.128067 0.259292</span></span>
+<span><span class="co">#&gt;              Estimate Std. Error   z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; (Intercept) -1.570694   0.500108 -3.140711 0.001685</span></span>
+<span><span class="co">#&gt; Y_miss       0.366754   0.279333  1.312963 0.189195</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;          2.5 % 97.5 %</span></span>
 <span><span class="co">#&gt; Y_miss 1.38592 2.3714</span></span></code></pre></div>
@@ -202,9 +202,9 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt; Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=500&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model coefficients:</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error    z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -0.949678   0.076363 -12.436364 0.000000</span></span>
-<span><span class="co">#&gt; Y_miss       0.217504   0.185405   1.173132 0.240743</span></span></code></pre></div>
+<span><span class="co">#&gt;              Estimate Std. Error   z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; (Intercept) -0.949678   0.279596 -3.396606 0.000682</span></span>
+<span><span class="co">#&gt; Y_miss       0.217504   0.159296  1.365414 0.172123</span></span></code></pre></div>
 <p>Tidy/glance summaries, and plots:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"broom"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -213,12 +213,10 @@ on the unobserved outcome.</p>
 <span><span class="op">}</span></span>
 <span><span class="co">#&gt;   estimate std.error conf.low conf.high converged trimmed_fraction</span></span>
 <span><span class="co">#&gt; 1  1.87866 0.2514025  1.38592    2.3714      TRUE                0</span></span>
-<span><span class="co">#&gt;   variance_method solver_jacobian jacobian_source jacobian_condition_number</span></span>
-<span><span class="co">#&gt; 1           delta        analytic        analytic                  36.83019</span></span>
-<span><span class="co">#&gt;   jacobian_rel_diff max_equation_residual min_denominator</span></span>
-<span><span class="co">#&gt; 1      6.884968e-12          3.347322e-14       0.4613402</span></span>
-<span><span class="co">#&gt;   fraction_small_denominators used_pseudoinverse nobs nobs_resp is_survey</span></span>
-<span><span class="co">#&gt; 1                           0              FALSE  500       150     FALSE</span></span>
+<span><span class="co">#&gt;   variance_method jacobian_condition_number max_equation_residual</span></span>
+<span><span class="co">#&gt; 1           delta                  36.83019           4.07232e-11</span></span>
+<span><span class="co">#&gt;   min_denominator fraction_small_denominators nobs nobs_resp is_survey</span></span>
+<span><span class="co">#&gt; 1       0.4613402                           0  500       150     FALSE</span></span>
 <span></span>
 <span><span class="co"># plot(fit, which = "weights")</span></span>
 <span><span class="co"># plot(fit, which = "fitted")</span></span></code></pre></div>
@@ -231,36 +229,43 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;  [1] 0.2385382 0.2237686 0.4564170 0.1384020 0.2873926 0.2792951 0.3336042</span></span>
 <span><span class="co">#&gt;  [8] 0.3145361 0.2706197 0.2550132</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">diagnostics</span><span class="op">)</span></span>
-<span><span class="co">#&gt; List of 25</span></span>
+<span><span class="co">#&gt; List of 32</span></span>
 <span><span class="co">#&gt;  $ convergence_code           : int 1</span></span>
 <span><span class="co">#&gt;  $ message                    : chr "Function criterion near zero"</span></span>
 <span><span class="co">#&gt;  $ vcov_message               : chr "Calculation successful"</span></span>
 <span><span class="co">#&gt;  $ trimmed_fraction           : num 0</span></span>
-<span><span class="co">#&gt;  $ solver_jacobian            : chr "analytic"</span></span>
 <span><span class="co">#&gt;  $ solver_method              : chr "Newton"</span></span>
 <span><span class="co">#&gt;  $ nleqslv_global             : chr NA</span></span>
 <span><span class="co">#&gt;  $ nleqslv_xscalm             : chr NA</span></span>
-<span><span class="co">#&gt;  $ solver_iterations          : int 7</span></span>
-<span><span class="co">#&gt;  $ solver_time                : num 0.005</span></span>
-<span><span class="co">#&gt;  $ variance_time              : num 0.006</span></span>
+<span><span class="co">#&gt;  $ solver_iterations          : int 6</span></span>
+<span><span class="co">#&gt;  $ solver_time                : num 0.004</span></span>
+<span><span class="co">#&gt;  $ variance_time              : num 0.004</span></span>
 <span><span class="co">#&gt;  $ reparam_W                  : chr "logit"</span></span>
-<span><span class="co">#&gt;  $ max_equation_residual      : num 3.35e-14</span></span>
+<span><span class="co">#&gt;  $ max_equation_residual      : num 4.07e-11</span></span>
 <span><span class="co">#&gt;  $ jacobian_condition_number  : num 36.8</span></span>
-<span><span class="co">#&gt;  $ jacobian_source            : chr "analytic"</span></span>
-<span><span class="co">#&gt;  $ jacobian_rel_diff          : num 6.88e-12</span></span>
-<span><span class="co">#&gt;  $ jacobian_auto_rule         : chr "default"</span></span>
+<span><span class="co">#&gt;  $ aux_inconsistency_max_z    : num 0.114</span></span>
+<span><span class="co">#&gt;  $ aux_inconsistency_cols     : chr(0) </span></span>
+<span><span class="co">#&gt;  $ grad_source                : chr "analytic"</span></span>
+<span><span class="co">#&gt;  $ var_y_hat_val              : num 0.0632</span></span>
+<span><span class="co">#&gt;  $ var_anal2                  : num 0.0632</span></span>
+<span><span class="co">#&gt;  $ grad_l1                    : num 1.88</span></span>
+<span><span class="co">#&gt;  $ sigma_min_eig              : num 1.12e-30</span></span>
+<span><span class="co">#&gt;  $ B_min_eig                  : num 1.56e-25</span></span>
 <span><span class="co">#&gt;  $ min_denominator            : num 0.461</span></span>
 <span><span class="co">#&gt;  $ fraction_small_denominators: num 0</span></span>
-<span><span class="co">#&gt;  $ constraint_sum_W           : num 6.73e-15</span></span>
-<span><span class="co">#&gt;  $ constraint_sum_aux         : Named num 4.22e-15</span></span>
-<span><span class="co">#&gt;   ..- attr(*, "names")= chr "X"</span></span>
-<span><span class="co">#&gt;  $ used_pseudoinverse         : logi FALSE</span></span>
-<span><span class="co">#&gt;  $ used_ridge                 : logi FALSE</span></span>
-<span><span class="co">#&gt;  $ invert_rule                : chr "plain"</span></span>
-<span><span class="co">#&gt;  $ variance_auto_rule         : chr NA</span></span></code></pre></div>
+<span><span class="co">#&gt;  $ denom_q01                  : num 0.496</span></span>
+<span><span class="co">#&gt;  $ denom_q05                  : num 0.664</span></span>
+<span><span class="co">#&gt;  $ denom_median               : num 1.05</span></span>
+<span><span class="co">#&gt;  $ denom_count_lt_1e4         : int 0</span></span>
+<span><span class="co">#&gt;  $ weight_max_share           : num 0.0145</span></span>
+<span><span class="co">#&gt;  $ weight_top5_share          : num 0.0665</span></span>
+<span><span class="co">#&gt;  $ weight_ess                 : num 137</span></span>
+<span><span class="co">#&gt;  $ constraint_sum_W           : num -4.48e-12</span></span>
+<span><span class="co">#&gt;  $ constraint_sum_aux         : Named num -4.07e-11</span></span>
+<span><span class="co">#&gt;   ..- attr(*, "names")= chr "X"</span></span></code></pre></div>
 <p>Bootstrap variance (keep reps small for speed):</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">engine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"bootstrap"</span>, bootstrap_reps <span class="op">=</span> <span class="fl">15</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span>, suppress_warnings <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">engine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"bootstrap"</span>, bootstrap_reps <span class="op">=</span> <span class="fl">15</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">fit_boot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
 <span>  formula <span class="op">=</span> <span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>,</span>
@@ -270,17 +275,47 @@ on the unobserved outcome.</p>
 <span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">fit_boot</span><span class="op">$</span><span class="va">se</span></span>
-<span><span class="co">#&gt; [1] 0.4188276</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.3289832</span></span></code></pre></div>
 </div>
+</div>
+<div class="section level2">
+<h2 id="respondents-only-data-n_total">Respondents-only data (n_total)<a class="anchor" aria-label="anchor" href="#respondents-only-data-n_total"></a>
+</h2>
+<p>If you pass respondents-only data (the outcome contains no NA),
+provide the total sample size via <code>n_total</code> in the engine so
+the estimator can recover the population response rate:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">N</span> <span class="op">&lt;-</span> <span class="fl">300</span></span>
+<span><span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span>; <span class="va">Z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span>; <span class="va">Y</span> <span class="op">&lt;-</span> <span class="fl">1.5</span> <span class="op">+</span> <span class="fl">0.4</span> <span class="op">*</span> <span class="va">X</span> <span class="op">+</span> <span class="va">Z</span></span>
+<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.5</span> <span class="op">+</span> <span class="fl">0.4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/scale.html" class="external-link">scale</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">R</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span> <span class="op">&lt;</span> <span class="va">p</span></span>
+<span><span class="va">df_resp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Y_miss <span class="op">=</span> <span class="va">Y</span>, X <span class="op">=</span> <span class="va">X</span><span class="op">)</span>, <span class="va">R</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">eng_resp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"none"</span>, n_total <span class="op">=</span> <span class="va">N</span><span class="op">)</span></span>
+<span><span class="va">fit_resp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span><span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>, data <span class="op">=</span> <span class="va">df_resp</span>, engine <span class="op">=</span> <span class="va">eng_resp</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_resp</span><span class="op">)</span></span>
+<span><span class="co">#&gt; NMAR Model Summary</span></span>
+<span><span class="co">#&gt; =================</span></span>
+<span><span class="co">#&gt; Y_miss mean: 1.512261</span></span>
+<span><span class="co">#&gt; Converged: TRUE </span></span>
+<span><span class="co">#&gt; Variance method: none </span></span>
+<span><span class="co">#&gt; Variance notes: Variance skipped (variance_method='none') </span></span>
+<span><span class="co">#&gt; Total units: 110 </span></span>
+<span><span class="co">#&gt; Respondents: 110 </span></span>
+<span><span class="co">#&gt; Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=110&gt;, engine = empirical_likelihood)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Response-model coefficients:</span></span>
+<span><span class="co">#&gt;              Estimate Std. Error z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; (Intercept) -1.033558         NA      NA       NA</span></span>
+<span><span class="co">#&gt; Y_miss       0.310571         NA      NA       NA</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="response-only-predictors">Response-only predictors<a class="anchor" aria-label="anchor" href="#response-only-predictors"></a>
 </h2>
 <p>You can include predictors that enter only the response model (and
-are not constrained as auxiliaries). Specify them in
-<code>covariates_missingness</code> while keeping the auxiliary set on
-the RHS of the outcome formula.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+are not constrained as auxiliaries). Specify them via the
+<code>response_predictors</code> argument to <code>nmar(...)</code>
+while keeping the auxiliary set on the RHS of the outcome formula.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">N</span> <span class="op">&lt;-</span> <span class="fl">400</span></span>
 <span><span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span></span>
 <span><span class="va">Z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span></span>
@@ -301,20 +336,20 @@ the RHS of the outcome formula.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_resp_only</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Model Summary</span></span>
 <span><span class="co">#&gt; =================</span></span>
-<span><span class="co">#&gt; Y_miss mean: 1.258792 (0.140526)</span></span>
-<span><span class="co">#&gt; 95% CI: (0.983365, 1.534218)</span></span>
+<span><span class="co">#&gt; Y_miss mean: 0.769584 (0.296324)</span></span>
+<span><span class="co">#&gt; 95% CI: (0.188800, 1.350367)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: delta </span></span>
 <span><span class="co">#&gt; Variance notes: Calculation successful </span></span>
 <span><span class="co">#&gt; Total units: 400 </span></span>
-<span><span class="co">#&gt; Respondents: 154 </span></span>
+<span><span class="co">#&gt; Respondents: 150 </span></span>
 <span><span class="co">#&gt; Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=400&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model coefficients:</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error    z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -0.850899   0.050330 -16.906464 0.000000</span></span>
-<span><span class="co">#&gt; Y_miss       0.286316   0.271628   1.054073 0.291849</span></span>
-<span><span class="co">#&gt; Z            0.058023   0.190335   0.304846 0.760483</span></span></code></pre></div>
+<span><span class="co">#&gt;              Estimate Std. Error   z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; (Intercept) -0.984914   0.367098 -2.682974 0.007297</span></span>
+<span><span class="co">#&gt; Y_miss       0.810075   0.260275  3.112383 0.001856</span></span>
+<span><span class="co">#&gt; Z           -0.586037   0.470181 -1.246408 0.212615</span></span></code></pre></div>
 <p>Auxiliary means and formulas:</p>
 <ul>
 <li>Names of <code>auxiliary_means</code> must match the variables on
@@ -322,7 +357,7 @@ the outcome RHS exactly.</li>
 <li>When <code>standardize = TRUE</code>, the engine automatically
 transforms <code>auxiliary_means</code> to the standardized scale
 internally and reports coefficients on the original scale.</li>
-<li>Response-only predictors (in <code>covariates_missingness</code>) do
+<li>Response-only predictors (in <code>response_predictors</code>) do
 not need auxiliary means.</li>
 </ul>
 </div>
@@ -332,7 +367,7 @@ not need auxiliary means.</li>
 <p>The estimator supports complex surveys via
 <code><a href="https://rdrr.io/pkg/survey/man/svydesign.html" class="external-link">survey::svydesign()</a></code>. This chunk runs only if the
 <code>survey</code> package is available.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"survey"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://r-survey.r-forge.r-project.org/survey/" class="external-link">survey</a></span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">api</span><span class="op">)</span></span>
@@ -366,8 +401,8 @@ not need auxiliary means.</li>
 <span><span class="co">#&gt;     dotchart</span></span>
 <span><span class="co">#&gt; NMAR Model Summary</span></span>
 <span><span class="co">#&gt; =================</span></span>
-<span><span class="co">#&gt; api00_miss mean: 561.429381 (34.832435)</span></span>
-<span><span class="co">#&gt; 95% CI: (486.721237, 636.137525)</span></span>
+<span><span class="co">#&gt; api00_miss mean: 691.822197 (20.660642)</span></span>
+<span><span class="co">#&gt; 95% CI: (647.509528, 736.134866)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: delta </span></span>
 <span><span class="co">#&gt; Variance notes: Calculation successful </span></span>
@@ -376,9 +411,9 @@ not need auxiliary means.</li>
 <span><span class="co">#&gt; Call: nmar(api00_miss ~ ell, data = &lt;survey.design: N=183&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model coefficients:</span></span>
-<span><span class="co">#&gt;               Estimate Std. Error    t value Pr(&gt;|t|)</span></span>
-<span><span class="co">#&gt; (Intercept) -19.677908   1.480160 -13.294451 0.000000</span></span>
-<span><span class="co">#&gt; api00_miss    0.035209   0.913557   0.038541 0.969801</span></span></code></pre></div>
+<span><span class="co">#&gt;              Estimate Std. Error   t value Pr(&gt;|t|)</span></span>
+<span><span class="co">#&gt; (Intercept)  3.231721   2.772422  1.165667 0.263225</span></span>
+<span><span class="co">#&gt; api00_miss  -0.005586   0.003900 -1.432427 0.173971</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="practical-guidance">Practical guidance<a class="anchor" aria-label="anchor" href="#practical-guidance"></a>
@@ -389,29 +424,10 @@ is often preferred for moderate samples, trimming, or near-boundary
 cases.</li>
 <li>Trimming: Use a finite <code>trim_cap</code> to improve robustness
 when large weights occur; prefer bootstrap variance when trimming.</li>
-<li>Solver method and Jacobian:
-<ul>
-<li>
-<code>solver_method = "auto"</code> (default) tries Newton (with the
-analytic Jacobian when available) and falls back to Broyden if needed.
-Force Broyden with <code>solver_method = "broyden"</code> for large‑p
-problems.</li>
-<li>
-<code>solver_jacobian = "analytic"</code> uses the analytic Jacobian
-for solving; set <code>"none"</code> to force secant updates.</li>
-</ul>
-</li>
-<li>Advanced nleqslv tuning:
-<ul>
-<li>Top‑level nleqslv args via
-<code>solver_args = list(global = "dbldog", xscalm = "auto")</code>.</li>
-<li>Control‑list tolerances via
-<code>control = list(xtol = 1e-10, ftol = 1e-10, maxit = 200)</code>.</li>
-<li>The effective settings used are recorded in
-<code>fit$diagnostics</code> (e.g., <code>solver_method</code>,
-<code>nleqslv_global</code>, <code>nleqslv_xscalm</code>).</li>
-</ul>
-</li>
+<li>Solver control: set
+<code>control = list(xtol = 1e-10, ftol = 1e-10, maxit = 200)</code> for
+tighter tolerances if needed. Globalization details are managed
+internally by <code>nleqslv</code>.</li>
 <li>Standardization: <code>standardize = TRUE</code> typically improves
 numerical stability and comparability across predictors and auxiliary
 means.</li>
@@ -419,8 +435,8 @@ means.</li>
 condition number, max equation residuals, trimming fraction) to assess
 numerical health and identification strength.</li>
 <li>Response-only predictors: Variables in
-<code>covariates_missingness</code> do not need to appear on the RHS of
-the outcome formula; they enter only the response model. Auxiliary means
+<code>response_predictors</code> do not need to appear on the RHS of the
+outcome formula; they enter only the response model. Auxiliary means
 must be supplied only for variables on the outcome RHS.</li>
 <li>Inconsistent auxiliaries: If provided auxiliary means are grossly
 inconsistent with the sample, EL weights may go negative and the solver
@@ -432,15 +448,28 @@ may fail. Consider revisiting the constraints, relaxing them, or using
 <li>Negative or extreme weights: set a finite <code>trim_cap</code>;
 prefer <code>variance_method = "bootstrap"</code> for SE.</li>
 <li>Ill-conditioned Jacobian (large
-<code>fit$diagnostics$jacobian_condition_number</code>): try
-<code>variance_ridge = TRUE</code> or
-<code>variance_pseudoinverse = TRUE</code> in
-<code>el_engine(...)</code>.</li>
+<code>fit$diagnostics$jacobian_condition_number</code>): delta variance
+may return NA by design; prefer
+<code>variance_method = "bootstrap"</code>. You may also tighten solver
+tolerances via
+<code>control = list(xtol=..., ftol=..., maxit=...)</code>.</li>
 <li>Convergence issues: check
 <code>fit$diagnostics$max_equation_residual</code>, rescale predictors
 (<code>standardize = TRUE</code>), or reduce the number of
 constraints.</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="solver-control-and-notes">Solver control and notes<a class="anchor" aria-label="anchor" href="#solver-control-and-notes"></a>
+</h2>
+<ul>
+<li>Control example: increase iterations and tighten tolerances via
+<code>control</code> (passed to <code>nleqslv</code>):</li>
+</ul>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ctrl</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">200</span>, xtol <span class="op">=</span> <span class="fl">1e-10</span>, ftol <span class="op">=</span> <span class="fl">1e-10</span><span class="op">)</span></span>
+<span><span class="va">eng_ctrl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"none"</span>, control <span class="op">=</span> <span class="va">ctrl</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span><span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>, data <span class="op">=</span> <span class="va">dat</span>, engine <span class="op">=</span> <span class="va">eng_ctrl</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="references-and-further-reading">References and further reading<a class="anchor" aria-label="anchor" href="#references-and-further-reading"></a>
@@ -450,9 +479,6 @@ constraints.</li>
 under nonignorable nonresponse or informative sampling. Journal of the
 American Statistical Association, 97(457), 193–200. <a href="doi:10.1198/016214502753479338" class="uri">doi:10.1198/016214502753479338</a>
 </li>
-<li>For practical scripts and experiments that informed this
-implementation, see the package’s development materials and the
-simulation script under <code>inst/simulations/mc-el.R</code>.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -469,7 +495,7 @@ under the hood.</li>
 Theory for NMAR” for equations, Jacobian blocks, and variance
 details.</li>
 </ul>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.5.1 (2025-06-13)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-pc-linux-gnu</span></span>
@@ -496,22 +522,18 @@ details.</li>
 <span><span class="co">#&gt; [1] survey_4.4-8   survival_3.8-3 Matrix_1.7-3   NMAR_0.0.0.1  </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
-<span><span class="co">#&gt;  [1] jsonlite_2.0.0      dplyr_1.1.4         compiler_4.5.1     </span></span>
-<span><span class="co">#&gt;  [4] Rcpp_1.1.0          tidyselect_1.2.1    nleqslv_3.3.5      </span></span>
-<span><span class="co">#&gt;  [7] tidyr_1.3.1         jquerylib_0.1.4     splines_4.5.1      </span></span>
-<span><span class="co">#&gt; [10] systemfonts_1.3.1   textshaping_1.0.4   yaml_2.3.10        </span></span>
-<span><span class="co">#&gt; [13] fastmap_1.2.0       lattice_0.22-7      R6_2.6.1           </span></span>
-<span><span class="co">#&gt; [16] generics_0.1.4      knitr_1.50          htmlwidgets_1.6.4  </span></span>
-<span><span class="co">#&gt; [19] backports_1.5.0     tibble_3.3.0        desc_1.4.3         </span></span>
-<span><span class="co">#&gt; [22] DBI_1.2.3           bslib_0.9.0         pillar_1.11.1      </span></span>
-<span><span class="co">#&gt; [25] rlang_1.1.6         cachem_1.1.0        broom_1.0.10       </span></span>
-<span><span class="co">#&gt; [28] xfun_0.53           fs_1.6.6            sass_0.4.10        </span></span>
-<span><span class="co">#&gt; [31] cli_3.6.5           pkgdown_2.1.3       magrittr_2.0.4     </span></span>
-<span><span class="co">#&gt; [34] digest_0.6.37       lifecycle_1.0.4     vctrs_0.6.5        </span></span>
-<span><span class="co">#&gt; [37] evaluate_1.0.5      glue_1.8.0          numDeriv_2016.8-1.1</span></span>
-<span><span class="co">#&gt; [40] mitools_2.4         ragg_1.5.0          rmarkdown_2.30     </span></span>
-<span><span class="co">#&gt; [43] purrr_1.1.0         tools_4.5.1         pkgconfig_2.0.3    </span></span>
-<span><span class="co">#&gt; [46] htmltools_0.5.8.1</span></span></code></pre></div>
+<span><span class="co">#&gt;  [1] jsonlite_2.0.0    dplyr_1.1.4       compiler_4.5.1    Rcpp_1.1.0       </span></span>
+<span><span class="co">#&gt;  [5] tidyselect_1.2.1  nleqslv_3.3.5     tidyr_1.3.1       jquerylib_0.1.4  </span></span>
+<span><span class="co">#&gt;  [9] splines_4.5.1     systemfonts_1.3.1 textshaping_1.0.4 yaml_2.3.10      </span></span>
+<span><span class="co">#&gt; [13] fastmap_1.2.0     lattice_0.22-7    R6_2.6.1          generics_0.1.4   </span></span>
+<span><span class="co">#&gt; [17] knitr_1.50        htmlwidgets_1.6.4 backports_1.5.0   tibble_3.3.0     </span></span>
+<span><span class="co">#&gt; [21] desc_1.4.3        DBI_1.2.3         bslib_0.9.0       pillar_1.11.1    </span></span>
+<span><span class="co">#&gt; [25] rlang_1.1.6       cachem_1.1.0      broom_1.0.10      xfun_0.53        </span></span>
+<span><span class="co">#&gt; [29] fs_1.6.6          sass_0.4.10       cli_3.6.5         pkgdown_2.1.3    </span></span>
+<span><span class="co">#&gt; [33] magrittr_2.0.4    digest_0.6.37     lifecycle_1.0.4   vctrs_0.6.5      </span></span>
+<span><span class="co">#&gt; [37] evaluate_1.0.5    glue_1.8.0        mitools_2.4       ragg_1.5.0       </span></span>
+<span><span class="co">#&gt; [41] rmarkdown_2.30    purrr_1.1.0       tools_4.5.1       pkgconfig_2.0.3  </span></span>
+<span><span class="co">#&gt; [45] htmltools_0.5.8.1</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="notes-on-variance-choices">Notes on variance choices<a class="anchor" aria-label="anchor" href="#notes-on-variance-choices"></a>

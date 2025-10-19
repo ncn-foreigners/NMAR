@@ -61,10 +61,16 @@
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Builds the block Jacobian \(A=\partial F/\partial \theta\) for the
-  EL estimating system (\(\beta\), \(W\), and auxiliary multipliers).
-  The response‑model score is \(\partial\log p(\eta)/\partial\eta =
-  \mu_\eta(\eta)/p(\eta)\), which generalizes to both logit and probit
-  families. Aligned with Qin, Leung and Shao (2002).</p>
+  full EL system with \(\theta=(\beta, z, \lambda_x)\) and \(z=\operatorname{logit}(W)\).
+  The response-model score derivative with respect to the linear predictor
+  is used for both logit and probit links. This is consistent with the EL
+  formulation in Qin, Leung and Shao (2002). Denominator guards are applied
+  when forming terms that depend on the empirical likelihood weights.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
+    <p>Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
+nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
