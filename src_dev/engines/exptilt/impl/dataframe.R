@@ -336,7 +336,7 @@ exptilt_estimator_core <- function(model, respondent_mask,
     vcov = if (use_bootstrap) default_vcov else var_results$vcov,
     model = model,
     converged = TRUE,
-    weights = model$design_weights[respondent_mask],
+    weights = model$design_weights,
     variance_message = NA_character_
   )
 
