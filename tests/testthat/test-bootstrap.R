@@ -8,7 +8,7 @@ bootstrap_dummy_estimator <- function(data, on_failure = "return") {
   }
   structure(
     list(
-      estimate = est,
+      y_hat = est,
       estimate_name = "y",
       se = NA_real_,
       converged = TRUE,

@@ -11,5 +11,5 @@ test_that("MCAR sanity: EL equals respondent mean (large N)", {
   fit <- nmar(Y_miss ~ 1, data = df, engine = eng)
   mu_resp <- mean(Y[R], na.rm = TRUE)
   expect_true(fit$converged)
-  expect_lt(abs(as.numeric(fit$estimate) - mu_resp), 5e-3)
+  expect_lt(abs(as.numeric(fit$y_hat) - mu_resp), 5e-3)
 })

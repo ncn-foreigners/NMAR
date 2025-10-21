@@ -11,7 +11,7 @@ test_that("coef(summary()) returns response-model table for EL (IID)", {
   expect_true(is.null(tb) || is.data.frame(tb))
   if (is.data.frame(tb)) {
     nm <- names(tb)
-    expect_true(all(c("Estimate", "Std. Error") %in% nm))
+    expect_true(all(c("y_hat", "Std. Error") %in% nm))
 # IID path uses z-statistics
     expect_true(any(nm == "z value"))
     expect_true(any(nm == "Pr(>|z|)"))

@@ -7,7 +7,7 @@
 new_nmar_result <- function(...) {
   dots <- list(...)
 
-  estimate <- dots$estimate
+  y_hat <- dots$estimate
   se <- dots$se
   estimate_name <- dots$estimate_name %||% NA_character_
   converged <- dots$converged
@@ -49,7 +49,7 @@ new_nmar_result <- function(...) {
   if (!is.list(extra)) extra <- list()
 
   result <- list(
-    estimate = estimate,
+    y_hat = y_hat,
     estimate_name = estimate_name,
     se = se,
     converged = converged,

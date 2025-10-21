@@ -26,7 +26,7 @@ test_that("delta variance is finite in multi-aux IID case (benign)", {
       d2$Y_miss <- Y
       d2$Y_miss[Rb == 0] <- NA_real_
       fb <- suppressWarnings(nmar(Y_miss ~ X1 + X2, data = d2, engine = eng, response_predictors = "Z"))
-      est[b] <- fb$estimate
+      est[b] <- fb$y_hat
       se2[b] <- as.numeric(fb$se)^2
     }
     var_emp <- stats::var(est, na.rm = TRUE)

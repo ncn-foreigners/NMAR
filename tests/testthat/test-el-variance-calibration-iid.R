@@ -21,7 +21,7 @@ test_that("EL delta variance calibrates in a benign IID regime (integration)", {
     df <- data.frame(Y_miss = Y, X = X)
     df$Y_miss[R == 0] <- NA_real_
     fit <- NMAR::nmar(Y_miss ~ X, data = df, engine = eng)
-    est[b] <- as.numeric(fit$estimate)
+    est[b] <- as.numeric(fit$y_hat)
     se_d[b] <- suppressWarnings(as.numeric(fit$se))
   }
 # Basic sanity: delta SEs mostly finite and non-trivial

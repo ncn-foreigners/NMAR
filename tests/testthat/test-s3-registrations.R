@@ -21,7 +21,7 @@ test_that("nmar_result S3 generics are registered", {
 
   glance_df <- generics::glance(res)
   expect_s3_class(glance_df, "data.frame")
-  expect_true(all(c("estimate", "std.error") %in% names(glance_df)))
+  expect_true(all(c("y_hat", "std.error") %in% names(glance_df)))
 
   sum_obj <- summary(res)
   expect_s3_class(sum_obj, "summary_nmar_result")

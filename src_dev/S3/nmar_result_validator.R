@@ -9,8 +9,8 @@ validate_nmar_result <- function(x, class_name) {
   stopifnot(is.list(x), inherits(x, class_name), inherits(x, "nmar_result"))
 
 # Core scalars
-  if (is.null(x$estimate)) stop("`estimate` must be supplied by the result object.")
-  if (length(x$estimate) != 1 || !is.numeric(x$estimate)) stop("`estimate` must be a numeric scalar.")
+  if (is.null(x$y_hat)) stop("`y_hat` must be supplied by the result object.")
+  if (length(x$y_hat) != 1 || !is.numeric(x$y_hat)) stop("`y_hat` must be a numeric scalar.")
 
   if (is.null(x$se)) x$se <- NA_real_
   if (length(x$se) != 1 || !is.numeric(x$se)) stop("`se` must be a numeric scalar (NA allowed).")
