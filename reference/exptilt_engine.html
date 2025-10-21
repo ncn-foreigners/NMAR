@@ -209,7 +209,6 @@ A Propensity-score-adjustment Method for Nonignorable Nonresponse
 <span class="r-in"><span><span class="va">formula</span> <span class="op">=</span> <span class="va">Y</span> <span class="op">~</span> <span class="va">x1</span></span></span>
 <span class="r-in"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">x</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span>, response_predictors <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Delta variance failed to evaluate; using bootstrap instead.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> Error: Variance estimation for nmar_exptilt is not yet implemented.</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NMAR Model Summary</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> =================</span>
