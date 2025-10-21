@@ -78,9 +78,9 @@ exptilt_config <- exptilt_engine(
   tol_value = 0.01,
   standardize = F,
   family = 'logit', # or logit
-  bootstrap_reps = 50
+  bootstrap_reps = 50,
 # standardize = TRUE
-# variance_method='bootstrap' #or delta
+variance_method = 'bootstrap' # or delta
 # variance_method='delta' #or bootstrap
 # bootstrap_reps=10
 )
@@ -101,7 +101,7 @@ coef(res)
 
 ```{r}
 cat('True Y mean:          ', sprintf('%.4f', mean(y_original)), '\n')
-est <- as.numeric(res$estimate)
+est <- as.numeric(res$y_hat)
 se <- res$se
 cat('Est Y mean (NMAR):    ', sprintf('%.4f', est),
     '  3σ interval: (', sprintf('%.4f', est - 1.5 * se),

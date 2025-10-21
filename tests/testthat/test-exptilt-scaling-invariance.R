@@ -54,11 +54,11 @@ test_that("exptilt scaling yields near-invariant estimates (IID)", {
   expect_true(fit_raw$converged)
 
 # Unscale the raw fit back to the original Y scale
-  est_raw_unscaled <- as.numeric(fit_raw$estimate * recipe$y$sd + recipe$y$mean)
+  est_raw_unscaled <- as.numeric(fit_raw$y_hat * recipe$y$sd + recipe$y$mean)
   se_raw_unscaled <- as.numeric(fit_raw$se * recipe$y$sd)
 
 # Compare with reasonable tolerances (iterative solver may land within small numerical deltas)
-  est_rel_diff <- abs(fit_std$estimate - est_raw_unscaled) / max(1, abs(fit_std$estimate))
+  est_rel_diff <- abs(fit_std$y_hat - est_raw_unscaled) / max(1, abs(fit_std$y_hat))
   se_rel_diff <- abs(fit_std$se - se_raw_unscaled) / fit_std$se
 
   expect_lt(est_rel_diff, 0.01) # < 1% relative difference in point estimate

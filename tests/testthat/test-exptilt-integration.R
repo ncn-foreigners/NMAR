@@ -26,7 +26,7 @@ test_that("exptilt converges on simple IID example", {
     )
   )
   expect_true(fit$converged)
-  expect_true(is.finite(fit$estimate))
+  expect_true(is.finite(fit$y_hat))
   expect_true(is.finite(fit$se))
 
 # The fit surfaces successfully and produces finite estimates
@@ -65,6 +65,6 @@ test_that("exptilt handles simple survey design", {
     )
   )
   expect_true(fit$converged)
-  expect_true(is.finite(fit$estimate))
+  expect_true(is.finite(fit$y_hat))
   expect_equal(fit$sample$n_total, n)
 })

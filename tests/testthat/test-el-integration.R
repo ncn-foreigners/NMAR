@@ -7,11 +7,11 @@ test_that("EL engine runs and returns expected structure (data.frame)", {
 
   expect_s3_class(res, "nmar_result_el")
   expect_type(res$converged, "logical")
-  expect_true(is.numeric(res[['estimate']]))
+  expect_true(is.numeric(res[['y_hat']]))
   expect_true(is.numeric(res[['se']]))
 
-  est <- res[['estimate']]
-  expect_equal(as.numeric(est), res[['estimate']])
+  est <- res[['y_hat']]
+  expect_equal(as.numeric(est), res[['y_hat']])
 
   ci <- confint(res)
   expect_true(is.matrix(ci) && nrow(ci) == 1)

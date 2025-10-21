@@ -26,7 +26,7 @@ test_that("delta variance is finite in intercept-only IID case", {
       d2$Y_miss <- Y
       d2$Y_miss[Rb == 0] <- NA_real_
       fb <- nmar(Y_miss ~ 1, data = d2, engine = eng)
-      est[b] <- fb$estimate
+      est[b] <- fb$y_hat
       se2[b] <- as.numeric(fb$se)^2
     }
     var_emp <- stats::var(est, na.rm = TRUE)

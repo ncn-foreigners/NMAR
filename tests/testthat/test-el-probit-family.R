@@ -4,7 +4,7 @@ test_that("EL engine runs with probit family (data.frame)", {
   eng <- make_engine(auxiliary_means = c(X = 0), variance_method = "none", standardize = FALSE, family = "probit")
   fit <- nmar(formula = Y_miss ~ X, data = df, engine = eng)
   expect_true(fit$converged)
-  expect_true(is.finite(fit[['estimate']]))
+  expect_true(is.finite(fit[['y_hat']]))
   expect_true(is.na(fit[['se']]) || is.finite(fit[['se']]))
 })
 

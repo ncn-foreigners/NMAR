@@ -2,7 +2,7 @@
 #'
 #' @keywords internal
 nmar_result_get_estimate <- function(x) {
-  x$estimate %||% NA_real_
+  x$y_hat %||% NA_real_
 }
 
 
@@ -10,7 +10,7 @@ nmar_result_get_estimate <- function(x) {
 #' @keywords internal
 nmar_result_get_estimate_name <- function(x) {
   x$estimate_name %||%
-    (if (!is.null(names(x$estimate)) && length(x$estimate) == 1) names(x$estimate) else NULL) %||%
+    (if (!is.null(names(x$y_hat)) && length(x$y_hat) == 1) names(x$y_hat) else NULL) %||%
     "estimand"
 }
 

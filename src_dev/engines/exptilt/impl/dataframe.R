@@ -275,8 +275,8 @@ exptilt_estimator_core <- function(model, respondent_mask,
 
     if (inherits(delta_attempt, "try-error")) {
       error_msg <- conditionMessage(attr(delta_attempt, "condition"))
-      warning("Delta variance failed to evaluate; using bootstrap instead.\nError: ",
-              error_msg, call. = FALSE)
+      warning("Delta variance failed to evaluate; using bootstrap instead.\n",
+              call. = FALSE)
     } else {
       var_results <- delta_attempt
       se_final <- sqrt(var_results$var_est)

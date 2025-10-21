@@ -7,7 +7,7 @@
 #'   or extend behavior.
 #' @details
 #'   Result objects expose a universal schema:
-#'   - `estimate`, `estimate_name`, `se`, `converged`.
+#'   - `y_hat`, `estimate_name`, `se`, `converged`.
 #'   - `model`: list with `coefficients`, `vcov`, plus optional extras.
 #'   - `weights_info`: list with respondent weights and trimming metadata.
 #'   - `sample`: list with total units, respondent count, survey flag, and `design`.
@@ -96,7 +96,7 @@ tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
   if (is.finite(se)) ci <- as.numeric(est + c(-1, 1) * crit * se)
   rows <- list(data.frame(
     term = nm,
-    estimate = as.numeric(est),
+    y_hat = as.numeric(est),
     std.error = se,
     conf.low = ci[1],
     conf.high = ci[2],
@@ -127,7 +127,7 @@ tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
     }
     rows[[2]] <- data.frame(
       term = beta_names,
-      estimate = beta_vec,
+      y_hat = beta_vec,
       std.error = se_beta,
       statistic = stat,
       p.value = pval,
@@ -162,7 +162,7 @@ glance.nmar_result <- function(x, ...) {
   ci <- c(NA_real_, NA_real_)
   if (is.finite(se)) ci <- as.numeric(est + c(-1, 1) * crit * se)
   data.frame(
-    estimate = as.numeric(est),
+    y_hat = as.numeric(est),
     std.error = se,
     conf.low = ci[1],
     conf.high = ci[2],
@@ -383,7 +383,7 @@ coef.summary_nmar_result <- function(object, ...) {
   if (is.null(beta_names) || length(beta_names) != length(beta_vec) || anyNA(beta_names)) {
     beta_names <- paste0("coef", seq_along(beta_vec))
   }
-  tab <- data.frame(Estimate = beta_vec, `Std. Error` = se, check.names = FALSE)
+  tab <- data.frame(y_hat = beta_vec, `Std. Error` = se, check.names = FALSE)
   tab[[stat_label]] <- stat
   p_label <- if (is.finite(df)) "Pr(>|t|)" else "Pr(>|z|)"
   tab[[p_label]] <- pval

@@ -58,7 +58,7 @@ summary.nmar_result <- function(object, conf.level = 0.95, ...) {
 
   structure(
     list(
-      estimate = as.numeric(est),
+      y_hat = as.numeric(est),
       estimate_name = nm,
       se = se,
       conf_int = ci,
@@ -86,10 +86,10 @@ print.summary_nmar_result <- function(x, ...) {
   cat("=================\n")
   d <- nmar_get_digits()
 # Print as: <name> mean: value (SE)
-  if (is.finite(x$estimate) && is.finite(x$se)) {
-    cat(sprintf("%s mean: %s (%s)\n", x$estimate_name, nmar_fmt_num(x$estimate, d), nmar_fmt_num(x$se, d)))
-  } else if (is.finite(x$estimate)) {
-    cat(sprintf("%s mean: %s\n", x$estimate_name, nmar_fmt_num(x$estimate, d)))
+  if (is.finite(x$y_hat) && is.finite(x$se)) {
+    cat(sprintf("%s mean: %s (%s)\n", x$estimate_name, nmar_fmt_num(x$y_hat, d), nmar_fmt_num(x$se, d)))
+  } else if (is.finite(x$y_hat)) {
+    cat(sprintf("%s mean: %s\n", x$estimate_name, nmar_fmt_num(x$y_hat, d)))
   } else {
     cat(sprintf("%s mean: NA\n", x$estimate_name))
   }

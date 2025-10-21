@@ -13,7 +13,7 @@
 #'   argument is replaced by the resampled data or replicate design.
 #' @param data a `data.frame` or a `survey.design`.
 #' @param estimator_func function that returns an S3 result object; the primary
-#'   estimate is extracted via `$estimate` and convergence via `$converged`.
+#'   estimate is extracted via `$y_hat` and convergence via `$converged`.
 #' @param point_estimate numeric; point estimate used for some survey variance formulas.
 #' @param ... passed through to `estimator_func`.
 #' @keywords internal
@@ -99,7 +99,7 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
 # Map the replicate result back to a scalar.  We still guard against
 # unexpected return types so the caller receives a warning instead of a
 # hard failure mid-bootstrap
-    estimates[i] <- tryCatch(as.numeric(fit$estimate), error = function(e) NA_real_)
+    estimates[i] <- tryCatch(as.numeric(fit$y_hat), error = function(e) NA_real_)
   }
 
   failed_reps <- sum(is.na(estimates))
@@ -181,7 +181,7 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
       if (!is.null(fit$converged) && !fit$converged) {
         return(NA_real_)
       }
-      as.numeric(fit$estimate)
+      as.numeric(fit$y_hat)
     },
     return.replicates = TRUE
   )
