@@ -88,7 +88,7 @@
 #'   min_iter = 3,
 #'   max_iter = 10,
 #'   tol_value = 0.01,
-#'   standardize = F,
+#'   standardize = FALSE,
 #'   family = 'logit', # or logit
 #'   bootstrap_reps = 50
 #' )
