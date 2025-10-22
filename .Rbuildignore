@@ -20,3 +20,5 @@
 ^README\.Rmd$
 ^codecov\.yml$
 ^.venv$
+^quadro\.html$
+^quadro_files$
