@@ -4,8 +4,13 @@ estim_mean.nmar_exptilt <- function(model) {
 
   x_mat <- as.matrix(model$x_1[, model$cols_delta])
   x_aug <- cbind(1, x_mat, model$x_1[, model$col_y])
+  x_aug <- apply(x_aug, 2, as.numeric) # Convert each column to numeric
 
-  eta <- as.vector(x_aug %*% model$theta)
+  theta <- unname(model$theta) # Remove names
+
+
+# browser()
+  eta <- as.vector(x_aug %*% theta)
 
   probabilities <- model$family$linkinv(eta)
 
