@@ -33,6 +33,10 @@ exptilt.data.frame <- function(data, formula, response_predictors = NULL,
   required_cols <- unique(c(outcome_var, aux_vars, response_predictors))
   data_subset <- data[, required_cols, drop = FALSE]
 
+  if (is.null(survey_design)) {
+    data <- as.data.frame(data)
+    data_subset <- as.data.frame(data_subset)
+  }
   model <- list(
     data = data,
     required_cols = required_cols,
