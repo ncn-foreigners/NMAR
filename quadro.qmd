@@ -11,8 +11,8 @@ format:
 editor: visual
 ---
 
-## NMAR - A novel `R Package`
-### Estimation under Nonignorable Nonresponse in Official Surveys
+## NMAR: An R Package for Estimation under Nonignorable Nonresponse
+### Tackling Nonignorable Missingness in Official Surveys with R
 <hr>
 
 
@@ -29,7 +29,7 @@ editor: visual
 <img src="./logo.PNG" alt="Logo" style="height: 550px;position:fixed;right:50px;bottom:100px"/>
 </div>
 
-## NMAR assumptions:
+## Motivation: The Challenge of Nonignorable Nonresponse (NMAR)
 
 1.  **Missing Data Structure**\
     We have $Y$ which contains NaNs. Each observation $x_i$ has its own $\delta_i$ which is 0 or 1:
@@ -79,10 +79,10 @@ If we assume gender affects response likelihood but not salary value itself)
 </div>
 > NMAR estimators are closer to true population mean compared to MAR (Naive) estimators
 
+## Overview of the NMAR R Package
+TO DO - Describe the package structure, architecture, user interface, shared features like bootstrap and standardization options
 
-
-
-## Exponential tilting approach
+## Exponential Tilting Estimator: Theoretical Background
 ### A Propensity-score-adjustment Method For Nonignorable Nonresponse (Aka `Exponential Tilting`)
 
 #### Minsun Kim Riddles<br> Jae Kwang Kim<br> Jongho Im
@@ -143,7 +143,17 @@ where $w_{ij}$ depends on $\hat{f}_1$ and odds ratio
 We never fill in missing values - we reweight observed data to represent the entire population!
 :::
 
-## NMAR Package Demonstration
+## Practical Implementation of Exponential Tilting
+TO DO
+
+## Empirical Likelihood Estimator: Theoretical Background
+TO DO
+
+## Practical Implementation of Empirical Likelihood
+TO DO
+
+## Exponential Tilting and Empirical Likelihood in Action
+or jsut "NMAR PACKAGE IN ACTION"??
 
 ```{r}
 #| echo: false
@@ -240,3 +250,9 @@ cat('Est Y mean (NMAR):    ', sprintf('%.4f', est),
     ', ', sprintf('%.4f', est + 1.5 * se), 'σ=', sprintf('%.4f', se), ')\n')
 cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(x[!is.na(x$Y), 'Y'])), '\n')
 ```
+
+## Future Work and Challenges
+TO DO - Large-scale data, further stability improvements, planned extensions, otehr estimators
+
+## Discussion and Q&A
+
