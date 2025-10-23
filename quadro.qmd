@@ -7,16 +7,18 @@ format:
     highlight-style: a11y
     height: 1080
     width: 1920    
-    scrollable: true  # Add this line
+    scrollable: true
 editor: visual
 ---
 
 ## NMAR: An R Package for Estimation under Nonignorable Nonresponse
+
 ### Tackling Nonignorable Missingness in Official Surveys with R
+
 <hr>
 
-
 #### National Science Centre grant Poland (OPUS 20 grant no. 2020/39/B/HS4/00941)
+
 <br>
 
 #### dr Maciej Beręsewicz (Poznan University of Business and Economics),<br> Igor Kołodziej (WUT - Faculty of Mathematics),<br> Mateusz Iwaniuk (WUT - Faculty of Mathematics)
@@ -25,14 +27,13 @@ editor: visual
 
 > NMAR - Not Missing At Random
 
-<div style="text-align: right;">
+::: {style="text-align: right;"}
 <img src="./logo.PNG" alt="Logo" style="height: 550px;position:fixed;right:50px;bottom:100px"/>
-</div>
+:::
 
 ## Motivation: The Challenge of Nonignorable Nonresponse (NMAR)
 
-1.  **Missing Data Structure**\
-    We have $Y$ which contains NaNs. Each observation $x_i$ has its own $\delta_i$ which is 0 or 1:
+1.  **Missing Data Structure** We have $Y$ which contains NaNs. Each observation $x_i$ has its own $\delta_i$ which is 0 or 1:
 
 > $$
 > \delta_i = \begin{cases} 
@@ -41,16 +42,14 @@ editor: visual
 > \end{cases}
 > $$
 
-2.  **Outcome Mechanism**\
-    We have at least one column which affects $Y$ value:
+2.  **Outcome Mechanism** We have at least one column which affects $Y$ value:
 
     > $Y, \delta \sim X_1$
 
-3.  **Response Mechanism**\
-    Optionally we have columns which affect $Y$ visibility **but not** $Y$:
+3.  **Response Mechanism** Optionally we have columns which affect $Y$ visibility **but not** $Y$:
 
     > $\delta \sim X_2$
-    
+
 **Note**: In general, $X_1 \cap X_2 = \emptyset$, but this depends on the specific method implementation and assumptions.
 
 ## Practical Example: Salary Survey
@@ -74,15 +73,193 @@ If we assume gender affects response likelihood but not salary value itself)
 > $\delta \sim \text{gender}$
 
 ## But does it work?
-<div style="text-align: center;">
+
+::: {style="text-align: center;"}
 <img src="./quadro/boxplots.png" alt="Simulation Results" style="width: 70%;"/>
-</div>
+:::
+
 > NMAR estimators are closer to true population mean compared to MAR (Naive) estimators
 
 ## Overview of the NMAR R Package
-TO DO - Describe the package structure, architecture, user interface, shared features like bootstrap and standardization options
+
+### A Production-Grade Implementation of NMAR Estimators
+
+**Package Architecture: Plugin-Based Design**
+
+```{r}
+#| eval: false
+#| echo: true
+# Simple, unified interface
+result <- nmar(
+  formula = Y_miss ~ X1 + X2, # Outcome and auxiliaries
+  data = my_data, # data.frame or survey.design
+  engine = el_engine(...), # Choose your method
+  response_predictors = c("Z") # Response mechanism predictors
+)
+```
+
+**Three estimation engines:** 
+- `el_engine()` — Empirical Likelihood (Qin, Leung, and Shao 2002) 
+- `exptilt_engine()` — Exponential Tilting (Kim and Riddles 2012) 
+- `exptilt_nonparam_engine()` — Nonparametric Exponential Tilting (Riddles et al. 2016)
+
+---
+
+## Package Design Philosophy {.smaller}
+
+### Separation of Concerns and Extensibility
+
+**Core Design Principles:**
+
+1.  **Single entry point** — `nmar()` function for all methods.
+2.  **Engine-agnostic interface** — Swap methods without changing user code.
+3.  **Dual data support** — Handles both `data.frame` (IID) and `survey.design` (complex surveys) with correct, design-based inference.
+4.  **Modular architecture** — Clean separation between:
+    -   Input validation (`validation/`)
+    -   Data preparation (`shared/input_pipeline.R`)
+    -   Engine implementations (`engines/*/`)
+    -   Variance estimation (`shared/bootstrap.R`, `engines/*/impl/variance.R`)
+    -   Result objects and S3 methods (`S3/`)
+
+**Why this matters:** 
+- **Reproducibility:** Researchers can compare methods on identical data. 
+- **Extensibility:** New engines can be added without touching existing code. 
+- **Compatiblity:** Survey statisticians get design-based inference automatically.
+
+---
+
+## Shared Infrastructure: Bootstrap & Standardization {.smaller}
+
+### Features Available Across All Engines
+
+**Bootstrap Variance Estimation** (`shared/bootstrap.R`)
+
+```{r}
+#| eval: false
+#| echo: true
+# Works with any engine
+engine <- el_engine(
+  variance_method = "bootstrap",
+  bootstrap_reps = 500
+)
+```
+
+-   **IID Data:** Nonparametric bootstrap (resamples respondents with replacement).
+-   **Survey Data:** Uses survey replicate weights if provided
+-   **Robust:** Works even when analytic (delta) method fails (e.g., with weight trimming).
+
+**Predictor Standardization** (`shared/scaling.R`)
+
+```{r}
+#| eval: false
+#| echo: true
+engine <- el_engine(standardize = TRUE) # Default
+```
+
+-   **Why:** Improves numerical conditioning of the Jacobian matrix, aiding solver convergence.
+-   **What:** All design matrices are centered and scaled.
+-   **Transparent:** Parameters are automatically back-transformed to their original scale for reporting.
+
+---
+
+## Workflow: From Data to Results {.smaller}
+
+### Step-by-Step Processing Pipeline
+
+::: {style="font-size: 28px;"}
+**1. Input Parsing** (`parse_nmar_spec`)
+
+```{r, eval=FALSE, echo=TRUE}
+# // Extract outcome, auxiliaries, response predictors from formula
+```
+
+**2. Validation** (`validate_nmar_args`)
+
+```{r, eval=FALSE, echo=TRUE}
+# // Check: missing values, variable names, engine compatibility
+```
+
+**3. Task Creation** (`new_nmar_task`)
+
+```{r, eval=FALSE, echo=TRUE}
+# // Bundle validated inputs for the engine
+```
+
+**4. Engine Dispatch** (`run_engine.*`)
+
+```{r, eval=FALSE, echo=TRUE}
+# // S3 method dispatch based on engine class
+```
+
+**5. Data Preparation** (`prepare_nmar_design`)
+
+```{r, eval=FALSE, echo=TRUE}
+# // Build design matrices, apply scaling, compute weights
+```
+
+**6. Estimation** (Engine-specific, e.g., `el_estimator_core`)
+
+```{r, eval=FALSE, echo=TRUE}
+# // Solve the core estimating equations
+```
+
+**7. Variance Calculation** (`el_variance_delta` or `bootstrap_variance`)
+
+```{r, eval=FALSE, echo=TRUE}
+# // Analytical sandwich or bootstrap resampling
+```
+
+**8. Result Object Creation** (`new_nmar_result_*`)
+
+```{r, eval=FALSE, echo=TRUE}
+# // Standardized output with print/summary/coef/vcov methods
+```
+:::
+
+---
+
+## S3 Methods and Tidy Integration {.smaller}
+
+### Familiar R Interface, Professional Output
+
+**Standard S3 methods provide a familiar user experience:**
+
+```{r}
+#| eval: false
+#| echo: true
+fit <- nmar(Y_miss ~ X, data = df, engine = el_engine(...))
+
+print(fit) # Compact summary view
+summary(fit) # Detailed diagnostics and coefficients
+coef(fit) # Extract response model coefficients
+vcov(fit) # Variance-covariance matrix of coefficients
+confint(fit) # Confidence intervals for the mean estimate
+```
+
+**Tidy integration via `broom` is supported:**
+
+```{r}
+#| eval: false
+#| echo: true
+library(broom)
+tidy(fit) # Coefficients as a tibble
+glance(fit) # Fit statistics as a tibble
+```
+
+**The result object contains all relevant information:**
+
+```         
+nmar_result
+├─ y_hat             # Point estimate of E[Y]
+├─ se                # Standard error of the mean estimate
+├─ model             # List with $coefficients and $vcov
+├─ converged         # Logical convergence flag
+├─ diagnostics       # Rich list of solver and weight diagnostics
+└─ meta              # Method, formula, sample sizes
+```
 
 ## Exponential Tilting Estimator: Theoretical Background
+
 ### A Propensity-score-adjustment Method For Nonignorable Nonresponse (Aka `Exponential Tilting`)
 
 #### Minsun Kim Riddles<br> Jae Kwang Kim<br> Jongho Im
@@ -92,7 +269,7 @@ TO DO - Describe the package structure, architecture, user interface, shared fea
 <br><br><br><br>
 
 -   Author of this paper gained PhD for their solution
--   I will highlight **overview concept** rather than go in details\
+-   I will highlight **overview concept** rather than go in details
 -   It took me few weeks to understand it, thus I am not able to explain this in 3 minutes 🤫
 
 <br>
@@ -109,18 +286,6 @@ TO DO - Describe the package structure, architecture, user interface, shared fea
 > $$
 
 ### 2. Compute Score Components
-
-<!-- > $$ -->
-
-<!-- S_{\text{obs}} = \sum_{j:\delta_j=1} s(y_j, X_{1j}) -->
-
-<!-- $$ -->
-
-<!-- $$ -->
-
-<!-- S_{\text{mis}} = \sum_{j:\delta_j=0} \sum_i w_{ij} \cdot s(y_i, X_{1i}) -->
-
-<!-- $$ -->
 
 > $S_{\text{obs}} = \sum_{j:\delta_j=1} s(y_j, X_{1j})$, \quad $S_{\text{mis}} = \sum_{j:\delta_j=1} \sum_{i:\delta_i=0} w_{ij} \cdot s(y_j, X_{1i})$
 
@@ -144,16 +309,273 @@ We never fill in missing values - we reweight observed data to represent the ent
 :::
 
 ## Practical Implementation of Exponential Tilting
+
 TO DO
 
-## Empirical Likelihood Estimator: Theoretical Background
-TO DO
+## Empirical Likelihood: From Theory to Practice
 
-## Practical Implementation of Empirical Likelihood
-TO DO
+### A semiparametric likelihood approach for NMAR
 
-## Exponential Tilting and Empirical Likelihood in Action
-or jsut "NMAR PACKAGE IN ACTION"??
+The core idea is to maximize a **nonparametric likelihood** by placing probability mass $p_i$ on each of the $n$ observed respondents.
+
+$$ 
+\max_{p_i, \theta, W} \sum_{i:\delta_i=1} \log(p_i) 
+$$
+
+This maximization is subject to **calibration constraints** that connect the sample to the population and the response model.
+
+-   $w(y,x;\theta)$ is the parametric response model (e.g., logit, probit).
+-   $F$ is the unknown joint distribution of the data $(X, Y)$, represented by the $p_i$.
+
+---
+
+## EL: Calibration Constraints {.smaller}
+
+### Aligning the sample with population-level information
+
+We find weights $p_i$ for each respondent that satisfy three key sets of constraints:
+
+::::: columns
+::: {.column width="50%"}
+**1. Probability Axiom**
+
+The weights must form a valid probability distribution. $$ 
+\sum_{i:\delta_i=1} p_i = 1
+$$
+
+**2. Response Model**
+
+The weighted average of response probabilities must equal the overall estimated response rate, $W$. $$ 
+\sum_{i:\delta_i=1} p_i \cdot \{w(y_i,x_i;\theta)-W\} = 0
+$$
+:::
+
+::: {.column width="50%"}
+**3. Auxiliary Information**
+
+The weighted sample means of auxiliary variables must equal their known population means, $\mu_x$. $$ 
+\sum_{i:\delta_i=1} p_i \cdot (x_i-\mu_x) = 0
+$$
+
+This process finds weights that make the respondent sample "look like" the full population according to the model and auxiliary data.
+:::
+:::::
+
+---
+
+## The Full Estimating System {.smaller}
+### The system of equations our package actually solves
+
+The empirical likelihood approach yields **three coupled estimating equations**, solved jointly for  
+$(\beta, W, \lambda_W, \lambda_x)$.
+
+| **Equation** | **Purpose** | **Simplified Form** |
+|:--------------|:------------|:--------------------|
+| **Response Model** | Fits the parametric response mechanism $w(y,x;\theta)$ | $\displaystyle \sum_i a_i\,Z_i\,[\,\text{score}_i - \lambda_W\,(\text{adjustment})\,]=0$ |
+| **Response Rate** | Ensures the overall response rate matches the model | $\displaystyle \sum_i a_i\,\frac{w_i - W}{D_i}=0$ |
+| **Auxiliary Moments** | Aligns weighted sample means with known population means | $\displaystyle \sum_i a_i\,\frac{x_i - \mu_x}{D_i}=0$ |
+
+::: {.smaller}
+where  
+- $D_i = 1 + \lambda_W\,(w_i - W) + \lambda_x^{\top}(x_i - \mu_x)$ is the empirical-likelihood denominator,  
+- $a_i$ are design weights (set $a_i{=}1$ for IID data),  
+- $\lambda_W = \dfrac{N-n}{n(1-W)}$ is the response-rate multiplier,  
+- and $\lambda_x$ enforces auxiliary calibration.
+
+Each equation captures a distinct constraint — **model fit**, **response rate balance**, and **auxiliary consistency**.  
+Solving them jointly produces $(\hat\theta,\hat W,\hat\lambda_W,\hat\lambda_x)$.
+:::
+
+---
+
+## From Theory to Code: The `nmar` Implementation {.smaller}
+
+### How we solve the system robustly
+
+The theoretical equations are elegant but numerically challenging. Our implementation is hardened for reliable inference.
+
+-   **Challenge 1: Parameter Bounds** ($W \in (0,1)$)
+    -   **Solution:** We solve for $z = \text{logit}(W) \in \mathbb{R}$, an unconstrained reparameterization.
+-   **Challenge 2: Solver Performance** (Slow/unstable convergence)
+    -   **Solution:** We use an **analytical Jacobian** and a **staged solver** (Newton -\> Perturbed Restarts -\> Broyden).
+-   **Challenge 3: Numerical Stability** (Division by zero, `log(0)`)
+    -   **Solution:** We apply **numerical safeguards** (denominator guards, eta capping) at every step.
+-   **Challenge 4: Survey Data** (IID assumption violation)
+    -   **Solution:** We let design weights enter into estimating equations
+-   **Challenge 5: Extreme el weights** 
+    -   **Solution:** Trimming, diagnostics, numerical guards
+
+---
+
+## Implementation Detail: Reparameterization {.smaller}
+
+### Ensuring Valid Response Rates: $W \to z = \text{logit}(W)$
+
+**The Challenge:** - The paper's parameterization uses $W \in (0,1)$ directly. - A standard Newton solver could propose invalid updates, e.g., $W > 1$.
+
+**Our Solution:** We optimize over the unconstrained logit-transformed rate $z$.
+
+```{r}
+#| eval: false
+#| echo: true
+# Internally, the solver sees `z`
+z <- qlogis(W)
+
+# We recover W, which is always valid, via the inverse transform
+W <- plogis(z)
+```
+
+**Benefits:** 
+- The optimization is unconstrained, making the solver's job easier. 
+- The Jacobian is adjusted for the transformation via the chain rule. 
+- Boundary violations are impossible. - Optimization is numerically stable even as $W$ approaches 0 or 1.
+
+**Implementation:** Internal EL functions operate in the $(\beta, z, \lambda_x)$ space.
+
+---
+
+## Implementation Detail: Numerical Safeguards {.smaller}
+
+### Production-Ready Stability
+
+**1. Eta Capping** (`get_eta_cap()`)
+
+```{r, eval=FALSE, echo=TRUE}
+# // Prevent extreme linear predictor values, which cause Inf/NaN in link functions
+eta_i <- pmax(pmin(eta_raw, 50), -50)
+```
+
+**2. Probability Bounding**
+
+```{r, eval=FALSE, echo=TRUE}
+# // Keep response probabilities away from exact 0 or 1
+w_i <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
+```
+
+**3. Denominator Guarding** (Critical!)
+
+```{r, eval=FALSE, echo=TRUE}
+# // The EL denominator defines the weights and MUST be positive.
+denominator <- 1 + lambda_W * (w_i - W_bounded)
+if (K_aux > 0) denominator <- denominator + as.vector(X_centered %*% lambda_x)
+
+inv_denominator <- 1 / pmax(denominator, 1e-8)
+```
+
+-   This guard is applied in the estimating equations, the Jacobian, and the final weight calculation, preventing division by zero and ensuring positive EL weights.
+
+**Result:** The estimator converges reliably even in challenging scenarios where naive implementations would fail.
+
+---
+
+## Implementation Detail: Analytical Jacobian {.smaller}
+
+### Exact Derivatives for a Fast and Accurate Newton Solver
+
+**Why bother with Analytical?** 
+
+- **Quadratic Convergence:** Newton's method with an exact Jacobian converges extremely quickly near the solution. 
+
+- **Accuracy:** Avoids approximation errors inherent in numerical derivatives. 
+
+- **Robustness:** Not sensitive to the step size choices required by numeric differentiation.
+
+$$ 
+A = \begin{pmatrix}
+\frac{\partial F_\beta}{\partial \beta} & \frac{\partial F_\beta}{\partial z} & \frac{\partial F_\beta}{\partial \lambda_x} \\
+\frac{\partial F_W}{\partial \beta} & \frac{\partial F_W}{\partial z} & \frac{\partial F_W}{\partial \lambda_x} \\
+\frac{\partial F_\lambda}{\partial \beta} & \frac{\partial F_\lambda}{\partial z} & \frac{\partial F_\lambda}{\partial \lambda_x}
+\end{pmatrix} 
+$$
+
+---
+
+## Variance Estimation: Two Approaches {.smaller}
+
+### Analytical Delta Method vs. Bootstrap
+
+The `nmar` package offers two variance estimation methods, chosen via `variance_method = ...`.
+
+. . .
+
+**1. Delta Method** (`"delta"`)
+
+Uses the analytic sandwich formula.
+
+**Pros:** Fast, deterministic. Asymptotic normality.
+
+**Cons:** Can fail if $A$ is ill-conditioned; not valid with weight trimming. Notoriously difficult to implement.
+
+. . .
+
+**2. Bootstrap** (`"bootstrap"`)
+
+Performs resampling to estimate variance empirically. - **IID:** Resamples respondents with replacement. - **Survey:** Uses replicate weights from the survey design.
+
+**Pros:** Robust (always works), valid with trimming, empirically validated. **Cons:** Computationally intensive.
+
+**Recommendation:** For now, use `"bootstrap"` for final results, `"delta"` for exploration.
+
+---
+
+## Implementation Detail: Survey Design Support {.smaller}
+
+### Complex Sampling and Design-Based Inference
+
+The package correctly distinguishes between IID data and complex survey data at every step.
+
+```{r}
+#| eval: false
+#| echo: true
+# IID data (data.frame)
+fit_iid <- nmar(Y_miss ~ X, data = df, engine = el_engine(...))
+
+# Complex survey design (survey.design)
+library(survey)
+des <- svydesign(ids = ~PSU, strata = ~stratum, weights = ~wt, data = df)
+fit_svy <- nmar(Y_miss ~ X, data = des, engine = el_engine(...))
+```
+
+**Design-based features implemented:** - **Weighted Equations:** The design weights $a_i$ (from `weights(des)`) are correctly incorporated into the estimating system. 
+
+**Design-based Score Variance:** The "meat" matrix $B$ is computed via `survey::svytotal()` and `vcov()`, which correctly accounts for stratification, clustering, and unequal probabilities.
+
+
+**Implementation:** Separate S3 methods (`el.data.frame` vs `el.survey.design`) dispatch to the correct variance calculation.
+
+---
+
+## Diagnostics & Introspection {.smaller}
+
+### Understanding What Happened Inside the Black Box
+
+A rich set of diagnostics is crucial for trusting NMAR models.
+
+**Accessing diagnostics:**
+
+```{r, eval=FALSE, echo=TRUE}
+fit <- nmar(...)
+summary(fit)
+# or for the full list:
+diagnostics <- nmar_result_get_diagnostics(fit)
+```
+
+**Key diagnostics and what they mean:** 
+- `jacobian_condition_number`: Measures stability of the system.
+- `max_equation_residual`: Should be near zero if converged. 
+- `min_denominator`: Must be positive. Values near zero suggest unstable weights. 
+- `ess` (Effective Sample Size of Weights): Measures weight degeneracy. 
+- `max_weight_share`: The influence of the single most important observation.
+- `trim_fraction`: The proportion of observations whose weights were trimmed.
+
+**Interpretation Guide:** 
+- `ess < 30` or `max_weight_share > 0.3`: Results depend on a few data points. Re-check your model or add auxiliary variables. 
+- `kappa > 1e10`: The Jacobian is ill-conditioned. Trust bootstrap variance over delta method. 
+- `trim_fraction > 0.1`: A large proportion of weights were trimmed. The model may be misspecified, and the estimate is likely biased.
+
+---
+
+## NMAR Package in Action
 
 ```{r}
 #| echo: false
@@ -252,7 +674,11 @@ cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(x[!is.na(x$Y), 'Y'])), '\n')
 ```
 
 ## Future Work and Challenges
-TO DO - Large-scale data, further stability improvements, planned extensions, otehr estimators
+
+-   Large-scale data handling
+-   Further numerical performance and stability tweaks
+-   Analytical variance calculation
+-   Bootstrap parallelization
+-   Extension to new estimation approaches
 
 ## Discussion and Q&A
-
