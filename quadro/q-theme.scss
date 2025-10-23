@@ -28,3 +28,16 @@ h1 {
 .author, .date {
   font-size: 34px;
 }
+
+.hidden { display: none; }
+
+.reveal .MathJax_Display { margin: .7em 0; line-height: 1.25; }
+.eq-card {
+  background: rgba(255,255,255,.6);
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 14px;
+  padding: .75rem 1rem;
+  box-shadow: 0 3px 10px rgba(0,0,0,.06);
+  backdrop-filter: blur(2px);
+}
+.smallish { font-size: .9em; }

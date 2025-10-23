@@ -8,10 +8,14 @@ format:
     height: 1080
     width: 1920    
     scrollable: true
+    html-math-method: mathjax
 editor: visual
 ---
 
 ## NMAR: An R Package for Estimation under Nonignorable Nonresponse
+::: {.hidden}
+$$\everymath{\displaystyle}$$
+:::
 
 ### Tackling Nonignorable Missingness in Official Surveys with R
 
@@ -33,7 +37,7 @@ editor: visual
 
 ## Motivation: The Challenge of Nonignorable Nonresponse (NMAR)
 
-1.  **Missing Data Structure** We have $Y$ which contains NaNs. Each observation $x_i$ has its own $\delta_i$ which is 0 or 1:
+1.  **Missing Data Structure**: We are interesting in estimating the mean of $Y$ which is subject to missingness. Each observation $y_i$ has its corresponding respone indicator $\delta_i$:
 
 > $$
 > \delta_i = \begin{cases} 
@@ -42,15 +46,15 @@ editor: visual
 > \end{cases}
 > $$
 
-2.  **Outcome Mechanism** We have at least one column which affects $Y$ value:
+2.  **Outcome Mechanism**: Having a set of auxiliary covariates $X_1$, we model
 
-    > $Y, \delta \sim X_1$
+$$\mathbb{P}(Y \mid X_1) \text{, or nonparametric } F(Y, X_1)$$
+    
+3.  **Response Mechanism**: The missingness of $Y$ depends on $Y$ itself, and perhaps on other covariates $X_2$
 
-3.  **Response Mechanism** Optionally we have columns which affect $Y$ visibility **but not** $Y$:
+$$P(\delta=1\mid Y, X_2) \neq P(\delta=1\mid X_2)$$
 
-    > $\delta \sim X_2$
-
-**Note**: In general, $X_1 \cap X_2 = \emptyset$, but this depends on the specific method implementation and assumptions.
+**Note**: The sets of auxiliary and response model covariates may or may not overlap depending the method.
 
 ## Practical Example: Salary Survey
 
@@ -62,15 +66,15 @@ editor: visual
 
 **Outcome Mechanism** :
 
-> $Y, \delta \sim \text{experience} + \text{education}$
+> $Y \sim \text{experience} + \text{education}$
 
 <br>
 
 **Response Mechanism**:
 
-If we assume gender affects response likelihood but not salary value itself)
+Assuming that apart from salary, it is also affected by age
 
-> $\delta \sim \text{gender}$
+> $\delta \sim Y + \text{age}$
 
 ## But does it work?
 
@@ -78,7 +82,7 @@ If we assume gender affects response likelihood but not salary value itself)
 <img src="./quadro/boxplots.png" alt="Simulation Results" style="width: 70%;"/>
 :::
 
-> NMAR estimators are closer to true population mean compared to MAR (Naive) estimators
+> NMAR estimators are closer to true population mean compared to MAR estimators, naive sample mean is badly biased.
 
 ## Overview of the NMAR R Package
 
@@ -98,12 +102,9 @@ result <- nmar(
 )
 ```
 
-**Three estimation engines:** 
-- `el_engine()` — Empirical Likelihood (Qin, Leung, and Shao 2002) 
-- `exptilt_engine()` — Exponential Tilting (Kim and Riddles 2012) 
-- `exptilt_nonparam_engine()` — Nonparametric Exponential Tilting (Riddles et al. 2016)
+**Three estimation engines:** - `el_engine()` — Empirical Likelihood (Qin, Leung, and Shao 2002) - `exptilt_engine()` — Exponential Tilting (Kim and Riddles 2012) - `exptilt_nonparam_engine()` — Nonparametric Exponential Tilting (Riddles et al. 2016)
 
----
+------------------------------------------------------------------------
 
 ## Package Design Philosophy {.smaller}
 
@@ -121,12 +122,9 @@ result <- nmar(
     -   Variance estimation (`shared/bootstrap.R`, `engines/*/impl/variance.R`)
     -   Result objects and S3 methods (`S3/`)
 
-**Why this matters:** 
-- **Reproducibility:** Researchers can compare methods on identical data. 
-- **Extensibility:** New engines can be added without touching existing code. 
-- **Compatiblity:** Survey statisticians get design-based inference automatically.
+**Why this matters:** - **Reproducibility:** Researchers can compare methods on identical data. - **Extensibility:** New engines can be added without touching existing code. - **Compatiblity:** Survey statisticians get design-based inference automatically.
 
----
+------------------------------------------------------------------------
 
 ## Shared Infrastructure: Bootstrap & Standardization {.smaller}
 
@@ -160,7 +158,7 @@ engine <- el_engine(standardize = TRUE) # Default
 -   **What:** All design matrices are centered and scaled.
 -   **Transparent:** Parameters are automatically back-transformed to their original scale for reporting.
 
----
+------------------------------------------------------------------------
 
 ## Workflow: From Data to Results {.smaller}
 
@@ -216,7 +214,7 @@ engine <- el_engine(standardize = TRUE) # Default
 ```
 :::
 
----
+------------------------------------------------------------------------
 
 ## S3 Methods and Tidy Integration {.smaller}
 
@@ -258,7 +256,7 @@ nmar_result
 └─ meta              # Method, formula, sample sizes
 ```
 
-## Exponential Tilting Estimator: Theoretical Background
+## Exponential Tilting Estimator: From Theory to Practice
 
 ### A Propensity-score-adjustment Method For Nonignorable Nonresponse (Aka `Exponential Tilting`)
 
@@ -308,83 +306,150 @@ where $w_{ij}$ depends on $\hat{f}_1$ and odds ratio
 We never fill in missing values - we reweight observed data to represent the entire population!
 :::
 
-## Practical Implementation of Exponential Tilting
+------------------------------------------------------------------------
 
-TO DO
+## Empirical Likelihood (EL): Theory Overview
 
-## Empirical Likelihood: From Theory to Practice
+### Based on Qin, Leung &amp; Shao (JASA, 2002)
 
-### A semiparametric likelihood approach for NMAR
+**Goal.** Estimate the population mean of $Y$ with **nonignorable nonresponse** $R$.
 
-The core idea is to maximize a **nonparametric likelihood** by placing probability mass $p_i$ on each of the $n$ observed respondents.
+- **Model only the response mechanism**
+  
+  $$
+  w(y,x;\beta)=P(R=1\mid Y{=}y, X{=}x)
+  \quad\text{(eg. logit or probit)}
+  $$
 
-$$ 
-\max_{p_i, \theta, W} \sum_{i:\delta_i=1} \log(p_i) 
-$$
+- **Do not model** $F(y,x)$, treat it **nonparametrically**.
 
-This maximization is subject to **calibration constraints** that connect the sample to the population and the response model.
-
--   $w(y,x;\theta)$ is the parametric response model (e.g., logit, probit).
--   $F$ is the unknown joint distribution of the data $(X, Y)$, represented by the $p_i$.
-
----
-
-## EL: Calibration Constraints {.smaller}
-
-### Aligning the sample with population-level information
-
-We find weights $p_i$ for each respondent that satisfy three key sets of constraints:
-
-::::: columns
-::: {.column width="50%"}
-**1. Probability Axiom**
-
-The weights must form a valid probability distribution. $$ 
-\sum_{i:\delta_i=1} p_i = 1
-$$
-
-**2. Response Model**
-
-The weighted average of response probabilities must equal the overall estimated response rate, $W$. $$ 
-\sum_{i:\delta_i=1} p_i \cdot \{w(y_i,x_i;\theta)-W\} = 0
-$$
-:::
-
-::: {.column width="50%"}
-**3. Auxiliary Information**
-
-The weighted sample means of auxiliary variables must equal their known population means, $\mu_x$. $$ 
-\sum_{i:\delta_i=1} p_i \cdot (x_i-\mu_x) = 0
-$$
-
-This process finds weights that make the respondent sample "look like" the full population according to the model and auxiliary data.
-:::
-:::::
+Thus EL is **semiparametric**: finite-dimensional $\beta$ for $w$, nonparametric $F$.
 
 ---
 
-## The Full Estimating System {.smaller}
-### The system of equations our package actually solves
+## Observed–Data Semiparametric Likelihood
 
-The empirical likelihood approach yields **three coupled estimating equations**, solved jointly for  
-$(\beta, W, \lambda_W, \lambda_x)$.
+Let $n$ be respondents from a nominal population of size $N$. Define
 
-| **Equation** | **Purpose** | **Simplified Form** |
-|:--------------|:------------|:--------------------|
-| **Response Model** | Fits the parametric response mechanism $w(y,x;\theta)$ | $\displaystyle \sum_i a_i\,Z_i\,[\,\text{score}_i - \lambda_W\,(\text{adjustment})\,]=0$ |
-| **Response Rate** | Ensures the overall response rate matches the model | $\displaystyle \sum_i a_i\,\frac{w_i - W}{D_i}=0$ |
-| **Auxiliary Moments** | Aligns weighted sample means with known population means | $\displaystyle \sum_i a_i\,\frac{x_i - \mu_x}{D_i}=0$ |
+$$
+W \;=\; \iint w(y,x;\beta)\,dF(y,x).
+$$
 
-::: {.smaller}
-where  
-- $D_i = 1 + \lambda_W\,(w_i - W) + \lambda_x^{\top}(x_i - \mu_x)$ is the empirical-likelihood denominator,  
-- $a_i$ are design weights (set $a_i{=}1$ for IID data),  
-- $\lambda_W = \dfrac{N-n}{n(1-W)}$ is the response-rate multiplier,  
-- and $\lambda_x$ enforces auxiliary calibration.
+<div class="eq-card">
+$$
+L(\beta,F)\ \propto\
+\Bigg\{\prod_{i:\,R_i=1} w(y_i,x_i;\beta)\,dF(y_i,x_i)\Bigg\}\,
+W^{\,n}\,(1-W)^{\,N-n}.
+$$
+</div>
 
-Each equation captures a distinct constraint — **model fit**, **response rate balance**, and **auxiliary consistency**.  
-Solving them jointly produces $(\hat\theta,\hat W,\hat\lambda_W,\hat\lambda_x)$.
+We **profile out $F$** using the empirical likelihood framework.
+
+---
+
+## Profiling Out $F$: EL Masses and Constraints
+
+Place masses $p_i$ on respondents $(y_i,x_i)$ and, **for fixed $(\beta,W)$**, maximize the $F$-part of the likelihood subject to:
+
+- **Probability:** $\sum p_i=1$
+- **Response-rate calibration:** $\sum p_i\{w(y_i,x_i;\beta)-W\}=0$
+- **Auxiliary calibration (optional):** $\sum p_i (x_i-\mu_x)=0$  
+  (Use known $\mu_x$ or $\bar X$; drop if no auxiliaries.)
+
+Inner profiling objective:
+
+::: columns
+::: column
+**IID:** $\displaystyle \max_{\{p_i\}} \sum_{i:R_i=1}\log p_i$
 :::
+::: column
+**Survey designs:** $\displaystyle \max_{\{p_i\}} \sum_{i:R_i=1} a_i\,\log p_i$
+:::
+:::
+
+Lagrange multipliers $(\lambda_W,\lambda_x)$ yield the EL denominator
+<div class="eq-card">
+$$
+D_i \;=\; 1 + \lambda_W\big(w(y_i,x_i;\beta)-W\big) + (x_i-\mu_x)^\top\lambda_x.
+$$
+</div>
+
+---
+
+## Closed-Form EL Weights and $\lambda_W$
+
+**i.i.d. (SRS):**
+$$
+p_i \;=\; \frac{1}{n\,D_i}.
+$$
+
+**Survey designs (base weights $a_i$):**
+$$
+p_i^{\text{EL}}\ \propto\ \frac{a_i}{D_i}
+\quad\text{(normalization cancels in }\ \hat\mu_Y=\tfrac{\sum p_i^{\text{EL}}y_i}{\sum p_i^{\text{EL}}}\text{)}.
+$$
+
+**Key identity (derived, not free):**
+$$
+\lambda_W \;=\; \frac{\dfrac{\sum_{\text{all}} a_i}{\sum_{R=1} a_i}\,-\,1}{1-W}
+\quad\text{(SRS: } \lambda_W=\tfrac{N/n-1}{1-W}\text{)}.
+$$
+
+---
+
+## Estimating Equations (Stacked System)
+
+Let $Z_i$ be the response design row, $\eta_i=Z_i\beta$, $w_i=\operatorname{linkinv}(\eta_i)$,
+$\mu_{\eta,i}=\dfrac{dw}{d\eta}(\eta_i)$, and $s_i=\mu_{\eta,i}/w_i$.
+With design weights $a_i$ (set $a_i=1$ for i.i.d.):
+
+<div class="smallish">
+
+- **Auxiliary calibration** ($L$ eqns; omit if no auxiliaries):
+  $$
+  \sum_i a_i\,\frac{x_i-\mu_x}{D_i} \;=\; 0
+  $$
+
+- **Response rate**:
+  $$
+  \sum_i a_i\,\frac{w_i - W}{D_i} \;=\; 0
+  $$
+
+- **Response-model score balance** ($K$ eqns):
+  $$
+  \sum_i a_i\, Z_i \Bigg[s_i\;-\;\frac{\lambda_W\,\mu_{\eta,i}}{D_i}\Bigg] \;=\; 0
+  $$
+
+where $D_i=1+\lambda_W(w_i-W)+(x_i-\mu_x)^\top\lambda_x$.
+</div>
+
+We solve for $(\beta, W, \lambda_x)$ with $\lambda_W$ **given by the identity above**. Often optimize on $z=\operatorname{logit}(W)$.
+
+---
+
+## Final Estimator
+
+Using EL weights:
+<div class="eq-card">
+$$
+\hat\mu_Y \;=\; \frac{\sum_{i:R_i=1} p_i^{\text{EL}}\,y_i}{\sum_{i:R_i=1} p_i^{\text{EL}}}
+\quad \text{with}\quad
+p_i^{\text{EL}} \propto \begin{cases}
+\dfrac{1}{D_i}, & \text{i.i.d.}\\[6pt]
+\dfrac{a_i}{D_i}, & \text{survey}
+\end{cases}
+$$
+</div>
+
+**Consistency.** If $w(y,x;\beta)$ is correctly specified and standard regularity holds, $\hat\mu_Y \xrightarrow{p} \mu_Y$.
+
+**Asymptotic normality.** 
+$$
+\sqrt{N}\,(\hat\mu_Y-\mu_Y)\ \overset{d}{\longrightarrow}\ N(0,\sigma^2),
+$$
+with $\sigma^2$ depending on the auxiliary-info case (A/B/C) and the design.
+
+**Bias.** Asymptotically unbiased; small-sample bias can occur with extreme weights/high nonresponse. Auxiliary calibration (A/B) typically **reduces variance** (and improves stability). If trimming is used, expect bias–variance tradeoffs; prefer bootstrap SEs.
 
 ---
 
@@ -402,7 +467,7 @@ The theoretical equations are elegant but numerically challenging. Our implement
     -   **Solution:** We apply **numerical safeguards** (denominator guards, eta capping) at every step.
 -   **Challenge 4: Survey Data** (IID assumption violation)
     -   **Solution:** We let design weights enter into estimating equations
--   **Challenge 5: Extreme el weights** 
+-   **Challenge 5: Extreme el weights**
     -   **Solution:** Trimming, diagnostics, numerical guards
 
 ---
@@ -426,6 +491,7 @@ W <- plogis(z)
 ```
 
 **Benefits:** 
+
 - The optimization is unconstrained, making the solver's job easier. 
 - The Jacobian is adjusted for the transformation via the chain rule. 
 - Boundary violations are impossible. - Optimization is numerically stable even as $W$ approaches 0 or 1.
@@ -435,8 +501,6 @@ W <- plogis(z)
 ---
 
 ## Implementation Detail: Numerical Safeguards {.smaller}
-
-### Production-Ready Stability
 
 **1. Eta Capping** (`get_eta_cap()`)
 
@@ -452,7 +516,7 @@ eta_i <- pmax(pmin(eta_raw, 50), -50)
 w_i <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
 ```
 
-**3. Denominator Guarding** (Critical!)
+**3. Denominator Guarding**
 
 ```{r, eval=FALSE, echo=TRUE}
 # // The EL denominator defines the weights and MUST be positive.
@@ -468,17 +532,17 @@ inv_denominator <- 1 / pmax(denominator, 1e-8)
 
 ---
 
-## Implementation Detail: Analytical Jacobian {.smaller}
+## Implementation Detail: Analytic Jacobian {.smaller}
 
 ### Exact Derivatives for a Fast and Accurate Newton Solver
 
-**Why bother with Analytical?** 
+**Why bother with Analytic?**
 
-- **Quadratic Convergence:** Newton's method with an exact Jacobian converges extremely quickly near the solution. 
+-   **Quadratic Convergence:** Newton's method with an exact Jacobian converges extremely quickly near the solution.
 
-- **Accuracy:** Avoids approximation errors inherent in numerical derivatives. 
+-   **Accuracy:** Avoids approximation errors inherent in numerical derivatives.
 
-- **Robustness:** Not sensitive to the step size choices required by numeric differentiation.
+-   **Robustness:** Not sensitive to the step size choices required by numeric differentiation.
 
 $$ 
 A = \begin{pmatrix}
@@ -504,15 +568,19 @@ Uses the analytic sandwich formula.
 
 **Pros:** Fast, deterministic. Asymptotic normality.
 
-**Cons:** Can fail if $A$ is ill-conditioned; not valid with weight trimming. Notoriously difficult to implement.
+**Cons:** May be numerically fragile if $A$ is ill-conditioned; not valid with weight trimming. Notoriously difficult to implement.
 
 . . .
 
 **2. Bootstrap** (`"bootstrap"`)
 
-Performs resampling to estimate variance empirically. - **IID:** Resamples respondents with replacement. - **Survey:** Uses replicate weights from the survey design.
+Performs resampling to estimate variance empirically. 
 
-**Pros:** Robust (always works), valid with trimming, empirically validated. **Cons:** Computationally intensive.
+- **IID:** Resamples respondents with replacement. 
+- **Survey:** Uses replicate weights from the survey design.
+
+**Pros:** Robust in practice, valid with trimming, empirically validated. 
+**Cons:** Computationally intensive.
 
 **Recommendation:** For now, use `"bootstrap"` for final results, `"delta"` for exploration.
 
@@ -522,7 +590,7 @@ Performs resampling to estimate variance empirically. - **IID:** Resamples respo
 
 ### Complex Sampling and Design-Based Inference
 
-The package correctly distinguishes between IID data and complex survey data at every step.
+The package automatically distinguishes between IID and complex survey data.
 
 ```{r}
 #| eval: false
@@ -536,18 +604,15 @@ des <- svydesign(ids = ~PSU, strata = ~stratum, weights = ~wt, data = df)
 fit_svy <- nmar(Y_miss ~ X, data = des, engine = el_engine(...))
 ```
 
-**Design-based features implemented:** - **Weighted Equations:** The design weights $a_i$ (from `weights(des)`) are correctly incorporated into the estimating system. 
+**Design-based features implemented:** - **Weighted Equations:** The design weights $a_i$ (from `weights(des)`) are correctly incorporated into the estimating system.
 
 **Design-based Score Variance:** The "meat" matrix $B$ is computed via `survey::svytotal()` and `vcov()`, which correctly accounts for stratification, clustering, and unequal probabilities.
-
 
 **Implementation:** Separate S3 methods (`el.data.frame` vs `el.survey.design`) dispatch to the correct variance calculation.
 
 ---
 
 ## Diagnostics & Introspection {.smaller}
-
-### Understanding What Happened Inside the Black Box
 
 A rich set of diagnostics is crucial for trusting NMAR models.
 
@@ -561,19 +626,21 @@ diagnostics <- nmar_result_get_diagnostics(fit)
 ```
 
 **Key diagnostics and what they mean:** 
-- `jacobian_condition_number`: Measures stability of the system.
+
+- `jacobian_condition_number`: Measures stability of the system. 
 - `max_equation_residual`: Should be near zero if converged. 
 - `min_denominator`: Must be positive. Values near zero suggest unstable weights. 
 - `ess` (Effective Sample Size of Weights): Measures weight degeneracy. 
-- `max_weight_share`: The influence of the single most important observation.
+- `max_weight_share`: The influence of the single most important observation. 
 - `trim_fraction`: The proportion of observations whose weights were trimmed.
 
 **Interpretation Guide:** 
+
 - `ess < 30` or `max_weight_share > 0.3`: Results depend on a few data points. Re-check your model or add auxiliary variables. 
 - `kappa > 1e10`: The Jacobian is ill-conditioned. Trust bootstrap variance over delta method. 
 - `trim_fraction > 0.1`: A large proportion of weights were trimmed. The model may be misspecified, and the estimate is likely biased.
 
----
+------------------------------------------------------------------------
 
 ## NMAR Package in Action
 
@@ -682,3 +749,8 @@ cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(x[!is.na(x$Y), 'Y'])), '\n')
 -   Extension to new estimation approaches
 
 ## Discussion and Q&A
+
+## References
+- Qin, Leung, Shao, 2002
+- Kim & Riddles 2012
+- Riddles, Kim & Im 2016
