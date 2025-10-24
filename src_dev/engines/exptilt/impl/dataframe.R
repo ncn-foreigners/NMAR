@@ -98,6 +98,13 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   verboser("  EXPTILT ESTIMATION STARTED", level = 1, type = "step")
   verboser("════════════════════════════════════════════════════════════", level = 1, type = "step")
 
+# Show trace level info
+  trace_msg <- sprintf("Running with trace_level = %d", model$trace_level)
+  if (model$trace_level < 3) {
+    trace_msg <- paste0(trace_msg, sprintf(" | For more detailed output, use trace_level = %d", model$trace_level + 1), '. Avaliable trace_level = c(1,2,3)')
+  }
+  verboser(trace_msg, level = 1)
+
 # Show formula at level 1
   formula_str <- deparse(model$formula)
   verboser(sprintf("Formula: %s", formula_str), level = 1)

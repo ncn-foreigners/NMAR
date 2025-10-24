@@ -29,13 +29,15 @@
 #' @param family character; response model family, either \code{"logit"} or \code{"probit"},
 #'   or a family object created by \code{logit_family()} / \code{probit_family()}.
 #' @param y_dens Outcome density model (\code{"auto"}, \code{"normal"}, \code{"lognormal"}, or \code{"exponential"}).
-#' @param verbose Logical; if \code{TRUE}, print progress messages during estimation (default: \code{FALSE}).
-#' @param trace_level Integer 1-3; controls verbosity detail when \code{verbose = TRUE}:
+#' @param verbose Logical; if \code{TRUE}, print progress messages during estimation (default: \code{TRUE}).
+#'   Set to \code{FALSE} to suppress all output.
+#' @param trace_level Integer 1-3; controls verbosity detail when \code{verbose = TRUE} (default: 1):
 #'   \itemize{
 #'     \item 1: Major steps only (initialization, convergence, final results)
 #'     \item 2: Moderate detail (iteration summaries, key diagnostics)
 #'     \item 3: Full detail (all diagnostics, intermediate values)
 #'   }
+#'   When running at level 1 or 2, a message will inform you how to get more detail.
 #' @details
 #' The method is a robust Propensity-Score Adjustment (PSA) approach for Not Missing at Random (NMAR).
 #' It uses Maximum Likelihood Estimation (MLE), basing the likelihood on the observed part of the sample (\eqn{f(\boldsymbol{Y}_i | \delta_i = 1, \boldsymbol{X}_i)}), making it robust against outcome model misspecification.
@@ -95,7 +97,7 @@
 #'
 #' exptilt_config <- exptilt_engine(
 #'   y_dens = 'normal',
-#'   control = list(maxit = 100),
+#'   control = list(maxit = 10),
 #'   stopping_threshold = 0.01,
 #'   standardize = FALSE,
 #'   family = 'logit',
@@ -106,14 +108,6 @@
 #' formula = Y ~ x1
 #' res <- nmar(formula = formula, data = x, engine = exptilt_config, response_predictors = NULL)
 #' summary(res)
-#'
-#' # For more detailed output, use trace_level = 2 or 3
-#' exptilt_config_detailed <- exptilt_engine(
-#'   y_dens = 'auto',
-#'   verbose = TRUE,
-#'   trace_level = 2
-#' )
-#' res_detailed <- nmar(formula = Y ~ x1, data = x, engine = exptilt_config_detailed)
 #' }
 #' @keywords engine
 #' @export
@@ -128,7 +122,7 @@ exptilt_engine <- function(
     family = c("logit", "probit"),
     y_dens = c("auto", "normal", "lognormal", "exponential"),
     stopping_threshold = 1,
-    verbose = FALSE,
+    verbose = TRUE,
     trace_level = 1
     ) {
   on_failure <- match.arg(on_failure)
