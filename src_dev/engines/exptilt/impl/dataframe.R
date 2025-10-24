@@ -8,10 +8,8 @@ exptilt.data.frame <- function(data, formula, response_predictors = NULL,
                                y_dens = c("auto", "normal", "lognormal", "exponential"),
                                variance_method = c("delta", "bootstrap"),
                                bootstrap_reps = 10,
-                               min_iter = 10,
-                               max_iter = 100,
-                               tol_value = 1e-5,
-                               optim_method = c("Newton", "Broyden"),
+                               control = list(),
+                               stopping_threshold = 1,
                                on_failure = c("return", "error"),
                                supress_warnings = FALSE,
                                design_weights = NULL,
@@ -20,7 +18,6 @@ exptilt.data.frame <- function(data, formula, response_predictors = NULL,
   prob_model_type <- match.arg(prob_model_type)
   y_dens <- match.arg(y_dens)
   variance_method <- match.arg(variance_method)
-  optim_method <- match.arg(optim_method)
   on_failure <- match.arg(on_failure)
 
   outcome_var <- all.vars(formula[[2]])[1]
@@ -37,6 +34,7 @@ exptilt.data.frame <- function(data, formula, response_predictors = NULL,
     data <- as.data.frame(data)
     data_subset <- as.data.frame(data_subset)
   }
+
   model <- list(
     data = data,
     required_cols = required_cols,
@@ -45,12 +43,10 @@ exptilt.data.frame <- function(data, formula, response_predictors = NULL,
     cols_delta = response_predictors,
     prob_model_type = prob_model_type,
     y_dens = y_dens,
-    tol_value = tol_value,
-    min_iter = min_iter,
+    stopping_threshold = stopping_threshold,
     auxiliary_means = auxiliary_means,
     standardize = standardize,
-    max_iter = max_iter,
-    optim_method = optim_method,
+    control = control,
     variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,
     supress_warnings = supress_warnings,
@@ -171,8 +167,7 @@ exptilt_estimator_core <- function(model, respondent_mask,
 
 # Optimized solver: Let nleqslv do its own iteration instead of manual loop
 # Add early stopping based on score magnitude
-
-  early_stop_threshold <- 1
+  early_stop_threshold <- model$stopping_threshold
 
   target_function <- function(theta) {
     model$theta <<- theta
@@ -186,21 +181,27 @@ exptilt_estimator_core <- function(model, respondent_mask,
     return(result)
   }
 
-# Use nleqslv's built-in iteration (much more efficient than manual loop)
-# Try with numerical Jacobian first (global = "dbldog" for difficult problems)
-  solution <- nleqslv(
+# Use nleqslv with user-provided control parameters
+  nleqslv_args <- list(
     x = model$theta,
-    fn = target_function,
-    method = "Newton",
-    global = "dbldog", # Double dogleg for robustness
-    control = list(
-# maxit = model$max_iter,
-# xtol = model$tol_value,
-# ftol = model$tol_value,
-      btol = 0.01, # Backtracking tolerance
-      allowSingular = TRUE # Handle near-singular Jacobians gracefully
-    )
+    fn = target_function
   )
+
+# Add method and global if provided in control
+  if (!is.null(model$control$method)) {
+    nleqslv_args$method <- model$control$method
+  }
+  if (!is.null(model$control$global)) {
+    nleqslv_args$global <- model$control$global
+  }
+
+# Add other control parameters if any are provided
+  control_params <- model$control[!names(model$control) %in% c("method", "global")]
+  if (length(control_params) > 0) {
+    nleqslv_args$control <- control_params
+  }
+
+  solution <- do.call(nleqslv, nleqslv_args)
 
   model$theta <- solution$x
   model$loss_value <- solution$fvec

@@ -20,9 +20,8 @@ test_that("exptilt scaling yields near-invariant estimates (IID)", {
       standardize = TRUE,
       y_dens = "normal",
       variance_method = "delta",
-      min_iter = 8,
-      max_iter = 30,
-      tol_value = 1e-6
+      control = list(maxit = 30),
+      stopping_threshold = 1e-6
     ),
     response_predictors = NULL
   )
@@ -45,9 +44,8 @@ test_that("exptilt scaling yields near-invariant estimates (IID)", {
       standardize = FALSE,
       y_dens = "normal",
       variance_method = "delta",
-      min_iter = 8,
-      max_iter = 30,
-      tol_value = 1e-6
+      control = list(maxit = 30),
+      stopping_threshold = 1e-6
     ),
     response_predictors = NULL
   )

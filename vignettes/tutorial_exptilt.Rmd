@@ -73,16 +73,12 @@ y_original <- res_test_data$Y_original # to compare with true values
 # Exptilt engine configuration
 exptilt_config <- exptilt_engine(
   y_dens = 'normal',
-  min_iter = 3,
-  max_iter = 10,
-  tol_value = 0.01,
-  standardize = F,
-  family = 'logit', # or logit
+  control = list(maxit = 10),
+  stopping_threshold = 0.01,
+  standardize = FALSE,
+  family = 'logit',
   bootstrap_reps = 50,
-# standardize = TRUE
-variance_method = 'bootstrap' # or delta
-# variance_method='delta' #or bootstrap
-# bootstrap_reps=10
+  variance_method = 'bootstrap'
 )
 
 
@@ -119,18 +115,15 @@ if (requireNamespace("survey", quietly = TRUE)) {
 
   exptilt_config <- exptilt_engine(
      standardize = FALSE,
-     on_failure = "error", # currently does nothing
+     on_failure = "error",
      bootstrap_reps = 50,
-     supress_warnings = FALSE, # currently does nothing
-     auxiliary_means = NULL, # currently does nothing
-     control = list(), # currently does nothing
+     supress_warnings = FALSE,
+     auxiliary_means = NULL,
+     control = list(maxit = 15, method = "Newton"),
      family = "logit",
      y_dens = "normal",
      variance_method = "delta",
-     min_iter = 5, # todo move to control
-     max_iter = 15, # todo move to control
-     optim_method = "Newton", # todo move to control
-     tol_value = 1e-5 # todo move to control
+     stopping_threshold = 1e-5
 )
 
 

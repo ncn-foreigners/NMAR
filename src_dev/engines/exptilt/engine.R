@@ -1,9 +1,8 @@
 #' Exponential tilting  (ET) engine for NMAR estimation
 #'
 #' Constructs a configuration for the exponential tilting estimator under
-#' nonignorable nonresponse (NMAR)..
+#' nonignorable nonresponse (NMAR).
 #' The estimator solves \eqn{S_2(\boldsymbol{\phi}, \hat{\boldsymbol{\gamma}}) = 0,} using nleqslv to apply EM algorithm.
-
 #'
 #' @param standardize logical; standardize predictors. Default \code{TRUE}.
 #' @param on_failure character; \code{"return"} or \code{"error"} on solver failure
@@ -13,30 +12,35 @@
 #' @param supress_warnings Logical; suppress variance-related warnings.
 #' @param auxiliary_means Optional named numeric vector of population moments for
 #'   auxiliary covariates.
-#' @param control Optional list of additional solver controls.
+#' @param control Named list of control parameters passed to \code{nleqslv::nleqslv}.
+#'   Common parameters include:
+#'   \itemize{
+#'     \item \code{maxit}: Maximum number of iterations (default: 100)
+#'     \item \code{method}: Solver method - \code{"Newton"} or \code{"Broyden"} (default: \code{"Newton"})
+#'     \item \code{global}: Global strategy - \code{"dbldog"}, \code{"pwldog"}, \code{"qline"}, \code{"gline"}, \code{"hook"}, or \code{"none"} (default: \code{"dbldog"})
+#'     \item \code{xtol}: Tolerance for relative error in solution (default: 1e-8)
+#'     \item \code{ftol}: Tolerance for function value (default: 1e-8)
+#'     \item \code{btol}: Tolerance for backtracking (default: 0.01)
+#'     \item \code{allowSingular}: Allow singular Jacobians (default: \code{TRUE})
+#'   }
+#'   See \code{?nleqslv::nleqslv} for full details.
+#' @param stopping_threshold Numeric; early stopping threshold. If the maximum absolute value
+#'   of the score function falls below this threshold, the algorithm stops early (default: 1).
 #' @param family character; response model family, either \code{"logit"} or \code{"probit"},
 #'   or a family object created by \code{logit_family()} / \code{probit_family()}.
-#' @param y_dens Outcome density model (`"auto"`, `"normal"`, `"lognormal"`, or `"exponential"`).
-#' @param min_iter Minimum number of solver iterations. (Will be migrated to
-#'   `control` in a future release.)
-#' @param max_iter Maximum number of solver iterations. (Will be migrated to
-#'   `control` in a future release.)
-#' @param optim_method Solver used for the response model (`"Newton"` or
-#'   `"Broyden"`). (Will be migrated to `control` in a future release.)
-#' @param tol_value Convergence tolerance for the optimisation routine. (Will be
-#'   migrated to `control` in a future release.)
+#' @param y_dens Outcome density model (\code{"auto"}, \code{"normal"}, \code{"lognormal"}, or \code{"exponential"}).
 #' @details
 #' The method is a robust Propensity-Score Adjustment (PSA) approach for Not Missing at Random (NMAR).
 #' It uses Maximum Likelihood Estimation (MLE), basing the likelihood on the observed part of the sample (\eqn{f(\boldsymbol{Y}_i | \delta_i = 1, \boldsymbol{X}_i)}), making it robust against outcome model misspecification.
-#' The propensity score is estimated by assuming an instrumental variable*(\eqn{X_2}) that is independent of the response status given other covariates and the study variable.
-#' Estimator calculates fracional imputation weights weights \eqn{w_i}
+#' The propensity score is estimated by assuming an instrumental variable (\eqn{X_2}) that is independent of the response status given other covariates and the study variable.
+#' Estimator calculates fractional imputation weights \eqn{w_i}.
 #' The final estimator is a weighted average, where the weights are the inverse of the estimated response probabilities \eqn{\hat{\pi}_i}, satisfying the estimating equation:
 #' \deqn{
 #' \sum_{i \in \mathcal{R}} \frac{\boldsymbol{g}(\boldsymbol{Y}_i, \boldsymbol{X}_i ; \boldsymbol{\theta})}{\hat{\pi}_i} = 0,
 #' }
 #' where \eqn{\mathcal{R}} is the set of observed respondents.
 
-#' @return An engine object of class \code{c("nmar_engine_el","nmar_engine")}.
+#' @return An engine object of class \code{c("nmar_engine_exptilt","nmar_engine")}.
 #'   This is a configuration list; it is not a fit. Pass it to \link{nmar}.
 #'
 #' @references
@@ -77,7 +81,6 @@
 #'   mask[1] <- FALSE # Ensure at least one observation is not missing
 #'   X$Y[mask] <- NA
 #'
-#'
 #'   return(list(X = X, Y_original = Y_original))
 #' }
 #' res_test_data <- generate_test_data(n_rows = 500, n_cols = 1, case = 1)
@@ -85,11 +88,10 @@
 #'
 #' exptilt_config <- exptilt_engine(
 #'   y_dens = 'normal',
-#'   min_iter = 3,
-#'   max_iter = 10,
-#'   tol_value = 0.01,
+#'   control = list(maxit = 10),
+#'   stopping_threshold = 0.01,
 #'   standardize = FALSE,
-#'   family = 'logit', # or logit
+#'   family = 'logit',
 #'   bootstrap_reps = 50
 #' )
 #' formula = Y ~ x1
@@ -108,16 +110,12 @@ exptilt_engine <- function(
     control = list(),
     family = c("logit", "probit"),
     y_dens = c("auto", "normal", "lognormal", "exponential"),
-    min_iter = 10, # TODO move to control
-    max_iter = 100, # TODO move to control
-    optim_method = c("Newton", "Broyden"), # TODO move to control
-    tol_value = 0.1 # TODO move to control
+    stopping_threshold = 1
     ) {
   on_failure <- match.arg(on_failure)
   variance_method <- match.arg(variance_method)
   family <- match.arg(family)
   y_dens <- match.arg(y_dens)
-  optim_method <- match.arg(optim_method)
 
   validator$assert_logical(standardize, name = "standardize")
   validator$assert_choice(on_failure, choices = c("return", "error"), name = "on_failure")
@@ -126,12 +124,10 @@ exptilt_engine <- function(
   validator$assert_choice(family, choices = c("logit", "probit"), name = "family")
   validator$assert_choice(y_dens, choices = c("auto", "normal", "lognormal", "exponential"), name = "y_dens")
   validator$assert_choice(variance_method, choices = c("delta", "bootstrap"), name = "variance_method")
-  validator$assert_positive_integer(min_iter, name = "min_iter")
-  validator$assert_positive_integer(max_iter, name = "max_iter")
-  validator$assert_choice(optim_method, choices = c("Newton", "Broyden"), name = "optim_method")
-  validator$assert_number(tol_value, name = "tol_value", min = 0, max = Inf)
-  if (min_iter > max_iter) {
-    stop("min_iter cannot be greater than max_iter.")
+  validator$assert_number(stopping_threshold, name = "stopping_threshold", min = 0, max = Inf)
+
+  if (!is.list(control)) {
+    stop("control must be a list.")
   }
 
   engine <- list(
@@ -144,10 +140,7 @@ exptilt_engine <- function(
     control = control,
     prob_model_type = family,
     y_dens = y_dens,
-    tol_value = tol_value,
-    min_iter = min_iter,
-    max_iter = max_iter,
-    optim_method = optim_method
+    stopping_threshold = stopping_threshold
   )
   class(engine) <- c("nmar_engine_exptilt", "nmar_engine")
   engine
