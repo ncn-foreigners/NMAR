@@ -78,7 +78,9 @@ exptilt_config <- exptilt_engine(
   standardize = FALSE,
   family = 'logit',
   bootstrap_reps = 50,
-  variance_method = 'bootstrap'
+  variance_method = 'bootstrap',
+  verbose = TRUE,
+  trace_level = 3
 )
 
 

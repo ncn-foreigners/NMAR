@@ -1,7 +1,7 @@
 #' @exportS3Method run_engine nmar_engine_exptilt
 run_engine.nmar_engine_exptilt <- function(engine, task) {
-  # All ET fits flow through the shared design prep so data-frame and survey
-  # paths inherit the same scaling, auxiliary moments, and weight handling as EL
+# All ET fits flow through the shared design prep so data-frame and survey
+# paths inherit the same scaling, auxiliary moments, and weight handling as EL
   design_info <- prepare_nmar_design(
     task,
     standardize = engine$standardize,
@@ -23,18 +23,18 @@ run_engine.nmar_engine_exptilt <- function(engine, task) {
     y_dens = engine$y_dens,
     variance_method = engine$variance_method,
     bootstrap_reps = engine$bootstrap_reps,
-    min_iter = engine$min_iter,
-    max_iter = engine$max_iter,
-    tol_value = engine$tol_value,
-    optim_method = engine$optim_method,
+    control = engine$control,
+    stopping_threshold = engine$stopping_threshold,
     on_failure = engine$on_failure,
-    supress_warnings = engine$supress_warnings
+    supress_warnings = engine$supress_warnings,
+    verbose = engine$verbose,
+    trace_level = engine$trace_level
   )
 
   if (!isTRUE(design_info$is_survey)) {
-    # For data.frames we pass explicit design weights (all ones unless supplied).
-    # For survey designs the method extracts weights via stats::weights(), so we
-    # avoid passing a duplicate argument to prevent ambiguity
+# For data.frames we pass explicit design weights (all ones unless supplied).
+# For survey designs the method extracts weights via stats::weights(), so we
+# avoid passing a duplicate argument to prevent ambiguity
     args$design_weights <- design_info$weights
   }
 
