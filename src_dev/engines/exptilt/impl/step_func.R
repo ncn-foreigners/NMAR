@@ -1,7 +1,6 @@
 #' @exportS3Method NULL
 
 step_func <- function(model, theta, O_matrix_nieobs) {
-  cat("theta:", theta, "\n")
 
   n_x1 <- nrow(model$x_1)
   n_x0 <- nrow(model$x_0)
@@ -61,7 +60,6 @@ step_func <- function(model, theta, O_matrix_nieobs) {
   result_obs <- colSums(s_values_obs)
 
   result_total <- result_nieobs + result_obs
-  cat("score:", result_total, "\n")
 
   return(result_total)
 }

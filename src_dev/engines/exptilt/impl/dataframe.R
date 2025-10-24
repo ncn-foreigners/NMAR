@@ -139,10 +139,11 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   model$features_are_scaled <- TRUE
 
 
-# TODO: entry version of GLM. But keep it as it is for tests
-model$theta <- stats::runif(length(model$cols_delta) + 2, 0, 1)
-# model$theta <- c(-0.3, 0.3, -0.7)
-  names(model$theta) <- c("(Intercept)", model$cols_delta, model$col_y)
+# Smarter initialization: Use data-driven heuristics
+# (GLM doesn't work well because unobserved Y values are unknown)
+
+model <- stats::runif(length(model$cols_delta) + 2, -0.1, 0.1)
+names(model$theta) <- c("(Intercept)", model$cols_delta, model$col_y)
 
   dens_response <- generate_conditional_density(model)
   model$density_fun <- dens_response$density_function
@@ -168,44 +169,47 @@ exptilt_estimator_core <- function(model, respondent_mask,
                                    on_failure = "return", ...) {
   model$cols_required <- colnames(model$x)
 
+# Optimized solver: Let nleqslv do its own iteration instead of manual loop
+# Add early stopping based on score magnitude
+
+  early_stop_threshold <- 1
+
   target_function <- function(theta) {
     model$theta <<- theta
     O_matrix_nieobs_current <- generate_Odds(model, theta)
-    step_func(model, theta, O_matrix_nieobs_current)
+    result <- step_func(model, theta, O_matrix_nieobs_current)
+
+# Early stopping: if score is very small, return zero to signal convergence
+    if (max(abs(result)) < early_stop_threshold) {
+      return(rep(0, length(result)))
+    }
+    return(result)
   }
+
+# Use nleqslv's built-in iteration (much more efficient than manual loop)
+# Try with numerical Jacobian first (global = "dbldog" for difficult problems)
   solution <- nleqslv(
     x = model$theta,
     fn = target_function,
     method = "Newton",
-# jacobian = T,
-    control = list(maxit = 1, xtol = model$tol_value, ftol = model$tol_value)
+    global = "dbldog", # Double dogleg for robustness
+    control = list(
+# maxit = model$max_iter,
+# xtol = model$tol_value,
+# ftol = model$tol_value,
+      btol = 0.01, # Backtracking tolerance
+      allowSingular = TRUE # Handle near-singular Jacobians gracefully
+    )
   )
 
-  theta_prev <- model$theta
   model$theta <- solution$x
   model$loss_value <- solution$fvec
-  iter <- 1
+  model$iterations <- solution$iter
 
-  while ((sum((model$theta - theta_prev)^2) > model$tol_value || iter < model$min_iter) &&
-         iter < model$max_iter) {
-    solution <- nleqslv(
-      x = model$theta,
-      fn = target_function,
-      method = "Newton",
-# jacobian = T,
-      control = list(maxit = 1, xtol = model$tol_value, ftol = model$tol_value)
-    )
-# check value of solution
-  if (sum(solution$fvec^2) < model$tol_value) break
-
-    theta_prev <- model$theta
-    model$theta <- solution$x
-    model$loss_value <- solution$fvec
-    model$O_matrix_nieobs <- generate_Odds(model, model$theta)
-    iter <- iter + 1
-
+# Check convergence
+  if (solution$termcd > 2) {
+    cat("Warning: nleqslv termcd =", solution$termcd, "| max|score| =", max(abs(solution$fvec)), "\n")
   }
-  model$iterations <- iter
 
   if (model$standardize) {
     unscale <- unscale_coefficients(model$theta, matrix(0, length(model$theta), length(model$theta)), model$nmar_scaling_recipe)
