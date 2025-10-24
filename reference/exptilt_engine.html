@@ -63,7 +63,9 @@ The estimator solves \(S_2(\boldsymbol{\phi}, \hat{\boldsymbol{\gamma}}) = 0,\) 
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"logit"</span>, <span class="st">"probit"</span><span class="op">)</span>,</span>
 <span>  y_dens <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"normal"</span>, <span class="st">"lognormal"</span>, <span class="st">"exponential"</span><span class="op">)</span>,</span>
-<span>  stopping_threshold <span class="op">=</span> <span class="fl">1</span></span>
+<span>  stopping_threshold <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  trace_level <span class="op">=</span> <span class="fl">1</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -121,6 +123,18 @@ or a family object created by <code><a href="logit_family.html">logit_family()</
 <dt id="arg-stopping-threshold">stopping_threshold<a class="anchor" aria-label="anchor" href="#arg-stopping-threshold"></a></dt>
 <dd><p>Numeric; early stopping threshold. If the maximum absolute value
 of the score function falls below this threshold, the algorithm stops early (default: 1).</p></dd>
+
+
+<dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
+<dd><p>Logical; if <code>TRUE</code>, print progress messages during estimation (default: <code>TRUE</code>).
+Set to <code>FALSE</code> to suppress all output.</p></dd>
+
+
+<dt id="arg-trace-level">trace_level<a class="anchor" aria-label="anchor" href="#arg-trace-level"></a></dt>
+<dd><p>Integer 1-3; controls verbosity detail when <code>verbose = TRUE</code> (default: 1):</p><ul><li><p>1: Major steps only (initialization, convergence, final results)</p></li>
+<li><p>2: Moderate detail (iteration summaries, key diagnostics)</p></li>
+<li><p>3: Full detail (all diagnostics, intermediate values)</p></li>
+</ul><p>When running at level 1 or 2, a message will inform you how to get more detail.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -192,16 +206,52 @@ A Propensity-score-adjustment Method for Nonignorable Nonresponse
 <span class="r-in"><span>  stopping_threshold <span class="op">=</span> <span class="fl">0.01</span>,</span></span>
 <span class="r-in"><span>  standardize <span class="op">=</span> <span class="cn">FALSE</span>,</span></span>
 <span class="r-in"><span>  family <span class="op">=</span> <span class="st">'logit'</span>,</span></span>
-<span class="r-in"><span>  bootstrap_reps <span class="op">=</span> <span class="fl">50</span></span></span>
+<span class="r-in"><span>  bootstrap_reps <span class="op">=</span> <span class="fl">50</span>,</span></span>
+<span class="r-in"><span>  verbose <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  trace_level <span class="op">=</span> <span class="fl">1</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">formula</span> <span class="op">=</span> <span class="va">Y</span> <span class="op">~</span> <span class="va">x1</span></span></span>
 <span class="r-in"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">x</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span>, response_predictors <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1] ════════════════════════════════════════════════════════════ </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1]   EXPTILT ESTIMATION STARTED </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1] ════════════════════════════════════════════════════════════ </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] Running with trace_level = 1 | For more detailed output, use trace_level = 2. Avaliable trace_level = c(1,2,3) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] Formula: Y ~ x1 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] ── DATA SUMMARY ── </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Total observations:      500 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Respondents:             355 (71.0%) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Non-respondents:         145 (29.0%) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] ── CONDITIONAL DENSITY ESTIMATION ── </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Selected distribution:   normal </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] ── NONLINEAR SOLVER (nleqslv) ── </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Solving... </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   ✓ Converged </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Iterations:               5 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] ── VARIANCE ESTIMATION (Delta Method) ── </span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Delta variance failed to evaluate; using bootstrap instead.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] ── VARIANCE ESTIMATION (Bootstrap) ── </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Bootstrap replications:   50 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   ✓ Bootstrap complete </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Standard error:           0.069797 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT] ════════════════════════════════════════════════════════════ </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   ESTIMATION COMPLETE </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT] ════════════════════════════════════════════════════════════ </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   Mean estimate:            -1.007480 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   Standard error:           0.069797 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   95% CI:                   [-1.144282, -0.870679] </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT] ════════════════════════════════════════════════════════════ </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NMAR Model Summary</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> =================</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Y mean: -1.010549 (0.068753)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 95% CI: (-1.145303, -0.875795)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Y mean: -1.007480 (0.069797)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 95% CI: (-1.144279, -0.870682)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Converged: TRUE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Variance method: delta </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Total units: 500 </span>
