@@ -140,7 +140,8 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
 
 
 # TODO: entry version of GLM. But keep it as it is for tests
-  model$theta <- stats::runif(length(model$cols_delta) + 2, 0, 1)
+# model$theta <- stats::runif(length(model$cols_delta) + 2, 0, 1)
+  model$theta <- c(-0.3, 0.3, -0.7)
   names(model$theta) <- c("(Intercept)", model$cols_delta, model$col_y)
 
   dens_response <- generate_conditional_density(model)

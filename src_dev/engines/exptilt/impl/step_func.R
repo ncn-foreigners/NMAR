@@ -1,6 +1,7 @@
 #' @exportS3Method NULL
 
 step_func <- function(model, theta, O_matrix_nieobs) {
+  cat("theta:", theta, "\n")
 
   n_x1 <- nrow(model$x_1)
   n_x0 <- nrow(model$x_0)
@@ -45,13 +46,8 @@ step_func <- function(model, theta, O_matrix_nieobs) {
   result_nieobs <- colSums(numerators / denominator)
   result_obs <- colSums(s_values_obs)
 
-# cat('----')
-# cat(theta_numeric)
-# cat("\n")
-# cat(result_obs)
-# cat("\n")
-# cat(result_nieobs)
-# cat("\n")
-# browser()
-  return(result_nieobs + result_obs)
+  result_total <- result_nieobs + result_obs
+  cat("score:", result_total, "\n")
+
+  return(result_total)
 }
