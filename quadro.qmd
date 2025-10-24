@@ -202,10 +202,9 @@ y_original <- res_test_data$Y_original # to compare with true values
 #| warning: false
 exptilt_config <- exptilt_engine(
   y_dens = 'normal',
-  min_iter = 3,
-  max_iter = 10,
-  tol_value = 0.01,
-  standardize = F,
+  control = list(maxit = 10),
+  stopping_threshold = 0.01,
+  standardize = FALSE,
   family = 'logit',
   bootstrap_reps = 20,
   variance_method = 'bootstrap'

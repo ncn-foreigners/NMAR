@@ -122,14 +122,11 @@ data <- res_test_data$X
 exptilt_config <- exptilt_engine(
   y_dens = 'normal',
   family = 'probit', # or logit
-  variance_method = 'delta', # or delta
+  variance_method = 'delta' # or bootstrap
 )
 
 formula = Y ~ x1 + x2
-res <- nmar(formula = formula, data = data, engine = exptilt_config, response_predictors =
-# c('x_additional')
-  c(NULL)
-            )
+res <- nmar(formula = formula, data = data, engine = exptilt_config, response_predictors = NULL)
 print(coef(res))
 print(res)
 ```

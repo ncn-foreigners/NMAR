@@ -36,9 +36,8 @@ test_that("exptilt returns OK data for correct input", {
   exptilt_config_ok <- exptilt_engine(
     family = 'probit',
     y_dens = 'normal',
-    tol_value = 0.01,
-    min_iter = 1,
-    max_iter = 5
+    control = list(maxit = 5),
+    stopping_threshold = 0.01
   )
 
   res <- nmar(formula = formula_ok, data = data_OK_full, engine = exptilt_config_ok)
@@ -59,9 +58,8 @@ test_that("exptilt returns error for faulty data", {
   exptilt_config_ok <- exptilt_engine(
     family = 'probit',
     y_dens = 'normal',
-    tol_value = 0.01,
-    min_iter = 1,
-    max_iter = 5
+    control = list(maxit = 5),
+    stopping_threshold = 0.01
   )
 
   data_constant_y <- data_OK
@@ -85,9 +83,8 @@ test_that("exptilt returns error for faulty formulas", {
   exptilt_config_ok <- exptilt_engine(
     family = 'probit',
     y_dens = 'normal',
-    tol_value = 0.01,
-    min_iter = 1,
-    max_iter = 5
+    control = list(maxit = 5),
+    stopping_threshold = 0.01
   )
 
   expect_error(nmar(formula = not_existing_col ~ x1 + x2, data = data_OK, engine = exptilt_config_ok))
@@ -113,13 +110,7 @@ test_that("exptilt returns error for bad config", {
   expect_error(nmar(
     formula = formula_ok,
     data = data_OK,
-    engine = exptilt_engine(family = 'probit', y_dens = 'normal', tol_value = -0.01)
-  ))
-
-  expect_error(nmar(
-    formula = formula_ok,
-    data = data_OK,
-    engine = exptilt_engine(family = 'probit', y_dens = 'normal', min_iter = 10, max_iter = 5)
+    engine = exptilt_engine(family = 'probit', y_dens = 'normal', stopping_threshold = -0.01)
   ))
 })
 
@@ -128,7 +119,7 @@ test_that("exptilt returns error for empty data", {
   exptilt_config_ok <- exptilt_engine(
     family = 'probit',
     y_dens = 'normal',
-    tol_value = 0.01
+    stopping_threshold = 0.01
   )
 
   data_empty <- data_OK[0, ]
@@ -140,7 +131,7 @@ test_that("exptilt returns error for missing values in covariates", {
   exptilt_config_ok <- exptilt_engine(
     family = 'probit',
     y_dens = 'normal',
-    tol_value = 0.01
+    stopping_threshold = 0.01
   )
 
   data_na_covariates <- data_OK

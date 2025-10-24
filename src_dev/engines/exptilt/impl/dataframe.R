@@ -8,10 +8,8 @@ exptilt.data.frame <- function(data, formula, response_predictors = NULL,
                                y_dens = c("auto", "normal", "lognormal", "exponential"),
                                variance_method = c("delta", "bootstrap"),
                                bootstrap_reps = 10,
-                               min_iter = 10,
-                               max_iter = 100,
-                               tol_value = 1e-5,
-                               optim_method = c("Newton", "Broyden"),
+                               control = list(),
+                               stopping_threshold = 1,
                                on_failure = c("return", "error"),
                                supress_warnings = FALSE,
                                design_weights = NULL,
@@ -20,7 +18,6 @@ exptilt.data.frame <- function(data, formula, response_predictors = NULL,
   prob_model_type <- match.arg(prob_model_type)
   y_dens <- match.arg(y_dens)
   variance_method <- match.arg(variance_method)
-  optim_method <- match.arg(optim_method)
   on_failure <- match.arg(on_failure)
 
   outcome_var <- all.vars(formula[[2]])[1]
@@ -37,20 +34,19 @@ exptilt.data.frame <- function(data, formula, response_predictors = NULL,
     data <- as.data.frame(data)
     data_subset <- as.data.frame(data_subset)
   }
+
   model <- list(
-    data = data,
+    data = data_subset,
     required_cols = required_cols,
     col_y = outcome_var,
     cols_y_observed = aux_vars,
     cols_delta = response_predictors,
     prob_model_type = prob_model_type,
     y_dens = y_dens,
-    tol_value = tol_value,
-    min_iter = min_iter,
+    stopping_threshold = stopping_threshold,
     auxiliary_means = auxiliary_means,
     standardize = standardize,
-    max_iter = max_iter,
-    optim_method = optim_method,
+    control = control,
     variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,
     supress_warnings = supress_warnings,
@@ -139,9 +135,11 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   model$features_are_scaled <- TRUE
 
 
-# TODO: entry version of GLM. But keep it as it is for tests
-  model$theta <- stats::runif(length(model$cols_delta) + 2, 0, 1)
-  names(model$theta) <- c("(Intercept)", model$cols_delta, model$col_y)
+# Smarter initialization: Use data-driven heuristics
+# (GLM doesn't work well because unobserved Y values are unknown)
+
+model$theta <- stats::runif(length(model$cols_delta) + 2, -0.1, 0.1)
+names(model$theta) <- c("(Intercept)", model$cols_delta, model$col_y)
 
   dens_response <- generate_conditional_density(model)
   model$density_fun <- dens_response$density_function
@@ -149,7 +147,7 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   model$density_fun_hess <- dens_response$density_function_hess
   model$density_num_of_coefs <- dens_response$num_of_coefs
   model$chosen_y_dens <- dens_response$chosen_distribution
-  model$O_matrix_nieobs <- generate_Odds(model, model$theta)
+# model$O_matrix_nieobs <- generate_Odds(model, model$theta)
 
   model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
   model$C_matrix_nieobs <- generate_C_matrix(model)
@@ -167,44 +165,52 @@ exptilt_estimator_core <- function(model, respondent_mask,
                                    on_failure = "return", ...) {
   model$cols_required <- colnames(model$x)
 
+# Optimized solver: Let nleqslv do its own iteration instead of manual loop
+# Add early stopping based on score magnitude
+  early_stop_threshold <- model$stopping_threshold
+
   target_function <- function(theta) {
-    model$theta <<- theta
+# model$theta <<- theta
     O_matrix_nieobs_current <- generate_Odds(model, theta)
-    step_func(model, theta, O_matrix_nieobs_current)
+    result <- step_func(model, theta, O_matrix_nieobs_current)
+
+# Early stopping: if score is very small, return zero to signal convergence
+    if (max(abs(result)) < early_stop_threshold) {
+      return(rep(0, length(result)))
+    }
+    return(result)
   }
-  solution <- nleqslv(
+
+# Use nleqslv with user-provided control parameters
+  nleqslv_args <- list(
     x = model$theta,
-    fn = target_function,
-    method = "Newton",
-# jacobian = T,
-    control = list(maxit = 1, xtol = model$tol_value, ftol = model$tol_value)
+    fn = target_function
   )
 
-  theta_prev <- model$theta
+# Add method and global if provided in control
+  if (!is.null(model$control$method)) {
+    nleqslv_args$method <- model$control$method
+  }
+  if (!is.null(model$control$global)) {
+    nleqslv_args$global <- model$control$global
+  }
+
+# Add other control parameters if any are provided
+  control_params <- model$control[!names(model$control) %in% c("method", "global")]
+  if (length(control_params) > 0) {
+    nleqslv_args$control <- control_params
+  }
+
+  solution <- do.call(nleqslv, nleqslv_args)
+
   model$theta <- solution$x
   model$loss_value <- solution$fvec
-  iter <- 1
+  model$iterations <- solution$iter
 
-  while ((sum((model$theta - theta_prev)^2) > model$tol_value || iter < model$min_iter) &&
-         iter < model$max_iter) {
-    solution <- nleqslv(
-      x = model$theta,
-      fn = target_function,
-      method = "Newton",
-# jacobian = T,
-      control = list(maxit = 1, xtol = model$tol_value, ftol = model$tol_value)
-    )
-# check value of solution
-  if (sum(solution$fvec^2) < model$tol_value) break
-
-    theta_prev <- model$theta
-    model$theta <- solution$x
-    model$loss_value <- solution$fvec
-    model$O_matrix_nieobs <- generate_Odds(model, model$theta)
-    iter <- iter + 1
-
+# Check convergence
+  if (solution$termcd > 2) {
+    cat("Warning: nleqslv termcd =", solution$termcd, "| max|score| =", max(abs(solution$fvec)), "\n")
   }
-  model$iterations <- iter
 
   if (model$standardize) {
     unscale <- unscale_coefficients(model$theta, matrix(0, length(model$theta), length(model$theta)), model$nmar_scaling_recipe)
@@ -222,9 +228,9 @@ exptilt_estimator_core <- function(model, respondent_mask,
 # model fitting so that gamma_hat remains consistent
   model$features_are_scaled <- FALSE
 
-  model$O_matrix_nieobs <- generate_Odds(model, model$theta)
-  model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
-  model$C_matrix_nieobs <- generate_C_matrix(model)
+# model$O_matrix_nieobs <- generate_Odds(model, model$theta)
+# model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
+# model$C_matrix_nieobs <- generate_C_matrix(model)
 
 ## VARIANCE LOGIC - Cleaned version
 

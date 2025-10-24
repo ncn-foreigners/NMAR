@@ -20,9 +20,8 @@ test_that("exptilt converges on simple IID example", {
     engine = NMAR::exptilt_engine(
       y_dens = "normal",
       variance_method = "delta",
-      min_iter = 1,
-      max_iter = 8,
-      tol_value = 1e-3
+      control = list(maxit = 8),
+      stopping_threshold = 1e-3
     )
   )
   expect_true(fit$converged)
@@ -59,9 +58,8 @@ test_that("exptilt handles simple survey design", {
       y_dens = "normal",
       variance_method = "bootstrap",
       bootstrap_reps = 3,
-      min_iter = 1,
-      max_iter = 8,
-      tol_value = 1e-3
+      control = list(maxit = 8),
+      stopping_threshold = 1e-3
     )
   )
   expect_true(fit$converged)

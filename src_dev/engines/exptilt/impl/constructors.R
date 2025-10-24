@@ -15,8 +15,8 @@ new_nmar_result_exptilt <- function(estimate, se, coefficients, vcov, model,
     iterations = model$iterations,
     variance_method = model$variance_method,
     bootstrap_reps = model$bootstrap_reps,
-    optim_method = model$optim_method,
-    tol_value = model$tol_value
+    control = model$control,
+    stopping_threshold = model$stopping_threshold
   )
 
 # The unified data-frame/survey path populates model$is_survey, we also

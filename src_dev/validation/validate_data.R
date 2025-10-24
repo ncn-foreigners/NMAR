@@ -78,6 +78,22 @@ validate_data <- function(data,
     stop("Variables not found in data: ", paste(missing_vars, collapse = ", "))
   }
 
+# Check for non-finite values (Inf, -Inf, NaN) in all variables
+  for (var in all_vars) {
+    if (is.numeric(data[[var]])) {
+      bad_indices <- which(!is.na(data[[var]]) & !is.finite(data[[var]]))
+      if (length(bad_indices) > 0) {
+        first_bad_idx <- bad_indices[1]
+        bad_val <- data[[var]][first_bad_idx]
+        var_type <- if (var == outcome_variable) "Outcome variable" else "Covariate"
+        stop(
+          var_type, " '", var, "' contains non-finite values (Inf, -Inf, or NaN).\n",
+          "First non-finite value: ", bad_val, " at row ", first_bad_idx
+        )
+      }
+    }
+  }
+
 # Validate outcome variable
   if (!is.numeric(data[[outcome_variable]])) {
     bad_val <- data[[outcome_variable]][which(!is.numeric(data[[outcome_variable]]))[1]]
