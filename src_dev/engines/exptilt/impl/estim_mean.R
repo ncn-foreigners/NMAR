@@ -13,6 +13,7 @@ estim_mean.nmar_exptilt <- function(model) {
   eta <- as.vector(x_aug %*% theta)
 
   probabilities <- model$family$linkinv(eta)
+  probabilities <- pmax(probabilities, .Machine$double.eps)
 
   numerator <- sum(model$y_1 * model$design_weights / probabilities)
   denominator <- sum(model$design_weights / probabilities)

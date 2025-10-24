@@ -38,10 +38,12 @@ generate_Odds.nmar_exptilt <- function(model, theta) {
 # Use outer to create n_x0 × n_y1 matrix
   eta_matrix <- outer(x_contrib, theta_y * y_vec, "+")
 
-# Apply link function
+# Apply link function and clamp probabilities for numerical stability
   p <- model$family$linkinv(eta_matrix)
   p <- pmin(pmax(p, .Machine$double.eps), 1 - .Machine$double.eps)
-  odds <- 1 / p - 1
+
+# Compute odds = (1-p)/p for better numerical stability than 1/p - 1
+  odds <- (1 - p) / p
 
   return(odds)
 }

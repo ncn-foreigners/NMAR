@@ -9,8 +9,8 @@ step_func <- function(model, theta, O_matrix_nieobs) {
   theta_numeric <- as.numeric(theta)
   p <- length(theta_numeric)
 
-  inv_C <- 1 * model$design_weights / as.vector(model$C_matrix_nieobs)
-  inv_C[!is.finite(inv_C)] <- 0
+  C_safe <- pmax(abs(model$C_matrix_nieobs), .Machine$double.eps)
+  inv_C <- model$design_weights / as.vector(C_safe)
   W_numerator_matrix <- O_matrix_nieobs * model$f_matrix_nieobs
 
   common_term <- sweep(W_numerator_matrix, MARGIN = 2, STATS = inv_C, FUN = "*")
@@ -46,17 +46,9 @@ step_func <- function(model, theta, O_matrix_nieobs) {
   }
 
   denominator <- rowSums(common_term)
+  denominator_safe <- pmax(denominator, .Machine$double.eps)
 
-# cat('Dim of numerators:', dim(numerators), '\n')
-# cat('Dim of denominators:', length(denominator), '\n')
-# cat('Dim of s_values_obs:', dim(s_values_obs), '\n')
-# cat('Dim of s_values_unobs:', dim(numerators), '\n')
-# cat('Dim of inv_C:', length(inv_C), '\n')
-# cat('Dim of common_term:', dim(common_term), '\n')
-# cat('Dim of O_matrix_nieobs:', dim(O_matrix_nieobs), '\n')
-# cat('Dim of model$f_matrix_nieobs:', dim(model$f_matrix_nieobs), '\n')
-
-  result_nieobs <- colSums(numerators / denominator)
+  result_nieobs <- colSums(numerators / denominator_safe)
   result_obs <- colSums(s_values_obs)
 
   result_total <- result_nieobs + result_obs

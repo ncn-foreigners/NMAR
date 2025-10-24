@@ -2,7 +2,6 @@
 s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta) {
 
   theta_numeric <- as.numeric(theta)
-  SAFE_THRESHOLD <- 1e-3
 
   if (delta == 1) {
 # Observed case: no expansion needed
@@ -13,7 +12,7 @@ s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta) {
 
     pi_val_full <- model$family$linkinv(eta_full)
     pi_deriv_full <- model$family$mu.eta(eta_full)
-    pi_val_safe <- pmin(pmax(pi_val_full, SAFE_THRESHOLD), 1 - SAFE_THRESHOLD)
+    pi_val_safe <- pmax(pi_val_full, .Machine$double.eps)
 
     result_matrix <- (pi_deriv_full / pi_val_safe) * X_full
     return(result_matrix)
@@ -46,10 +45,10 @@ s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta) {
 # Apply link functions
     pi_val_matrix <- model$family$linkinv(eta_matrix)
     pi_deriv_matrix <- model$family$mu.eta(eta_matrix)
-    pi_val_safe <- pmin(pmax(pi_val_matrix, SAFE_THRESHOLD), 1 - SAFE_THRESHOLD)
+    one_minus_pi_safe <- pmax(1 - pi_val_matrix, .Machine$double.eps)
 
 # Score factor: -pi_deriv / (1 - pi)
-    score_factor <- -pi_deriv_matrix / (1 - pi_val_safe) # n_x0 × n_y1
+    score_factor <- -pi_deriv_matrix / one_minus_pi_safe # n_x0 × n_y1
 
 # Now create expanded output: (n_x0 * n_y1) × p matrix
 # Row ordering: all j for i=1, then all j for i=2, etc.
