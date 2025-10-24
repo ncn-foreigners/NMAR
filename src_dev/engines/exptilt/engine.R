@@ -130,6 +130,9 @@ exptilt_engine <- function(
   validator$assert_positive_integer(max_iter, name = "max_iter")
   validator$assert_choice(optim_method, choices = c("Newton", "Broyden"), name = "optim_method")
   validator$assert_number(tol_value, name = "tol_value", min = 0, max = Inf)
+  if (min_iter > max_iter) {
+    stop("min_iter cannot be greater than max_iter.")
+  }
 
   engine <- list(
     standardize = standardize,

@@ -142,7 +142,7 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
 # Smarter initialization: Use data-driven heuristics
 # (GLM doesn't work well because unobserved Y values are unknown)
 
-model <- stats::runif(length(model$cols_delta) + 2, -0.1, 0.1)
+model$theta <- stats::runif(length(model$cols_delta) + 2, -0.1, 0.1)
 names(model$theta) <- c("(Intercept)", model$cols_delta, model$col_y)
 
   dens_response <- generate_conditional_density(model)
