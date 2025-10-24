@@ -36,7 +36,7 @@ exptilt.data.frame <- function(data, formula, response_predictors = NULL,
   }
 
   model <- list(
-    data = data,
+    data = data_subset,
     required_cols = required_cols,
     col_y = outcome_var,
     cols_y_observed = aux_vars,
@@ -147,7 +147,7 @@ names(model$theta) <- c("(Intercept)", model$cols_delta, model$col_y)
   model$density_fun_hess <- dens_response$density_function_hess
   model$density_num_of_coefs <- dens_response$num_of_coefs
   model$chosen_y_dens <- dens_response$chosen_distribution
-  model$O_matrix_nieobs <- generate_Odds(model, model$theta)
+# model$O_matrix_nieobs <- generate_Odds(model, model$theta)
 
   model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
   model$C_matrix_nieobs <- generate_C_matrix(model)
@@ -170,7 +170,7 @@ exptilt_estimator_core <- function(model, respondent_mask,
   early_stop_threshold <- model$stopping_threshold
 
   target_function <- function(theta) {
-    model$theta <<- theta
+# model$theta <<- theta
     O_matrix_nieobs_current <- generate_Odds(model, theta)
     result <- step_func(model, theta, O_matrix_nieobs_current)
 
@@ -228,9 +228,9 @@ exptilt_estimator_core <- function(model, respondent_mask,
 # model fitting so that gamma_hat remains consistent
   model$features_are_scaled <- FALSE
 
-  model$O_matrix_nieobs <- generate_Odds(model, model$theta)
-  model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
-  model$C_matrix_nieobs <- generate_C_matrix(model)
+# model$O_matrix_nieobs <- generate_Odds(model, model$theta)
+# model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
+# model$C_matrix_nieobs <- generate_C_matrix(model)
 
 ## VARIANCE LOGIC - Cleaned version
 
