@@ -14,6 +14,8 @@ exptilt.data.frame <- function(data, formula, response_predictors = NULL,
                                supress_warnings = FALSE,
                                design_weights = NULL,
                                survey_design = NULL,
+                               verbose = FALSE,
+                               trace_level = 1,
                                ...) {
   prob_model_type <- match.arg(prob_model_type)
   y_dens <- match.arg(y_dens)
@@ -53,8 +55,13 @@ exptilt.data.frame <- function(data, formula, response_predictors = NULL,
     design_weights = design_weights,
     design = survey_design,
     formula = formula,
-    call = match.call()
+    call = match.call(),
+    verbose = verbose,
+    trace_level = trace_level
   )
+
+# Create verboser
+  model$verboser <- create_verboser(verbose, trace_level)
 
   class(model) <- "nmar_exptilt"
 
@@ -80,6 +87,28 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
     model$standardize <- TRUE
   }
 
+# Initialize verboser if not already present
+  if (is.null(model$verboser)) {
+    model$verboser <- create_verboser(verbose = FALSE, trace_level = 1)
+  }
+
+  verboser <- model$verboser
+
+  verboser("════════════════════════════════════════════════════════════", level = 1, type = "step")
+  verboser("  EXPTILT ESTIMATION STARTED", level = 1, type = "step")
+  verboser("════════════════════════════════════════════════════════════", level = 1, type = "step")
+
+# Show trace level info
+  trace_msg <- sprintf("Running with trace_level = %d", model$trace_level)
+  if (model$trace_level < 3) {
+    trace_msg <- paste0(trace_msg, sprintf(" | For more detailed output, use trace_level = %d", model$trace_level + 1), '. Avaliable trace_level = c(1,2,3)')
+  }
+  verboser(trace_msg, level = 1)
+
+# Show formula at level 1
+  formula_str <- deparse(model$formula)
+  verboser(sprintf("Formula: %s", formula_str), level = 1)
+
   model$cols_required <- colnames(model$x)
 
 # model$x_1 <- model$x[!is.na(model$x[,model$col_y]),,drop=FALSE] #observed
@@ -100,6 +129,40 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   respondent_mask <- !is.na(model$x[, model$col_y])
   model$respondent_mask <- respondent_mask
 
+# Level 1: Show basic data info
+  n_total <- length(respondent_mask)
+  n_resp <- sum(respondent_mask)
+  n_nonresp <- n_total - n_resp
+  pct_nonresp <- 100 * n_nonresp / n_total
+
+  verboser("", level = 1)
+  verboser("── DATA SUMMARY ──", level = 1)
+  verboser(sprintf("  Total observations:      %d", n_total), level = 1)
+  verboser(sprintf("  Respondents:             %d (%.1f%%)", n_resp, 100 - pct_nonresp), level = 1)
+  verboser(sprintf("  Non-respondents:         %d (%.1f%%)", n_nonresp, pct_nonresp), level = 1)
+
+  verboser("", level = 2)
+  verboser("── MODEL SPECIFICATION ──", level = 2)
+  verboser(sprintf("  Outcome variable:        %s", model$col_y), level = 2)
+
+  if (length(model$cols_y_observed) > 0) {
+    aux_str <- paste(model$cols_y_observed, collapse = ", ")
+    verboser(sprintf("  Auxiliary variables:     %s", aux_str), level = 2)
+  } else {
+    verboser("  Auxiliary variables:     (none)", level = 2)
+  }
+
+  if (length(model$cols_delta) > 0) {
+    miss_str <- paste(model$cols_delta, collapse = ", ")
+    verboser(sprintf("  Missingness predictors:  %s", miss_str), level = 2)
+  } else {
+    verboser("  Missingness predictors:  (intercept only)", level = 2)
+  }
+
+  verboser(sprintf("  Response model:          %s", model$prob_model_type), level = 2)
+  verboser(sprintf("  Outcome density:         %s", model$y_dens), level = 2)
+  verboser(sprintf("  Standardization:         %s", if (model$standardize) "enabled" else "disabled"), level = 2)
+
   scaling_weights <- model$design_weights
 # When scaling we only want respondent rows to contribute; pass a mask so the
 # helper can zero-out nonrespondents without reallocating weights
@@ -114,6 +177,11 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
     weights = scaling_weights,
     weight_mask = weight_mask
   )
+
+  if (model$standardize) {
+    verboser("  ✓ Variables standardized", level = 2)
+  }
+
   model$nmar_scaling_recipe <- scaling_result$nmar_scaling_recipe
   response_model_matrix_scaled <- scaling_result$response_model_matrix_scaled
   auxiliary_matrix_scaled <- scaling_result$auxiliary_matrix_scaled
@@ -141,14 +209,62 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
 model$theta <- stats::runif(length(model$cols_delta) + 2, -0.1, 0.1)
 names(model$theta) <- c("(Intercept)", model$cols_delta, model$col_y)
 
+  verboser("", level = 2)
+  verboser("── PARAMETER INITIALIZATION ──", level = 2)
+  verboser(sprintf("  Number of parameters:    %d", length(model$theta)), level = 2)
+
+# Pretty print theta with meaningful names at level 3
+  if (model$verboser("", level = 3, type = "detail") != invisible(NULL) || TRUE) {
+    verboser("  Initial values:", level = 3)
+    theta_names <- names(model$theta)
+    theta_labels <- character(length(theta_names))
+    for (i in seq_along(theta_names)) {
+      if (theta_names[i] == "(Intercept)") {
+        theta_labels[i] <- sprintf("    %-25s = %7.4f  [response model intercept]",
+                                   theta_names[i], model$theta[i])
+      } else if (theta_names[i] == model$col_y) {
+        theta_labels[i] <- sprintf("    %-25s = %7.4f  [outcome effect on response]",
+                                   theta_names[i], model$theta[i])
+      } else {
+        theta_labels[i] <- sprintf("    %-25s = %7.4f  [missingness predictor]",
+                                   theta_names[i], model$theta[i])
+      }
+    }
+    for (label in theta_labels) {
+      verboser(label, level = 3)
+    }
+  }
+
+  verboser("", level = 1)
+  verboser("── CONDITIONAL DENSITY ESTIMATION ──", level = 1)
   dens_response <- generate_conditional_density(model)
   model$density_fun <- dens_response$density_function
   model$density_fun_gradient <- dens_response$density_function_grad
   model$density_fun_hess <- dens_response$density_function_hess
   model$density_num_of_coefs <- dens_response$num_of_coefs
   model$chosen_y_dens <- dens_response$chosen_distribution
+
+  verboser(sprintf("  Selected distribution:   %s", model$chosen_y_dens), level = 1)
+  verboser(sprintf("  Density parameters:      %d", model$density_num_of_coefs), level = 2)
+
+# Show density model details at level 3
+  if (!is.null(dens_response$density_model)) {
+    verboser("  Fitted density model summary:", level = 3)
+    verboser("", level = 3, obj = summary(dens_response$density_model))
+  }
+
+  if (!is.null(dens_response$aic_comparison) && length(dens_response$aic_comparison) > 1) {
+    verboser("  AIC comparison (lower is better):", level = 3)
+    for (dist_name in names(dens_response$aic_comparison)) {
+      aic_val <- dens_response$aic_comparison[dist_name]
+      marker <- if (dist_name == model$chosen_y_dens) " ← selected" else ""
+      verboser(sprintf("    %s: %.2f%s", dist_name, aic_val, marker), level = 3)
+    }
+  }
+
 # model$O_matrix_nieobs <- generate_Odds(model, model$theta)
 
+  verboser("  Computing density matrices...", level = 2)
   model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
   model$C_matrix_nieobs <- generate_C_matrix(model)
 
@@ -164,10 +280,15 @@ names(model$theta) <- c("(Intercept)", model$cols_delta, model$col_y)
 exptilt_estimator_core <- function(model, respondent_mask,
                                    on_failure = "return", ...) {
   model$cols_required <- colnames(model$x)
+  verboser <- model$verboser
 
 # Optimized solver: Let nleqslv do its own iteration instead of manual loop
 # Add early stopping based on score magnitude
   early_stop_threshold <- model$stopping_threshold
+
+  verboser("", level = 1)
+  verboser("── NONLINEAR SOLVER (nleqslv) ──", level = 1)
+  verboser(sprintf("  Early stopping threshold: %.4f", early_stop_threshold), level = 2)
 
   target_function <- function(theta) {
 # model$theta <<- theta
@@ -201,11 +322,47 @@ exptilt_estimator_core <- function(model, respondent_mask,
     nleqslv_args$control <- control_params
   }
 
+  if (!is.null(nleqslv_args$method)) {
+    verboser(sprintf("  Method:                   %s", nleqslv_args$method), level = 2)
+  }
+  if (!is.null(nleqslv_args$global)) {
+    verboser(sprintf("  Global strategy:          %s", nleqslv_args$global), level = 2)
+  }
+  if (length(control_params) > 0) {
+    verboser("  Control parameters:", level = 3)
+    for (param_name in names(control_params)) {
+      verboser(sprintf("    %s = %s", param_name, control_params[[param_name]]), level = 3)
+    }
+  }
+
+  verboser("  Solving...", level = 1)
   solution <- do.call(nleqslv, nleqslv_args)
 
   model$theta <- solution$x
   model$loss_value <- solution$fvec
   model$iterations <- solution$iter
+
+# Convergence status messages
+  conv_status <- if (solution$termcd <= 2) "✓ Converged" else "⚠ Convergence issue"
+  verboser("", level = 1)
+  verboser(sprintf("  %s", conv_status), level = 1)
+  verboser(sprintf("  Iterations:               %d", solution$iter), level = 1)
+  verboser(sprintf("  Termination code:         %d", solution$termcd), level = 2)
+  verboser(sprintf("  Max |score|:              %.6f", max(abs(solution$fvec))), level = 2)
+
+# Show final theta with labels at level 3
+  verboser("  Final parameter estimates (scaled):", level = 3)
+  for (i in seq_along(model$theta)) {
+    param_name <- names(model$theta)[i]
+    if (param_name == "(Intercept)") {
+      label <- "[response intercept]"
+    } else if (param_name == model$col_y) {
+      label <- "[outcome → response]"
+    } else {
+      label <- "[missingness pred.]"
+    }
+    verboser(sprintf("    %-20s = %9.6f  %s", param_name, model$theta[i], label), level = 3)
+  }
 
 # Check convergence
   if (solution$termcd > 2) {
@@ -213,8 +370,22 @@ exptilt_estimator_core <- function(model, respondent_mask,
   }
 
   if (model$standardize) {
+    verboser("  Unscaling coefficients to original scale...", level = 2)
     unscale <- unscale_coefficients(model$theta, matrix(0, length(model$theta), length(model$theta)), model$nmar_scaling_recipe)
     model$theta <- unscale$coefficients
+
+    verboser("  Final parameter estimates (original scale):", level = 3)
+    for (i in seq_along(model$theta)) {
+      param_name <- names(model$theta)[i]
+      if (param_name == "(Intercept)") {
+        label <- "[response intercept]"
+      } else if (param_name == model$col_y) {
+        label <- "[outcome → response]"
+      } else {
+        label <- "[missingness pred.]"
+      }
+      verboser(sprintf("    %-20s = %9.6f  %s", param_name, model$theta[i], label), level = 3)
+    }
   }
 
   model$x_1 <- model$x[respondent_mask, , drop = FALSE]
@@ -281,15 +452,20 @@ exptilt_estimator_core <- function(model, respondent_mask,
 
 # Try delta method if applicable
   if (use_delta_method(model)) {
+    verboser("", level = 1)
+    verboser("── VARIANCE ESTIMATION (Delta Method) ──", level = 1)
     delta_attempt <- try(estim_var(model), silent = TRUE)
 
     if (inherits(delta_attempt, "try-error")) {
       error_msg <- conditionMessage(attr(delta_attempt, "condition"))
+      verboser("  ⚠ Delta method failed, switching to bootstrap", level = 2)
       warning("Delta variance failed to evaluate; using bootstrap instead.\n",
               call. = FALSE)
     } else {
       var_results <- delta_attempt
       se_final <- sqrt(var_results$var_est)
+      verboser("  ✓ Delta method complete", level = 1)
+      verboser(sprintf("  Standard error:           %.6f", se_final), level = 2)
     }
   }
 
@@ -297,11 +473,16 @@ exptilt_estimator_core <- function(model, respondent_mask,
   use_bootstrap <- is.nan(se_final) && !isTRUE(model$is_bootstrap_running)
 
   if (use_bootstrap) {
+    verboser("", level = 1)
+    verboser("── VARIANCE ESTIMATION (Bootstrap) ──", level = 1)
+    verboser(sprintf("  Bootstrap replications:   %d", model$bootstrap_reps), level = 1)
     bootstrap_runner <- function(data, ...) {
 # Create a copy for bootstrap with delta method and bootstrap flag
       bootstrap_model <- model$original_params
       bootstrap_model$variance_method <- "delta"
       bootstrap_model$is_bootstrap_running <- TRUE
+      bootstrap_model$verboser <- function(...) invisible(NULL)
+      bootstrap_model$verbose = FALSE
 
 # Call without passing on_failure explicitly to avoid duplicate argument issues
       call_args <- list(
@@ -333,14 +514,43 @@ exptilt_estimator_core <- function(model, respondent_mask,
 
     bootstrap_results <- do.call(bootstrap_variance, base_args)
     se_final <- bootstrap_results$se
+    verboser("  ✓ Bootstrap complete", level = 1)
+    verboser(sprintf("  Standard error:           %.6f", se_final), level = 1)
   } else if (isTRUE(model$is_bootstrap_running)) {
 # If we're in bootstrap mode but not actually running bootstrap (delta succeeded)
     se_final <- sqrt(var_results$var_est)
   }
 
 # Final result assembly
+  mean_estimate <- estim_mean(model)
+
+  verboser("", level = 1)
+  verboser("════════════════════════════════════════════════════════════", level = 1, type = "result")
+  verboser("  ESTIMATION COMPLETE", level = 1, type = "result")
+  verboser("════════════════════════════════════════════════════════════", level = 1, type = "result")
+  verboser(sprintf("  Mean estimate:            %.6f", mean_estimate), level = 1, type = "result")
+  verboser(sprintf("  Standard error:           %.6f", se_final), level = 1, type = "result")
+  verboser(sprintf("  95%% CI:                   [%.6f, %.6f]",
+                   mean_estimate - 1.96 * se_final,
+                   mean_estimate + 1.96 * se_final), level = 1, type = "result")
+
+  verboser("", level = 2)
+  verboser("  Response model coefficients:", level = 2)
+  for (i in seq_along(model$theta)) {
+    param_name <- names(model$theta)[i]
+    if (param_name == "(Intercept)") {
+      desc <- "Intercept"
+    } else if (param_name == model$col_y) {
+      desc <- sprintf("Effect of %s on response prob.", model$col_y)
+    } else {
+      desc <- sprintf("Effect of %s on response prob.", param_name)
+    }
+    verboser(sprintf("    %-20s: %9.6f  (%s)", param_name, model$theta[i], desc), level = 2)
+  }
+  verboser("════════════════════════════════════════════════════════════", level = 1, type = "result")
+
   result <- new_nmar_result_exptilt(
-    estimate = estim_mean(model),
+    estimate = mean_estimate,
     se = se_final,
     coefficients = model$theta,
     vcov = if (use_bootstrap) default_vcov else var_results$vcov,

@@ -161,14 +161,15 @@ generate_conditional_density <- function(model) {
     NULL
   }
 
-  return(list(
-    model = .model,
+  return(structure(list(
+    density_model = .model,
     density_function = density_fun,
     density_function_grad = density_grad_fun,
     density_function_hess = density_hess_fun,
     chosen_distribution = chosen_dist,
-    num_of_coefs = length(coefs)
-  ))
+    num_of_coefs = length(coefs),
+    aic_comparison = if (exists("aics")) aics else NULL
+  ), class = "nmar_density_response"))
 }
 generate_conditional_density_matrix <- function(model) {
 # Add error handling for dimension mismatches

@@ -122,7 +122,9 @@ data <- res_test_data$X
 exptilt_config <- exptilt_engine(
   y_dens = 'normal',
   family = 'probit', # or logit
-  variance_method = 'delta' # or bootstrap
+  variance_method = 'bootstrap', # or delta
+  bootstrap_reps = 10,
+  verbose = FALSE
 )
 
 formula = Y ~ x1 + x2
