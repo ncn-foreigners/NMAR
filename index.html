@@ -172,22 +172,19 @@ Estimation With Survey Data Under Nonignorable Nonresponse or Informative Sampli
 <span><span class="va">exptilt_config</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/exptilt_engine.html">exptilt_engine</a></span><span class="op">(</span></span>
 <span>  y_dens <span class="op">=</span> <span class="st">'normal'</span>,</span>
 <span>  family <span class="op">=</span> <span class="st">'probit'</span>, <span class="co"># or logit</span></span>
-<span>  variance_method <span class="op">=</span> <span class="st">'delta'</span>, <span class="co"># or delta</span></span>
+<span>  variance_method <span class="op">=</span> <span class="st">'delta'</span> <span class="co"># or bootstrap</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">formula</span> <span class="op">=</span> <span class="va">Y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">data</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span>, response_predictors <span class="op">=</span></span>
-<span><span class="co"># c('x_additional')</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
-<span>            <span class="op">)</span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">data</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span>, response_predictors <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning: Delta variance failed to evaluate; using bootstrap instead.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; (Intercept)           Y </span></span>
-<span><span class="co">#&gt;  0.60691208 -0.05201866</span></span>
+<span><span class="co">#&gt;  0.60735452 -0.05136721</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Result</span></span>
 <span><span class="co">#&gt; ------------</span></span>
-<span><span class="co">#&gt; Y mean: -0.955715 (0.047462)</span></span>
+<span><span class="co">#&gt; Y mean: -0.955991 (0.046606)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: delta </span></span>
 <span><span class="co">#&gt; Estimator: exponential_tilting </span></span>

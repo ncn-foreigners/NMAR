@@ -128,16 +128,12 @@ https://doi.org/10.1093/jssam/smv047
 <code class="sourceCode R"><span><span class="co"># Exptilt engine configuration</span></span>
 <span><span class="va">exptilt_config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/exptilt_engine.html">exptilt_engine</a></span><span class="op">(</span></span>
 <span>  y_dens <span class="op">=</span> <span class="st">'normal'</span>,</span>
-<span>  min_iter <span class="op">=</span> <span class="fl">3</span>,</span>
-<span>  max_iter <span class="op">=</span> <span class="fl">10</span>,</span>
-<span>  tol_value <span class="op">=</span> <span class="fl">0.01</span>,</span>
-<span>  standardize <span class="op">=</span> <span class="cn">F</span>,</span>
-<span>  family <span class="op">=</span> <span class="st">'logit'</span>, <span class="co"># or logit</span></span>
+<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span>
+<span>  stopping_threshold <span class="op">=</span> <span class="fl">0.01</span>,</span>
+<span>  standardize <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  family <span class="op">=</span> <span class="st">'logit'</span>,</span>
 <span>  bootstrap_reps <span class="op">=</span> <span class="fl">50</span>,</span>
-<span><span class="co"># standardize = TRUE</span></span>
-<span>variance_method <span class="op">=</span> <span class="st">'bootstrap'</span> <span class="co"># or delta</span></span>
-<span><span class="co"># variance_method='delta' #or bootstrap</span></span>
-<span><span class="co"># bootstrap_reps=10</span></span>
+<span>  variance_method <span class="op">=</span> <span class="st">'bootstrap'</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span></span>
@@ -147,7 +143,7 @@ https://doi.org/10.1093/jssam/smv047
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Result</span></span>
 <span><span class="co">#&gt; ------------</span></span>
-<span><span class="co">#&gt; Y mean: -1.006633 (0.107906)</span></span>
+<span><span class="co">#&gt; Y mean: -1.003851 (0.062476)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: bootstrap </span></span>
 <span><span class="co">#&gt; Estimator: exponential_tilting </span></span>
@@ -155,7 +151,7 @@ https://doi.org/10.1093/jssam/smv047
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="co">#&gt; (Intercept)           Y </span></span>
-<span><span class="co">#&gt;   0.8153866  -0.1563392</span></span></code></pre></div>
+<span><span class="co">#&gt;   0.8639307  -0.1705461</span></span></code></pre></div>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'True Y mean:          '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">y_original</span><span class="op">)</span><span class="op">)</span>, <span class="st">'\n'</span><span class="op">)</span></span>
 <span><span class="co">#&gt; True Y mean:           -1.0105</span></span>
@@ -164,7 +160,7 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'Est Y mean (NMAR):    '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span><span class="op">)</span>,</span>
 <span>    <span class="st">'  3σ interval: ('</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span> <span class="op">-</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="va">se</span><span class="op">)</span>,</span>
 <span>    <span class="st">', '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span> <span class="op">+</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="va">se</span><span class="op">)</span>, <span class="st">'σ='</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">se</span><span class="op">)</span>, <span class="st">')\n'</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Est Y mean (NMAR):     -1.0066   3σ interval: ( -1.1685 ,  -0.8448 σ= 0.1079 )</span></span>
+<span><span class="co">#&gt; Est Y mean (NMAR):     -1.0039   3σ interval: ( -1.0976 ,  -0.9101 σ= 0.0625 )</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'Naive Y mean (MAR):   '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">x</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">x</span><span class="op">$</span><span class="va">Y</span><span class="op">)</span>, <span class="st">'Y'</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, <span class="st">'\n'</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Naive Y mean (MAR):    -1.0716</span></span></code></pre></div>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
@@ -177,18 +173,15 @@ https://doi.org/10.1093/jssam/smv047
 <span></span>
 <span>  <span class="va">exptilt_config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/exptilt_engine.html">exptilt_engine</a></span><span class="op">(</span></span>
 <span>     standardize <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>     on_failure <span class="op">=</span> <span class="st">"error"</span>, <span class="co"># currently does nothing</span></span>
+<span>     on_failure <span class="op">=</span> <span class="st">"error"</span>,</span>
 <span>     bootstrap_reps <span class="op">=</span> <span class="fl">50</span>,</span>
-<span>     supress_warnings <span class="op">=</span> <span class="cn">FALSE</span>, <span class="co"># currently does nothing</span></span>
-<span>     auxiliary_means <span class="op">=</span> <span class="cn">NULL</span>, <span class="co"># currently does nothing</span></span>
-<span>     control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, <span class="co"># currently does nothing</span></span>
+<span>     supress_warnings <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>     auxiliary_means <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>     control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">15</span>, method <span class="op">=</span> <span class="st">"Newton"</span><span class="op">)</span>,</span>
 <span>     family <span class="op">=</span> <span class="st">"logit"</span>,</span>
 <span>     y_dens <span class="op">=</span> <span class="st">"normal"</span>,</span>
 <span>     variance_method <span class="op">=</span> <span class="st">"delta"</span>,</span>
-<span>     min_iter <span class="op">=</span> <span class="fl">5</span>, <span class="co"># todo move to control</span></span>
-<span>     max_iter <span class="op">=</span> <span class="fl">15</span>, <span class="co"># todo move to control</span></span>
-<span>     optim_method <span class="op">=</span> <span class="st">"Newton"</span>, <span class="co"># todo move to control</span></span>
-<span>     tol_value <span class="op">=</span> <span class="fl">1e-5</span> <span class="co"># todo move to control</span></span>
+<span>     stopping_threshold <span class="op">=</span> <span class="fl">1e-5</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span></span>
@@ -208,7 +201,7 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="co">#&gt; Warning: Delta variance failed to evaluate; using bootstrap instead.</span></span>
 <span><span class="co">#&gt; NMAR Result</span></span>
 <span><span class="co">#&gt; ------------</span></span>
-<span><span class="co">#&gt; Y mean: -1.003204 (0.063735)</span></span>
+<span><span class="co">#&gt; Y mean: -1.003781 (0.063314)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: delta </span></span>
 <span><span class="co">#&gt; Estimator: exponential_tilting </span></span>
