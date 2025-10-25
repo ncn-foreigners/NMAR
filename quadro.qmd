@@ -12,11 +12,10 @@ format:
 editor: visual
 ---
 
-## NMAR: An R Package for Estimation under Nonignorable Nonresponse
+## NMAR: An R Package for Estimation under Nonignorable Nonresponse in Sample Surveys
 ::: {.hidden}
 $$\everymath{\displaystyle}$$
 :::
-
 ### Tackling Nonignorable Missingness in Official Surveys with R
 
 <hr>
@@ -76,10 +75,10 @@ Assuming that apart from salary, it is also affected by age
 
 > $\delta \sim Y + \text{age}$
 
-## But does it work?
+## The Case of the Missing Salaries
 
 ::: {style="text-align: center;"}
-<img src="./quadro/boxplots.png" alt="Simulation Results" style="width: 70%;"/>
+<img src="./quadro/nmar_boxplot.png" alt="Simulation Results" style="width: 70%;"/>
 :::
 
 > NMAR estimators are closer to true population mean compared to MAR estimators, naive sample mean is badly biased.
@@ -106,25 +105,6 @@ result <- nmar(
 
 ------------------------------------------------------------------------
 
-## Package Design Philosophy {.smaller}
-
-### Separation of Concerns and Extensibility
-
-**Core Design Principles:**
-
-1.  **Single entry point** — `nmar()` function for all methods.
-2.  **Engine-agnostic interface** — Swap methods without changing user code.
-3.  **Dual data support** — Handles both `data.frame` (IID) and `survey.design` (complex surveys) with correct, design-based inference.
-4.  **Modular architecture** — Clean separation between:
-    -   Input validation (`validation/`)
-    -   Data preparation (`shared/input_pipeline.R`)
-    -   Engine implementations (`engines/*/`)
-    -   Variance estimation (`shared/bootstrap.R`, `engines/*/impl/variance.R`)
-    -   Result objects and S3 methods (`S3/`)
-
-**Why this matters:** - **Reproducibility:** Researchers can compare methods on identical data. - **Extensibility:** New engines can be added without touching existing code. - **Compatiblity:** Survey statisticians get design-based inference automatically.
-
-------------------------------------------------------------------------
 
 ## Shared Infrastructure: Bootstrap & Standardization {.smaller}
 
@@ -158,121 +138,7 @@ engine <- el_engine(standardize = TRUE) # Default
 -   **What:** All design matrices are centered and scaled.
 -   **Transparent:** Parameters are automatically back-transformed to their original scale for reporting.
 
-------------------------------------------------------------------------
-
-## Workflow: From Data to Results {.smaller}
-
-### Step-by-Step Processing Pipeline
-
-::: {style="font-size: 28px;"}
-**1. Input Parsing** (`parse_nmar_spec`)
-
-```{r, eval=FALSE, echo=TRUE}
-# // Extract outcome, auxiliaries, response predictors from formula
-```
-
-**2. Validation** (`validate_nmar_args`)
-
-```{r, eval=FALSE, echo=TRUE}
-# // Check: missing values, variable names, engine compatibility
-```
-
-**3. Task Creation** (`new_nmar_task`)
-
-```{r, eval=FALSE, echo=TRUE}
-# // Bundle validated inputs for the engine
-```
-
-**4. Engine Dispatch** (`run_engine.*`)
-
-```{r, eval=FALSE, echo=TRUE}
-# // S3 method dispatch based on engine class
-```
-
-**5. Data Preparation** (`prepare_nmar_design`)
-
-```{r, eval=FALSE, echo=TRUE}
-# // Build design matrices, apply scaling, compute weights
-```
-
-**6. Estimation** (Engine-specific, e.g., `el_estimator_core`)
-
-```{r, eval=FALSE, echo=TRUE}
-# // Solve the core estimating equations
-```
-
-**7. Variance Calculation** (`el_variance_delta` or `bootstrap_variance`)
-
-```{r, eval=FALSE, echo=TRUE}
-# // Analytical sandwich or bootstrap resampling
-```
-
-**8. Result Object Creation** (`new_nmar_result_*`)
-
-```{r, eval=FALSE, echo=TRUE}
-# // Standardized output with print/summary/coef/vcov methods
-```
-:::
-
-------------------------------------------------------------------------
-
-## S3 Methods and Tidy Integration {.smaller}
-
-### Familiar R Interface, Professional Output
-
-**Standard S3 methods provide a familiar user experience:**
-
-```{r}
-#| eval: false
-#| echo: true
-fit <- nmar(Y_miss ~ X, data = df, engine = el_engine(...))
-
-print(fit) # Compact summary view
-summary(fit) # Detailed diagnostics and coefficients
-coef(fit) # Extract response model coefficients
-vcov(fit) # Variance-covariance matrix of coefficients
-confint(fit) # Confidence intervals for the mean estimate
-```
-
-**Tidy integration via `broom` is supported:**
-
-```{r}
-#| eval: false
-#| echo: true
-library(broom)
-tidy(fit) # Coefficients as a tibble
-glance(fit) # Fit statistics as a tibble
-```
-
-**The result object contains all relevant information:**
-
-```         
-nmar_result
-├─ y_hat             # Point estimate of E[Y]
-├─ se                # Standard error of the mean estimate
-├─ model             # List with $coefficients and $vcov
-├─ converged         # Logical convergence flag
-├─ diagnostics       # Rich list of solver and weight diagnostics
-└─ meta              # Method, formula, sample sizes
-```
-
-## Exponential Tilting Estimator: From Theory to Practice
-
-### A Propensity-score-adjustment Method For Nonignorable Nonresponse (Aka `Exponential Tilting`)
-
-#### Minsun Kim Riddles<br> Jae Kwang Kim<br> Jongho Im
-
-<hr>
-
-<br><br><br><br>
-
--   Author of this paper gained PhD for their solution
--   I will highlight **overview concept** rather than go in details
--   It took me few weeks to understand it, thus I am not able to explain this in 3 minutes 🤫
-
-<br>
-
-<br>
+---
 
 ## Method Steps
 
@@ -472,66 +338,6 @@ The theoretical equations are elegant but numerically challenging. Our implement
 
 ---
 
-## Implementation Detail: Reparameterization {.smaller}
-
-### Ensuring Valid Response Rates: $W \to z = \text{logit}(W)$
-
-**The Challenge:** - The paper's parameterization uses $W \in (0,1)$ directly. - A standard Newton solver could propose invalid updates, e.g., $W > 1$.
-
-**Our Solution:** We optimize over the unconstrained logit-transformed rate $z$.
-
-```{r}
-#| eval: false
-#| echo: true
-# Internally, the solver sees `z`
-z <- qlogis(W)
-
-# We recover W, which is always valid, via the inverse transform
-W <- plogis(z)
-```
-
-**Benefits:** 
-
-- The optimization is unconstrained, making the solver's job easier. 
-- The Jacobian is adjusted for the transformation via the chain rule. 
-- Boundary violations are impossible. - Optimization is numerically stable even as $W$ approaches 0 or 1.
-
-**Implementation:** Internal EL functions operate in the $(\beta, z, \lambda_x)$ space.
-
----
-
-## Implementation Detail: Numerical Safeguards {.smaller}
-
-**1. Eta Capping** (`get_eta_cap()`)
-
-```{r, eval=FALSE, echo=TRUE}
-# // Prevent extreme linear predictor values, which cause Inf/NaN in link functions
-eta_i <- pmax(pmin(eta_raw, 50), -50)
-```
-
-**2. Probability Bounding**
-
-```{r, eval=FALSE, echo=TRUE}
-# // Keep response probabilities away from exact 0 or 1
-w_i <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
-```
-
-**3. Denominator Guarding**
-
-```{r, eval=FALSE, echo=TRUE}
-# // The EL denominator defines the weights and MUST be positive.
-denominator <- 1 + lambda_W * (w_i - W_bounded)
-if (K_aux > 0) denominator <- denominator + as.vector(X_centered %*% lambda_x)
-
-inv_denominator <- 1 / pmax(denominator, 1e-8)
-```
-
--   This guard is applied in the estimating equations, the Jacobian, and the final weight calculation, preventing division by zero and ensuring positive EL weights.
-
-**Result:** The estimator converges reliably even in challenging scenarios where naive implementations would fail.
-
----
-
 ## Implementation Detail: Analytic Jacobian {.smaller}
 
 ### Exact Derivatives for a Fast and Accurate Newton Solver
@@ -551,64 +357,6 @@ A = \begin{pmatrix}
 \frac{\partial F_\lambda}{\partial \beta} & \frac{\partial F_\lambda}{\partial z} & \frac{\partial F_\lambda}{\partial \lambda_x}
 \end{pmatrix} 
 $$
-
----
-
-## Variance Estimation: Two Approaches {.smaller}
-
-### Analytical Delta Method vs. Bootstrap
-
-The `nmar` package offers two variance estimation methods, chosen via `variance_method = ...`.
-
-. . .
-
-**1. Delta Method** (`"delta"`)
-
-Uses the analytic sandwich formula.
-
-**Pros:** Fast, deterministic. Asymptotic normality.
-
-**Cons:** May be numerically fragile if $A$ is ill-conditioned; not valid with weight trimming. Notoriously difficult to implement.
-
-. . .
-
-**2. Bootstrap** (`"bootstrap"`)
-
-Performs resampling to estimate variance empirically. 
-
-- **IID:** Resamples respondents with replacement. 
-- **Survey:** Uses replicate weights from the survey design.
-
-**Pros:** Robust in practice, valid with trimming, empirically validated. 
-**Cons:** Computationally intensive.
-
-**Recommendation:** For now, use `"bootstrap"` for final results, `"delta"` for exploration.
-
----
-
-## Implementation Detail: Survey Design Support {.smaller}
-
-### Complex Sampling and Design-Based Inference
-
-The package automatically distinguishes between IID and complex survey data.
-
-```{r}
-#| eval: false
-#| echo: true
-# IID data (data.frame)
-fit_iid <- nmar(Y_miss ~ X, data = df, engine = el_engine(...))
-
-# Complex survey design (survey.design)
-library(survey)
-des <- svydesign(ids = ~PSU, strata = ~stratum, weights = ~wt, data = df)
-fit_svy <- nmar(Y_miss ~ X, data = des, engine = el_engine(...))
-```
-
-**Design-based features implemented:** - **Weighted Equations:** The design weights $a_i$ (from `weights(des)`) are correctly incorporated into the estimating system.
-
-**Design-based Score Variance:** The "meat" matrix $B$ is computed via `survey::svytotal()` and `vcov()`, which correctly accounts for stratification, clustering, and unequal probabilities.
-
-**Implementation:** Separate S3 methods (`el.data.frame` vs `el.survey.design`) dispatch to the correct variance calculation.
 
 ---
 
@@ -701,9 +449,6 @@ y_original <- res_test_data$Y_original # to compare with true values
 #| warning: false
 exptilt_config <- exptilt_engine(
   y_dens = 'normal',
-  min_iter = 3,
-  max_iter = 10,
-  tol_value = 0.01,
   standardize = F,
   family = 'logit',
   bootstrap_reps = 20,
@@ -747,8 +492,6 @@ cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(x[!is.na(x$Y), 'Y'])), '\n')
 -   Analytical variance calculation
 -   Bootstrap parallelization
 -   Extension to new estimation approaches
-
-## Discussion and Q&A
 
 ## References
 - Qin, Leung, Shao, 2002
