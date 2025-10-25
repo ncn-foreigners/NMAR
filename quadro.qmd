@@ -101,7 +101,11 @@ result <- nmar(
 )
 ```
 
-**Three estimation engines:** - `el_engine()` — Empirical Likelihood (Qin, Leung, and Shao 2002) - `exptilt_engine()` — Exponential Tilting (Kim and Riddles 2012) - `exptilt_nonparam_engine()` — Nonparametric Exponential Tilting (Riddles et al. 2016)
+**Three estimation engines:** 
+
+- `el_engine()` — Empirical Likelihood (Qin, Leung, and Shao 2002) 
+- `exptilt_engine()` — Exponential Tilting (Kim and Riddles 2012) 
+- `exptilt_nonparam_engine()` — Nonparametric Exponential Tilting (Riddles et al. 2016)
 
 ------------------------------------------------------------------------
 
@@ -174,219 +178,59 @@ We never fill in missing values - we reweight observed data to represent the ent
 
 ------------------------------------------------------------------------
 
-## Empirical Likelihood (EL): Theory Overview
+## Empirical Likelihood: Core Idea
 
-### Based on Qin, Leung &amp; Shao (JASA, 2002)
+**Based on Qin, Leung & Shao (JASA, 2002).**  
+Model only the **response mechanism**; keep the outcome distribution **nonparametric**.
 
-**Goal.** Estimate the population mean of $Y$ with **nonignorable nonresponse** $R$.
+> $$
+> w(y,x;\beta)=P(\delta=1 \mid Y{=}y,X{=}x)\quad(\text{e.g., logit/probit}),\qquad
+> W=\iint w(y,x;\beta)\,dF(y,x).
+> $$
 
-- **Model only the response mechanism**
-  
-  $$
-  w(y,x;\beta)=P(R=1\mid Y{=}y, X{=}x)
-  \quad\text{(eg. logit or probit)}
-  $$
+**Profile out $F$** (for fixed $(\beta,W)$) by placing masses $p_i$ on respondents $(y_i,x_i)$ and enforcing:
 
-- **Do not model** $F(y,x)$, treat it **nonparametrically**.
+> - $\sum p_i=1$ (probability)
+> - $\sum p_i\{w(y_i,x_i;\beta)-W\}=0$ (response rate)
+> - $\sum p_i(x_i-\mu_x)=0$ (auxiliaries, if available)
 
-Thus EL is **semiparametric**: finite-dimensional $\beta$ for $w$, nonparametric $F$.
-
----
-
-## Observed–Data Semiparametric Likelihood
-
-Let $n$ be respondents from a nominal population of size $N$. Define
-
-$$
-W \;=\; \iint w(y,x;\beta)\,dF(y,x).
-$$
-
+This yields the EL **weights**
 <div class="eq-card">
-$$
-L(\beta,F)\ \propto\
-\Bigg\{\prod_{i:\,R_i=1} w(y_i,x_i;\beta)\,dF(y_i,x_i)\Bigg\}\,
-W^{\,n}\,(1-W)^{\,N-n}.
-$$
-</div>
+> $$
+> p_i \;=\; \frac{1}{n}\,\frac{1}{\,1+\lambda_W\big(w(y_i,x_i;\beta)-W\big)+(x_i-\mu_x)^\top\lambda_x\,}.
+> $$
 
-We **profile out $F$** using the empirical likelihood framework.
+</div>
 
 ---
 
-## Profiling Out $F$: EL Masses and Constraints
+## Empirical Likelihood: Mean Estimate
 
-Place masses $p_i$ on respondents $(y_i,x_i)$ and, **for fixed $(\beta,W)$**, maximize the $F$-part of the likelihood subject to:
-
-- **Probability:** $\sum p_i=1$
-- **Response-rate calibration:** $\sum p_i\{w(y_i,x_i;\beta)-W\}=0$
-- **Auxiliary calibration (optional):** $\sum p_i (x_i-\mu_x)=0$  
-  (Use known $\mu_x$ or $\bar X$; drop if no auxiliaries.)
-
-Inner profiling objective:
-
-::: columns
-::: column
-**IID:** $\displaystyle \max_{\{p_i\}} \sum_{i:R_i=1}\log p_i$
-:::
-::: column
-**Survey designs:** $\displaystyle \max_{\{p_i\}} \sum_{i:R_i=1} a_i\,\log p_i$
-:::
-:::
-
-Lagrange multipliers $(\lambda_W,\lambda_x)$ yield the EL denominator
+**Estimator of the mean**
 <div class="eq-card">
-$$
-D_i \;=\; 1 + \lambda_W\big(w(y_i,x_i;\beta)-W\big) + (x_i-\mu_x)^\top\lambda_x.
-$$
+> $$
+> \hat\mu_Y \;=\; \sum_{i:\, \delta_i=1} p_i\,y_i
+> $$
+
 </div>
 
----
+**How are the weights obtained?** 
 
-## Closed-Form EL Weights and $\lambda_W$
+Profile out $F$ and solve the estimating equations for $(\beta, W, \lambda_W, \lambda_x)$, plug back into the formula for $p_i$.
 
-**i.i.d. (SRS):**
-$$
-p_i \;=\; \frac{1}{n\,D_i}.
-$$
+<br>
 
-**Survey designs (base weights $a_i$):**
-$$
-p_i^{\text{EL}}\ \propto\ \frac{a_i}{D_i}
-\quad\text{(normalization cancels in }\ \hat\mu_Y=\tfrac{\sum p_i^{\text{EL}}y_i}{\sum p_i^{\text{EL}}}\text{)}.
-$$
+**Survey sampling?**
 
-**Key identity (derived, not free):**
-$$
-\lambda_W \;=\; \frac{\dfrac{\sum_{\text{all}} a_i}{\sum_{R=1} a_i}\,-\,1}{1-W}
-\quad\text{(SRS: } \lambda_W=\tfrac{N/n-1}{1-W}\text{)}.
-$$
+Extends to complex surveys by incorporating design weights in the estimating equations.
 
----
+<br>
 
-## Estimating Equations (Stacked System)
+**Properties**
 
-Let $Z_i$ be the response design row, $\eta_i=Z_i\beta$, $w_i=\operatorname{linkinv}(\eta_i)$,
-$\mu_{\eta,i}=\dfrac{dw}{d\eta}(\eta_i)$, and $s_i=\mu_{\eta,i}/w_i$.
-With design weights $a_i$ (set $a_i=1$ for i.i.d.):
-
-<div class="smallish">
-
-- **Auxiliary calibration** ($L$ eqns; omit if no auxiliaries):
-  $$
-  \sum_i a_i\,\frac{x_i-\mu_x}{D_i} \;=\; 0
-  $$
-
-- **Response rate**:
-  $$
-  \sum_i a_i\,\frac{w_i - W}{D_i} \;=\; 0
-  $$
-
-- **Response-model score balance** ($K$ eqns):
-  $$
-  \sum_i a_i\, Z_i \Bigg[s_i\;-\;\frac{\lambda_W\,\mu_{\eta,i}}{D_i}\Bigg] \;=\; 0
-  $$
-
-where $D_i=1+\lambda_W(w_i-W)+(x_i-\mu_x)^\top\lambda_x$.
-</div>
-
-We solve for $(\beta, W, \lambda_x)$ with $\lambda_W$ **given by the identity above**. Often optimize on $z=\operatorname{logit}(W)$.
-
----
-
-## Final Estimator
-
-Using EL weights:
-<div class="eq-card">
-$$
-\hat\mu_Y \;=\; \frac{\sum_{i:R_i=1} p_i^{\text{EL}}\,y_i}{\sum_{i:R_i=1} p_i^{\text{EL}}}
-\quad \text{with}\quad
-p_i^{\text{EL}} \propto \begin{cases}
-\dfrac{1}{D_i}, & \text{i.i.d.}\\[6pt]
-\dfrac{a_i}{D_i}, & \text{survey}
-\end{cases}
-$$
-</div>
-
-**Consistency.** If $w(y,x;\beta)$ is correctly specified and standard regularity holds, $\hat\mu_Y \xrightarrow{p} \mu_Y$.
-
-**Asymptotic normality.** 
-$$
-\sqrt{N}\,(\hat\mu_Y-\mu_Y)\ \overset{d}{\longrightarrow}\ N(0,\sigma^2),
-$$
-with $\sigma^2$ depending on the auxiliary-info case (A/B/C) and the design.
-
-**Bias.** Asymptotically unbiased; small-sample bias can occur with extreme weights/high nonresponse. Auxiliary calibration (A/B) typically **reduces variance** (and improves stability). If trimming is used, expect bias–variance tradeoffs; prefer bootstrap SEs.
-
----
-
-## From Theory to Code: The `nmar` Implementation {.smaller}
-
-### How we solve the system robustly
-
-The theoretical equations are elegant but numerically challenging. Our implementation is hardened for reliable inference.
-
--   **Challenge 1: Parameter Bounds** ($W \in (0,1)$)
-    -   **Solution:** We solve for $z = \text{logit}(W) \in \mathbb{R}$, an unconstrained reparameterization.
--   **Challenge 2: Solver Performance** (Slow/unstable convergence)
-    -   **Solution:** We use an **analytical Jacobian** and a **staged solver** (Newton -\> Perturbed Restarts -\> Broyden).
--   **Challenge 3: Numerical Stability** (Division by zero, `log(0)`)
-    -   **Solution:** We apply **numerical safeguards** (denominator guards, eta capping) at every step.
--   **Challenge 4: Survey Data** (IID assumption violation)
-    -   **Solution:** We let design weights enter into estimating equations
--   **Challenge 5: Extreme el weights**
-    -   **Solution:** Trimming, diagnostics, numerical guards
-
----
-
-## Implementation Detail: Analytic Jacobian {.smaller}
-
-### Exact Derivatives for a Fast and Accurate Newton Solver
-
-**Why bother with Analytic?**
-
--   **Quadratic Convergence:** Newton's method with an exact Jacobian converges extremely quickly near the solution.
-
--   **Accuracy:** Avoids approximation errors inherent in numerical derivatives.
-
--   **Robustness:** Not sensitive to the step size choices required by numeric differentiation.
-
-$$ 
-A = \begin{pmatrix}
-\frac{\partial F_\beta}{\partial \beta} & \frac{\partial F_\beta}{\partial z} & \frac{\partial F_\beta}{\partial \lambda_x} \\
-\frac{\partial F_W}{\partial \beta} & \frac{\partial F_W}{\partial z} & \frac{\partial F_W}{\partial \lambda_x} \\
-\frac{\partial F_\lambda}{\partial \beta} & \frac{\partial F_\lambda}{\partial z} & \frac{\partial F_\lambda}{\partial \lambda_x}
-\end{pmatrix} 
-$$
-
----
-
-## Diagnostics & Introspection {.smaller}
-
-A rich set of diagnostics is crucial for trusting NMAR models.
-
-**Accessing diagnostics:**
-
-```{r, eval=FALSE, echo=TRUE}
-fit <- nmar(...)
-summary(fit)
-# or for the full list:
-diagnostics <- nmar_result_get_diagnostics(fit)
-```
-
-**Key diagnostics and what they mean:** 
-
-- `jacobian_condition_number`: Measures stability of the system. 
-- `max_equation_residual`: Should be near zero if converged. 
-- `min_denominator`: Must be positive. Values near zero suggest unstable weights. 
-- `ess` (Effective Sample Size of Weights): Measures weight degeneracy. 
-- `max_weight_share`: The influence of the single most important observation. 
-- `trim_fraction`: The proportion of observations whose weights were trimmed.
-
-**Interpretation Guide:** 
-
-- `ess < 30` or `max_weight_share > 0.3`: Results depend on a few data points. Re-check your model or add auxiliary variables. 
-- `kappa > 1e10`: The Jacobian is ill-conditioned. Trust bootstrap variance over delta method. 
-- `trim_fraction > 0.1`: A large proportion of weights were trimmed. The model may be misspecified, and the estimate is likely biased.
+- Consistent if the response model $w(y,x;\beta)$ is correctly specified.
+- Asymptotically normal (under regularity conditions).
+- Auxiliaries improve efficiency.
 
 ------------------------------------------------------------------------
 
