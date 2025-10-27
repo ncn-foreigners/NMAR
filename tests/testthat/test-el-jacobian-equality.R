@@ -3,13 +3,12 @@ test_that("analytic Jacobian matches numeric Jacobian at solution (logit and pro
   df <- make_iid_nmar(n = 200, alpha = 0.5, seed = 3401)
 # Fit once (logit default) to get a stable solution near the root
   fit <- NMAR:::el.data.frame(df, Y_miss ~ X,
-    response_predictors = NULL,
     auxiliary_means = c(X = 0), standardize = TRUE,
     variance_method = "none"
   )
   expect_type(fit$converged, "logical")
 
-  parsed <- NMAR:::prepare_el_inputs(Y_miss ~ X, df, NULL)
+  parsed <- NMAR:::prepare_el_inputs(Y_miss ~ X, df)
   dat2 <- parsed$data
   fmls <- parsed$formula_list
   resp_var <- all.vars(fmls$response)[1]

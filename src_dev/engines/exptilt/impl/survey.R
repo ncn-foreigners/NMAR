@@ -1,6 +1,6 @@
 #' @importFrom stats weights
 #' @exportS3Method exptilt survey.design
-exptilt.survey.design <- function(data, formula, response_predictors = NULL,
+exptilt.survey.design <- function(data, formula,
                                   auxiliary_means = NULL,
                                   standardize = TRUE,
                                   prob_model_type = c("logit", "probit"),
@@ -16,16 +16,15 @@ exptilt.survey.design <- function(data, formula, response_predictors = NULL,
                                   ...) {
   design_vars <- data$variables
   design_weights <- as.numeric(stats::weights(data))
-  # The survey method is a thin adapter that harvests the analysis weights and
-  # then reuses the data.frame implementation so that both flows share identical
-  # preprocessing, scaling, EM fitting and bootstrap variance logic
+# The survey method is a thin adapter that harvests the analysis weights and
+# then reuses the data.frame implementation so that both flows share identical
+# preprocessing, scaling, EM fitting and bootstrap variance logic
 
-  # Delegate to the data.frame method after harvesting weights so both flows
-  # share identical preprocessing, scaling, and bootstrap behavior
+# Delegate to the data.frame method after harvesting weights so both flows
+# share identical preprocessing, scaling, and bootstrap behavior
   exptilt.data.frame(
     design_vars,
     formula = formula,
-    response_predictors = response_predictors,
     auxiliary_means = auxiliary_means,
     standardize = standardize,
     prob_model_type = prob_model_type,

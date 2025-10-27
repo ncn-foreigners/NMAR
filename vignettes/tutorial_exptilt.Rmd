@@ -85,7 +85,7 @@ exptilt_config <- exptilt_engine(
 
 
 formula = Y ~ x1
-res <- nmar(formula = formula, data = x, engine = exptilt_config, response_predictors = NULL)
+res <- nmar(formula = formula, data = x, engine = exptilt_config)
 ```
 
 ```{r}
@@ -130,7 +130,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
 
 
   formula = Y ~ x1
-  res <- nmar(formula = formula, data = x, engine = exptilt_config, response_predictors = NULL)
+  res <- nmar(formula = formula, data = x, engine = exptilt_config)
   print(res)
 
 }

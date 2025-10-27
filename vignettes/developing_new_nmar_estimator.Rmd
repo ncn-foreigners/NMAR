@@ -95,7 +95,6 @@ run_engine.nmar_engine_method <- function(engine, task) {
     list(
       data = design$survey_design %||% design$data,
       formula = task$formula,
-      response_predictors = if (length(design$response_predictors)) design$response_predictors else NULL,
       auxiliary_means = design$auxiliary_means,
       standardize = design$standardize
     ),

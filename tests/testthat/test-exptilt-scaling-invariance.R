@@ -22,8 +22,7 @@ test_that("exptilt scaling yields near-invariant estimates (IID)", {
       variance_method = "delta",
       control = list(maxit = 30),
       stopping_threshold = 1e-6
-    ),
-    response_predictors = NULL
+    )
   )
   expect_true(fit_std$converged)
 
@@ -46,8 +45,7 @@ test_that("exptilt scaling yields near-invariant estimates (IID)", {
       variance_method = "delta",
       control = list(maxit = 30),
       stopping_threshold = 1e-6
-    ),
-    response_predictors = NULL
+    )
   )
   expect_true(fit_raw$converged)
 

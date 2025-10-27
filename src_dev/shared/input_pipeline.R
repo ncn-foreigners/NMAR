@@ -7,9 +7,9 @@
 #' additional engines.
 #'
 #' @keywords internal
-parse_nmar_spec <- function(formula, data, response_predictors = NULL, env = parent.frame()) {
+parse_nmar_spec <- function(formula, data, env = parent.frame()) {
   if (!inherits(formula, "formula") || length(formula) != 3) {
-    stop("`formula` must be a two-sided formula like y ~ x1 + x2.", call. = FALSE)
+    stop("`formula` must be a two-sided formula like y ~ aux | response.", call. = FALSE)
   }
   if (!is.environment(env)) env <- parent.frame()
   if (is.null(environment(formula))) environment(formula) <- env
@@ -18,18 +18,18 @@ parse_nmar_spec <- function(formula, data, response_predictors = NULL, env = par
   if (length(outcome_vars) == 0L) {
     stop("The formula must specify at least one outcome variable on the left-hand side.", call. = FALSE)
   }
-  auxiliary_vars <- unique(all.vars(formula[[3]]))
 
-  if (is.null(response_predictors)) {
-    response_predictors <- character()
+# Support partitioned RHS using `|`: y ~ aux | response
+  rhs <- formula[[3]]
+  aux_expr <- rhs
+  resp_expr <- NULL
+  if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) {
+    aux_expr <- rhs[[2L]]
+    resp_expr <- rhs[[3L]]
   }
-  if (!is.character(response_predictors)) {
-    stop("`response_predictors` must be a character vector of variable names or NULL.", call. = FALSE)
-  }
-  if (length(response_predictors) && anyNA(response_predictors)) {
-    stop("`response_predictors` cannot contain NA values.", call. = FALSE)
-  }
-  response_predictors <- unique(response_predictors)
+
+  auxiliary_vars <- unique(all.vars(aux_expr))
+  response_predictors <- if (is.null(resp_expr)) character() else unique(all.vars(resp_expr))
 
   if (!inherits(data, c("data.frame", "survey.design"))) {
     stop("`data` must be a data.frame or survey.design object.", call. = FALSE)
@@ -41,9 +41,17 @@ parse_nmar_spec <- function(formula, data, response_predictors = NULL, env = par
     stop("Unable to access variables from the supplied data object.", call. = FALSE)
   }
 
+# Rebuild a normalized formula whose RHS is just auxiliaries (the response side is
+# tracked separately as `response_predictors`). This ensures downstream code that
+# prints or stores the user formula keeps the original environment.
+  normalized_formula <- formula
+  if (!is.null(resp_expr)) {
+    normalized_formula[[3L]] <- aux_expr
+  }
+
   structure(
     list(
-      formula = formula,
+      formula = normalized_formula,
       outcome = outcome_vars,
       auxiliary_vars = auxiliary_vars,
       response_predictors = response_predictors,
@@ -250,4 +258,44 @@ prepare_nmar_design <- function(task,
     standardize = standardize,
     auxiliary_means = auxiliary_means
   )
+}
+
+#' Rebuild a partitioned formula y ~ aux | response
+#'
+#' Given a base formula whose RHS contains auxiliaries only (the normalized
+#' task$formula) and a character vector of response-only predictors, construct
+#' a new formula that partitions the RHS as `aux | response` using language
+#' objects (no deparse/paste). If `response_predictors` is empty, returns the
+#' base formula unchanged.
+#'
+#' @param base_formula A two-sided formula (y ~ aux-only) whose environment is set.
+#' @param response_predictors Character vector of response-only predictors.
+#' @param env Optional formula environment override; defaults to base formula env.
+#' @keywords internal
+nmar_rebuild_partitioned_formula <- function(base_formula,
+                                            response_predictors,
+                                            env = NULL) {
+  if (!inherits(base_formula, "formula") || length(base_formula) != 3L) {
+    stop("`base_formula` must be a two-sided formula.", call. = FALSE)
+  }
+  if (length(response_predictors) == 0L) return(base_formula)
+  if (!is.character(response_predictors) || anyNA(response_predictors)) {
+    stop("`response_predictors` must be a non-NA character vector.", call. = FALSE)
+  }
+
+  make_plus_expr <- function(vars) {
+    if (length(vars) == 1L) return(as.name(vars[[1L]]))
+    Reduce(function(a, b) call("+", a, as.name(b)), vars[-1L], init = as.name(vars[[1L]]))
+  }
+
+  lhs <- base_formula[[2L]]
+  rhs_aux <- base_formula[[3L]]
+  rhs_resp <- make_plus_expr(response_predictors)
+  rhs_bar <- call("|", rhs_aux, rhs_resp)
+  f <- call("~", lhs, rhs_bar)
+  if (is.null(env)) env <- environment(base_formula)
+  if (is.null(env)) env <- parent.frame()
+  class(f) <- "formula"
+  attr(f, ".Environment") <- env
+  f
 }

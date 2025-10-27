@@ -1,6 +1,6 @@
 test_that("parse_nmar_spec captures core pieces", {
   df <- data.frame(Y = c(1, NA, 3), X = 1:3, Z = 4:6)
-  spec <- NMAR:::parse_nmar_spec(Y ~ X, df, response_predictors = c("Z", "Z"))
+  spec <- NMAR:::parse_nmar_spec(Y ~ X | Z + Z, df)
   expect_s3_class(spec, "nmar_input_spec")
   expect_equal(spec$outcome, "Y")
   expect_equal(spec$auxiliary_vars, "X")
@@ -21,13 +21,13 @@ test_that("parse_nmar_spec works for survey designs", {
 
 test_that("validate_nmar_args enforces defaults", {
   df <- data.frame(Y = c(1, NA, 3, 4), X = rnorm(4), Z = rnorm(4))
-  spec <- NMAR:::parse_nmar_spec(Y ~ X, df, response_predictors = "X")
+  spec <- NMAR:::parse_nmar_spec(Y ~ X | X, df)
   expect_error(NMAR:::validate_nmar_args(spec, list()), "mutually exclusive", fixed = FALSE)
 })
 
 test_that("validate_nmar_args can be relaxed for EL", {
   df <- data.frame(Y = c(1, NA, 3, 4), X = rnorm(4), Z = rnorm(4))
-  spec <- NMAR:::parse_nmar_spec(Y ~ X, df, response_predictors = "Y")
+  spec <- NMAR:::parse_nmar_spec(Y ~ X | Y, df)
   traits <- NMAR:::engine_traits(el_engine(auxiliary_means = c(X = 0)))
   expect_silent(NMAR:::validate_nmar_args(spec, traits))
 })

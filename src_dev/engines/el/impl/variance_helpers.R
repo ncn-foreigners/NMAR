@@ -5,10 +5,12 @@
 #' Assembles the analytic sandwich variance at the EL solution using numerically
 #' robust two-solve identities, and returns the mean standard error and the
 #' response-model coefficient covariance. Specifically:
-#' - Mean: var(g) = x' B x with t(A) x = ∇g, which equals g' (A^{-1} B A^{-T}) g
-#'   but avoids explicit inversion and preserves non-negativity when B is PSD.
-#' - Coefficients: V_beta = X_beta' B X_beta with t(A) X_beta = E_beta, which is
-#'   the beta-block of A^{-1} B A^{-T} assembled without forming the full matrix.
+#' - Mean: computed as \eqn{x^{\top} B x} with \eqn{A^{\top} x = \nabla g},
+#'   equivalently \eqn{g^{\top} (A^{-1} B A^{-\top}) g}; this avoids explicit
+#'   inversion and preserves non-negativity when \eqn{B} is PSD.
+#' - Coefficients: \eqn{V_{\beta} = X_{\beta}^{\top} B X_{\beta}} with
+#'   \eqn{A^{\top} X_{\beta} = E_{\beta}}; this is the beta-block of
+#'   \eqn{A^{-1} B A^{-\top}} assembled without forming the full matrix.
 #' B is the covariance of respondent score totals (IID) or the design-based
 #' variance of totals (survey). A is the analytic Jacobian of the stacked EL
 #' system. In trimming or fragile regimes, the delta method returns NA with a

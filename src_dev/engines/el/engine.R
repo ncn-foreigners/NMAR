@@ -94,11 +94,11 @@
 #' fit <- nmar(Y_miss ~ X, data = df, engine = eng)
 #' summary(fit)
 #'
-#' # Response-only predictors are supplied via nmar(..., response_predictors = ..):
+#' # Response-only predictors can be placed to the right of `|`:
 #' df2 <- data.frame(Y_miss = Y, X = X, Z = Z)
 #' df2$Y_miss[!R] <- NA_real_
 #' eng2 <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
-#' fit2 <- nmar(Y_miss ~ X, data = df2, engine = eng2, response_predictors = c("Z"))
+#' fit2 <- nmar(Y_miss ~ X | Z, data = df2, engine = eng2)
 #' print(fit2)
 #'
 #' # Survey design usage

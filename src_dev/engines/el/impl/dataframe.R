@@ -4,8 +4,6 @@
 #'   error (when requested), weights, coefficients, diagnostics and metadata.
 #' @param data A `data.frame` where the outcome column contains `NA` for nonrespondents.
 #' @param formula Two-sided formula `Y_miss ~ auxiliaries`.
-#' @param response_predictors Optional character vector naming predictors for the response (missingness) model.
-#'   These variables enter only the response model (no auxiliary constraint) and do not require population means.
 #' @param auxiliary_means Named numeric vector of population means for auxiliary variables (names must match RHS of outcome formula).
 #' @param standardize Logical; whether to standardize predictors prior to estimation.
 #' @param trim_cap Numeric; cap for EL weights (`Inf` = no trimming).
@@ -23,7 +21,7 @@
 #'
 #' @name el_dataframe
 #' @keywords internal
-el.data.frame <- function(data, formula, response_predictors = NULL,
+el.data.frame <- function(data, formula,
                           auxiliary_means = NULL, standardize = TRUE,
                           trim_cap = Inf, control = list(),
                           on_failure = c("return", "error"),
@@ -42,8 +40,7 @@ el.data.frame <- function(data, formula, response_predictors = NULL,
     stop("Respondents-only data detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total sample size>).", call. = FALSE)
   }
 
-  parsed_inputs <- prepare_el_inputs(formula, data, response_predictors,
-                                     require_na = is.null(n_total))
+  parsed_inputs <- prepare_el_inputs(formula, data, require_na = is.null(n_total))
   estimation_data <- parsed_inputs$data
   internal_formula <- parsed_inputs$formula_list
   response_var <- all.vars(internal_formula$response)[1]
@@ -63,7 +60,7 @@ el.data.frame <- function(data, formula, response_predictors = NULL,
   }
 
   user_args <- list(
-    formula = formula, response_predictors = response_predictors,
+    formula = formula,
     auxiliary_means = auxiliary_means, standardize = standardize,
     trim_cap = trim_cap, control = control, ...
   )

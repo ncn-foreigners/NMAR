@@ -21,10 +21,9 @@ test_that("el engine accepts valid inputs", {
   expect_type(el_base$converged, "logical")
 
   el_resp_extra <- nmar(
-    formula = Y_miss ~ X,
+    formula = Y_miss ~ X | Z,
     data = df,
-    engine = el_engine(auxiliary_means = c(X = 0), variance_method = 'none'),
-    response_predictors = "Z"
+    engine = el_engine(auxiliary_means = c(X = 0), variance_method = 'none')
   )
   expect_s3_class(el_resp_extra, "nmar_result_el")
   expect_type(el_resp_extra$converged, "logical")
@@ -32,10 +31,9 @@ test_that("el engine accepts valid inputs", {
   skip_if_not_installed("survey")
   design <- survey::svydesign(ids = ~1, data = df, weights = ~1)
   el_svy <- nmar(
-    formula = Y_miss ~ X,
+    formula = Y_miss ~ X | Z,
     data = design,
-    engine = el_engine(auxiliary_means = c(X = 0), variance_method = 'none'),
-    response_predictors = "Z"
+    engine = el_engine(auxiliary_means = c(X = 0), variance_method = 'none')
   )
   expect_s3_class(el_svy, "nmar_result_el")
   expect_true(is.numeric(stats::weights(el_svy)))
@@ -70,8 +68,7 @@ test_that("el engine rejects faulty inputs", {
     list(
       name = "missing response predictor",
       data = base_df,
-      formula = Y_miss ~ X,
-      response_predictors = "W",
+      formula = Y_miss ~ X | W,
       message = "Variables not found"
     ),
     list(
@@ -95,8 +92,7 @@ test_that("el engine rejects faulty inputs", {
       nmar(
         formula = case$formula,
         data = case$data,
-        engine = good_engine,
-        response_predictors = case$response_predictors
+        engine = good_engine
       ),
       regexp = case$message,
       info = case$name
