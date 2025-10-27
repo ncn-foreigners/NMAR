@@ -4,8 +4,6 @@
 #'   `variance_method = 'delta'`.
 #' @param data A `survey.design` created with [survey::svydesign()].
 #' @param formula Two-sided formula: NA-valued outcome on LHS; auxiliaries on RHS.
-#' @param response_predictors Optional character vector for the response model RHS. These may include variables not on
-#'   the RHS of the outcome formula; such variables will enter only the response model (no auxiliary constraint).
 #' @param auxiliary_means Named numeric vector of population means for auxiliaries.
 #' @param standardize Logical; standardize predictors.
 #' @param trim_cap Numeric; cap for EL weights (Inf = no trimming).
@@ -24,7 +22,7 @@
 #'
 #' @name el_survey
 #' @keywords internal
-el.survey.design <- function(data, formula, response_predictors = NULL,
+el.survey.design <- function(data, formula,
                              auxiliary_means = NULL, standardize = TRUE,
                              trim_cap = Inf, control = list(),
                              on_failure = c("return", "error"),
@@ -45,7 +43,7 @@ el.survey.design <- function(data, formula, response_predictors = NULL,
     stop("Respondents-only survey design detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total design weight or population total>).", call. = FALSE)
   }
 
-  parsed_inputs <- prepare_el_inputs(formula, design$variables, response_predictors,
+  parsed_inputs <- prepare_el_inputs(formula, design$variables,
                                      require_na = is.null(n_total))
   design$variables <- parsed_inputs$data
   internal_formula <- parsed_inputs$formula_list
@@ -69,7 +67,7 @@ el.survey.design <- function(data, formula, response_predictors = NULL,
   }
 
   user_args <- list(
-    formula = formula, response_predictors = response_predictors,
+    formula = formula,
     auxiliary_means = auxiliary_means, standardize = standardize,
     trim_cap = trim_cap, control = control, ...
   )

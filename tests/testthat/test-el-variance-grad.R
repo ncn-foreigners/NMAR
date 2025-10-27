@@ -7,7 +7,7 @@ test_that("analytic vs numeric gradient for g are close when untrimmed", {
   Y_miss[R == 0] <- NA
   df <- data.frame(Y = Y_miss, X = rnorm(n))
 # Build inputs
-  parsed <- NMAR:::prepare_el_inputs(Y ~ X, df, response_predictors = NULL)
+  parsed <- NMAR:::prepare_el_inputs(Y ~ X, df)
   fmls <- parsed$formula_list
   delta_var <- all.vars(fmls$response)[1]
   resp_idx <- which(parsed$data[[delta_var]] == 1)

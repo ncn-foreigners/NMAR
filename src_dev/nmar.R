@@ -6,31 +6,31 @@
 #'   It ensures that all necessary data and model specifications are correctly
 #'   formatted before computation begins.
 #'
-#' @param formula A two-sided formula of the form `y_miss ~ x1 + x2 + ...` specifying the
-#'   outcome (with `NA` values indicating nonresponse) and auxiliary variables used to
-#'   stabilise estimation.
+#' @param formula A two-sided formula of the form `y_miss ~ aux1 + aux2 | z1 + z2`.
+#'   The left-hand side is the outcome (with `NA` values indicating nonresponse).
+#'   The right-hand side is split by `|` into two parts:
+#'   - left of `|`: auxiliary variables (enter moment constraints);
+#'   - right of `|`: response-model predictors (enter the missingness model only).
+#'   If `|` is omitted, only auxiliary variables are used for both parsing and printing.
+#'   The outcome variable is implicitly included in the response model.
 #' @param data A data frame or `survey.design` containing the variables referenced by the
 #'   formula.
 #' @param engine An engine configuration object, typically created by an
 #'   engine constructor function like `exptilt()`. This object defines the
 #'   specific NMAR estimation method and its parameters. It must inherit from
 #'   class `nmar_engine`.
-#' @param response_predictors Optional character vector naming additional predictors for the
-#'   response (missingness) model. These variables need not appear on the right-hand side of
-#'   `formula` and are interpreted by the chosen engine.
 #'
 #' @return An object containing the estimation results, whose structure will be
 #'   specific to the `engine` used. This might include estimated parameters,
 #'   convergence information, and other relevant output from the chosen NMAR method.
 #' @keywords nmar
 #' @export
-nmar <- function(formula, data, engine, response_predictors = NULL) {
+nmar <- function(formula, data, engine) {
   stopifnot(inherits(engine, "nmar_engine"))
 
   spec <- parse_nmar_spec(
     formula = formula,
     data = data,
-    response_predictors = response_predictors,
     env = parent.frame()
   )
 

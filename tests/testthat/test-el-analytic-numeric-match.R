@@ -12,7 +12,7 @@ test_that("analytic vs numeric Jacobian agree across links and scaling", {
 
 # Helper to check one configuration
   check_one <- function(fam, standardize) {
-    parsed <- NMAR:::prepare_el_inputs(Y_miss ~ X1 + X2, df, response_predictors = "Z")
+    parsed <- NMAR:::prepare_el_inputs(Y_miss ~ X1 + X2 | Z, df)
     dat2 <- parsed$data
     fmls <- parsed$formula_list
     resp_var <- all.vars(fmls$response)[1]
@@ -65,7 +65,7 @@ test_that("analytic vs numeric gradient of g agree (untrimmed)", {
   R <- runif(n) < p
   df <- data.frame(Y_miss = Y, X = X)
   df$Y_miss[!R] <- NA_real_
-  parsed <- NMAR:::prepare_el_inputs(Y_miss ~ X, df, response_predictors = NULL)
+  parsed <- NMAR:::prepare_el_inputs(Y_miss ~ X, df)
   fmls <- parsed$formula_list
   resp_var <- all.vars(fmls$response)[1]
   obs_idx <- which(parsed$data[[resp_var]] == 1)

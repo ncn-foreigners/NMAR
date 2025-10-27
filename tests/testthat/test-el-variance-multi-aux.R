@@ -11,7 +11,7 @@ test_that("delta variance is finite in multi-aux IID case (benign)", {
 
   eng <- el_engine(auxiliary_means = c(X1 = 0, X2 = 0), variance_method = "delta",
                    standardize = TRUE, trim_cap = Inf)
-  fit <- suppressWarnings(nmar(Y_miss ~ X1 + X2, data = df, engine = eng, response_predictors = "Z"))
+  fit <- suppressWarnings(nmar(Y_miss ~ X1 + X2 | Z, data = df, engine = eng))
   expect_true(isTRUE(fit$converged))
 # Delta SE may be NA under the strict delta policy; allow NA here
   expect_true(is.na(as.numeric(fit$se)) || is.finite(as.numeric(fit$se)))
@@ -25,7 +25,7 @@ test_that("delta variance is finite in multi-aux IID case (benign)", {
       d2 <- df
       d2$Y_miss <- Y
       d2$Y_miss[Rb == 0] <- NA_real_
-      fb <- suppressWarnings(nmar(Y_miss ~ X1 + X2, data = d2, engine = eng, response_predictors = "Z"))
+      fb <- suppressWarnings(nmar(Y_miss ~ X1 + X2 | Z, data = d2, engine = eng))
       est[b] <- fb$y_hat
       se2[b] <- as.numeric(fb$se)^2
     }

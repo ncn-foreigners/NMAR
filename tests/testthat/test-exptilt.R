@@ -89,7 +89,7 @@ test_that("exptilt returns error for faulty formulas", {
 
   expect_error(nmar(formula = not_existing_col ~ x1 + x2, data = data_OK, engine = exptilt_config_ok))
   expect_error(nmar(formula = Y ~ x1 + not_existing_col, data = data_OK, engine = exptilt_config_ok))
-  expect_error(nmar(formula = Y ~ x1 + x2, data = data_OK, engine = exptilt_config_ok, response_predictors = "not_existing_col"))
+  expect_error(nmar(formula = Y ~ x1 + x2 | not_existing_col, data = data_OK, engine = exptilt_config_ok))
 })
 
 test_that("exptilt returns error for bad config", {

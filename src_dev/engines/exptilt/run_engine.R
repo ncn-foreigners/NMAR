@@ -10,13 +10,16 @@ run_engine.nmar_engine_exptilt <- function(engine, task) {
     include_auxiliary = TRUE
   )
 
-  response_predictors <- design_info$response_predictors
-  if (length(response_predictors) == 0) response_predictors <- NULL
+# Reconstruct a formula carrying response-only predictors to the right of `|`
+  f_use <- nmar_rebuild_partitioned_formula(
+    base_formula = task$formula,
+    response_predictors = design_info$response_predictors,
+    env = task$environment
+  )
 
   args <- list(
     data = design_info$survey_design %||% design_info$data,
-    formula = task$formula,
-    response_predictors = response_predictors,
+    formula = f_use,
     auxiliary_means = design_info$auxiliary_means,
     standardize = design_info$standardize,
     prob_model_type = engine$prob_model_type,

@@ -57,9 +57,8 @@ np_em_config <- exptilt_nonparam_engine(
 ```
 
 ```{r}
-results_em_np <- nmar(formula = em_formula, data = voting_data_example, engine = np_em_config, response_predictors = c('Age_group'))
+results_em_np <- nmar(formula = Voted_A + Voted_B + Other ~ Gender | Age_group, data = voting_data_example, engine = np_em_config)
 ```
 ```{r}
 print(results_em_np$processed_data)
 ```
-

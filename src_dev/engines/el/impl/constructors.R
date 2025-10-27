@@ -69,29 +69,36 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
 #' Prepare inputs for EL estimation
 #' @details Validates the two-sided outcome formula and constructs three
 #'   internal formulas: outcome (~ outcome_var), response (for the missingness
-#'   model), and auxiliary (RHS only, no intercept). The `response_predictors`
+#'   model), and auxiliary (RHS only, no intercept). Response-only predictors
 #'   may include variables not on the outcome RHS; such variables enter only the
 #'   response model (no auxiliary moment constraint). Only variables on the
 #'   outcome RHS are treated as auxiliaries and, when provided, must match the
 #'   names in `auxiliary_means`. See Qin, Leung and Shao (2002) for the EL
 #'   formulation.
 #' @keywords internal
-prepare_el_inputs <- function(formula, data, response_predictors, require_na = TRUE) {
+prepare_el_inputs <- function(formula, data, require_na = TRUE) {
   if (!inherits(formula, "formula") || length(formula) != 3 || length(all.vars(formula[[2]])) != 1) {
     stop("`formula` must be a two-sided formula with a single variable on the LHS, e.g., y ~ x1 + x2.", call. = FALSE)
   }
   env <- environment(formula)
   if (is.null(env)) env <- parent.frame()
   outcome_var <- all.vars(formula[[2]])
-  rhs_vars <- all.vars(formula[[3]])
+
+# Split RHS by `|` if present: auxiliaries on the left, response-only on the right
+  rhs <- formula[[3]]
+  aux_expr <- rhs
+  resp_expr <- NULL
+  if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) {
+    aux_expr <- rhs[[2L]]
+    resp_expr <- rhs[[3L]]
+  }
+  rhs_vars <- all.vars(aux_expr)
+  response_predictors <- if (is.null(resp_expr)) character() else unique(all.vars(resp_expr))
   if (!outcome_var %in% names(data)) stop(sprintf("Outcome variable '%s' not found in the data.", outcome_var), call. = FALSE)
   if (isTRUE(require_na) && !anyNA(data[[outcome_var]])) stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_var), call. = FALSE)
   response_predictors_full <- c(outcome_var, response_predictors)
-  if (!is.null(response_predictors)) {
-    if (!is.character(response_predictors)) stop("`response_predictors` must be a character vector of variable names.", call. = FALSE)
-    missing_in_data <- setdiff(response_predictors, names(data))
-    if (length(missing_in_data) > 0) stop(sprintf("Variables in `response_predictors` not found in data: %s", paste(missing_in_data, collapse = ", ")), call. = FALSE)
-  }
+  missing_in_data <- setdiff(response_predictors, names(data))
+  if (length(missing_in_data) > 0) stop(sprintf("Variables in response part not found in data: %s", paste(missing_in_data, collapse = ", ")), call. = FALSE)
   delta_name <- "..nmar_delta.."
   if (delta_name %in% names(data)) {
     i <- 1L

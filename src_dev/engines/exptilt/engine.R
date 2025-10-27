@@ -59,7 +59,15 @@
 #'
 #' @examples
 #' \donttest{
-#' generate_test_data <- function(n_rows = 500, n_cols = 1, case = 1, x_var = 0.5, eps_var = 0.9, a = 0.8, b = -0.2) {
+#' generate_test_data <- function(
+#'   n_rows = 500,
+#'   n_cols = 1,
+#'   case = 1,
+#'   x_var = 0.5,
+#'   eps_var = 0.9,
+#'   a = 0.8,
+#'   b = -0.2
+#' ) {
 #' # Generate X variables - fixed to match comparison
 #'   X <- as.data.frame(replicate(n_cols, rnorm(n_rows, 0, sqrt(x_var))))
 #'   colnames(X) <- paste0("x", 1:n_cols)
@@ -106,7 +114,7 @@
 #'   trace_level = 1
 #' )
 #' formula = Y ~ x1
-#' res <- nmar(formula = formula, data = x, engine = exptilt_config, response_predictors = NULL)
+#' res <- nmar(formula = formula, data = x, engine = exptilt_config)
 #' summary(res)
 #' }
 #' @keywords engine

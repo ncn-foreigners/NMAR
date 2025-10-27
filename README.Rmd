@@ -128,7 +128,7 @@ exptilt_config <- exptilt_engine(
 )
 
 formula = Y ~ x1 + x2
-res <- nmar(formula = formula, data = data, engine = exptilt_config, response_predictors = NULL)
+res <- nmar(formula = formula, data = data, engine = exptilt_config)
 print(coef(res))
 print(res)
 ```
@@ -143,4 +143,3 @@ Research grant: [OPUS 20 #2020/39/B/HS4/00941](https://ncn-foreigners.ue.poznan.
 - [Maciej Beręsewicz](https://github.com/berenz)
 - [Igor Kołodziej](https://github.com/IgorKolodziej)
 - [Mateusz Iwaniuk](https://github.com/Iwaniukooo11)
-

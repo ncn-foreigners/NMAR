@@ -30,11 +30,11 @@ Key features:
 
 ## Quick start
 
-- Specify the model with a two-sided formula: `Y_miss ~ X1 + X2` (auxiliaries are the RHS variables). If you have response‑only predictors that should enter the missingness model but not as auxiliaries, pass them via `response_predictors = c("Z1","Z2")`.
+- Specify the model with a two-sided formula: `Y_miss ~ X1 + X2 | Z1 + Z2` where auxiliaries are left of `|` and response‑only predictors are right of `|`. If `|` is omitted, only auxiliaries are used.
   - Variables on the outcome RHS (e.g., `X1 + X2`) are auxiliaries; supply their known population means via `auxiliary_means = c(X1 = ..., X2 = ...)`.
-  - Predictors in `response_predictors` enter only the response model (no auxiliary constraint) and do not need population means.
+  - Predictors to the right of `|` enter only the response model (no auxiliary constraint) and do not need population means.
 - Choose the engine: `el_engine(...)`, e.g., `el_engine(auxiliary_means = c(X1 = 0), variance_method = "delta", standardize = TRUE)`.
-- Fit: `nmar(formula = Y_miss ~ X1 + X2, data = df_or_design, engine = el_engine(...), response_predictors = c("Z1","Z2"))`.
+- Fit: `nmar(formula = Y_miss ~ X1 + X2 | Z1 + Z2, data = df_or_design, engine = el_engine(...))`.
 - Inspect: `summary()`, `confint()`, `weights()`, `fitted()`, and `fit$diagnostics`.
 # 
 # Data-frame example (IID)
@@ -63,8 +63,7 @@ engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "delta", stand
 fit <- nmar(
   formula = Y_miss ~ X,
   data = dat,
-  engine = engine,
-  response_predictors = NULL
+  engine = engine
 )
 
 summary(fit)
@@ -79,8 +78,7 @@ engine <- el_engine(auxiliary_means = c(X = 0), family = "probit", variance_meth
 fit_probit <- nmar(
   formula = Y_miss ~ X,
   engine = engine,
-  data = dat,
-  response_predictors = NULL
+  data = dat
 
 )
 summary(fit_probit)
@@ -114,8 +112,7 @@ engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap", b
 fit_boot <- nmar(
   formula = Y_miss ~ X,
   engine = engine,
-  data = dat,
-  response_predictors = NULL
+  data = dat
 
 )
 fit_boot$se
@@ -138,7 +135,7 @@ summary(fit_resp)
 
 # Response-only predictors
 
-You can include predictors that enter only the response model (and are not constrained as auxiliaries). Specify them via the `response_predictors` argument to `nmar(...)` while keeping the auxiliary set on the RHS of the outcome formula.
+You can include predictors that enter only the response model (and are not constrained as auxiliaries) by placing them to the right of `|` in the formula.
 
 ```{r}
 N <- 400
@@ -153,10 +150,9 @@ engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "delta", stand
 
 # Use X as auxiliary (known population mean 0), and Z as response-only predictor
 fit_resp_only <- nmar(
-  formula = Y_miss ~ X,
+  formula = Y_miss ~ X | Z,
   data = df2,
-  engine = engine,
-  response_predictors = c('Z')
+  engine = engine
 )
 summary(fit_resp_only)
 ```
@@ -165,7 +161,7 @@ Auxiliary means and formulas:
 
 - Names of `auxiliary_means` must match the variables on the outcome RHS exactly.
 - When `standardize = TRUE`, the engine automatically transforms `auxiliary_means` to the standardized scale internally and reports coefficients on the original scale.
-- Response-only predictors (in `response_predictors`) do not need auxiliary means.
+- Response-only predictors (to the right of `|`) do not need auxiliary means.
 
 # Survey design example (optional)
 
@@ -190,8 +186,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
   fit_svy <- nmar(
     formula = api00_miss ~ ell,
     data = dclus1,
-    engine = engine,
-    response_predictors = NULL
+    engine = engine
   )
   summary(fit_svy)
 }
