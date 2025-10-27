@@ -178,7 +178,7 @@ Estimation With Survey Data Under Nonignorable Nonresponse or Informative Sampli
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">formula</span> <span class="op">=</span> <span class="va">Y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">data</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span>, response_predictors <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">data</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; (Intercept)           Y </span></span>
 <span><span class="co">#&gt;  0.60735452 -0.05136721</span></span>

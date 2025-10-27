@@ -59,7 +59,7 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">nmar</span><span class="op">(</span><span class="va">formula</span>, <span class="va">data</span>, <span class="va">engine</span>, response_predictors <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">nmar</span><span class="op">(</span><span class="va">formula</span>, <span class="va">data</span>, <span class="va">engine</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -67,9 +67,13 @@
 
 
 <dl><dt id="arg-formula">formula<a class="anchor" aria-label="anchor" href="#arg-formula"></a></dt>
-<dd><p>A two-sided formula of the form `y_miss ~ x1 + x2 + ...` specifying the
-outcome (with `NA` values indicating nonresponse) and auxiliary variables used to
-stabilise estimation.</p></dd>
+<dd><p>A two-sided formula of the form `y_miss ~ aux1 + aux2 | z1 + z2`.
+The left-hand side is the outcome (with `NA` values indicating nonresponse).
+The right-hand side is split by `|` into two parts:
+- left of `|`: auxiliary variables (enter moment constraints);
+- right of `|`: response-model predictors (enter the missingness model only).
+If `|` is omitted, only auxiliary variables are used for both parsing and printing.
+The outcome variable is implicitly included in the response model.</p></dd>
 
 
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
@@ -82,12 +86,6 @@ formula.</p></dd>
 engine constructor function like `exptilt()`. This object defines the
 specific NMAR estimation method and its parameters. It must inherit from
 class `nmar_engine`.</p></dd>
-
-
-<dt id="arg-response-predictors">response_predictors<a class="anchor" aria-label="anchor" href="#arg-response-predictors"></a></dt>
-<dd><p>Optional character vector naming additional predictors for the
-response (missingness) model. These variables need not appear on the right-hand side of
-`formula` and are interpreted by the chosen engine.</p></dd>
 
 </dl></div>
     <div class="section level2">

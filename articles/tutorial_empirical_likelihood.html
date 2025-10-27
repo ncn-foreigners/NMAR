@@ -113,23 +113,21 @@ robustness.</li>
 </h3>
 <ul>
 <li>Specify the model with a two-sided formula:
-<code>Y_miss ~ X1 + X2</code> (auxiliaries are the RHS variables). If
-you have response‑only predictors that should enter the missingness
-model but not as auxiliaries, pass them via
-<code>response_predictors = c("Z1","Z2")</code>.
+<code>Y_miss ~ X1 + X2 | Z1 + Z2</code> where auxiliaries are left of
+<code>|</code> and response‑only predictors are right of <code>|</code>.
+If <code>|</code> is omitted, only auxiliaries are used.
 <ul>
 <li>Variables on the outcome RHS (e.g., <code>X1 + X2</code>) are
 auxiliaries; supply their known population means via
 <code>auxiliary_means = c(X1 = ..., X2 = ...)</code>.</li>
-<li>Predictors in <code>response_predictors</code> enter only the
-response model (no auxiliary constraint) and do not need population
-means.</li>
+<li>Predictors to the right of <code>|</code> enter only the response
+model (no auxiliary constraint) and do not need population means.</li>
 </ul>
 </li>
 <li>Choose the engine: <code>el_engine(...)</code>, e.g.,
 <code>el_engine(auxiliary_means = c(X1 = 0), variance_method = "delta", standardize = TRUE)</code>.</li>
 <li>Fit:
-<code>nmar(formula = Y_miss ~ X1 + X2, data = df_or_design, engine = el_engine(...), response_predictors = c("Z1","Z2"))</code>.</li>
+<code>nmar(formula = Y_miss ~ X1 + X2 | Z1 + Z2, data = df_or_design, engine = el_engine(...))</code>.</li>
 <li>Inspect: <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>,
 <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, and
 <code>fit$diagnostics</code>. # # Data-frame example (IID)</li>
@@ -155,8 +153,7 @@ on the unobserved outcome.</p>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
 <span>  formula <span class="op">=</span> <span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">dat</span>,</span>
-<span>  engine <span class="op">=</span> <span class="va">engine</span>,</span>
-<span>  response_predictors <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  engine <span class="op">=</span> <span class="va">engine</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
@@ -185,8 +182,7 @@ on the unobserved outcome.</p>
 <span><span class="va">fit_probit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
 <span>  formula <span class="op">=</span> <span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>,</span>
 <span>  engine <span class="op">=</span> <span class="va">engine</span>,</span>
-<span>  data <span class="op">=</span> <span class="va">dat</span>,</span>
-<span>  response_predictors <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  data <span class="op">=</span> <span class="va">dat</span></span>
 <span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_probit</span><span class="op">)</span></span>
@@ -270,8 +266,7 @@ on the unobserved outcome.</p>
 <span><span class="va">fit_boot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
 <span>  formula <span class="op">=</span> <span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>,</span>
 <span>  engine <span class="op">=</span> <span class="va">engine</span>,</span>
-<span>  data <span class="op">=</span> <span class="va">dat</span>,</span>
-<span>  response_predictors <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  data <span class="op">=</span> <span class="va">dat</span></span>
 <span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">fit_boot</span><span class="op">$</span><span class="va">se</span></span>
@@ -312,9 +307,8 @@ the estimator can recover the population response rate:</p>
 <h2 id="response-only-predictors">Response-only predictors<a class="anchor" aria-label="anchor" href="#response-only-predictors"></a>
 </h2>
 <p>You can include predictors that enter only the response model (and
-are not constrained as auxiliaries). Specify them via the
-<code>response_predictors</code> argument to <code>nmar(...)</code>
-while keeping the auxiliary set on the RHS of the outcome formula.</p>
+are not constrained as auxiliaries) by placing them to the right of
+<code>|</code> in the formula.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">N</span> <span class="op">&lt;-</span> <span class="fl">400</span></span>
 <span><span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span></span>
@@ -328,10 +322,9 @@ while keeping the auxiliary set on the RHS of the outcome formula.</p>
 <span></span>
 <span><span class="co"># Use X as auxiliary (known population mean 0), and Z as response-only predictor</span></span>
 <span><span class="va">fit_resp_only</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
-<span>  formula <span class="op">=</span> <span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>,</span>
+<span>  formula <span class="op">=</span> <span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span> <span class="op">|</span> <span class="va">Z</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">df2</span>,</span>
-<span>  engine <span class="op">=</span> <span class="va">engine</span>,</span>
-<span>  response_predictors <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'Z'</span><span class="op">)</span></span>
+<span>  engine <span class="op">=</span> <span class="va">engine</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_resp_only</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Model Summary</span></span>
@@ -343,7 +336,7 @@ while keeping the auxiliary set on the RHS of the outcome formula.</p>
 <span><span class="co">#&gt; Variance notes: Calculation successful </span></span>
 <span><span class="co">#&gt; Total units: 400 </span></span>
 <span><span class="co">#&gt; Respondents: 150 </span></span>
-<span><span class="co">#&gt; Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=400&gt;, engine = empirical_likelihood)</span></span>
+<span><span class="co">#&gt; Call: nmar(Y_miss ~ X | Z, data = &lt;data.frame: N=400&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model coefficients:</span></span>
 <span><span class="co">#&gt;              Estimate Std. Error   z value Pr(&gt;|z|)</span></span>
@@ -357,8 +350,8 @@ the outcome RHS exactly.</li>
 <li>When <code>standardize = TRUE</code>, the engine automatically
 transforms <code>auxiliary_means</code> to the standardized scale
 internally and reports coefficients on the original scale.</li>
-<li>Response-only predictors (in <code>response_predictors</code>) do
-not need auxiliary means.</li>
+<li>Response-only predictors (to the right of <code>|</code>) do not
+need auxiliary means.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -386,8 +379,7 @@ not need auxiliary means.</li>
 <span>  <span class="va">fit_svy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
 <span>    formula <span class="op">=</span> <span class="va">api00_miss</span> <span class="op">~</span> <span class="va">ell</span>,</span>
 <span>    data <span class="op">=</span> <span class="va">dclus1</span>,</span>
-<span>    engine <span class="op">=</span> <span class="va">engine</span>,</span>
-<span>    response_predictors <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>    engine <span class="op">=</span> <span class="va">engine</span></span>
 <span>  <span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_svy</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>

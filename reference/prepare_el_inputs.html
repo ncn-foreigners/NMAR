@@ -47,14 +47,14 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">prepare_el_inputs</span><span class="op">(</span><span class="va">formula</span>, <span class="va">data</span>, <span class="va">response_predictors</span>, require_na <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">prepare_el_inputs</span><span class="op">(</span><span class="va">formula</span>, <span class="va">data</span>, require_na <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Validates the two-sided outcome formula and constructs three
   internal formulas: outcome (~ outcome_var), response (for the missingness
-  model), and auxiliary (RHS only, no intercept). The `response_predictors`
+  model), and auxiliary (RHS only, no intercept). Response-only predictors
   may include variables not on the outcome RHS; such variables enter only the
   response model (no auxiliary moment constraint). Only variables on the
   outcome RHS are treated as auxiliaries and, when provided, must match the

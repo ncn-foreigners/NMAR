@@ -57,7 +57,6 @@
 <span><span class="fu"><a href="el.html">el</a></span><span class="op">(</span></span>
 <span>  <span class="va">data</span>,</span>
 <span>  <span class="va">formula</span>,</span>
-<span>  response_predictors <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  auxiliary_means <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  standardize <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  trim_cap <span class="op">=</span> <span class="cn">Inf</span>,</span>
@@ -81,11 +80,6 @@
 
 <dt id="arg-formula">formula<a class="anchor" aria-label="anchor" href="#arg-formula"></a></dt>
 <dd><p>Two-sided formula: NA-valued outcome on LHS; auxiliaries on RHS.</p></dd>
-
-
-<dt id="arg-response-predictors">response_predictors<a class="anchor" aria-label="anchor" href="#arg-response-predictors"></a></dt>
-<dd><p>Optional character vector for the response model RHS. These may include variables not on
-the RHS of the outcome formula; such variables will enter only the response model (no auxiliary constraint).</p></dd>
 
 
 <dt id="arg-auxiliary-means">auxiliary_means<a class="anchor" aria-label="anchor" href="#arg-auxiliary-means"></a></dt>

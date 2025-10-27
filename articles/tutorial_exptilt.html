@@ -140,19 +140,19 @@ https://doi.org/10.1093/jssam/smv047
 <span></span>
 <span></span>
 <span><span class="va">formula</span> <span class="op">=</span> <span class="va">Y</span> <span class="op">~</span> <span class="va">x1</span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">x</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span>, response_predictors <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [STEP-1] ════════════════════════════════════════════════════════════ </span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">x</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [STEP-1] ============================================================ </span></span>
 <span><span class="co">#&gt; [STEP-1]   EXPTILT ESTIMATION STARTED </span></span>
-<span><span class="co">#&gt; [STEP-1] ════════════════════════════════════════════════════════════ </span></span>
+<span><span class="co">#&gt; [STEP-1] ============================================================ </span></span>
 <span><span class="co">#&gt; [INFO] Running with trace_level = 3 </span></span>
 <span><span class="co">#&gt; [INFO] Formula: Y ~ x1 </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] ── DATA SUMMARY ── </span></span>
+<span><span class="co">#&gt; [INFO] -- DATA SUMMARY -- </span></span>
 <span><span class="co">#&gt; [INFO]   Total observations:      500 </span></span>
 <span><span class="co">#&gt; [INFO]   Respondents:             368 (73.6%) </span></span>
 <span><span class="co">#&gt; [INFO]   Non-respondents:         132 (26.4%) </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] ── MODEL SPECIFICATION ── </span></span>
+<span><span class="co">#&gt; [INFO] -- MODEL SPECIFICATION -- </span></span>
 <span><span class="co">#&gt; [INFO]   Outcome variable:        Y </span></span>
 <span><span class="co">#&gt; [INFO]   Auxiliary variables:     x1 </span></span>
 <span><span class="co">#&gt; [INFO]   Missingness predictors:  (intercept only) </span></span>
@@ -160,14 +160,14 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="co">#&gt; [INFO]   Outcome density:         normal </span></span>
 <span><span class="co">#&gt; [INFO]   Standardization:         disabled </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] ── PARAMETER INITIALIZATION ── </span></span>
+<span><span class="co">#&gt; [INFO] -- PARAMETER INITIALIZATION -- </span></span>
 <span><span class="co">#&gt; [INFO]   Number of parameters:    2 </span></span>
 <span><span class="co">#&gt; [DETAIL-3]  </span></span>
 <span><span class="co">#&gt; [INFO]   Initial values: </span></span>
 <span><span class="co">#&gt; [INFO]     (Intercept)               = -0.0432  [response model intercept] </span></span>
 <span><span class="co">#&gt; [INFO]     Y                         =  0.0584  [outcome effect on response] </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] ── CONDITIONAL DENSITY ESTIMATION ── </span></span>
+<span><span class="co">#&gt; [INFO] -- CONDITIONAL DENSITY ESTIMATION -- </span></span>
 <span><span class="co">#&gt; [INFO]   Selected distribution:   normal </span></span>
 <span><span class="co">#&gt; [INFO]   Density parameters:      3 </span></span>
 <span><span class="co">#&gt; [INFO]   Fitted density model summary: </span></span>
@@ -193,28 +193,28 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; [INFO]   Computing density matrices... </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] ── NONLINEAR SOLVER (nleqslv) ── </span></span>
+<span><span class="co">#&gt; [INFO] -- NONLINEAR SOLVER (nleqslv) -- </span></span>
 <span><span class="co">#&gt; [INFO]   Early stopping threshold: 0.0100 </span></span>
 <span><span class="co">#&gt; [INFO]   Control parameters: </span></span>
 <span><span class="co">#&gt; [INFO]     maxit = 10 </span></span>
 <span><span class="co">#&gt; [INFO]   Solving... </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO]   ✓ Converged </span></span>
+<span><span class="co">#&gt; [INFO]   OK Converged </span></span>
 <span><span class="co">#&gt; [INFO]   Iterations:               5 </span></span>
 <span><span class="co">#&gt; [INFO]   Termination code:         1 </span></span>
 <span><span class="co">#&gt; [INFO]   Max |score|:              0.000000 </span></span>
 <span><span class="co">#&gt; [INFO]   Final parameter estimates (scaled): </span></span>
 <span><span class="co">#&gt; [INFO]     (Intercept)          =  0.862931  [response intercept] </span></span>
-<span><span class="co">#&gt; [INFO]     Y                    = -0.172256  [outcome → response] </span></span>
+<span><span class="co">#&gt; [INFO]     Y                    = -0.172256  [outcome -&gt; response] </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] ── VARIANCE ESTIMATION (Bootstrap) ── </span></span>
+<span><span class="co">#&gt; [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- </span></span>
 <span><span class="co">#&gt; [INFO]   Bootstrap replications:   50 </span></span>
-<span><span class="co">#&gt; [INFO]   ✓ Bootstrap complete </span></span>
+<span><span class="co">#&gt; [INFO]   OK Bootstrap complete </span></span>
 <span><span class="co">#&gt; [INFO]   Standard error:           0.062690 </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [RESULT] ════════════════════════════════════════════════════════════ </span></span>
+<span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
 <span><span class="co">#&gt; [RESULT]   ESTIMATION COMPLETE </span></span>
-<span><span class="co">#&gt; [RESULT] ════════════════════════════════════════════════════════════ </span></span>
+<span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
 <span><span class="co">#&gt; [RESULT]   Mean estimate:            -1.003200 </span></span>
 <span><span class="co">#&gt; [RESULT]   Standard error:           0.062690 </span></span>
 <span><span class="co">#&gt; [RESULT]   95% CI:                   [-1.126073, -0.880327] </span></span>
@@ -222,7 +222,7 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="co">#&gt; [INFO]   Response model coefficients: </span></span>
 <span><span class="co">#&gt; [INFO]     (Intercept)         :  0.862931  (Intercept) </span></span>
 <span><span class="co">#&gt; [INFO]     Y                   : -0.172256  (Effect of Y on response prob.) </span></span>
-<span><span class="co">#&gt; [RESULT] ════════════════════════════════════════════════════════════</span></span></code></pre></div>
+<span><span class="co">#&gt; [RESULT] ============================================================</span></span></code></pre></div>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Result</span></span>
@@ -270,7 +270,7 @@ https://doi.org/10.1093/jssam/smv047
 <span></span>
 <span></span>
 <span>  <span class="va">formula</span> <span class="op">=</span> <span class="va">Y</span> <span class="op">~</span> <span class="va">x1</span></span>
-<span>  <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">x</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span>, response_predictors <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
+<span>  <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">x</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span></span>
 <span><span class="op">}</span></span>
@@ -282,41 +282,41 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="co">#&gt; The following object is masked from 'package:graphics':</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     dotchart</span></span>
-<span><span class="co">#&gt; [STEP-1] ════════════════════════════════════════════════════════════ </span></span>
+<span><span class="co">#&gt; [STEP-1] ============================================================ </span></span>
 <span><span class="co">#&gt; [STEP-1]   EXPTILT ESTIMATION STARTED </span></span>
-<span><span class="co">#&gt; [STEP-1] ════════════════════════════════════════════════════════════ </span></span>
-<span><span class="co">#&gt; [INFO] Running with trace_level = 1 | For more detailed output, use trace_level = 2. Avaliable trace_level = c(1,2,3) </span></span>
+<span><span class="co">#&gt; [STEP-1] ============================================================ </span></span>
+<span><span class="co">#&gt; [INFO] Running with trace_level = 1 | For more detailed output, use trace_level = 2. Available trace_level = c(1,2,3) </span></span>
 <span><span class="co">#&gt; [INFO] Formula: Y ~ x1 </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] ── DATA SUMMARY ── </span></span>
+<span><span class="co">#&gt; [INFO] -- DATA SUMMARY -- </span></span>
 <span><span class="co">#&gt; [INFO]   Total observations:      500 </span></span>
 <span><span class="co">#&gt; [INFO]   Respondents:             368 (73.6%) </span></span>
 <span><span class="co">#&gt; [INFO]   Non-respondents:         132 (26.4%) </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] ── CONDITIONAL DENSITY ESTIMATION ── </span></span>
+<span><span class="co">#&gt; [INFO] -- CONDITIONAL DENSITY ESTIMATION -- </span></span>
 <span><span class="co">#&gt; [INFO]   Selected distribution:   normal </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] ── NONLINEAR SOLVER (nleqslv) ── </span></span>
+<span><span class="co">#&gt; [INFO] -- NONLINEAR SOLVER (nleqslv) -- </span></span>
 <span><span class="co">#&gt; [INFO]   Solving... </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO]   ✓ Converged </span></span>
+<span><span class="co">#&gt; [INFO]   OK Converged </span></span>
 <span><span class="co">#&gt; [INFO]   Iterations:               4 </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] ── VARIANCE ESTIMATION (Delta Method) ──</span></span>
+<span><span class="co">#&gt; [INFO] -- VARIANCE ESTIMATION (Delta Method) --</span></span>
 <span><span class="co">#&gt; Warning: Delta variance failed to evaluate; using bootstrap instead.</span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] ── VARIANCE ESTIMATION (Bootstrap) ── </span></span>
+<span><span class="co">#&gt; [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- </span></span>
 <span><span class="co">#&gt; [INFO]   Bootstrap replications:   50 </span></span>
-<span><span class="co">#&gt; [INFO]   ✓ Bootstrap complete </span></span>
+<span><span class="co">#&gt; [INFO]   OK Bootstrap complete </span></span>
 <span><span class="co">#&gt; [INFO]   Standard error:           0.063727 </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [RESULT] ════════════════════════════════════════════════════════════ </span></span>
+<span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
 <span><span class="co">#&gt; [RESULT]   ESTIMATION COMPLETE </span></span>
-<span><span class="co">#&gt; [RESULT] ════════════════════════════════════════════════════════════ </span></span>
+<span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
 <span><span class="co">#&gt; [RESULT]   Mean estimate:            -1.003204 </span></span>
 <span><span class="co">#&gt; [RESULT]   Standard error:           0.063727 </span></span>
 <span><span class="co">#&gt; [RESULT]   95% CI:                   [-1.128110, -0.878298] </span></span>
-<span><span class="co">#&gt; [RESULT] ════════════════════════════════════════════════════════════ </span></span>
+<span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
 <span><span class="co">#&gt; NMAR Result</span></span>
 <span><span class="co">#&gt; ------------</span></span>
 <span><span class="co">#&gt; Y mean: -1.003204 (0.063727)</span></span>
