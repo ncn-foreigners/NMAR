@@ -131,10 +131,7 @@ generate_conditional_density <- function(model) {
     x_mat <- design_mat(x)
 
 # Ensure coefficient vector is aligned with design matrix
-    if (ncol(x_mat) != length(coefs[beta_names])) {
-      stop(paste("Design matrix has", ncol(x_mat), "columns but coefficients have",
-                 length(coefs[beta_names]), "elements"))
-    }
+    validator$assert_matrix_ncol(x_mat, length(coefs[beta_names]), name = "design_mat/coefs")
 
     mean_val <- x_mat %*% coefs[beta_names]
     dist_list[[chosen_dist]]$density(y, mean_val, coefs)

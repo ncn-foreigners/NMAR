@@ -55,28 +55,30 @@ probit_family <- function() {
     score_eta = function(eta, delta) {
       if (missing(delta)) delta <- 1
       delta <- validate_delta(delta)
-      phi <- stats::dnorm(eta)
-      score <- numeric(length(phi))
-      if (!length(score)) {
-        return(score)
-      }
+      n <- length(eta)
+      if (!n) return(numeric(0))
 
+# Use log-domain ratios in tails for stability: phi/Phi and phi/(1-Phi)
+      log_phi <- stats::dnorm(eta, log = TRUE)
       log_Phi <- stats::pnorm(eta, log.p = TRUE)
       log_tail <- stats::pnorm(eta, lower.tail = FALSE, log.p = TRUE)
 
+      score <- numeric(n)
       idx1 <- delta == 1
       if (any(idx1)) {
-        score[idx1] <- phi[idx1] * exp(-log_Phi[idx1])
+        score[idx1] <- exp(log_phi[idx1] - log_Phi[idx1])
       }
       idx0 <- delta == 0
       if (any(idx0)) {
-        score[idx0] <- -phi[idx0] * exp(-log_tail[idx0])
+        score[idx0] <- -exp(log_phi[idx0] - log_tail[idx0])
       }
       idx_other <- !(idx1 | idx0)
       if (any(idx_other)) {
+# Fall back to the general expression with guarded p
         p_other <- stats::pnorm(eta[idx_other])
         p_other <- pmin(pmax(p_other, .Machine$double.eps), 1 - .Machine$double.eps)
-        score[idx_other] <- phi[idx_other] * ((delta[idx_other] - p_other) / (p_other * (1 - p_other)))
+        phi_other <- exp(log_phi[idx_other])
+        score[idx_other] <- phi_other * ((delta[idx_other] - p_other) / (p_other * (1 - p_other)))
       }
       score
     }

@@ -80,7 +80,8 @@ confint.nmar_result <- function(object, parm, level = 0.95, ...) {
 #' @param conf.level Confidence level for the primary estimate.
 #' @param ... Ignored.
 #' @keywords result_view
-#' @exportS3Method tidy nmar_result
+#' @method tidy nmar_result
+#' @export
 tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
   est <- nmar_result_get_estimate(x)
   se <- nmar_result_get_se(x)
@@ -147,7 +148,8 @@ tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
 #' @param x An object of class `nmar_result`.
 #' @param ... Ignored.
 #' @keywords result_view
-#' @exportS3Method glance nmar_result
+#' @method glance nmar_result
+#' @export
 glance.nmar_result <- function(x, ...) {
   est <- nmar_result_get_estimate(x)
   se <- nmar_result_get_se(x)

@@ -15,12 +15,8 @@
 #' @keywords internal
 create_verboser <- function(verbose = FALSE, trace_level = 1) {
 # Validate inputs
-  if (!is.logical(verbose) || length(verbose) != 1) {
-    stop("verbose must be a single logical value")
-  }
-  if (!is.numeric(trace_level) || length(trace_level) != 1 || !trace_level %in% 1:3) {
-    stop("trace_level must be 1, 2, or 3")
-  }
+  validator$assert_scalar_logical(verbose, name = "verbose")
+  validator$assert_choice(trace_level, choices = 1:3, name = "trace_level")
 
   if (!verbose) {
 # Return a no-op function when verbose is FALSE
