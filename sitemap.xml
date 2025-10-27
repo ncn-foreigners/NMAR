@@ -69,6 +69,7 @@
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_result_get_estimate.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_result_s3_parent.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_scaling_infra.html</loc></url>
+<url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_validator_helpers.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/parse_nmar_spec.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/plot.nmar_result.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/prepare_el_inputs.html</loc></url>
@@ -97,11 +98,6 @@
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/validate_nmar_engine_el.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/validate_nmar_result.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/validator.html</loc></url>
-<url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/validator_assert_choice.html</loc></url>
-<url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/validator_assert_logical.html</loc></url>
-<url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/validator_assert_number.html</loc></url>
-<url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/validator_assert_positive_integer.html</loc></url>
-<url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/validator_is_positive.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/vcov.nmar_result.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/weights.nmar_result.html</loc></url>
 </urlset>
