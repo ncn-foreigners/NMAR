@@ -10,16 +10,16 @@ validate_nmar_result <- function(x, class_name) {
 
 # Core scalars
   if (is.null(x$y_hat)) stop("`y_hat` must be supplied by the result object.")
-  if (length(x$y_hat) != 1 || !is.numeric(x$y_hat)) stop("`y_hat` must be a numeric scalar.")
+  validator$assert_scalar_numeric(x$y_hat, name = "y_hat", allow_na = TRUE, finite = FALSE)
 
   if (is.null(x$se)) x$se <- NA_real_
-  if (length(x$se) != 1 || !is.numeric(x$se)) stop("`se` must be a numeric scalar (NA allowed).")
+  validator$assert_scalar_numeric(x$se, name = "se", allow_na = TRUE, finite = FALSE)
 
   if (is.null(x$estimate_name)) x$estimate_name <- NA_character_
-  if (length(x$estimate_name) != 1) stop("`estimate_name` must be a character scalar (NA allowed).")
+  validator$assert_scalar_character(x$estimate_name, name = "estimate_name", allow_na = TRUE, non_empty = FALSE)
 
   if (is.null(x$converged)) x$converged <- NA
-  if (length(x$converged) != 1 || !is.logical(x$converged)) stop("`converged` must be a logical scalar.")
+  validator$assert_scalar_logical(x$converged, name = "converged")
 
 # Model
   if (is.null(x$model) || !is.list(x$model)) x$model <- list()

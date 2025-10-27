@@ -146,16 +146,9 @@ exptilt_engine <- function(
   validator$assert_choice(y_dens, choices = c("auto", "normal", "lognormal", "exponential"), name = "y_dens")
   validator$assert_choice(variance_method, choices = c("delta", "bootstrap"), name = "variance_method")
   validator$assert_number(stopping_threshold, name = "stopping_threshold", min = 0, max = Inf)
-  validator$assert_logical(verbose, name = "verbose")
-  validator$assert_positive_integer(trace_level, name = "trace_level", is.finite = TRUE)
-
-  if (!trace_level %in% 1:3) {
-    stop("trace_level must be 1, 2, or 3")
-  }
-
-  if (!is.list(control)) {
-    stop("control must be a list.")
-  }
+  validator$assert_scalar_logical(verbose, name = "verbose")
+  validator$assert_choice(trace_level, choices = 1:3, name = "trace_level")
+  validator$assert_list(control, name = "control")
 
   engine <- list(
     standardize = standardize,

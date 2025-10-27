@@ -8,9 +8,7 @@
 #'
 #' @keywords internal
 parse_nmar_spec <- function(formula, data, env = parent.frame()) {
-  if (!inherits(formula, "formula") || length(formula) != 3) {
-    stop("`formula` must be a two-sided formula like y ~ aux | response.", call. = FALSE)
-  }
+  validator$assert_formula_two_sided(formula, name = "formula")
   if (!is.environment(env)) env <- parent.frame()
   if (is.null(environment(formula))) environment(formula) <- env
 
@@ -31,9 +29,7 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
   auxiliary_vars <- unique(all.vars(aux_expr))
   response_predictors <- if (is.null(resp_expr)) character() else unique(all.vars(resp_expr))
 
-  if (!inherits(data, c("data.frame", "survey.design"))) {
-    stop("`data` must be a data.frame or survey.design object.", call. = FALSE)
-  }
+  validator$assert_data_frame_or_survey(data, name = "data")
 
   is_survey <- inherits(data, "survey.design")
   data_df <- if (is_survey) data$variables else data

@@ -158,31 +158,18 @@ new_nmar_engine_el <- function(engine) {
 #' Validate EL Engine Settings
 #' @keywords internal
 validate_nmar_engine_el <- function(engine) {
-  stopifnot(is.list(engine))
-# Logical flags
-  if (!is.logical(engine$standardize) || length(engine$standardize) != 1) stop("standardize must be a single logical")
+  validator$assert_list(engine, name = "engine")
+  validator$assert_logical(engine$standardize, name = "standardize")
 
-# Numeric settings
-  if (!is.numeric(engine$trim_cap) || length(engine$trim_cap) != 1 || (!is.infinite(engine$trim_cap) && engine$trim_cap <= 0)) stop("trim_cap must be a positive number or Inf")
-  if (!is.numeric(engine$bootstrap_reps) || length(engine$bootstrap_reps) != 1 || engine$bootstrap_reps < 1) stop("bootstrap_reps must be a positive integer")
-# Factors handled via match.arg upstream; here we assert presence
-  if (!engine$on_failure %in% c("return", "error")) stop("on_failure must be 'return' or 'error'")
-  if (!engine$variance_method %in% c("delta", "bootstrap", "none")) stop("variance_method must be 'delta', 'bootstrap', or 'none'")
+  validator$assert_positive_number(engine$trim_cap, name = "trim_cap", allow_infinite = TRUE)
+  validator$assert_positive_integer(engine$bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)
+  validator$assert_choice(engine$on_failure, choices = c("return", "error"), name = "on_failure")
+  validator$assert_choice(engine$variance_method, choices = c("delta", "bootstrap", "none"), name = "variance_method")
 
-# Auxiliary means: NULL or named numeric
-  if (!is.null(engine$auxiliary_means)) {
-    if (!is.numeric(engine$auxiliary_means) || is.null(names(engine$auxiliary_means)) || anyNA(names(engine$auxiliary_means))) {
-      stop("auxiliary_means must be a named numeric vector or NULL")
-    }
-  }
-# Control should be a list (passed through)
-  if (!is.list(engine$control)) stop("control must be a list")
-# Optional n_total must be a positive integer-like scalar if provided
-  if (!is.null(engine$n_total)) {
-    if (!is.numeric(engine$n_total) || length(engine$n_total) != 1 || !is.finite(engine$n_total) || engine$n_total <= 0) {
-      stop("n_total must be a positive number when provided")
-    }
-  }
+  validator$assert_named_numeric(engine$auxiliary_means, name = "auxiliary_means", allow_null = TRUE)
+  validator$assert_list(engine$control, name = "control")
+
+  if (!is.null(engine$n_total)) validator$assert_positive_number(engine$n_total, name = "n_total", allow_infinite = FALSE)
 
   fam <- engine$family
   if (!is.list(fam) || is.null(fam$name) || !is.function(fam$linkinv) || !is.function(fam$mu.eta) || !is.function(fam$score_eta)) {
