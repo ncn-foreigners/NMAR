@@ -82,11 +82,44 @@ estimate is extracted via `$y_hat` and convergence via `$converged`.</p></dd>
     <p>- For `data.frame` inputs, performs i.i.d. bootstrap by resampling rows and
     rerunning `estimator_func`.
   - For `survey.design` inputs, converts to a bootstrap replicate-weight
-    design (`svrep::as_bootstrap_design`) and uses `survey::withReplicates` to
-    compute replicate estimates; variance is computed with `survey::svrVar`.
+    design (`svrep::as_bootstrap_design`), computes replicate estimates by
+    rebuilding the original design with each replicate weight vector, and
+    then computes variance with `survey::svrVar` using the replicate scales.
   `estimator_func` is typically an engine method (e.g., `el()`), and is called
   with the same arguments used for the point estimate, except that the `data`
   argument is replaced by the resampled data or replicate design.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="progress-reporting">Progress Reporting<a class="anchor" aria-label="anchor" href="#progress-reporting"></a></h2>
+
+
+<p>If the <code>progressr</code> package is installed, progress reporting is available.
+  Enable it by setting handlers before calling the bootstrap:</p>
+<p><code><a href="https://progressr.futureverse.org" class="external-link">library(progressr)</a></code></p>
+<p><code>handlers(global = TRUE)</code></p>
+<p><code>handlers("txtprogressbar")  # or "progress", "cli", etc.</code></p>
+<p>To disable progress in simulations or batch jobs, use <code>handlers("void")</code>.
+  If progressr is not installed or no handlers are set, bootstrap runs silently
+  (default behavior). Progress reporting works with all future backends (sequential,
+  multisession, cluster, etc.) and does not affect reproducibility.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="reproducibility">Reproducibility<a class="anchor" aria-label="anchor" href="#reproducibility"></a></h2>
+
+
+<p>For reproducible bootstrap results, always set a seed before calling
+  the estimation function:</p>
+<p></p><div class="sourceCode"><pre><code><span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span>  <span class="co"># Set seed for reproducibility</span></span>
+<span>  <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="va">X</span>, data <span class="op">=</span> <span class="va">df</span>,</span>
+<span>                 engine <span class="op">=</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>variance_method <span class="op">=</span> <span class="st">"bootstrap"</span>,</span>
+<span>                                    bootstrap_reps <span class="op">=</span> <span class="fl">500</span><span class="op">)</span><span class="op">)</span></span>
+<span>  </span></code></pre></div>
+
+<p>The <code>future</code> package (via <code>future.seed = TRUE</code>) ensures each
+  bootstrap replicate uses an independent L'Ecuyer-CMRG random number stream
+  derived from this seed, guaranteeing reproducibility across all future
+  backends (sequential, multisession, cluster, etc.).</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

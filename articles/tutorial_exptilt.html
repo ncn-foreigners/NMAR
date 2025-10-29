@@ -210,14 +210,14 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="co">#&gt; [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- </span></span>
 <span><span class="co">#&gt; [INFO]   Bootstrap replications:   50 </span></span>
 <span><span class="co">#&gt; [INFO]   OK Bootstrap complete </span></span>
-<span><span class="co">#&gt; [INFO]   Standard error:           0.062690 </span></span>
+<span><span class="co">#&gt; [INFO]   Standard error:           0.062760 </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
 <span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
 <span><span class="co">#&gt; [RESULT]   ESTIMATION COMPLETE </span></span>
 <span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
 <span><span class="co">#&gt; [RESULT]   Mean estimate:            -1.003200 </span></span>
-<span><span class="co">#&gt; [RESULT]   Standard error:           0.062690 </span></span>
-<span><span class="co">#&gt; [RESULT]   95% CI:                   [-1.126073, -0.880327] </span></span>
+<span><span class="co">#&gt; [RESULT]   Standard error:           0.062760 </span></span>
+<span><span class="co">#&gt; [RESULT]   95% CI:                   [-1.126209, -0.880191] </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
 <span><span class="co">#&gt; [INFO]   Response model coefficients: </span></span>
 <span><span class="co">#&gt; [INFO]     (Intercept)         :  0.862931  (Intercept) </span></span>
@@ -227,7 +227,7 @@ https://doi.org/10.1093/jssam/smv047
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Result</span></span>
 <span><span class="co">#&gt; ------------</span></span>
-<span><span class="co">#&gt; Y mean: -1.003200 (0.062690)</span></span>
+<span><span class="co">#&gt; Y mean: -1.003200 (0.062760)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: bootstrap </span></span>
 <span><span class="co">#&gt; Estimator: exponential_tilting </span></span>
@@ -244,7 +244,7 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'Est Y mean (NMAR):    '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span><span class="op">)</span>,</span>
 <span>    <span class="st">'  3σ interval: ('</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span> <span class="op">-</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="va">se</span><span class="op">)</span>,</span>
 <span>    <span class="st">', '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span> <span class="op">+</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="va">se</span><span class="op">)</span>, <span class="st">'σ='</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">se</span><span class="op">)</span>, <span class="st">')\n'</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Est Y mean (NMAR):     -1.0032   3σ interval: ( -1.0972 ,  -0.9092 σ= 0.0627 )</span></span>
+<span><span class="co">#&gt; Est Y mean (NMAR):     -1.0032   3σ interval: ( -1.0973 ,  -0.9091 σ= 0.0628 )</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'Naive Y mean (MAR):   '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">x</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">x</span><span class="op">$</span><span class="va">Y</span><span class="op">)</span>, <span class="st">'Y'</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, <span class="st">'\n'</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Naive Y mean (MAR):    -1.0716</span></span></code></pre></div>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
@@ -278,6 +278,11 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="co">#&gt; Loading required package: Matrix</span></span>
 <span><span class="co">#&gt; Loading required package: survival</span></span>
 <span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'survival'</span></span>
+<span><span class="co">#&gt; The following object is masked from 'package:future':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     cluster</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Attaching package: 'survey'</span></span>
 <span><span class="co">#&gt; The following object is masked from 'package:graphics':</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -308,18 +313,18 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="co">#&gt; [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- </span></span>
 <span><span class="co">#&gt; [INFO]   Bootstrap replications:   50 </span></span>
 <span><span class="co">#&gt; [INFO]   OK Bootstrap complete </span></span>
-<span><span class="co">#&gt; [INFO]   Standard error:           0.063727 </span></span>
+<span><span class="co">#&gt; [INFO]   Standard error:           0.063102 </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
 <span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
 <span><span class="co">#&gt; [RESULT]   ESTIMATION COMPLETE </span></span>
 <span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
 <span><span class="co">#&gt; [RESULT]   Mean estimate:            -1.003204 </span></span>
-<span><span class="co">#&gt; [RESULT]   Standard error:           0.063727 </span></span>
-<span><span class="co">#&gt; [RESULT]   95% CI:                   [-1.128110, -0.878298] </span></span>
+<span><span class="co">#&gt; [RESULT]   Standard error:           0.063102 </span></span>
+<span><span class="co">#&gt; [RESULT]   95% CI:                   [-1.126883, -0.879525] </span></span>
 <span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
 <span><span class="co">#&gt; NMAR Result</span></span>
 <span><span class="co">#&gt; ------------</span></span>
-<span><span class="co">#&gt; Y mean: -1.003204 (0.063727)</span></span>
+<span><span class="co">#&gt; Y mean: -1.003204 (0.063102)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: delta </span></span>
 <span><span class="co">#&gt; Estimator: exponential_tilting </span></span>

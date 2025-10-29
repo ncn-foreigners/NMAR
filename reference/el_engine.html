@@ -169,6 +169,40 @@ are used only in tests.</p>
 implement custom EL solver algorithms.</p>
     </div>
     <div class="section level2">
+    <h2 id="progress-reporting">Progress Reporting<a class="anchor" aria-label="anchor" href="#progress-reporting"></a></h2>
+
+
+<p>When <code>variance_method = "bootstrap"</code>, progress reporting is available via the
+<code>progressr</code> package. To enable it:</p>
+<div class="sourceCode"><pre><code><span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://progressr.futureverse.org" class="external-link">progressr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://future.futureverse.org" class="external-link">future</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Enable progress reporting</span></span>
+<span><span class="fu"><a href="https://progressr.futureverse.org/reference/handlers.html" class="external-link">handlers</a></span><span class="op">(</span>global <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://progressr.futureverse.org/reference/handlers.html" class="external-link">handlers</a></span><span class="op">(</span><span class="st">"txtprogressbar"</span><span class="op">)</span>  <span class="co"># or "progress", "cli", etc.</span></span>
+<span></span>
+<span><span class="co"># Set parallel backend (optional)</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">multisession</span>, workers <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Always set seed for reproducibility</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Run with progress bar</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="va">X</span>, data <span class="op">=</span> <span class="va">df</span>,</span>
+<span>               engine <span class="op">=</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>variance_method <span class="op">=</span> <span class="st">"bootstrap"</span>,</span>
+<span>                                  bootstrap_reps <span class="op">=</span> <span class="fl">500</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Reset to sequential</span></span>
+<span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">sequential</span><span class="op">)</span></span></code></pre></div>
+
+<p>To disable progress in simulations or batch jobs:</p>
+<p><code>handlers("void")  # Silent</code></p>
+<p>If progressr is not installed or no handlers are set, bootstrap runs silently
+(default behavior). Progress reporting works with all future backends and does
+not affect reproducibility.</p>
+    </div>
+    <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 nonignorable nonresponse or informative sampling. <em>Journal of the American
