@@ -11,12 +11,6 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
-set.seed(123)
-library(NMAR)
-```
-
 # Overview
 
 This vignette demonstrates the empirical likelihood (EL) estimator for Not Missing At Random (NMAR) data in the NMAR package. The method implements the estimator of Qin, Leung, and Shao (2002), using empirical likelihood weights that satisfy estimating equations for the response mechanism and (optionally) auxiliary moment constraints. For full derivations and the analytic Jacobian/variance details, see the companion article "Empirical Likelihood Theory for NMAR".
@@ -42,6 +36,10 @@ Key features:
 We simulate an NMAR mechanism where the response probability depends on the unobserved outcome.
 
 ```{r}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+set.seed(123)
+library(NMAR)
+
 N <- 500
 X <- rnorm(N)
 Z <- rnorm(N)

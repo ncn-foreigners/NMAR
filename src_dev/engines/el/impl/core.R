@@ -371,9 +371,36 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 
   if (variance_method == "bootstrap") {
     user_args_internal <- user_args
-    user_args_internal$variance_method <- "none"
-    boot_args <- c(list(data = full_data, estimator_func = el, point_estimate = y_hat, bootstrap_reps = bootstrap_reps), user_args_internal)
-    boot_try <- tryCatch(list(result = do.call(bootstrap_variance, boot_args), message = "Calculation successful"), error = function(e) list(result = NULL, message = paste("Bootstrap failed:", e$message)))
+# Construct engine args for replicate fits using the same settings
+    engine_args <- list(
+      standardize = standardize,
+      trim_cap = trim_cap,
+      on_failure = on_failure,
+      auxiliary_means = auxiliary_means,
+      control = control,
+      n_total = NULL,
+      start = start,
+      family = family
+    )
+# Create a method-local bootstrap estimator closure to avoid non-agnostic hooks
+    est_closure <- function(data, formula, engine_args, ...) {
+      engine_args$variance_method <- "none"
+      eng <- do.call(NMAR::el_engine, engine_args)
+      NMAR::nmar(formula = formula, data = data, engine = eng)
+    }
+    boot_args <- list(
+      data = full_data,
+      estimator_func = est_closure,
+      point_estimate = y_hat,
+      bootstrap_reps = bootstrap_reps,
+      formula = user_args_internal$formula %||% internal_formula$outcome,
+      engine_args = engine_args
+    )
+# Execute bootstrap
+    boot_try <- tryCatch(
+      list(result = do.call(bootstrap_variance, boot_args), message = "Calculation successful"),
+      error = function(e) list(result = NULL, message = paste("Bootstrap failed:", e$message))
+    )
     vcov_message <- boot_try$message
     if (!is.null(boot_try$result)) {
       se_y_hat <- boot_try$result$se

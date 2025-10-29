@@ -59,6 +59,7 @@ exptilt.data.frame <- function(data, formula,
     control = control,
     variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,
+
     supress_warnings = supress_warnings,
     design_weights = design_weights,
     design = survey_design,
@@ -201,7 +202,9 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   model$x_for_y_obs <- auxiliary_matrix_scaled[respondent_mask, , drop = FALSE]
   model$x_for_y_unobs <- auxiliary_matrix_scaled[!respondent_mask, , drop = FALSE]
 
-  if (model$is_survey == F) model$design_weights <- rep(1, nrow(model$x_1)) else model$design_weights <- weights(model$x_1)
+  if (!isTRUE(model$is_survey)) {
+    model$design_weights <- rep(1, nrow(model$x_1))
+  }
 
 
 # Track the current scale of feature matrices. We fit f1(.) on the scaled
