@@ -66,6 +66,41 @@
 #' We rely on standard globalization provided by \code{nleqslv} and do not
 #' implement custom EL solver algorithms.
 #'
+#' @section Progress Reporting:
+#' When \code{variance_method = "bootstrap"}, progress reporting is available via the
+#' \code{progressr} package. To enable it:
+#'
+#' \preformatted{
+#' library(progressr)
+#' library(future)
+#'
+#' # Enable progress reporting
+#' handlers(global = TRUE)
+#' handlers("txtprogressbar")  # or "progress", "cli", etc.
+#'
+#' # Set parallel backend (optional)
+#' plan(multisession, workers = 4)
+#'
+#' # Always set seed for reproducibility
+#' set.seed(123)
+#'
+#' # Run with progress bar
+#' result <- nmar(Y ~ X, data = df,
+#'                engine = el_engine(variance_method = "bootstrap",
+#'                                   bootstrap_reps = 500))
+#'
+#' # Reset to sequential
+#' plan(sequential)
+#' }
+#'
+#' To disable progress in simulations or batch jobs:
+#'
+#' \code{handlers("void")  # Silent}
+#'
+#' If progressr is not installed or no handlers are set, bootstrap runs silently
+#' (default behavior). Progress reporting works with all future backends and does
+#' not affect reproducibility.
+#'
 #' @return An engine object of class \code{c("nmar_engine_el","nmar_engine")}.
 #'   This is a configuration list; it is not a fit. Pass it to \link{nmar}.
 #'

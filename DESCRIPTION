@@ -20,9 +20,11 @@ Imports:
     nleqslv,
     utils,
     numDeriv,
-    generics
+    generics,
+    future,
+    future.apply
 RoxygenNote: 7.3.3
-Suggests: 
+Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
@@ -30,6 +32,7 @@ Suggests:
     MASS,
     svrep,
     broom,
-    ggplot2
+    ggplot2,
+    progressr
 VignetteBuilder: knitr
 Config/testthat/edition: 3
