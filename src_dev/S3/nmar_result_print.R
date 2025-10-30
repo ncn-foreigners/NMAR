@@ -11,6 +11,7 @@ print.nmar_result <- function(x, ...) {
   inference <- nmar_result_get_inference(x)
   sample <- nmar_result_get_sample(x)
   meta <- x$meta %||% list()
+  diagnostics <- x$diagnostics %||% list()
 
   cat("NMAR Result\n")
   cat("------------\n")
@@ -36,6 +37,17 @@ print.nmar_result <- function(x, ...) {
     }
     cat("\n")
   }
+
+# Display sampling information if stratified sampling was performed
+  if (isTRUE(diagnostics$sampling_performed)) {
+    cat("Stratified sampling:\n")
+    cat(sprintf("  Original size: %d (resp: %d, non-resp: %d)\n",
+                diagnostics$original_n_total,
+                diagnostics$original_n_resp,
+                diagnostics$original_n_nonresp))
+    cat(sprintf("  Sampled size: %d (preserving ratio)\n", sample$n_total))
+  }
+
   invisible(x)
 }
 
@@ -111,5 +123,16 @@ print.summary_nmar_result <- function(x, ...) {
       cat("Respondents:", x$sample$n_respondents, "\n")
     }
   }
+
+# Display sampling information if available
+  if (is.list(x$diagnostics) && isTRUE(x$diagnostics$sampling_performed)) {
+    cat("Stratified sampling applied:\n")
+    cat(sprintf("  Original data: %d observations (resp: %d, non-resp: %d)\n",
+                x$diagnostics$original_n_total,
+                x$diagnostics$original_n_resp,
+                x$diagnostics$original_n_nonresp))
+    cat(sprintf("  Sampled data: %d observations (ratio preserved)\n", x$sample$n_total))
+  }
+
   invisible(x)
 }
