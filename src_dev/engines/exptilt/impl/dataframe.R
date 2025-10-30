@@ -15,6 +15,7 @@ exptilt.data.frame <- function(data, formula,
                                design_weights = NULL,
                                survey_design = NULL,
                                trace_level = 0,
+                               sample_size = 2000,
                                ...) {
   prob_model_type <- match.arg(prob_model_type)
   y_dens <- match.arg(y_dens)
@@ -44,6 +45,44 @@ exptilt.data.frame <- function(data, formula,
     data_subset <- as.data.frame(data_subset)
   }
 
+# Stratified sampling for memory optimization
+# Preserve respondent/non-respondent ratio
+  n_total <- nrow(data_subset)
+  respondent_idx <- which(!is.na(data_subset[, outcome_var]))
+  nonrespondent_idx <- which(is.na(data_subset[, outcome_var]))
+  n_resp <- length(respondent_idx)
+  n_nonresp <- length(nonrespondent_idx)
+
+  sampling_performed <- FALSE
+  original_n_total <- n_total
+  original_n_resp <- n_resp
+  original_n_nonresp <- n_nonresp
+
+  if (n_total > sample_size) {
+# Calculate stratified sample sizes
+    resp_ratio <- n_resp / n_total
+    nonresp_ratio <- n_nonresp / n_total
+
+    n_resp_sample <- round(sample_size * resp_ratio)
+    n_nonresp_sample <- sample_size - n_resp_sample
+
+# Ensure we have at least some observations from each stratum
+    n_resp_sample <- max(1, min(n_resp_sample, n_resp))
+    n_nonresp_sample <- max(1, min(n_nonresp_sample, n_nonresp))
+
+# Sample from each stratum
+    sampled_resp_idx <- sample(respondent_idx, n_resp_sample, replace = FALSE)
+    sampled_nonresp_idx <- sample(nonrespondent_idx, n_nonresp_sample, replace = FALSE)
+
+# Combine sampled indices
+    sampled_idx <- c(sampled_resp_idx, sampled_nonresp_idx)
+
+# Update data_subset
+    data_subset <- data_subset[sampled_idx, , drop = FALSE]
+
+    sampling_performed <- TRUE
+  }
+
   model <- list(
     data = data_subset,
     required_cols = required_cols,
@@ -64,7 +103,14 @@ exptilt.data.frame <- function(data, formula,
     design = survey_design,
     formula = formula,
     call = match.call(),
-    trace_level = trace_level
+    trace_level = trace_level,
+
+# Sampling information
+    sample_size = sample_size,
+    sampling_performed = sampling_performed,
+    original_n_total = original_n_total,
+    original_n_resp = original_n_resp,
+    original_n_nonresp = original_n_nonresp
   )
 
 # Create verboser
@@ -147,6 +193,23 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   verboser(sprintf("  Total observations:      %d", n_total), level = 1)
   verboser(sprintf("  Respondents:             %d (%.1f%%)", n_resp, 100 - pct_nonresp), level = 1)
   verboser(sprintf("  Non-respondents:         %d (%.1f%%)", n_nonresp, pct_nonresp), level = 1)
+
+# Display sampling information if sampling was performed
+  if (isTRUE(model$sampling_performed)) {
+    verboser("", level = 1)
+    verboser("-- STRATIFIED SAMPLING --", level = 1)
+    verboser(sprintf("  Original sample size:    %d", model$original_n_total), level = 1)
+    verboser(sprintf("    Respondents:           %d (%.1f%%)",
+                     model$original_n_resp,
+                     100 * model$original_n_resp / model$original_n_total), level = 1)
+    verboser(sprintf("    Non-respondents:       %d (%.1f%%)",
+                     model$original_n_nonresp,
+                     100 * model$original_n_nonresp / model$original_n_total), level = 1)
+    verboser(sprintf("  Sampled size:            %d (sample_size=%d)", n_total, model$sample_size), level = 1)
+    verboser(sprintf("    Respondents:           %d (%.1f%%)", n_resp, 100 - pct_nonresp), level = 1)
+    verboser(sprintf("    Non-respondents:       %d (%.1f%%)", n_nonresp, pct_nonresp), level = 1)
+    verboser("  Ratio preserved:         stratified sampling", level = 1)
+  }
 
   verboser("", level = 2)
   verboser("-- MODEL SPECIFICATION --", level = 2)

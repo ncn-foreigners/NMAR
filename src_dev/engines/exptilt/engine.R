@@ -29,6 +29,9 @@
 #' @param family character; response model family, either \code{"logit"} or \code{"probit"},
 #'   or a family object created by \code{logit_family()} / \code{probit_family()}.
 #' @param y_dens Outcome density model (\code{"auto"}, \code{"normal"}, \code{"lognormal"}, or \code{"exponential"}).
+#' @param sample_size Integer; maximum sample size for stratified random sampling (default: 2000).
+#'   When the dataset exceeds this size, a stratified random sample is drawn to optimize memory usage.
+#'   The sampling preserves the ratio of respondents to non-respondents in the original data.
 #' @details
 #' The method is a robust Propensity-Score Adjustment (PSA) approach for Not Missing at Random (NMAR).
 #' It uses Maximum Likelihood Estimation (MLE), basing the likelihood on the observed part of the sample (\eqn{f(\boldsymbol{Y}_i | \delta_i = 1, \boldsymbol{X}_i)}), making it robust against outcome model misspecification.
@@ -118,7 +121,8 @@ exptilt_engine <- function(
     control = list(),
     family = c("logit", "probit"),
     y_dens = c("auto", "normal", "lognormal", "exponential"),
-    stopping_threshold = 1
+    stopping_threshold = 1,
+    sample_size = 2000
     ) {
   on_failure <- match.arg(on_failure)
   variance_method <- match.arg(variance_method)
@@ -134,6 +138,7 @@ exptilt_engine <- function(
   validator$assert_choice(variance_method, choices = c("delta", "bootstrap"), name = "variance_method")
   validator$assert_number(stopping_threshold, name = "stopping_threshold", min = 0, max = Inf)
   validator$assert_list(control, name = "control")
+  validator$assert_positive_integer(sample_size, name = "sample_size", is.finite = TRUE)
 
   engine <- list(
     standardize = standardize,
@@ -145,7 +150,8 @@ exptilt_engine <- function(
     control = control,
     prob_model_type = family,
     y_dens = y_dens,
-    stopping_threshold = stopping_threshold
+    stopping_threshold = stopping_threshold,
+    sample_size = sample_size
   )
 
   class(engine) <- c("nmar_engine_exptilt", "nmar_engine")
