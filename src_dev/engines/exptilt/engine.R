@@ -29,15 +29,6 @@
 #' @param family character; response model family, either \code{"logit"} or \code{"probit"},
 #'   or a family object created by \code{logit_family()} / \code{probit_family()}.
 #' @param y_dens Outcome density model (\code{"auto"}, \code{"normal"}, \code{"lognormal"}, or \code{"exponential"}).
-#' @param verbose Logical; if \code{TRUE}, print progress messages during estimation (default: \code{TRUE}).
-#'   Set to \code{FALSE} to suppress all output.
-#' @param trace_level Integer 1-3; controls verbosity detail when \code{verbose = TRUE} (default: 1):
-#'   \itemize{
-#'     \item 1: Major steps only (initialization, convergence, final results)
-#'     \item 2: Moderate detail (iteration summaries, key diagnostics)
-#'     \item 3: Full detail (all diagnostics, intermediate values)
-#'   }
-#'   When running at level 1 or 2, a message will inform you how to get more detail.
 #' @details
 #' The method is a robust Propensity-Score Adjustment (PSA) approach for Not Missing at Random (NMAR).
 #' It uses Maximum Likelihood Estimation (MLE), basing the likelihood on the observed part of the sample (\eqn{f(\boldsymbol{Y}_i | \delta_i = 1, \boldsymbol{X}_i)}), making it robust against outcome model misspecification.
@@ -109,12 +100,10 @@
 #'   stopping_threshold = 0.01,
 #'   standardize = FALSE,
 #'   family = 'logit',
-#'   bootstrap_reps = 50,
-#'   verbose = TRUE,
-#'   trace_level = 1
+#'   bootstrap_reps = 50
 #' )
 #' formula = Y ~ x1
-#' res <- nmar(formula = formula, data = x, engine = exptilt_config)
+#' res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 1)
 #' summary(res)
 #' }
 #' @keywords engine
@@ -129,9 +118,7 @@ exptilt_engine <- function(
     control = list(),
     family = c("logit", "probit"),
     y_dens = c("auto", "normal", "lognormal", "exponential"),
-    stopping_threshold = 1,
-    verbose = TRUE,
-    trace_level = 1
+    stopping_threshold = 1
     ) {
   on_failure <- match.arg(on_failure)
   variance_method <- match.arg(variance_method)
@@ -146,8 +133,6 @@ exptilt_engine <- function(
   validator$assert_choice(y_dens, choices = c("auto", "normal", "lognormal", "exponential"), name = "y_dens")
   validator$assert_choice(variance_method, choices = c("delta", "bootstrap"), name = "variance_method")
   validator$assert_number(stopping_threshold, name = "stopping_threshold", min = 0, max = Inf)
-  validator$assert_scalar_logical(verbose, name = "verbose")
-  validator$assert_choice(trace_level, choices = 1:3, name = "trace_level")
   validator$assert_list(control, name = "control")
 
   engine <- list(
@@ -160,9 +145,7 @@ exptilt_engine <- function(
     control = control,
     prob_model_type = family,
     y_dens = y_dens,
-    stopping_threshold = stopping_threshold,
-    verbose = verbose,
-    trace_level = trace_level
+    stopping_threshold = stopping_threshold
   )
 
   class(engine) <- c("nmar_engine_exptilt", "nmar_engine")

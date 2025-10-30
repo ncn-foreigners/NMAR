@@ -123,12 +123,11 @@ exptilt_config <- exptilt_engine(
   y_dens = 'normal',
   family = 'probit', # or logit
   variance_method = 'bootstrap', # or delta
-  bootstrap_reps = 10,
-  verbose = FALSE
+  bootstrap_reps = 10
 )
 
 formula = Y ~ x1 + x2
-res <- nmar(formula = formula, data = data, engine = exptilt_config)
+res <- nmar(formula = formula, data = data, engine = exptilt_config, trace_level = 0)
 print(coef(res))
 print(res)
 ```

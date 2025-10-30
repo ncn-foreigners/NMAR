@@ -30,8 +30,7 @@ run_engine.nmar_engine_exptilt <- function(engine, task) {
     stopping_threshold = engine$stopping_threshold,
     on_failure = engine$on_failure,
     supress_warnings = engine$supress_warnings,
-    verbose = engine$verbose,
-    trace_level = engine$trace_level
+    trace_level = task$trace_level
   )
 
   if (!isTRUE(design_info$is_survey)) {

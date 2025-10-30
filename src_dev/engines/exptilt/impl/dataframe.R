@@ -14,8 +14,7 @@ exptilt.data.frame <- function(data, formula,
                                supress_warnings = FALSE,
                                design_weights = NULL,
                                survey_design = NULL,
-                               verbose = FALSE,
-                               trace_level = 1,
+                               trace_level = 0,
                                ...) {
   prob_model_type <- match.arg(prob_model_type)
   y_dens <- match.arg(y_dens)
@@ -65,12 +64,11 @@ exptilt.data.frame <- function(data, formula,
     design = survey_design,
     formula = formula,
     call = match.call(),
-    verbose = verbose,
     trace_level = trace_level
   )
 
 # Create verboser
-  model$verboser <- create_verboser(verbose, trace_level)
+  model$verboser <- create_verboser(trace_level)
 
   class(model) <- "nmar_exptilt"
 
@@ -98,7 +96,7 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
 
 # Initialize verboser if not already present
   if (is.null(model$verboser)) {
-    model$verboser <- create_verboser(verbose = FALSE, trace_level = 1)
+    model$verboser <- create_verboser(trace_level = 0)
   }
 
   verboser <- model$verboser

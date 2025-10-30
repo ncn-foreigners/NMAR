@@ -19,14 +19,23 @@
 #'   engine constructor function like `exptilt()`. This object defines the
 #'   specific NMAR estimation method and its parameters. It must inherit from
 #'   class `nmar_engine`.
+#' @param trace_level Integer 0-3; controls verbosity level during estimation (default: 1):
+#'   \itemize{
+#'     \item 0: No output (silent mode)
+#'     \item 1: Major steps only (initialization, convergence, final results)
+#'     \item 2: Moderate detail (iteration summaries, key diagnostics)
+#'     \item 3: Full detail (all diagnostics, intermediate values)
+#'   }
 #'
 #' @return An object containing the estimation results, whose structure will be
 #'   specific to the `engine` used. This might include estimated parameters,
 #'   convergence information, and other relevant output from the chosen NMAR method.
 #' @keywords nmar
 #' @export
-nmar <- function(formula, data, engine) {
+nmar <- function(formula, data, engine, trace_level = 1) {
   stopifnot(inherits(engine, "nmar_engine"))
+
+  validator$assert_choice(trace_level, choices = 0:3, name = "trace_level")
 
   spec <- parse_nmar_spec(
     formula = formula,
@@ -46,6 +55,9 @@ nmar <- function(formula, data, engine) {
 # Wrap the validated spec and engine traits into a task object so every
 # engine sees the same downstream interface.
   task <- new_nmar_task(spec, traits)
+
+# Pass trace_level to the engine
+  task$trace_level <- trace_level
 
   run_engine(engine, task)
 }
