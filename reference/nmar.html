@@ -59,7 +59,7 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">nmar</span><span class="op">(</span><span class="va">formula</span>, <span class="va">data</span>, <span class="va">engine</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">nmar</span><span class="op">(</span><span class="va">formula</span>, <span class="va">data</span>, <span class="va">engine</span>, trace_level <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -86,6 +86,14 @@ formula.</p></dd>
 engine constructor function like `exptilt()`. This object defines the
 specific NMAR estimation method and its parameters. It must inherit from
 class `nmar_engine`.</p></dd>
+
+
+<dt id="arg-trace-level">trace_level<a class="anchor" aria-label="anchor" href="#arg-trace-level"></a></dt>
+<dd><p>Integer 0-3; controls verbosity level during estimation (default: 1):</p><ul><li><p>0: No output (silent mode)</p></li>
+<li><p>1: Major steps only (initialization, convergence, final results)</p></li>
+<li><p>2: Moderate detail (iteration summaries, key diagnostics)</p></li>
+<li><p>3: Full detail (all diagnostics, intermediate values)</p></li>
+</ul></dd>
 
 </dl></div>
     <div class="section level2">

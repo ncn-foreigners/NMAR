@@ -133,14 +133,12 @@ https://doi.org/10.1093/jssam/smv047
 <span>  standardize <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  family <span class="op">=</span> <span class="st">'logit'</span>,</span>
 <span>  bootstrap_reps <span class="op">=</span> <span class="fl">50</span>,</span>
-<span>  variance_method <span class="op">=</span> <span class="st">'bootstrap'</span>,</span>
-<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  trace_level <span class="op">=</span> <span class="fl">3</span></span>
+<span>  variance_method <span class="op">=</span> <span class="st">'bootstrap'</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span></span>
 <span><span class="va">formula</span> <span class="op">=</span> <span class="va">Y</span> <span class="op">~</span> <span class="va">x1</span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">x</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span><span class="op">)</span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">x</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span>, trace_level <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [STEP-1] ============================================================ </span></span>
 <span><span class="co">#&gt; [STEP-1]   EXPTILT ESTIMATION STARTED </span></span>
 <span><span class="co">#&gt; [STEP-1] ============================================================ </span></span>
