@@ -7,12 +7,11 @@ exptilt.survey.design <- function(data, formula,
                                   y_dens = c("auto", "normal", "lognormal", "exponential"),
                                   variance_method = c("delta", "bootstrap"),
                                   bootstrap_reps = 10,
-                                  min_iter = 10,
-                                  max_iter = 100,
-                                  tol_value = 1e-5,
-                                  optim_method = c("Newton", "Broyden"),
+                                  control = list(),
+                                  stopping_threshold = 1,
                                   on_failure = c("return", "error"),
                                   supress_warnings = FALSE,
+                                  trace_level = 0,
                                   ...) {
   design_vars <- data$variables
   design_weights <- as.numeric(stats::weights(data))
@@ -31,14 +30,13 @@ exptilt.survey.design <- function(data, formula,
     y_dens = y_dens,
     variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,
-    min_iter = min_iter,
-    max_iter = max_iter,
-    tol_value = tol_value,
-    optim_method = optim_method,
+    control = control,
+    stopping_threshold = stopping_threshold,
     on_failure = on_failure,
     supress_warnings = supress_warnings,
     design_weights = design_weights,
     survey_design = data,
+    trace_level = trace_level,
     ...
   )
 }

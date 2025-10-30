@@ -78,14 +78,12 @@ exptilt_config <- exptilt_engine(
   standardize = FALSE,
   family = 'logit',
   bootstrap_reps = 50,
-  variance_method = 'bootstrap',
-  verbose = TRUE,
-  trace_level = 3
+  variance_method = 'bootstrap'
 )
 
 
 formula = Y ~ x1
-res <- nmar(formula = formula, data = x, engine = exptilt_config)
+res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 3)
 ```
 
 ```{r}

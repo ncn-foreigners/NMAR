@@ -3,8 +3,8 @@
 #' Creates a verbose printing function based on trace level settings.
 #' Messages are printed only if their level is <= trace_level.
 #'
-#' @param verbose Logical; if FALSE, returns a no-op function
-#' @param trace_level Integer 1-3; controls verbosity detail:
+#' @param trace_level Integer 0-3; controls verbosity detail:
+#'   - 0: No output (silent mode)
 #'   - 1: Major steps only (initialization, convergence)
 #'   - 2: Moderate detail (iteration summaries, key diagnostics)
 #'   - 3: Full detail (all diagnostics, intermediate values)
@@ -13,17 +13,16 @@
 #'   `verboser(msg, level = 1, type = c("info", "step", "detail", "result"))`
 #'
 #' @keywords internal
-create_verboser <- function(verbose = FALSE, trace_level = 1) {
+create_verboser <- function(trace_level = 0) {
 # Validate inputs
-  validator$assert_scalar_logical(verbose, name = "verbose")
-  validator$assert_choice(trace_level, choices = 1:3, name = "trace_level")
+  validator$assert_choice(trace_level, choices = 0:3, name = "trace_level")
 
-  if (!verbose) {
-# Return a no-op function when verbose is FALSE
+  if (trace_level == 0) {
+# Return a no-op function when trace_level is 0 (silent mode)
     return(function(...) invisible(NULL))
   }
 
-# Return the actual verbose printer function when verbose is TRUE
+# Return the actual verbose printer function when trace_level > 0
   function(msg = NULL, level = 1, type = c("info", "step", "detail", "result"),
            obj = NULL, max_print = 10) {
 
