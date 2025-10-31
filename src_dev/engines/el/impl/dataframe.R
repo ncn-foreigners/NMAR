@@ -47,6 +47,8 @@ el.data.frame <- function(data, formula,
   observed_indices <- which(estimation_data[[response_var]] == 1)
 
   respondent_weights <- rep(1, length(observed_indices))
+# For data frames: if n_total not specified, use total sample size
+# This represents the "population" we're inferring about
   N_pop <- n_total %||% nrow(estimation_data)
 
   compute_score_covariance_func_df <- function(U_matrix_resp, full_df) {
@@ -82,6 +84,7 @@ el.data.frame <- function(data, formula,
     formula = formula,
     nobs = nrow(estimation_data),
     nobs_resp = length(observed_indices),
+    n_total = N_pop, # Store N_pop for weights() method
     is_survey = FALSE,
     design = NULL,
     variance_method = variance_method
@@ -99,7 +102,7 @@ el.data.frame <- function(data, formula,
       converged = FALSE,
       model = list(coefficients = NULL, vcov = NULL),
       weights_info = list(values = numeric(0), trimmed_fraction = NA_real_),
-      sample = list(n_total = sample_info$nobs, n_respondents = sample_info$nobs_resp, is_survey = FALSE, design = NULL),
+      sample = list(n_total = N_pop, n_respondents = sample_info$nobs_resp, is_survey = FALSE, design = NULL),
       inference = list(variance_method = variance_method, df = NA_real_, message = msg),
       diagnostics = diag_list,
       meta = list(engine_name = "empirical_likelihood", call = cl, formula = formula),

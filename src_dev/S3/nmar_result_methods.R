@@ -306,22 +306,140 @@ fitted.nmar_result <- function(object, ...) {
   as.numeric(fv)
 }
 
-#' Default weights for NMAR results
-#' @description Returns respondent weights with trimmed_fraction attribute when present.
-#' @param object An `nmar_result` object.
-#' @param ... Ignored.
-#' @return A numeric vector (possibly length 0); attribute `trimmed_fraction` may be set.
+#' Extract Weights from NMAR Result
+#'
+#' @param object An object of class \code{nmar_result}
+#' @param scale Character: \code{"probability"} (default) or \code{"population"}.
+#'   \describe{
+#'     \item{\code{"probability"}}{
+#'       Returns p_i = w_tilde_i / sum_j w_tilde_j where sum_i p_i = 1 (exact).
+#'       This is the paper's canonical form (QLS 2002, Eq. 11).
+#'       Use for computing means: y_bar = sum_i p_i * y_i
+#'     }
+#'     \item{\code{"population"}}{
+#'       Returns w_i = N_pop * p_i where sum_i w_i = N_pop (exact).
+#'       This follows survey package conventions.
+#'       Use for computing totals: T_hat = sum_i w_i * y_i = N_pop * y_bar
+#'     }
+#'   }
+#' @param ... Additional arguments (ignored)
+#'
+#' @details
+#' The empirical likelihood estimator computes unnormalized masses
+#' w_tilde_i = d_i / D_i that satisfy the constraint sum_i w_tilde_i = sum_i d_i (without trimming).
+#' This method provides two standardized representations:
+#'
+#' \strong{Mathematical guarantees} (hold even with trimming):
+#' \itemize{
+#'   \item \code{sum(weights(object, scale = "probability")) = 1} (within machine precision)
+#'   \item \code{sum(weights(object, scale = "population")) = N_pop} (within machine precision)
+#'   \item \code{weights(object, "population") = N_pop * weights(object, "probability")} (exact)
+#' }
+#'
+#' \strong{Trimming effects}:
+#' When \code{trim_cap < Inf} and trimming is active, the normalization
+#' identity sum_i w_tilde_i = sum_i d_i is violated. However, this method still returns
+#' weights with correct sums by using the formula:
+#' \deqn{w_i = N_pop * w_tilde_i / sum_j w_tilde_j}
+#'
+#' @return Numeric vector of weights with length equal to number of respondents
+#'
+#' @references
+#' Qin, J., Leung, D., & Shao, J. (2002). Estimation with survey data under
+#' nonignorable nonresponse or informative sampling. \emph{Journal of the
+#' American Statistical Association}, 97(457), 193-200.
+#'
+#' @examples
+#' \dontrun{
+#' res <- nmar(y_miss ~ x, data = df, engine = el_engine())
+#'
+#' # Probability weights (default): sum to 1
+#' w_prob <- weights(res)
+#' sum(w_prob) # Exactly 1.0
+#'
+#' # Population weights: sum to N_pop
+#' w_pop <- weights(res, scale = "population")
+#' sum(w_pop) # Exactly nrow(df)
+#'
+#' # Relationship (exact):
+#' all.equal(w_pop, nrow(df) * w_prob)
+#' }
+#'
 #' @keywords result_param
 #' @export
-weights.nmar_result <- function(object, ...) {
+weights.nmar_result <- function(object,
+                                scale = c("probability", "population"),
+                                ...) {
+  scale <- match.arg(scale)
+
+# Validate input
+  if (!inherits(object, "nmar_result")) {
+    stop("'object' must be of class 'nmar_result'", call. = FALSE)
+  }
+
+  if (!isTRUE(object$converged)) {
+    warning(
+      "Result did not converge; weights may be unreliable. ",
+      "Check object$meta$convergence for details.",
+      call. = FALSE
+    )
+  }
+
+# Extract stored unnormalized masses (single source of truth)
   info <- nmar_result_get_weights_info(object)
-  w <- info$values
-  if (is.null(w)) {
+  w_unnorm <- info$values
+
+  if (is.null(w_unnorm) || length(w_unnorm) == 0) {
     return(numeric(0))
   }
-  w <- as.numeric(w)
-  attr(w, "trimmed_fraction") <- info$trimmed_fraction
-  w
+
+  w_unnorm <- as.numeric(w_unnorm)
+
+  if (any(!is.finite(w_unnorm))) {
+    stop("Non-finite weights detected in result object", call. = FALSE)
+  }
+
+# Compute sum
+  sum_w <- sum(w_unnorm)
+
+  if (sum_w <= 0) {
+    stop(sprintf("Invalid weight sum: %g", sum_w), call. = FALSE)
+  }
+
+# Scale according to user request
+  if (scale == "probability") {
+# Paper's canonical form: p_i = w_tilde_i / sum_j w_tilde_j
+# GUARANTEE: sum_i p_i = 1 (within machine precision)
+    weights_out <- w_unnorm / sum_w
+
+  } else { # scale == "population"
+# Survey convention: w_i = N_pop * p_i
+# GUARANTEE: sum_i w_i = N_pop (within machine precision)
+
+    sample <- nmar_result_get_sample(object)
+    N_pop <- sample$n_total
+
+# Defensive check
+    if (is.null(N_pop) || !is.finite(N_pop) || N_pop <= 0) {
+      stop(sprintf(
+        "Invalid or missing N_pop in result object: %s",
+        if (is.null(N_pop)) "NULL" else as.character(N_pop)
+      ), call. = FALSE)
+    }
+
+# CRITICAL FIX: This formula guarantees sum = N_pop even with trimming
+    weights_out <- N_pop * w_unnorm / sum_w
+  }
+
+# Add informative attributes
+  attr(weights_out, "scale") <- scale
+  attr(weights_out, "trimmed_fraction") <- info$trimmed_fraction
+  if (scale == "population") {
+    sample <- nmar_result_get_sample(object)
+    attr(weights_out, "N_pop") <- sample$n_total
+  }
+
+  return(weights_out)
 }
 
 #' Default formula for NMAR results

@@ -168,7 +168,7 @@ el_variance_delta <- function(equation_system_func,
         }
       }
     }
-# Fallback to Σ block if robust path failed
+# Fallback to Sigma block if robust path failed
     if (is.null(vcov_beta_scaled) && is.matrix(Sigma)) {
       vcov_beta_scaled <- Sigma[1:K_beta, 1:K_beta, drop = FALSE]
       vcov_beta_scaled <- 0.5 * (vcov_beta_scaled + t(vcov_beta_scaled))

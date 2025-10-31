@@ -51,8 +51,66 @@ el.survey.design <- function(data, formula,
   observed_mask <- design$variables[[response_var]] == 1
   observed_indices <- which(observed_mask)
   resp_design <- subset(design, observed_mask)
-  respondent_weights <- weights(resp_design)
-  N_pop <- n_total %||% sum(weights(design))
+
+# SCALE COHERENCE FIX: Ensure N_pop and design weights on same scale
+  design_weight_sum <- sum(weights(design))
+
+  if (!is.null(n_total)) {
+    N_pop <- n_total
+    scale_factor <- N_pop / design_weight_sum
+    scale_mismatch_pct <- abs(scale_factor - 1) * 100
+
+# Graduated warnings based on severity
+    if (scale_mismatch_pct > 10) {
+# Large mismatch (>10%): likely user error
+      warning(sprintf(
+        paste0(
+          "Large scale mismatch detected (%.1f%%):\n",
+          "  User-supplied n_total: %g\n",
+          "  Design sum(weights):    %g\n",
+          "  Scale factor:           %.4f\n\n",
+          "This likely indicates a data preparation error.\n",
+          "Verify that n_total and design weights are on the same scale.\n",
+          "For example, if weights were rescaled to mean=1 for other analyses,\n",
+          "provide n_total on that same rescaled scale, not the original population size."
+        ),
+        scale_mismatch_pct, n_total, design_weight_sum, scale_factor
+      ), call. = FALSE)
+      scale_mismatch_detected <- TRUE
+
+    } else if (scale_mismatch_pct > 1) {
+# Moderate rescaling (1-10%): upgrade to warning for visibility
+      warning(sprintf(
+        paste0(
+          "Scale mismatch detected (%.1f%%):\n",
+          "  User-supplied n_total: %g\n",
+          "  Design sum(weights):    %g\n",
+          "  Scale factor:           %.4f\n\n",
+          "Design weights will be rescaled automatically to ensure internal coherence.\n",
+          "This ensures the Lagrange multiplier formula lambda_W = (N_pop/sum(d_i) - 1)/(1 - W)\n",
+          "uses consistent scales. Estimates remain unbiased.\n\n",
+          "If this is unexpected, verify that n_total and design weights are on the same scale."
+        ),
+        scale_mismatch_pct, n_total, design_weight_sum, scale_factor
+      ), call. = FALSE)
+      scale_mismatch_detected <- TRUE
+
+    } else {
+# Negligible (<1%) - likely rounding, no message
+      scale_mismatch_detected <- FALSE
+    }
+
+# Apply scaling to respondent weights
+    respondent_weights <- weights(resp_design) * scale_factor
+
+  } else {
+# No n_total supplied: use design total as population size
+    N_pop <- design_weight_sum
+    respondent_weights <- weights(resp_design)
+    scale_factor <- 1.0
+    scale_mismatch_detected <- FALSE
+    scale_mismatch_pct <- 0
+  }
 
   compute_score_covariance_func_survey <- function(U_matrix_resp, full_design) {
     U_full <- matrix(0, nrow = nrow(full_design$variables), ncol = ncol(U_matrix_resp))
@@ -89,9 +147,13 @@ el.survey.design <- function(data, formula,
     formula = formula,
     nobs = nrow(design$variables),
     nobs_resp = length(observed_indices),
+    n_total = N_pop, # Store N_pop for weights() method
     is_survey = TRUE,
     design = design,
-    variance_method = variance_method
+    variance_method = variance_method,
+    scale_factor = scale_factor, # Store scale diagnostics
+    scale_mismatch_detected = scale_mismatch_detected,
+    scale_mismatch_pct = scale_mismatch_pct
   )
 
   if (!core_results$converged) {
@@ -106,7 +168,7 @@ el.survey.design <- function(data, formula,
       converged = FALSE,
       model = list(coefficients = NULL, vcov = NULL),
       weights_info = list(values = numeric(0), trimmed_fraction = NA_real_),
-      sample = list(n_total = sample_info$nobs, n_respondents = sample_info$nobs_resp, is_survey = TRUE, design = design),
+      sample = list(n_total = N_pop, n_respondents = sample_info$nobs_resp, is_survey = TRUE, design = design),
       inference = list(variance_method = variance_method, df = NA_real_, message = msg),
       diagnostics = diag_list,
       meta = list(engine_name = "empirical_likelihood", call = cl, formula = formula),

@@ -104,12 +104,12 @@
 #' @return An engine object of class \code{c("nmar_engine_el","nmar_engine")}.
 #'   This is a configuration list; it is not a fit. Pass it to \link{nmar}.
 #'
-#' @seealso \link{nmar}; see the vignette “Empirical Likelihood Theory for NMAR” for derivations.
+#' @seealso \link{nmar}; see the vignette "Empirical Likelihood Theory for NMAR" for derivations.
 #'
 #' @references
 #' Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. \emph{Journal of the American
-#' Statistical Association}, 97(457), 193–200.
+#' Statistical Association}, 97(457), 193-200.
 #'
 #'
 #' @keywords engine
