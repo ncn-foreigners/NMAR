@@ -1,7 +1,7 @@
 #' Empirical likelihood for survey designs (NMAR)
 #' @description Internal method dispatched by `el()` when `data` is a `survey.design`.
-#'   Uses design-based covariance for variance estimation when
-#'   `variance_method = 'delta'`.
+#'   Variance via bootstrap is supported. Analytical delta variance for EL is
+#'   temporarily unavailable and returns NA when requested.
 #' @param data A `survey.design` created with [survey::svydesign()].
 #' @param formula Two-sided formula: NA-valued outcome on LHS; auxiliaries on RHS.
 #' @param auxiliary_means Named numeric vector of population means for auxiliaries.
@@ -12,10 +12,9 @@
 #' @param variance_method Character; "delta" or "bootstrap".
 #' @param bootstrap_reps Integer; reps when `variance_method = "bootstrap"`.
 #' @param ... Passed to solver.
-#' @details Implements the empirical likelihood estimator with design weights and
-#'   design-based covariance of score totals for delta variance (Qin, Leung and
-#'   Shao, 2002). Bootstrap variance via replicate weights is also supported and
-#'   is preferred under trimming or strong nonresponse.
+#' @details Implements the empirical likelihood estimator with design weights.
+#'   Use bootstrap variance via replicate weights for standard errors. Analytical
+#'   delta variance for EL is disabled and returns NA with a guidance message.
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
 #' @return `c('nmar_result_el','nmar_result')`.
@@ -112,18 +111,6 @@ el.survey.design <- function(data, formula,
     scale_mismatch_pct <- 0
   }
 
-  compute_score_covariance_func_survey <- function(U_matrix_resp, full_design) {
-    U_full <- matrix(0, nrow = nrow(full_design$variables), ncol = ncol(U_matrix_resp))
-    score_variables <- paste0("..score_", seq_len(ncol(U_matrix_resp)))
-    colnames(U_full) <- score_variables
-    U_full[observed_indices, ] <- U_matrix_resp
-    design_scores <- full_design
-    design_scores$variables <- cbind(design_scores$variables, as.data.frame(U_full))
-    score_formula <- stats::as.formula(paste("~", paste(score_variables, collapse = " + ")))
-    score_totals <- survey::svytotal(score_formula, design_scores, na.rm = TRUE)
-    stats::vcov(score_totals)
-  }
-
   user_args <- list(
     formula = formula,
     auxiliary_means = auxiliary_means, standardize = standardize,
@@ -136,7 +123,7 @@ el.survey.design <- function(data, formula,
     respondent_weights = respondent_weights, N_pop = N_pop,
     internal_formula = internal_formula, auxiliary_means = auxiliary_means,
     standardize = standardize, trim_cap = trim_cap, control = control,
-    compute_score_variance_func = compute_score_covariance_func_survey, on_failure = on_failure,
+    on_failure = on_failure,
     variance_method = variance_method, bootstrap_reps = bootstrap_reps,
     user_args = user_args, start = start, ...
   )

@@ -18,7 +18,7 @@ This vignette demonstrates the empirical likelihood (EL) estimator for Not Missi
 Key features:
 
 - Supports `data.frame` (IID) and `survey.design` objects (design-based variance) via the same `nmar()` API.
-- Variance via delta (analytical sandwich) or bootstrap.
+- Variance via bootstrap.
 - Optional standardization of predictors; weight trimming for robustness.
 - Rich S3 surface: `summary()`, `confint()`, `tidy()`, `glance()`, `plot()`/`autoplot()`.
 
@@ -27,7 +27,7 @@ Key features:
 - Specify the model with a two-sided formula: `Y_miss ~ X1 + X2 | Z1 + Z2` where auxiliaries are left of `|` and response‑only predictors are right of `|`. If `|` is omitted, only auxiliaries are used.
   - Variables on the outcome RHS (e.g., `X1 + X2`) are auxiliaries; supply their known population means via `auxiliary_means = c(X1 = ..., X2 = ...)`.
   - Predictors to the right of `|` enter only the response model (no auxiliary constraint) and do not need population means.
-- Choose the engine: `el_engine(...)`, e.g., `el_engine(auxiliary_means = c(X1 = 0), variance_method = "delta", standardize = TRUE)`.
+- Choose the engine: `el_engine(...)`, e.g., `el_engine(auxiliary_means = c(X1 = 0), variance_method = "bootstrap", standardize = TRUE)`.
 - Fit: `nmar(formula = Y_miss ~ X1 + X2 | Z1 + Z2, data = df_or_design, engine = el_engine(...))`.
 - Inspect: `summary()`, `confint()`, `weights()`, `fitted()`, and `fit$diagnostics`.
 # 
@@ -55,9 +55,9 @@ dat$Y_miss[!R] <- NA_real_
 
 
 ```{r}
-engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "delta", standardize = TRUE
+engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap", standardize = TRUE
   )
-# Fit EL estimator (delta variance)
+# Fit EL estimator (bootstrap variance)
 fit <- nmar(
   formula = Y_miss ~ X,
   data = dat,
@@ -71,7 +71,7 @@ confint(fit)
 Probit family (optional):
 
 ```{r}
-engine <- el_engine(auxiliary_means = c(X = 0), family = "probit", variance_method = "delta", standardize = TRUE)
+engine <- el_engine(auxiliary_means = c(X = 0), family = "probit", variance_method = "bootstrap", standardize = TRUE)
 
 fit_probit <- nmar(
   formula = Y_miss ~ X,
@@ -144,7 +144,7 @@ p <- plogis(-0.6 + 0.5 * scale(Y)[, 1] + 0.4 * Z)
 R <- runif(N) < p
 df2 <- data.frame(Y_miss = Y, X = X, Z = Z)
 df2$Y_miss[!R] <- NA_real_
-engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "delta", standardize = TRUE)
+engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap", standardize = TRUE)
 
 # Use X as auxiliary (known population mean 0), and Z as response-only predictor
 fit_resp_only <- nmar(
@@ -179,7 +179,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
 
   dclus1 <- svydesign(id = ~dnum, weights = ~pw, data = apiclus1, fpc = ~fpc)
   pop_mean_ell <- mean(apiclus1$ell)
-  engine <- el_engine(auxiliary_means = c(ell = pop_mean_ell), variance_method = "delta", standardize = TRUE)
+  engine <- el_engine(auxiliary_means = c(ell = pop_mean_ell), variance_method = "bootstrap", standardize = TRUE)
 
   fit_svy <- nmar(
     formula = api00_miss ~ ell,
@@ -192,7 +192,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
 
 # Practical guidance
 
-- Variance method: The delta method is fast but asymptotic; bootstrap is often preferred for moderate samples, trimming, or near-boundary cases.
+- Variance method: Analytical delta variance for EL is currently disabled; use bootstrap for standard errors.
 - Trimming: Use a finite `trim_cap` to improve robustness when large weights occur; prefer bootstrap variance when trimming.
 - Solver control: set `control = list(xtol = 1e-10, ftol = 1e-10, maxit = 200)` for tighter tolerances if needed. Globalization details are managed internally by `nleqslv`.
 - Standardization: `standardize = TRUE` typically improves numerical stability and comparability across predictors and auxiliary means.
@@ -203,7 +203,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
 Troubleshooting:
 
 - Negative or extreme weights: set a finite `trim_cap`; prefer `variance_method = "bootstrap"` for SE.
-- Ill-conditioned Jacobian (large `fit$diagnostics$jacobian_condition_number`): delta variance may return NA by design; prefer `variance_method = "bootstrap"`. You may also tighten solver tolerances via `control = list(xtol=..., ftol=..., maxit=...)`.
+- Ill-conditioned Jacobian (large `fit$diagnostics$jacobian_condition_number`): prefer `variance_method = "bootstrap"`. You may also tighten solver tolerances via `control = list(xtol=..., ftol=..., maxit=...)`.
 - Convergence issues: check `fit$diagnostics$max_equation_residual`, rescale predictors (`standardize = TRUE`), or reduce the number of constraints.
 
 # Solver control and notes
@@ -232,5 +232,5 @@ sessionInfo()
 
 # Notes on variance choices
 
-- `variance_method = "delta"` uses an analytic sandwich; it is very fast but may under‑estimate variability in tougher regimes (heavy nonresponse, ill‑conditioned Jacobians, or trimming). Prefer `variance_method = "bootstrap"` for more robust SEs.
+- Analytical delta variance for EL is not implemented in this version. Use `variance_method = "bootstrap"` for SEs.
 - For speed‑critical bootstraps, you can set `variance_method = "none"` for point fits and let the bootstrap call use it internally for replicates (this is the default behavior when you request bootstrap SEs through `el_engine(...)`).

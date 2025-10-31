@@ -13,7 +13,6 @@
 #' @param standardize Logical. Whether to standardize predictors during estimation.
 #' @param trim_cap Numeric. Upper bound for empirical likelihood weight trimming.
 #' @param control List of control parameters for the nonlinear equation solver.
-#' @param compute_score_variance_func Function to compute covariance of score totals.
 #' @param on_failure Character. Action when solver fails: "return" or "error".
 #' @param family List. Link function specification (typically logit).
 #' @param variance_method Character. Variance estimation method.
@@ -30,8 +29,9 @@
 #' and globalization via `nleqslv`. Numerical safeguards (denominator
 #' positivity guards, predictor standardization, and stable linear algebra)
 #' are applied. After solving, weights are constructed with denominator guards
-#' and optional trimming; delta variance is computed by a sandwich formula
-#' evaluated at the solution or via bootstrap when requested.
+#' and optional trimming. Variance is available via bootstrap; analytical
+#' delta variance for EL is temporarily disabled and returns NA with a
+#' guidance message.
 #'
 #' Steps
 #' 1. Data preparation and scaling
@@ -44,7 +44,7 @@
 #' @keywords internal
 el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_pop,
                               internal_formula, auxiliary_means, standardize,
-                              trim_cap, control, compute_score_variance_func,
+                              trim_cap, control,
                               on_failure, family = logit_family(),
                               variance_method, bootstrap_reps,
                               user_args, start = NULL, ...) {
@@ -436,48 +436,12 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
       se_y_hat <- NA_real_
     }
   } else if (variance_method == "delta") {
-    var_out <- el_variance_delta(
-      equation_system_func = equation_system_func,
-      analytical_jac_func = analytical_jac_func,
-      estimates = estimates,
-      family = family,
-      response_model_matrix_scaled = response_model_matrix_scaled,
-      response_model_matrix_unscaled = response_model_matrix_unscaled,
-      auxiliary_matrix_scaled = auxiliary_matrix_scaled,
-      mu_x_scaled = mu_x_scaled,
-      eta_i_hat = eta_i_hat,
-      w_i_hat = w_i_hat,
-      W_hat = W_hat,
-      denominator_hat = denominator_hat,
-      lambda_W_hat = lambda_W_hat,
-      full_data = full_data,
-      compute_score_variance_func = compute_score_variance_func,
-      respondent_weights = respondent_weights,
-      N_pop = N_pop,
-      n_resp_weighted = sum(respondent_weights),
-      trim_cap = trim_cap,
-      outcome_vec = respondent_data[[outcome_var]],
-      K_beta = K_beta,
-      standardize = standardize,
-      nmar_scaling_recipe = nmar_scaling_recipe
-    )
-    se_y_hat <- var_out$se_y_hat
-    vcov_unscaled <- var_out$vcov_unscaled
-    vcov_message <- var_out$vcov_message
-    A_condition <- var_out$diag$A_condition
-    diag_grad_source <- var_out$diag$grad_source %||% NA_character_
-    diag_var_yhat <- var_out$diag$var_y_hat_val %||% NA_real_
-    diag_var_anal2 <- var_out$diag$var_anal2 %||% NA_real_
-    diag_grad_l1 <- var_out$diag$grad_l1 %||% NA_real_
-    diag_sigma_min_eig <- var_out$diag$sigma_min_eig %||% NA_real_
-    diag_B_min_eig <- var_out$diag$B_min_eig %||% NA_real_
-# Guard against pathological near-zero or non-finite delta variance
-    if (!is.finite(se_y_hat) || se_y_hat < 1e-8) {
-      warning("Delta variance returned non-finite or near-zero standard error; returning NA. Consider variance_method='bootstrap'.", call. = FALSE)
-      se_y_hat <- NA_real_
-      vcov_unscaled <- matrix(NA_real_, K_beta, K_beta, dimnames = list(colnames(response_model_matrix_unscaled), colnames(response_model_matrix_unscaled)))
-      vcov_message <- "Delta variance near-zero or non-finite; returned NA."
-    }
+    warning("Empirical likelihood delta variance is not implemented; returning NA. Use variance_method='bootstrap' for SEs.", call. = FALSE)
+    se_y_hat <- NA_real_
+    vcov_unscaled <- matrix(NA_real_, K_beta, K_beta,
+                            dimnames = list(colnames(response_model_matrix_unscaled),
+                                            colnames(response_model_matrix_unscaled)))
+    vcov_message <- "Delta variance not implemented for EL; returned NA."
   } else if (variance_method == "none") {
 # Skip variance calculation entirely
     se_y_hat <- NA_real_

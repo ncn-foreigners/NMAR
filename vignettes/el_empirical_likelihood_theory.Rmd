@@ -289,62 +289,14 @@ These are exactly what `build_el_jacobian` computes (`src_dev/engines/el/impl/ja
 
 - Newton-Raphson (as used in our outer solve) linearizes $F(\theta)$ near the current iterate: $F(\theta + \Delta) \approx F(\theta) + A(\theta)\,\Delta$. The update $\Delta$ solves $A\,\Delta = -F$, hence a high-quality $A$ is critical for fast, stable convergence.
 
-## Delta Variance: $\nabla g \, A^{-1} \, B \, A^{-T} \, \nabla g^T$
+## Variance Estimation (delta disabled)
 
-We compute:
+Analytical delta variance for the EL estimator is temporarily unavailable in the
+package. When requested via `variance_method = "delta"`, the implementation
+returns `NA` with a guidance message. We recommend `variance_method = "bootstrap"`
+for standard errors in both IID and survey settings.
 
-- $A = \partial F/\partial\theta$ from the analytic Jacobian when available (logit, probit); numeric otherwise with the same denominator guard.
-- $B = \operatorname{Var}(\sum U_i)$ built from the stacked per-respondent contributions $U_i$ (matching $F$), with either i.i.d. covariance or design-based covariance (survey).
-- $\nabla g$ evaluated at the solution (analytic when smooth and untrimmed; numeric fallback otherwise).
-
-IID B (data frame path): We compute $\widehat B = \sum (U_i - \bar U)(U_i - \bar U)^T$ at the solution. Centering is asymptotically neutral and reduces small-sample noise.
-
-Survey B: We construct score variables on the full design by placing respondent $U_i$ on observed rows and zeros on nonrespondents, then compute the covariance of `svytotal(~U, design)`. This uses standard survey-inference machinery and respects stratification/clustering/weights.
-
-Trimming: When `trim_cap < Inf`, we recommend `variance_method = "bootstrap"` or strengthen auxiliary constraints. With trimming, the estimator is non-smooth, so bootstrap is recommended for inference.
-
-Implementation: `el_compute_delta_variance()` in `src_dev/engines/el/impl/variance.R` assembles $B$ from `U_matrix_resp` and the provided `compute_score_variance_func` (IID vs survey), computes $\nabla g$ (analytic when smooth; stabilized numeric otherwise), and returns $\mathrm{Var}(\hat{Y})$ and the (scaled) sandwich vcov for $\beta$.
-
-### Worked Example: Analytic $\nabla g$ in a 1-Covariate Logit Case
-
-Consider the simple, smooth setting with no trimming (cap $=\infty$), no auxiliary constraints ($L=0$), and a logit response model
-$$
-\eta_i = Z_i\,\beta = \beta_0 + \beta_1 x_i,\qquad w_i = \operatorname{logit}^{-1}(\eta_i),\qquad \mu_{\eta,i} = \frac{dw_i}{d\eta_i} = w_i (1-w_i).
-$$
-Let $C = N_{\text{pop}}/n_{\text{resp\_weighted}} - 1$ and $W = \operatorname{logit}^{-1}(z)$, so
-$$
-\lambda_W = \frac{C}{1-W},\qquad \frac{dW}{dz} = W(1-W),\qquad \frac{d\lambda_W}{dz} = \frac{C\,W}{(1-W)} = \lambda_W\,\frac{W}{1-W}.
-$$
-With no auxiliaries, the EL denominator and weights for respondents are
-$$
-D_i = 1 + \lambda_W (w_i - W),\qquad \pi_i = \frac{a_i}{D_i},\qquad B = \sum_i \pi_i,\qquad \hat Y = g(\theta) = \frac{\sum_i \pi_i Y_i}{B},
-$$
-where $a_i$ are base weights ($a_i\equiv 1$ for IID; design weights for survey). The analytic gradient of $g$ follows from the ratio rule and $\partial\pi_i/\partial\theta$.
-
-1) Gradient w.r.t. $\beta$.
-
-Since $\partial D_i/\partial\beta = \lambda_W\,\mu_{\eta,i}\,Z_i$, we have $\partial\pi_i/\partial\beta = -\,a_i\,\lambda_W\,\mu_{\eta,i}\,Z_i/ D_i^2$, and therefore
-$$
-\boxed{\;\frac{\partial g}{\partial \beta} \,=\, \frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{\partial \pi_i}{\partial\beta}
-\;=\; -\,\frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{a_i\,\lambda_W\,\mu_{\eta,i}}{D_i^2}\,Z_i\; }.
-$$
-
-2) Gradient w.r.t. the reparametrized $z = \operatorname{logit}(W)$.
-
-Using $\partial D_i/\partial z = (d\lambda_W/dz)\,(w_i - W) - \lambda_W\,\frac{dW}{dz}$,
-$$
-\boxed{\;\frac{\partial g}{\partial z} \,=\, \frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{\partial \pi_i}{\partial z}
-\;=\; -\,\frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{a_i}{D_i^2}\,\Big[\,\frac{d\lambda_W}{dz}\,(w_i - W) - \lambda_W\,\frac{dW}{dz}\,\Big]\; }.
-$$
-
-3) (Optional) With auxiliaries $X_i$ and centered $X_{c,i}=X_i-\mu_x$, $D_i = 1 + \lambda_W(w_i - W) + X_{c,i}^\top\lambda_x$ and $\partial D_i/\partial\lambda_x = X_{c,i}$, hence
-$$
-\boxed{\;\frac{\partial g}{\partial \lambda_x} \,=\, -\,\frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{a_i}{D_i^2}\,X_{c,i}\; }.
-$$
-
-Numerical safeguards. In practice we enforce $D_i \ge \varepsilon$ (e.g., $\varepsilon=10^{-8}$) when forming the gradient and the score contributions used in $\widehat B$. The same guard is used in the estimating equations and in the analytic Jacobian, ensuring consistency between $F(\theta)$, $A=\partial F/\partial\theta$, and $\nabla g(\theta)$.
-
-Code mapping. The implementation uses these expressions when `trim_cap = Inf` (smooth case) inside `el_compute_delta_variance()`; otherwise it falls back to a stabilized numeric gradient. See `src_dev/engines/el/impl/variance.R` for the exact code paths and `src_dev/engines/el/impl/jacobian.R` for the matching $A$.
+Implementation: The analytical delta variance for EL is disabled in the codebase.
 
 ### Solving Strategy and Initialization
 
@@ -352,35 +304,10 @@ Code mapping. The implementation uses these expressions when `trim_cap = Inf` (s
 - Globalization and scaling: we rely on `nleqslv`'s globalization (default `global = "dbldog"`) and enforce denominator positivity ($\min_i D_i \ge \varepsilon$) within equation evaluations. Optional standardization of design matrices improves conditioning.
 - Initialization: by default $\beta$ starts at zeros in the scaled space (unless the user supplies `start$beta`), and $z$ is seeded at $\mathrm{logit}(\text{observed response rate})$. An internal last-chance Broyden retry may be used if Newton fails to converge; this is not a user-facing mode.
 
-### Variance Assembly and Numerical Stability
+### Variance and Stability
 
-Let $A = \frac{\partial F}{\partial \theta}$ be the Jacobian of the estimating system. The delta variance uses the sandwich $\nabla g\,A^{-1} B A^{-T}\,\nabla g^T$. Numerically we avoid forming an explicit inverse:
-
-- Solve $A X = B$ (first linear solve) and then $A^T Y = X^T$ (second linear solve), so that $\Sigma_\theta = A^{-1} B A^{-T} = Y^T$. We lightly symmetrize $\Sigma_\theta$ to reduce round-off.
-- If the solves fail or yield non-finite/near-zero variance for $\hat Y$, we return NA with a clear warning. This occurs in regimes where the first-order delta method is not applicable (e.g., trimming, very weak identification). Bootstrap variance is recommended in those cases.
-
-#### Variance Identities (Used in Code)
-
-To avoid forming explicit inverses and to preserve non-negativity when $B$ is PSD, we use the following algebraically equivalent identities:
-
-- Mean (scalar):
-
-\[
-\mathrm{Var}(\hat Y) \;=\; \nabla g^T \,(A^{-1} B A^{-T})\, \nabla g \;=\; x^T B x,\quad \text{where } A^T x = \nabla g.
-\]
-
-- Response-model coefficients (matrix): let $E_\beta$ select the $\beta$ coordinates in $\theta$ (same ordering as the stacked system). Then
-
-\[
-\mathrm{Var}(\hat\beta) \;=\; \big(A^{-T} E_\beta\big)^T B \big(A^{-T} E_\beta\big) \;=\; X_\beta^T B X_\beta,\quad \text{where } A^T X_\beta = E_\beta.
-\]
-
-Both identities equal the corresponding blocks of the sandwich $A^{-1} B A^{-T}$ in exact arithmetic, but they are numerically more stable. The implementation uses these two-solve forms for the mean and for $\mathrm{Var}(\hat\beta)$.
-
-Remarks:
-
-- The “minus sign” seen in some derivations for $-A^{-1}$ cancels inside the sandwich.
-- With finite weight trimming, $g(\theta)$ is non-smooth; delta variance is not applicable. Prefer `variance_method = "bootstrap"`.
+For standard errors, use bootstrap variance. Analytical delta variance for EL is
+disabled in this version; derivations are omitted.
 
 ### Practical Identifiability and Diagnostics
 
@@ -456,7 +383,7 @@ Code mapping:
   - Solve $F(\theta)=0$ via `nleqslv` (Newton with analytic Jacobian when available, Broyden fallback).
   - Build EL weights, mean, and diagnostics.
 - Jacobian: `build_el_jacobian(...)` in `src_dev/engines/el/impl/jacobian.R` returns analytic A whenever family supplies `d2mu.deta2` (logit, probit).
-- Variance: `src_dev/engines/el/impl/variance.R` assembles B and computes delta variance; bootstrap variance in `src_dev/shared/bootstrap.R`.
+- Variance: Bootstrap variance is implemented in `src_dev/shared/bootstrap.R`.
 - S3 result: `src_dev/engines/el/s3.R` provides print/tidy/glance and accessors.
 
 ### Practical Notes
@@ -502,9 +429,9 @@ This appendix summarizes the key options of the EL engine (constructor: `el_engi
 - **trim_cap** (default: Inf)
   - Caps EL weights and redistributes mass. Improves robustness when extreme weights arise. Prefer `variance_method = "bootstrap"` when trimming is finite.
 
-- **variance_method** (default: "delta")
-  - "delta": analytic delta method variance via two linear solves for the sandwich. Returns NA with a clear warning when trimmed or when solves are numerically fragile.
-  - "bootstrap": IID resampling or survey replicate weights via `svrep`; preferred with trimming or near-boundary cases.
+- **variance_method** (default: "none")
+  - "bootstrap": IID resampling or survey replicate weights via `svrep`; preferred for SEs.
+  - "none": skip variance calculation.
 
 - bootstrap_reps (default: 500)
   - Number of bootstrap replicates for `variance_method = "bootstrap"`. Increase for stability, decrease for speed.
@@ -518,6 +445,6 @@ This appendix summarizes the key options of the EL engine (constructor: `el_engi
 
 ### Recommended settings
 
-- Default: `variance_method = "delta"`, `standardize = TRUE`.
+- Default: `variance_method = "none"`, `standardize = TRUE`.
 - With trimming or suspected weak identification: prefer `variance_method = "bootstrap"`.
 - If A appears ill-conditioned or delta returns NA: prefer `variance_method = "bootstrap"` and report diagnostics (e.g., `jacobian_condition_number`). The package does not apply ridge or pseudoinverse at runtime.

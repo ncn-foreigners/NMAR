@@ -51,17 +51,10 @@
 #' i.e., \code{mu.eta(eta)/linkinv(eta)}, valid for both logit and probit links.
 #' Response predictors need not coincide with auxiliary predictors; only auxiliaries
 #' require known population moments. See Qin, Leung and Shao (2002) for the EL estimating
-#' equations and sandwich variance at the solution.
-#'
-#' Delta-variance is assembled via two linear solves (no explicit matrix inverse):
-#' \itemize{
-#'   \item \strong{Mean:} \eqn{\mathrm{var} = x^\top B x} with \eqn{A^\top x = \nabla g}
-#'   \item \strong{Coefficients:} \eqn{V_{\beta} = X_{\beta}^\top B X_{\beta}}
-#'         with \eqn{A^\top X_{\beta} = E_{\beta}}
-#' }
-#' In trimming or numerically fragile regimes, delta returns \code{NA} with a warning,
-#' and the bootstrap is recommended. Runtime uses analytic derivatives; numeric checks
-#' are used only in tests.
+#' equations. Analytical delta variance for EL is temporarily unavailable;
+#' when \code{variance_method = "delta"}, the estimator returns \code{NA}
+#' standard errors with a guidance message. Use \code{variance_method = "bootstrap"}
+#' for standard errors.
 #'
 #' We rely on standard globalization provided by \code{nleqslv} and do not
 #' implement custom EL solver algorithms.
@@ -125,7 +118,7 @@
 #' R <- runif(n) < p
 #' df <- data.frame(Y_miss = Y, X = X)
 #' df$Y_miss[!R] <- NA_real_
-#' eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "delta")
+#' eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap")
 #' fit <- nmar(Y_miss ~ X, data = df, engine = eng)
 #' summary(fit)
 #'
@@ -139,7 +132,7 @@
 #' # Survey design usage
 #' if (requireNamespace("survey", quietly = TRUE)) {
 #'   des <- survey::svydesign(ids = ~1, weights = ~1, data = df)
-#'   eng3 <- el_engine(auxiliary_means = c(X = 0), variance_method = "delta")
+#'   eng3 <- el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap")
 #'   fit3 <- nmar(Y_miss ~ X, data = des, engine = eng3)
 #'   summary(fit3)
 #' }
@@ -179,6 +172,9 @@ el_engine <- function(
     family = family
   )
   validate_nmar_engine_el(engine)
+  if (identical(engine$variance_method, "delta")) {
+    warning("Empirical likelihood delta variance is not implemented; results will report NA SE. Use variance_method='bootstrap' for SEs.", call. = FALSE)
+  }
   new_nmar_engine_el(engine)
 }
 

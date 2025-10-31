@@ -51,16 +51,6 @@ el.data.frame <- function(data, formula,
 # This represents the "population" we're inferring about
   N_pop <- n_total %||% nrow(estimation_data)
 
-  compute_score_covariance_func_df <- function(U_matrix_resp, full_df) {
-# IID meat B for totals: sum over respondents of U_i U_i^T.
-# Center across respondents only for finite-sample stability (asymptotically neutral).
-    if (!is.matrix(U_matrix_resp) || nrow(U_matrix_resp) == 0L) {
-      return(matrix(0, nrow = 0, ncol = 0))
-    }
-    U_resp_centered <- scale(U_matrix_resp, center = TRUE, scale = FALSE)
-    crossprod(U_resp_centered)
-  }
-
   user_args <- list(
     formula = formula,
     auxiliary_means = auxiliary_means, standardize = standardize,
@@ -73,7 +63,7 @@ el.data.frame <- function(data, formula,
     respondent_weights = respondent_weights, N_pop = N_pop,
     internal_formula = internal_formula, auxiliary_means = auxiliary_means,
     standardize = standardize, trim_cap = trim_cap, control = control,
-    compute_score_variance_func = compute_score_covariance_func_df, on_failure = on_failure,
+    on_failure = on_failure,
     variance_method = variance_method, bootstrap_reps = bootstrap_reps,
     user_args = user_args, start = start, ...
   )

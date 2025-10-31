@@ -233,10 +233,9 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
 #'   \code{survey::rake()} cannot be reconstructed across bootstrap replicates and
 #'   will cause the function to error.
 #'
-#'   If your design is calibrated, use the delta method instead:
-#'   \preformatted{
-#'   engine <- el_engine(variance_method = "delta")
-#'   }
+#'   Calibrated or post-stratified designs are not supported by this bootstrap
+#'   path. Start from the original `survey::svydesign()` object prior to
+#'   calibration/post-stratification.
 #'
 #'   \strong{Supported Design Features:} The following \code{svydesign()} parameters
 #'   are preserved during reconstruction:
@@ -350,11 +349,7 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
       "Bootstrap variance is not currently supported for calibrated or post-stratified designs.\n",
       "  Detected: ", paste(adjustments, collapse = " and "), "\n",
       "  These adjustments cannot be reconstructed across bootstrap replicates.\n",
-      "  The replicate designs would be uncalibrated, leading to incorrect variance.\n\n",
-      "  Workaround: Use delta method variance instead:\n",
-      "    engine <- el_engine(variance_method = \"delta\")\n\n",
-      "  Note: Delta method provides asymptotically valid variance estimates for\n",
-      "  calibrated designs without requiring replicate-level calibration.",
+      "  The replicate designs would be uncalibrated, leading to incorrect variance.",
       call. = FALSE
     )
   }
