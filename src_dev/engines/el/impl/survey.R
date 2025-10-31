@@ -27,7 +27,7 @@ el.survey.design <- function(data, formula,
                              on_failure = c("return", "error"),
                              variance_method = c("delta", "bootstrap", "none"),
                              bootstrap_reps = 500,
-                             n_total = NULL, start = NULL, ...) {
+                             n_total = NULL, start = NULL, trace_level = 0, ...) {
   cl <- match.call()
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
@@ -125,7 +125,7 @@ el.survey.design <- function(data, formula,
     standardize = standardize, trim_cap = trim_cap, control = control,
     on_failure = on_failure,
     variance_method = variance_method, bootstrap_reps = bootstrap_reps,
-    user_args = user_args, start = start, ...
+    user_args = user_args, start = start, trace_level = trace_level, ...
   )
 
   sample_info <- list(
