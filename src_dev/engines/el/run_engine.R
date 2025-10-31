@@ -31,7 +31,8 @@ run_engine.nmar_engine_el <- function(engine, task) {
     on_failure = engine$on_failure,
     variance_method = engine$variance_method,
     bootstrap_reps = engine$bootstrap_reps,
-    family = engine$family
+    family = engine$family,
+    trace_level = task$trace_level
   )
 
 # Dispatch to EL implementation (data.frame or survey.design)

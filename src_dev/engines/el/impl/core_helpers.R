@@ -23,6 +23,7 @@ NULL
 #' @param K_aux Integer; number of auxiliary constraints.
 #' @param respondent_weights Numeric vector of base sampling weights.
 #' @param N_pop Numeric; population total (weighted when survey design).
+#' @param trace_level Integer; verbosity level (0=silent, 1-3=increasingly verbose).
 #'
 #' @keywords internal
 el_run_solver <- function(equation_system_func,
@@ -35,7 +36,10 @@ el_run_solver <- function(equation_system_func,
                           K_beta,
                           K_aux,
                           respondent_weights,
-                          N_pop) {
+                          N_pop,
+                          trace_level = 0) {
+# Create verboser for this function
+  verboser <- create_verboser(trace_level)
   solver_method_used <- "Newton"
   nl_args <- list(
     x = init,
@@ -65,7 +69,9 @@ el_run_solver <- function(equation_system_func,
 
   solution <- do.call(nleqslv::nleqslv, nl_args)
   if (any(is.na(solution$x)) || solution$termcd > 2) {
+    verboser("  Initial attempt failed, trying perturbed starts...", level = 3)
     for (i in seq_len(3)) {
+      verboser(sprintf("    Restart attempt %d/3", i), level = 3)
       init_beta_perturbed <- init[seq_len(K_beta)] + stats::rnorm(K_beta, mean = 0, sd = 0.5)
       W_seed <- sum(respondent_weights) / N_pop
       W_seed <- min(max(W_seed, 1e-12), 1 - 1e-12)
@@ -73,10 +79,14 @@ el_run_solver <- function(equation_system_func,
       init_perturbed <- c(init_beta_perturbed, z_seed, rep(0, K_aux))
       nl_args$x <- init_perturbed
       solution <- do.call(nleqslv::nleqslv, nl_args)
-      if (!any(is.na(solution$x)) && solution$termcd <= 2) break
+      if (!any(is.na(solution$x)) && solution$termcd <= 2) {
+        verboser(sprintf("    [OK] Restart %d converged successfully", i), level = 3, type = "result")
+        break
+      }
     }
   }
   if (solver_method == "auto" && (any(is.na(solution$x)) || solution$termcd > 2)) {
+    verboser("  Newton method failed, falling back to Broyden...", level = 2)
     broyden_control <- final_control
     if (!is.null(broyden_control$maxit) && is.finite(broyden_control$maxit) && broyden_control$maxit < 5) {
       broyden_control$maxit <- 50
@@ -84,6 +94,9 @@ el_run_solver <- function(equation_system_func,
     nl_args_b$control <- broyden_control
     solution <- do.call(nleqslv::nleqslv, nl_args_b)
     solver_method_used <- "Broyden"
+    if (!any(is.na(solution$x)) && solution$termcd <= 2) {
+      verboser("  [OK] Broyden method converged successfully", level = 2, type = "result")
+    }
   }
   list(solution = solution, method = solver_method_used, used_top = list(global = top_args$global %||% NULL, xscalm = top_args$xscalm %||% NULL))
 }

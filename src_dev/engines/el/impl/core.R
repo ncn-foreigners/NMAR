@@ -47,11 +47,25 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
                               trim_cap, control,
                               on_failure, family = logit_family(),
                               variance_method, bootstrap_reps,
-                              user_args, start = NULL, ...) {
+                              user_args, start = NULL, trace_level = 0, ...) {
 
 # 0. Setup
   force(family)
   outcome_var <- all.vars(internal_formula$outcome)[1]
+
+# Create verboser for verbose output
+  verboser <- create_verboser(trace_level)
+
+# Estimation started banner (LEVEL 1)
+  verboser("============================================================", level = 1, type = "step")
+  verboser("  EMPIRICAL LIKELIHOOD ESTIMATION STARTED", level = 1, type = "step")
+  verboser("============================================================", level = 1, type = "step")
+
+  trace_msg <- sprintf("Running with trace_level = %d", trace_level)
+  if (trace_level < 3) {
+    trace_msg <- paste0(trace_msg, sprintf(" | For more detail, use trace_level = %d", trace_level + 1))
+  }
+  verboser(trace_msg, level = 1)
 
 # 1. Data Preparation
   has_aux <- !is.null(internal_formula$auxiliary)
@@ -116,6 +130,42 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   } else {
     auxiliary_matrix_unscaled <- matrix(nrow = nrow(respondent_data), ncol = 0)
     mu_x_unscaled <- NULL
+  }
+
+# Data summary (LEVEL 1)
+  verboser("", level = 1)
+  verboser("-- DATA PREPARATION --", level = 1)
+
+  n_resp_weighted <- sum(respondent_weights)
+  response_rate <- n_resp_weighted / N_pop * 100
+
+  verboser(sprintf("  Total weighted size:      %.1f", N_pop), level = 1)
+  verboser(sprintf("  Respondents (weighted):   %.1f (%.1f%%)", n_resp_weighted, response_rate), level = 1)
+
+# Model specification (LEVEL 2)
+  K_beta <- ncol(response_model_matrix_unscaled)
+  K_aux <- if (has_aux) ncol(auxiliary_matrix_unscaled) else 0
+
+  verboser("", level = 2)
+  verboser("-- MODEL SPECIFICATION --", level = 2)
+  verboser(sprintf("  Outcome variable:         %s", outcome_var), level = 2)
+  verboser(sprintf("  Response model family:    %s", family$family), level = 2)
+  verboser(sprintf("  Response predictors:      %d", K_beta), level = 2)
+
+  if (K_aux > 0) {
+    verboser(sprintf("  Auxiliary constraints:    %d", K_aux), level = 2)
+    verboser(sprintf("  Auxiliary variables:      %s", paste(colnames(auxiliary_matrix_unscaled), collapse = ", ")), level = 2)
+  } else {
+    verboser("  Auxiliary constraints:    (none)", level = 2)
+  }
+
+  verboser(sprintf("  Standardization:          %s", if (standardize) "enabled" else "disabled"), level = 2)
+
+# Data type (LEVEL 2)
+  if (inherits(full_data, "survey.design")) {
+    verboser("  Data type:                survey.design", level = 2)
+  } else {
+    verboser("  Data type:                data.frame", level = 2)
   }
 
 # 2. Scaling
@@ -229,8 +279,31 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   final_control <- modifyList(list(ftol = 1e-8, xtol = 1e-8, maxit = 100, trace = FALSE), control)
   final_control <- sanitize_nleqslv_control(final_control)
 
+# Solver configuration (LEVEL 1 header, LEVEL 2 details)
+  verboser("", level = 1)
+  verboser("-- NONLINEAR SOLVER --", level = 1)
+
+  verboser("  Method:                   Newton with analytic Jacobian", level = 2)
+  verboser(sprintf("  Global strategy:          %s", control_top$global %||% "dbldog"), level = 2)
+  verboser(sprintf("  Max iterations:           %d", final_control$maxit), level = 2)
+  verboser(sprintf("  Function tolerance:       %.2e", final_control$ftol), level = 2)
+  verboser(sprintf("  Parameter tolerance:      %.2e", final_control$xtol), level = 2)
+
+# Initial parameters (LEVEL 3)
+  verboser("", level = 3)
+  verboser("  Starting values:", level = 3)
+  verboser(sprintf("    β (response model):     %s", paste(sprintf("%.4f", init_beta), collapse = ", ")), level = 3)
+  verboser(sprintf("    z (logit response rate): %.4f", init_z), level = 3)
+  if (K_aux > 0) {
+    verboser(sprintf("    λ (auxiliary):          %s", paste(sprintf("%.4f", init_lambda), collapse = ", ")), level = 3)
+  }
+
 # Instrumentation for timing and solver used
   t_solve_start <- proc.time()[[3]]
+
+# Solving status message (LEVEL 1)
+  verboser("", level = 1)
+  verboser("Solving stacked system...", level = 1)
   {
 
   solver_out <- el_run_solver(
@@ -244,12 +317,29 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     K_beta = K_beta,
     K_aux = K_aux,
     respondent_weights = respondent_weights,
-    N_pop = N_pop
+    N_pop = N_pop,
+    trace_level = trace_level
   )
   solution <- solver_out$solution
   solver_method_used <- solver_out$method
   nleqslv_global_used <- if (!is.null(solver_out$used_top$global)) solver_out$used_top$global else NA_character_
   nleqslv_xscalm_used <- if (!is.null(solver_out$used_top$xscalm)) solver_out$used_top$xscalm else NA_character_
+
+# Convergence report (LEVEL 1 status, LEVEL 2 details)
+  converged_success <- !(any(is.na(solution$x)) || solution$termcd > 2)
+
+  verboser("", level = 1)
+  if (converged_success) {
+    verboser("[OK] Solver converged successfully", level = 1, type = "result")
+  } else {
+    verboser("[FAILED] Solver failed to converge", level = 1, type = "result")
+  }
+
+  verboser("", level = 2)
+  verboser(sprintf("  Termination code:         %d (%s)", solution$termcd, solution$message), level = 2)
+  verboser(sprintf("  Iterations:               %d", if (!is.null(solution$iter)) solution$iter else NA), level = 2)
+  verboser(sprintf("  Solver time:              %.3f seconds", proc.time()[[3]] - t_solve_start), level = 2)
+
   if (any(is.na(solution$x)) || solution$termcd > 2) {
     if (on_failure == "error") {
       stop(convergenceError(paste("Solver failed to converge:", solution$message)))
@@ -310,6 +400,42 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   w_i_hat <- post$w_i_hat
   denominator_hat <- post$denominator_hat
   lambda_W_hat <- post$lambda_W_hat
+
+# Weight diagnostics (LEVEL 2)
+  verboser("", level = 2)
+  verboser("-- WEIGHT DIAGNOSTICS --", level = 2)
+
+  weight_sum <- sum(w_unnorm_trimmed)
+  verboser(sprintf("  Estimated response rate:  %.4f", W_hat), level = 2)
+  verboser(sprintf("  Weight sum (trimmed):     %.1f", weight_sum), level = 2)
+  verboser(sprintf("  Trimmed fraction:         %.2f%%", post$trimmed_fraction * 100), level = 2)
+
+  weight_range <- range(w_unnorm_trimmed)
+  verboser(sprintf("  Weight range:             [%.4f, %.4f]", weight_range[1], weight_range[2]), level = 2)
+
+# Detailed diagnostics (LEVEL 3)
+  verboser("", level = 3)
+  verboser("-- DETAILED DIAGNOSTICS --", level = 3)
+
+  verboser(sprintf("  β (response model, unscaled):"), level = 3)
+  for (i in seq_along(beta_hat_unscaled)) {
+    param_name <- if (!is.null(names(beta_hat_unscaled))) names(beta_hat_unscaled)[i] else paste0("beta", i)
+    verboser(sprintf("    %-25s %.6f", param_name, beta_hat_unscaled[i]), level = 3)
+  }
+
+  verboser(sprintf("  W (response rate):        %.6f", W_hat), level = 3)
+  verboser(sprintf("  λ_W (response multiplier): %.6f", lambda_W_hat), level = 3)
+
+  if (K_aux > 0) {
+    verboser(sprintf("  λ_x (auxiliary multipliers):"), level = 3)
+    for (i in seq_along(lambda_hat)) {
+      param_name <- if (!is.null(names(lambda_hat))) names(lambda_hat)[i] else paste0("lambda", i)
+      verboser(sprintf("    %-25s %.6f", param_name, lambda_hat[i]), level = 3)
+    }
+  }
+
+  verboser(sprintf("  Denominator min:          %.6e", min(denominator_hat, na.rm = TRUE)), level = 3)
+  verboser(sprintf("  Denominator median:       %.6f", median(denominator_hat, na.rm = TRUE)), level = 3)
 
 # 6. Diagnostics at Solution
   eq_residuals <- tryCatch(equation_system_func(estimates), error = function(e) rep(NA_real_, length(estimates)))
@@ -388,6 +514,20 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     warning("Delta method variance is not recommended with weight trimming. Consider variance_method = 'bootstrap'.", call. = FALSE)
   }
 
+# Variance estimation section (LEVEL 1 header, LEVEL 2 details)
+  if (variance_method != "none") {
+    verboser("", level = 1)
+    verboser("-- VARIANCE ESTIMATION --", level = 1)
+    verboser(sprintf("  Method:                   %s", variance_method), level = 2)
+
+    if (variance_method == "bootstrap") {
+      verboser(sprintf("  Replications:             %d", bootstrap_reps), level = 2)
+      verboser("  Running bootstrap...", level = 2)
+    } else if (variance_method == "delta") {
+      verboser("  Note: Delta variance not implemented for EL", level = 2)
+    }
+  }
+
   t_var_start <- proc.time()[[3]]
 # Defaults for variance diagnostics
   diag_grad_source <- NA_character_
@@ -449,6 +589,33 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     vcov_message <- "Variance skipped (variance_method='none')"
   }
   variance_time <- proc.time()[[3]] - t_var_start
+
+# Variance completion message (LEVEL 2)
+  if (variance_method != "none") {
+    verboser("", level = 2)
+    if (is.finite(se_y_hat)) {
+      verboser(sprintf("  Standard error:           %.6f", se_y_hat), level = 2, type = "result")
+      verboser(sprintf("  Variance time:            %.3f seconds", variance_time), level = 2)
+    } else {
+      verboser("  Standard error:           NA (estimation failed)", level = 2, type = "result")
+    }
+  }
+
+# Final results banner (LEVEL 1)
+  verboser("", level = 1)
+  verboser("============================================================", level = 1, type = "step")
+  verboser("  EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED", level = 1, type = "step")
+  verboser("============================================================", level = 1, type = "step")
+
+  verboser("", level = 1)
+  verboser(sprintf("  Estimate (y_hat):         %.6f", y_hat), level = 1, type = "result")
+  if (is.finite(se_y_hat)) {
+    verboser(sprintf("  Standard error:           %.6f", se_y_hat), level = 1, type = "result")
+    verboser(sprintf("  95%% CI:                   [%.6f, %.6f]", y_hat - 1.96 * se_y_hat, y_hat + 1.96 * se_y_hat), level = 1, type = "result")
+  } else {
+    verboser("  Standard error:           NA", level = 1, type = "result")
+  }
+  verboser("", level = 1)
 
 # 8. Return Final Results List
   return(list(
