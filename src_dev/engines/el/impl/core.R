@@ -13,7 +13,6 @@
 #' @param standardize Logical. Whether to standardize predictors during estimation.
 #' @param trim_cap Numeric. Upper bound for empirical likelihood weight trimming.
 #' @param control List of control parameters for the nonlinear equation solver.
-#' @param compute_score_variance_func Function to compute covariance of score totals.
 #' @param on_failure Character. Action when solver fails: "return" or "error".
 #' @param family List. Link function specification (typically logit).
 #' @param variance_method Character. Variance estimation method.
@@ -30,8 +29,9 @@
 #' and globalization via `nleqslv`. Numerical safeguards (denominator
 #' positivity guards, predictor standardization, and stable linear algebra)
 #' are applied. After solving, weights are constructed with denominator guards
-#' and optional trimming; delta variance is computed by a sandwich formula
-#' evaluated at the solution or via bootstrap when requested.
+#' and optional trimming. Variance is available via bootstrap; analytical
+#' delta variance for EL is temporarily disabled and returns NA with a
+#' guidance message.
 #'
 #' Steps
 #' 1. Data preparation and scaling
@@ -44,7 +44,7 @@
 #' @keywords internal
 el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_pop,
                               internal_formula, auxiliary_means, standardize,
-                              trim_cap, control, compute_score_variance_func,
+                              trim_cap, control,
                               on_failure, family = logit_family(),
                               variance_method, bootstrap_reps,
                               user_args, start = NULL, ...) {
@@ -232,7 +232,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 # Instrumentation for timing and solver used
   t_solve_start <- proc.time()[[3]]
   {
-# Solve full stacked equation system with analytic Jacobian
+
   solver_out <- el_run_solver(
     equation_system_func = equation_system_func,
     analytical_jac_func = analytical_jac_func,
@@ -302,7 +302,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     }
   }
   y_hat <- post$y_hat
-  p_i <- post$weights
+  w_unnorm_trimmed <- post$weights # Unnormalized (trimmed) EL masses: d_i/D_i
   beta_hat_unscaled <- post$beta_hat_unscaled
   W_hat <- post$W_hat
   lambda_hat <- post$lambda_hat
@@ -343,14 +343,42 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   constraint_eqW_sum <- cons$constraint_sum_W
   constraint_aux_sum <- cons$constraint_sum_aux
 
+# Normalization identity and constraint residual diagnostics
+  sum_respondent_weights <- sum(respondent_weights)
+  sum_unnormalized_weights_untrimmed <- sum(p_untrim)
+  normalization_ratio <- sum_unnormalized_weights_untrimmed / sum_respondent_weights
+
+# Check constraint residuals are near zero (paper requirement)
+  max_constraint_residual <- max(abs(constraint_eqW_sum),
+                                   if (length(constraint_aux_sum) > 0) max(abs(constraint_aux_sum)) else 0,
+                                   na.rm = TRUE)
+
+# Check if trimming has materially altered the mass distribution
+  if (is.finite(post$trimmed_fraction) && post$trimmed_fraction > 0) {
+    sum_w_trimmed <- sum(w_unnorm_trimmed)
+    trimming_mass_shift <- abs(sum_w_trimmed / sum_respondent_weights - 1)
+
+    if (trimming_mass_shift > 0.05) {
+      warning(
+        sprintf(
+          "Trimming altered the EL mass by %.1f%% (>5%% threshold).\n",
+          trimming_mass_shift * 100
+        ),
+        "Constraints remain solved but the identity sum(d_i/D_i)=sum(d_i) no longer holds exactly for trimmed weights.\n",
+        "Bootstrap variance is recommended when trimming is active.",
+        call. = FALSE
+      )
+    }
+  }
+
 # Additional diagnostics: denominators and weight concentration
   denom_q <- tryCatch(stats::quantile(denominator_hat, probs = c(0.01, 0.05, 0.5), na.rm = TRUE), error = function(e) c(`1%` = NA_real_, `5%` = NA_real_, `50%` = NA_real_))
   denom_cnt_1e4 <- sum(denominator_hat < 1e-4)
-  weight_sum <- sum(p_i)
-  weight_share <- if (weight_sum > 0) sort(p_i / weight_sum, decreasing = TRUE) else rep(NA_real_, length(p_i))
+  weight_sum <- sum(w_unnorm_trimmed)
+  weight_share <- if (weight_sum > 0) sort(w_unnorm_trimmed / weight_sum, decreasing = TRUE) else rep(NA_real_, length(w_unnorm_trimmed))
   weight_max_share <- if (length(weight_share)) weight_share[1] else NA_real_
   weight_top5_share <- if (length(weight_share) >= 5) sum(weight_share[1:5]) else sum(weight_share, na.rm = TRUE)
-  weight_ess <- if (weight_sum > 0) (weight_sum^2) / sum(p_i^2) else NA_real_
+  weight_ess <- if (weight_sum > 0) (weight_sum^2) / sum(w_unnorm_trimmed^2) else NA_real_
 
 # 7. Conditional Variance Calculation
   se_y_hat <- NA
@@ -408,48 +436,12 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
       se_y_hat <- NA_real_
     }
   } else if (variance_method == "delta") {
-    var_out <- el_variance_delta(
-      equation_system_func = equation_system_func,
-      analytical_jac_func = analytical_jac_func,
-      estimates = estimates,
-      family = family,
-      response_model_matrix_scaled = response_model_matrix_scaled,
-      response_model_matrix_unscaled = response_model_matrix_unscaled,
-      auxiliary_matrix_scaled = auxiliary_matrix_scaled,
-      mu_x_scaled = mu_x_scaled,
-      eta_i_hat = eta_i_hat,
-      w_i_hat = w_i_hat,
-      W_hat = W_hat,
-      denominator_hat = denominator_hat,
-      lambda_W_hat = lambda_W_hat,
-      full_data = full_data,
-      compute_score_variance_func = compute_score_variance_func,
-      respondent_weights = respondent_weights,
-      N_pop = N_pop,
-      n_resp_weighted = sum(respondent_weights),
-      trim_cap = trim_cap,
-      outcome_vec = respondent_data[[outcome_var]],
-      K_beta = K_beta,
-      standardize = standardize,
-      nmar_scaling_recipe = nmar_scaling_recipe
-    )
-    se_y_hat <- var_out$se_y_hat
-    vcov_unscaled <- var_out$vcov_unscaled
-    vcov_message <- var_out$vcov_message
-    A_condition <- var_out$diag$A_condition
-    diag_grad_source <- var_out$diag$grad_source %||% NA_character_
-    diag_var_yhat <- var_out$diag$var_y_hat_val %||% NA_real_
-    diag_var_anal2 <- var_out$diag$var_anal2 %||% NA_real_
-    diag_grad_l1 <- var_out$diag$grad_l1 %||% NA_real_
-    diag_sigma_min_eig <- var_out$diag$sigma_min_eig %||% NA_real_
-    diag_B_min_eig <- var_out$diag$B_min_eig %||% NA_real_
-# Guard against pathological near-zero or non-finite delta variance
-    if (!is.finite(se_y_hat) || se_y_hat < 1e-8) {
-      warning("Delta variance returned non-finite or near-zero standard error; returning NA. Consider variance_method='bootstrap'.", call. = FALSE)
-      se_y_hat <- NA_real_
-      vcov_unscaled <- matrix(NA_real_, K_beta, K_beta, dimnames = list(colnames(response_model_matrix_unscaled), colnames(response_model_matrix_unscaled)))
-      vcov_message <- "Delta variance near-zero or non-finite; returned NA."
-    }
+    warning("Empirical likelihood delta variance is not implemented; returning NA. Use variance_method='bootstrap' for SEs.", call. = FALSE)
+    se_y_hat <- NA_real_
+    vcov_unscaled <- matrix(NA_real_, K_beta, K_beta,
+                            dimnames = list(colnames(response_model_matrix_unscaled),
+                                            colnames(response_model_matrix_unscaled)))
+    vcov_message <- "Delta variance not implemented for EL; returned NA."
   } else if (variance_method == "none") {
 # Skip variance calculation entirely
     se_y_hat <- NA_real_
@@ -460,7 +452,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 
 # 8. Return Final Results List
   return(list(
-    y_hat = y_hat, se = se_y_hat, weights = p_i,
+    y_hat = y_hat, se = se_y_hat, weights = w_unnorm_trimmed,
     coefficients = list(response_model = beta_hat_unscaled, nuisance = list(W_hat = W_hat, lambda_x = lambda_hat)),
     vcov = vcov_unscaled, converged = TRUE,
     diagnostics = list(
@@ -495,7 +487,11 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
       weight_top5_share = weight_top5_share,
       weight_ess = weight_ess,
       constraint_sum_W = constraint_eqW_sum,
-      constraint_sum_aux = constraint_aux_sum
+      constraint_sum_aux = constraint_aux_sum,
+      sum_respondent_weights = sum_respondent_weights,
+      sum_unnormalized_weights_untrimmed = sum_unnormalized_weights_untrimmed,
+      normalization_ratio = normalization_ratio,
+      max_constraint_residual = max_constraint_residual
     ),
     nmar_scaling_recipe = nmar_scaling_recipe, fitted_values = drop(w_i_hat)
   ))

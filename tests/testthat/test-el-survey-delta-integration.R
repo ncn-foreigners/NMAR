@@ -1,4 +1,5 @@
 test_that("Survey delta variance is finite in a benign SRS regime (integration)", {
+  skip("EL delta variance disabled; use bootstrap for SEs")
   skip_on_cran()
   skip_if_not_installed("survey")
   if (Sys.getenv("NMAR_RUN_INTEGRATION", unset = "0") != "1") skip("integration-only")

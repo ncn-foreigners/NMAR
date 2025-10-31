@@ -1,7 +1,7 @@
 #' Empirical likelihood for survey designs (NMAR)
 #' @description Internal method dispatched by `el()` when `data` is a `survey.design`.
-#'   Uses design-based covariance for variance estimation when
-#'   `variance_method = 'delta'`.
+#'   Variance via bootstrap is supported. Analytical delta variance for EL is
+#'   temporarily unavailable and returns NA when requested.
 #' @param data A `survey.design` created with [survey::svydesign()].
 #' @param formula Two-sided formula: NA-valued outcome on LHS; auxiliaries on RHS.
 #' @param auxiliary_means Named numeric vector of population means for auxiliaries.
@@ -12,10 +12,9 @@
 #' @param variance_method Character; "delta" or "bootstrap".
 #' @param bootstrap_reps Integer; reps when `variance_method = "bootstrap"`.
 #' @param ... Passed to solver.
-#' @details Implements the empirical likelihood estimator with design weights and
-#'   design-based covariance of score totals for delta variance (Qin, Leung and
-#'   Shao, 2002). Bootstrap variance via replicate weights is also supported and
-#'   is preferred under trimming or strong nonresponse.
+#' @details Implements the empirical likelihood estimator with design weights.
+#'   Use bootstrap variance via replicate weights for standard errors. Analytical
+#'   delta variance for EL is disabled and returns NA with a guidance message.
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
 #' @return `c('nmar_result_el','nmar_result')`.
@@ -51,19 +50,65 @@ el.survey.design <- function(data, formula,
   observed_mask <- design$variables[[response_var]] == 1
   observed_indices <- which(observed_mask)
   resp_design <- subset(design, observed_mask)
-  respondent_weights <- weights(resp_design)
-  N_pop <- n_total %||% sum(weights(design))
 
-  compute_score_covariance_func_survey <- function(U_matrix_resp, full_design) {
-    U_full <- matrix(0, nrow = nrow(full_design$variables), ncol = ncol(U_matrix_resp))
-    score_variables <- paste0("..score_", seq_len(ncol(U_matrix_resp)))
-    colnames(U_full) <- score_variables
-    U_full[observed_indices, ] <- U_matrix_resp
-    design_scores <- full_design
-    design_scores$variables <- cbind(design_scores$variables, as.data.frame(U_full))
-    score_formula <- stats::as.formula(paste("~", paste(score_variables, collapse = " + ")))
-    score_totals <- survey::svytotal(score_formula, design_scores, na.rm = TRUE)
-    stats::vcov(score_totals)
+# SCALE COHERENCE FIX: Ensure N_pop and design weights on same scale
+  design_weight_sum <- sum(weights(design))
+
+  if (!is.null(n_total)) {
+    N_pop <- n_total
+    scale_factor <- N_pop / design_weight_sum
+    scale_mismatch_pct <- abs(scale_factor - 1) * 100
+
+# Graduated warnings based on severity
+    if (scale_mismatch_pct > 10) {
+# Large mismatch (>10%): likely user error
+      warning(sprintf(
+        paste0(
+          "Large scale mismatch detected (%.1f%%):\n",
+          "  User-supplied n_total: %g\n",
+          "  Design sum(weights):    %g\n",
+          "  Scale factor:           %.4f\n\n",
+          "This likely indicates a data preparation error.\n",
+          "Verify that n_total and design weights are on the same scale.\n",
+          "For example, if weights were rescaled to mean=1 for other analyses,\n",
+          "provide n_total on that same rescaled scale, not the original population size."
+        ),
+        scale_mismatch_pct, n_total, design_weight_sum, scale_factor
+      ), call. = FALSE)
+      scale_mismatch_detected <- TRUE
+
+    } else if (scale_mismatch_pct > 1) {
+# Moderate rescaling (1-10%): upgrade to warning for visibility
+      warning(sprintf(
+        paste0(
+          "Scale mismatch detected (%.1f%%):\n",
+          "  User-supplied n_total: %g\n",
+          "  Design sum(weights):    %g\n",
+          "  Scale factor:           %.4f\n\n",
+          "Design weights will be rescaled automatically to ensure internal coherence.\n",
+          "This ensures the Lagrange multiplier formula lambda_W = (N_pop/sum(d_i) - 1)/(1 - W)\n",
+          "uses consistent scales. Estimates remain unbiased.\n\n",
+          "If this is unexpected, verify that n_total and design weights are on the same scale."
+        ),
+        scale_mismatch_pct, n_total, design_weight_sum, scale_factor
+      ), call. = FALSE)
+      scale_mismatch_detected <- TRUE
+
+    } else {
+# Negligible (<1%) - likely rounding, no message
+      scale_mismatch_detected <- FALSE
+    }
+
+# Apply scaling to respondent weights
+    respondent_weights <- weights(resp_design) * scale_factor
+
+  } else {
+# No n_total supplied: use design total as population size
+    N_pop <- design_weight_sum
+    respondent_weights <- weights(resp_design)
+    scale_factor <- 1.0
+    scale_mismatch_detected <- FALSE
+    scale_mismatch_pct <- 0
   }
 
   user_args <- list(
@@ -78,7 +123,7 @@ el.survey.design <- function(data, formula,
     respondent_weights = respondent_weights, N_pop = N_pop,
     internal_formula = internal_formula, auxiliary_means = auxiliary_means,
     standardize = standardize, trim_cap = trim_cap, control = control,
-    compute_score_variance_func = compute_score_covariance_func_survey, on_failure = on_failure,
+    on_failure = on_failure,
     variance_method = variance_method, bootstrap_reps = bootstrap_reps,
     user_args = user_args, start = start, ...
   )
@@ -89,9 +134,13 @@ el.survey.design <- function(data, formula,
     formula = formula,
     nobs = nrow(design$variables),
     nobs_resp = length(observed_indices),
+    n_total = N_pop, # Store N_pop for weights() method
     is_survey = TRUE,
     design = design,
-    variance_method = variance_method
+    variance_method = variance_method,
+    scale_factor = scale_factor, # Store scale diagnostics
+    scale_mismatch_detected = scale_mismatch_detected,
+    scale_mismatch_pct = scale_mismatch_pct
   )
 
   if (!core_results$converged) {
@@ -106,7 +155,7 @@ el.survey.design <- function(data, formula,
       converged = FALSE,
       model = list(coefficients = NULL, vcov = NULL),
       weights_info = list(values = numeric(0), trimmed_fraction = NA_real_),
-      sample = list(n_total = sample_info$nobs, n_respondents = sample_info$nobs_resp, is_survey = TRUE, design = design),
+      sample = list(n_total = N_pop, n_respondents = sample_info$nobs_resp, is_survey = TRUE, design = design),
       inference = list(variance_method = variance_method, df = NA_real_, message = msg),
       diagnostics = diag_list,
       meta = list(engine_name = "empirical_likelihood", call = cl, formula = formula),

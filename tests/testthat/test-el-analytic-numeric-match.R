@@ -56,6 +56,7 @@ test_that("analytic vs numeric Jacobian agree across links and scaling", {
 })
 
 test_that("analytic vs numeric gradient of g agree (untrimmed)", {
+  skip("EL delta variance helpers removed; analytic ∇g not exposed")
   skip_if_not_installed("numDeriv")
   set.seed(404)
   n <- 220

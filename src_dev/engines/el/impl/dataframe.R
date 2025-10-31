@@ -47,17 +47,9 @@ el.data.frame <- function(data, formula,
   observed_indices <- which(estimation_data[[response_var]] == 1)
 
   respondent_weights <- rep(1, length(observed_indices))
+# For data frames: if n_total not specified, use total sample size
+# This represents the "population" we're inferring about
   N_pop <- n_total %||% nrow(estimation_data)
-
-  compute_score_covariance_func_df <- function(U_matrix_resp, full_df) {
-# IID meat B for totals: sum over respondents of U_i U_i^T.
-# Center across respondents only for finite-sample stability (asymptotically neutral).
-    if (!is.matrix(U_matrix_resp) || nrow(U_matrix_resp) == 0L) {
-      return(matrix(0, nrow = 0, ncol = 0))
-    }
-    U_resp_centered <- scale(U_matrix_resp, center = TRUE, scale = FALSE)
-    crossprod(U_resp_centered)
-  }
 
   user_args <- list(
     formula = formula,
@@ -71,7 +63,7 @@ el.data.frame <- function(data, formula,
     respondent_weights = respondent_weights, N_pop = N_pop,
     internal_formula = internal_formula, auxiliary_means = auxiliary_means,
     standardize = standardize, trim_cap = trim_cap, control = control,
-    compute_score_variance_func = compute_score_covariance_func_df, on_failure = on_failure,
+    on_failure = on_failure,
     variance_method = variance_method, bootstrap_reps = bootstrap_reps,
     user_args = user_args, start = start, ...
   )
@@ -82,6 +74,7 @@ el.data.frame <- function(data, formula,
     formula = formula,
     nobs = nrow(estimation_data),
     nobs_resp = length(observed_indices),
+    n_total = N_pop, # Store N_pop for weights() method
     is_survey = FALSE,
     design = NULL,
     variance_method = variance_method
@@ -99,7 +92,7 @@ el.data.frame <- function(data, formula,
       converged = FALSE,
       model = list(coefficients = NULL, vcov = NULL),
       weights_info = list(values = numeric(0), trimmed_fraction = NA_real_),
-      sample = list(n_total = sample_info$nobs, n_respondents = sample_info$nobs_resp, is_survey = FALSE, design = NULL),
+      sample = list(n_total = N_pop, n_respondents = sample_info$nobs_resp, is_survey = FALSE, design = NULL),
       inference = list(variance_method = variance_method, df = NA_real_, message = msg),
       diagnostics = diag_list,
       meta = list(engine_name = "empirical_likelihood", call = cl, formula = formula),

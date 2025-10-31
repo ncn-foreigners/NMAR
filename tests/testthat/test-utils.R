@@ -9,15 +9,6 @@ test_that("logit family functions behave numerically", {
   expect_equal(length(sc), length(eta))
 })
 
-test_that("choose_jacobian returns reasonable structure", {
-# Simple quadratic function f(x) = Ax; Jacobian is A.
-  A <- matrix(c(2, 0, 0, 3), 2, 2)
-  f <- function(x) as.numeric(A %*% x)
-  res <- NMAR:::choose_jacobian(analytic_fun = function(x) A, numeric_fun = function(x) numDeriv::jacobian(f, x), at = c(1, 1))
-  expect_true(is.matrix(res$A))
-  expect_true(res$source %in% c("analytic", "numeric"))
-})
-
 test_that("trim_weights caps and redistributes mass", {
   w <- c(5, 1, 1, 1)
   cap <- 2

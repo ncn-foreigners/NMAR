@@ -186,9 +186,10 @@ Follow EL’s `el.survey.design` pattern:
 
 - Subset respondents via `observed_mask`.
 - Get respondent base weights via `weights(resp_design)` and set `N_pop <- sum(weights(design))`.
-- Compute the covariance of “total scores” for the delta variance using
-  `svytotal(~ scores, design)` followed by `vcov()`. See the **Variance**
-  subsection below.
+- For survey designs that require design-based variance, you may compute the
+  covariance of score totals via `svytotal(~ scores, design)` followed by
+  `vcov()`. For EL, analytical delta variance is disabled; use bootstrap
+  variance instead.
 
 ### 6) `impl/<method>_equations.R` / `impl/<method>_jacobian.R` (optional)
 
@@ -198,14 +199,10 @@ math here (e.g., likelihood, gradients, constraints).
 
 ### 7) `impl/<method>_variance.R`
 
-- For delta variance: assemble $A = \partial F/\partial \theta$, $B = Var(\sum scores)$ and the gradient
-  of the functional $g(\theta)$. Reuse shared helpers:
-  - Delta variance: assemble A, B and $\nabla g$; use a two‑solve sandwich at the solution. When inversion is fragile or trimming is active, return NA and recommend bootstrap.
-  - IID B: cross‑product of respondent score rows “expanded” to N (zeros
-    for nonrespondents).
-  - Survey B: covariance of design totals via `svytotal`.
-- Add option to use shared bootstrap variance helpers (`bootstrap_variance()`)
-  for IID or survey designs.
+- If applicable for your method, assemble $A = \\partial F/\\partial \\theta$, $B = Var(\\sum scores)$ and the gradient
+  of the functional $g(\\theta)$ for an analytical delta variance. For EL, analytical
+  delta variance is currently disabled and the engine returns NA when requested.
+- Add an option to use shared bootstrap variance helpers (`bootstrap_variance()`) for IID or survey designs.
 
 ### 8) `impl/<method>_constructors.R`
 Call `new_nmar_result()` inside your constructor so the object carries class

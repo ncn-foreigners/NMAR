@@ -6,6 +6,8 @@
 #' @keywords internal
 NULL
 
+
+
 #' Solver orchestration with staged policy
 #'
 #' @param equation_system_func Function mapping parameter vector to equation
@@ -143,14 +145,20 @@ el_post_solution <- function(estimates,
   }
   p_i_untrimmed[p_i_untrimmed < 0] <- 0
   trim_results <- trim_weights(p_i_untrimmed, cap = trim_cap)
-  p_i <- trim_results$weights
-  y_hat <- sum(p_i * respondent_data[[outcome_var]]) / sum(p_i)
+  w_trimmed <- trim_results$weights
+
+# CRITICAL FIX: Compute mean using probability masses (QLS 2002, Eq. 11)
+# y_bar = sum p_i * y_i where p_i = w_tilde_i / sum w_tilde_j
+# This ensures correct formula even with trimming
+  sum_w <- sum(w_trimmed)
+  p_prob <- w_trimmed / sum_w # Normalized probability masses
+  y_hat <- sum(p_prob * respondent_data[[outcome_var]])
   beta_hat_unscaled <- if (standardize) unscale_coefficients(beta_hat_scaled, matrix(0, K_beta, K_beta), nmar_scaling_recipe)$coefficients else beta_hat_scaled
   names(beta_hat_unscaled) <- colnames(response_model_matrix_unscaled)
   list(
     error = FALSE,
     y_hat = y_hat,
-    weights = p_i,
+    weights = w_trimmed, # Store unnormalized (trimmed) masses as single source of truth
     trimmed_fraction = trim_results$trimmed_fraction,
     beta_hat_scaled = beta_hat_scaled,
     beta_hat_unscaled = beta_hat_unscaled,

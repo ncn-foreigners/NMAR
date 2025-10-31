@@ -1,4 +1,5 @@
 test_that("vcov(beta) is symmetric PSD with aligned names (benign aux cell)", {
+  skip("EL delta variance disabled; vcov not available")
   set.seed(7301)
   df <- make_iid_nmar(n = 600, alpha = 0.4, seed = 7301)
   fit <- nmar(Y_miss ~ X, data = df, engine = make_engine(auxiliary_means = c(X = 0), variance_method = "delta", standardize = TRUE))

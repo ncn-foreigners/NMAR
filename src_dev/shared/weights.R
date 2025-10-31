@@ -4,12 +4,16 @@ trim_weights <- function(weights, cap) {
   if (is.infinite(cap)) {
     return(list(weights = weights, trimmed_fraction = 0))
   }
+# Guard against NA/NaN values
+  if (any(!is.finite(weights))) {
+    stop("Weights contain non-finite values (NA, NaN, or Inf)", call. = FALSE)
+  }
   final_weights <- weights
   original_total <- sum(weights)
   eligible_for_redistribution <- rep(TRUE, length(weights))
   while (TRUE) {
     weights_to_cap <- (final_weights > cap) & eligible_for_redistribution
-    if (!any(weights_to_cap)) break
+    if (!any(weights_to_cap, na.rm = TRUE)) break
     excess <- sum(final_weights[weights_to_cap] - cap)
     final_weights[weights_to_cap] <- cap
     eligible_for_redistribution[weights_to_cap] <- FALSE

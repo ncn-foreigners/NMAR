@@ -59,7 +59,7 @@ shared_weighted_gram <- function(X, w) {
 
 #' @keywords internal
 shared_weighted_Xty <- function(X, w, y) {
-# Compute X' (w ∘ y) with elementwise row weights
+# Compute X' (w * y) with elementwise row weights
   w <- as.numeric(w)
   y <- as.numeric(y)
   if (length(w) != nrow(X) || length(y) != nrow(X)) stop("shared_weighted_Xty: lengths must match nrow(X)", call. = FALSE)

@@ -7,7 +7,7 @@
 #' \itemize{
 #'   \item Provide an engine-agnostic API for standardizing design matrices and
 #'     auxiliary moments before solving.
-#'   \item Return a minimal “recipe” (per-column mean/sd) for unscaling coefficients
+#'   \item Return a minimal "recipe" (per-column mean/sd) for unscaling coefficients
 #'     and covariance matrices after solving.
 #' }
 #'
