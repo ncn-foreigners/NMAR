@@ -123,10 +123,9 @@ fail to produce estimates. Options:</p><dl><dt><code>"strict"</code></dt>
   via <code><a href="https://rdrr.io/pkg/survey/man/calibrate.html" class="external-link">survey::calibrate()</a></code>, <code><a href="https://rdrr.io/pkg/survey/man/postStratify.html" class="external-link">survey::postStratify()</a></code>, or
   <code><a href="https://rdrr.io/pkg/survey/man/rake.html" class="external-link">survey::rake()</a></code> cannot be reconstructed across bootstrap replicates and
   will cause the function to error.</p>
-<p>If your design is calibrated, use the delta method instead:</p><div class="sourceCode"><pre><code><span></span>
-<span>  <span class="va">engine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>variance_method <span class="op">=</span> <span class="st">"delta"</span><span class="op">)</span></span>
-<span>  </span></code></pre></div>
-
+<p>Calibrated or post-stratified designs are not supported by this bootstrap
+  path. Start from the original `survey::svydesign()` object prior to
+  calibration/post-stratification.</p>
 <p><strong>Supported Design Features:</strong> The following <code>svydesign()</code> parameters
   are preserved during reconstruction:</p><ul><li><p><code>ids</code> (or <code>id</code>): Sampling unit identifiers</p></li>
 <li><p><code>strata</code>: Stratification variables</p></li>

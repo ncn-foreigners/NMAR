@@ -63,7 +63,6 @@ and diagnostic computation.</p>
 <span>  <span class="va">standardize</span>,</span>
 <span>  <span class="va">trim_cap</span>,</span>
 <span>  <span class="va">control</span>,</span>
-<span>  <span class="va">compute_score_variance_func</span>,</span>
 <span>  <span class="va">on_failure</span>,</span>
 <span>  family <span class="op">=</span> <span class="fu"><a href="logit_family.html">logit_family</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  <span class="va">variance_method</span>,</span>
@@ -114,10 +113,6 @@ and diagnostic computation.</p>
 <dd><p>List of control parameters for the nonlinear equation solver.</p></dd>
 
 
-<dt id="arg-compute-score-variance-func">compute_score_variance_func<a class="anchor" aria-label="anchor" href="#arg-compute-score-variance-func"></a></dt>
-<dd><p>Function to compute covariance of score totals.</p></dd>
-
-
 <dt id="arg-on-failure">on_failure<a class="anchor" aria-label="anchor" href="#arg-on-failure"></a></dt>
 <dd><p>Character. Action when solver fails: "return" or "error".</p></dd>
 
@@ -154,8 +149,9 @@ full stacked system in \((\beta, z, \lambda_x)\) with an analytic Jacobian
 and globalization via `nleqslv`. Numerical safeguards (denominator
 positivity guards, predictor standardization, and stable linear algebra)
 are applied. After solving, weights are constructed with denominator guards
-and optional trimming; delta variance is computed by a sandwich formula
-evaluated at the solution or via bootstrap when requested.</p>
+and optional trimming. Variance is available via bootstrap; analytical
+delta variance for EL is temporarily disabled and returns NA with a
+guidance message.</p>
 <p>Steps
 1. Data preparation and scaling
 2. Equation system construction

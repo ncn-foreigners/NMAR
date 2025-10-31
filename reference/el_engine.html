@@ -158,13 +158,10 @@ the derivative of the Bernoulli log-likelihood with respect to the linear predic
 i.e., <code>mu.eta(eta)/linkinv(eta)</code>, valid for both logit and probit links.
 Response predictors need not coincide with auxiliary predictors; only auxiliaries
 require known population moments. See Qin, Leung and Shao (2002) for the EL estimating
-equations and sandwich variance at the solution.</p>
-<p>Delta-variance is assembled via two linear solves (no explicit matrix inverse):</p><ul><li><p><strong>Mean:</strong> \(\mathrm{var} = x^\top B x\) with \(A^\top x = \nabla g\)</p></li>
-<li><p><strong>Coefficients:</strong> \(V_{\beta} = X_{\beta}^\top B X_{\beta}\)
-        with \(A^\top X_{\beta} = E_{\beta}\)</p></li>
-</ul><p>In trimming or numerically fragile regimes, delta returns <code>NA</code> with a warning,
-and the bootstrap is recommended. Runtime uses analytic derivatives; numeric checks
-are used only in tests.</p>
+equations. Analytical delta variance for EL is temporarily unavailable;
+when <code>variance_method = "delta"</code>, the estimator returns <code>NA</code>
+standard errors with a guidance message. Use <code>variance_method = "bootstrap"</code>
+for standard errors.</p>
 <p>We rely on standard globalization provided by <code>nleqslv</code> and do not
 implement custom EL solver algorithms.</p>
     </div>
@@ -206,11 +203,11 @@ not affect reproducibility.</p>
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 nonignorable nonresponse or informative sampling. <em>Journal of the American
-Statistical Association</em>, 97(457), 193–200.</p>
+Statistical Association</em>, 97(457), 193-200.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><a href="nmar.html">nmar</a>; see the vignette “Empirical Likelihood Theory for NMAR” for derivations.</p></div>
+    <div class="dont-index"><p><a href="nmar.html">nmar</a>; see the vignette "Empirical Likelihood Theory for NMAR" for derivations.</p></div>
     </div>
 
     <div class="section level2">
@@ -225,24 +222,24 @@ Statistical Association</em>, 97(457), 193–200.</p>
 <span class="r-in"><span><span class="va">R</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">&lt;</span> <span class="va">p</span></span></span>
 <span class="r-in"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Y_miss <span class="op">=</span> <span class="va">Y</span>, X <span class="op">=</span> <span class="va">X</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">df</span><span class="op">$</span><span class="va">Y_miss</span><span class="op">[</span><span class="op">!</span><span class="va">R</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NA_real_</span></span></span>
-<span class="r-in"><span><span class="va">eng</span> <span class="op">&lt;-</span> <span class="fu">el_engine</span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"delta"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">eng</span> <span class="op">&lt;-</span> <span class="fu">el_engine</span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"bootstrap"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="nmar.html">nmar</a></span><span class="op">(</span><span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>, data <span class="op">=</span> <span class="va">df</span>, engine <span class="op">=</span> <span class="va">eng</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NMAR Model Summary</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> =================</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss mean: 1.979080 (0.375143)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 95% CI: (1.243813, 2.714347)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss mean: 1.979080 (0.395367)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 95% CI: (1.204174, 2.753986)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Converged: TRUE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Variance method: delta </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Variance method: bootstrap </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Variance notes: Calculation successful </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Total units: 200 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Respondents: 76 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=200&gt;, engine = empirical_likelihood)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Response-model coefficients:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              Estimate Std. Error   z value Pr(&gt;|z|)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) -2.535301   1.284970 -1.973043 0.048491</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss       0.987603   0.749926  1.316935 0.187860</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              Estimate</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) -2.535301</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss       0.987603</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Response-only predictors can be placed to the right of `|`:</span></span></span>
 <span class="r-in"><span><span class="va">df2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Y_miss <span class="op">=</span> <span class="va">Y</span>, X <span class="op">=</span> <span class="va">X</span>, Z <span class="op">=</span> <span class="va">Z</span><span class="op">)</span></span></span>
@@ -270,25 +267,35 @@ Statistical Association</em>, 97(457), 193–200.</p>
 <span class="r-in"><span><span class="co"># Survey design usage</span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"survey"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="va">des</span> <span class="op">&lt;-</span> <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svydesign.html" class="external-link">svydesign</a></span><span class="op">(</span>ids <span class="op">=</span> <span class="op">~</span><span class="fl">1</span>, weights <span class="op">=</span> <span class="op">~</span><span class="fl">1</span>, data <span class="op">=</span> <span class="va">df</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="va">eng3</span> <span class="op">&lt;-</span> <span class="fu">el_engine</span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"delta"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">eng3</span> <span class="op">&lt;-</span> <span class="fu">el_engine</span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"bootstrap"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">fit3</span> <span class="op">&lt;-</span> <span class="fu"><a href="nmar.html">nmar</a></span><span class="op">(</span><span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>, data <span class="op">=</span> <span class="va">des</span>, engine <span class="op">=</span> <span class="va">eng3</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit3</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NMAR Model Summary</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> =================</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss mean: 1.979080 (0.376084)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 95% CI: (1.237458, 2.720702)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss mean: 1.979080</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Converged: TRUE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Variance method: delta </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Variance notes: Calculation successful </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Variance method: bootstrap </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Variance notes: Bootstrap failed: 11/500 survey bootstrap replicates failed to produce finite estimates.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   First 10 failed replicates: 8, 74, 101, 135, 166, 233, 359, 363, 396, 409</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   (1 more failures)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Survey bootstrap uses strict NA policy (survey_na_policy='strict').</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Troubleshooting:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     - Check if estimator converges reliably on full design</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     - Try variance_method = 'delta' instead</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     - Increase solver tolerances (control = list(xtol = 1e-6))</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     - Reduce bootstrap_reps if stratification creates small replicates</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     - Or set survey_na_policy = 'omit' to allow some failures </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Total units: 200 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Respondents: 76 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Call: nmar(Y_miss ~ X, data = &lt;survey.design: N=200&gt;, engine = empirical_likelihood)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Response-model coefficients:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              Estimate Std. Error   t value Pr(&gt;|t|)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) -2.535301   1.288195 -1.968104 0.050445</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss       0.987603   0.751807  1.313638 0.190480</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              Estimate</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) -2.535301</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss       0.987603</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

@@ -828,140 +828,16 @@ is critical for fast, stable convergence.</li>
 </div>
 </div>
 <div class="section level2">
-<h2 id="delta-variance-nabla-g-a-1-b-a-t-nabla-gt">Delta Variance:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∇</mi><mi>g</mi><mspace width="0.167em"></mspace><msup><mi>A</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><mspace width="0.167em"></mspace><mi>B</mi><mspace width="0.167em"></mspace><msup><mi>A</mi><mrow><mo>−</mo><mi>T</mi></mrow></msup><mspace width="0.167em"></mspace><mi>∇</mi><msup><mi>g</mi><mi>T</mi></msup></mrow><annotation encoding="application/x-tex">\nabla g \, A^{-1} \, B \, A^{-T} \, \nabla g^T</annotation></semantics></math><a class="anchor" aria-label="anchor" href="#delta-variance-nabla-g-a-1-b-a-t-nabla-gt"></a>
+<h2 id="variance-estimation-delta-disabled">Variance Estimation (delta disabled)<a class="anchor" aria-label="anchor" href="#variance-estimation-delta-disabled"></a>
 </h2>
-<p>We compute:</p>
-<ul>
-<li>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mo>=</mo><mi>∂</mi><mi>F</mi><mi>/</mi><mi>∂</mi><mi>θ</mi></mrow><annotation encoding="application/x-tex">A = \partial F/\partial\theta</annotation></semantics></math>
-from the analytic Jacobian when available (logit, probit); numeric
-otherwise with the same denominator guard.</li>
-<li>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>=</mo><mo>Var</mo><mrow><mo stretchy="true" form="prefix">(</mo><mo>∑</mo><msub><mi>U</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">B = \operatorname{Var}(\sum U_i)</annotation></semantics></math>
-built from the stacked per-respondent contributions
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>U</mi><mi>i</mi></msub><annotation encoding="application/x-tex">U_i</annotation></semantics></math>
-(matching
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>F</mi><annotation encoding="application/x-tex">F</annotation></semantics></math>),
-with either i.i.d. covariance or design-based covariance (survey).</li>
-<li>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∇</mi><mi>g</mi></mrow><annotation encoding="application/x-tex">\nabla g</annotation></semantics></math>
-evaluated at the solution (analytic when smooth and untrimmed; numeric
-fallback otherwise).</li>
-</ul>
-<p>IID B (data frame path): We compute
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>B</mi><mo accent="true">̂</mo></mover><mo>=</mo><mo>∑</mo><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>U</mi><mi>i</mi></msub><mo>−</mo><mover><mi>U</mi><mo accent="true">‾</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow><msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>U</mi><mi>i</mi></msub><mo>−</mo><mover><mi>U</mi><mo accent="true">‾</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow><mi>T</mi></msup></mrow><annotation encoding="application/x-tex">\widehat B = \sum (U_i - \bar U)(U_i - \bar U)^T</annotation></semantics></math>
-at the solution. Centering is asymptotically neutral and reduces
-small-sample noise.</p>
-<p>Survey B: We construct score variables on the full design by placing
-respondent
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>U</mi><mi>i</mi></msub><annotation encoding="application/x-tex">U_i</annotation></semantics></math>
-on observed rows and zeros on nonrespondents, then compute the
-covariance of <code>svytotal(~U, design)</code>. This uses standard
-survey-inference machinery and respects
-stratification/clustering/weights.</p>
-<p>Trimming: When <code>trim_cap &lt; Inf</code>, we recommend
-<code>variance_method = "bootstrap"</code> or strengthen auxiliary
-constraints. With trimming, the estimator is non-smooth, so bootstrap is
-recommended for inference.</p>
-<p>Implementation: <code>el_compute_delta_variance()</code> in
-<code>src_dev/engines/el/impl/variance.R</code> assembles
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>B</mi><annotation encoding="application/x-tex">B</annotation></semantics></math>
-from <code>U_matrix_resp</code> and the provided
-<code>compute_score_variance_func</code> (IID vs survey), computes
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∇</mi><mi>g</mi></mrow><annotation encoding="application/x-tex">\nabla g</annotation></semantics></math>
-(analytic when smooth; stabilized numeric otherwise), and returns
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">V</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi></mrow><mrow><mo stretchy="true" form="prefix">(</mo><mover><mi>Y</mi><mo accent="true">̂</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\mathrm{Var}(\hat{Y})</annotation></semantics></math>
-and the (scaled) sandwich vcov for
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>.</p>
-<div class="section level3">
-<h3 id="worked-example-analytic-nabla-g-in-a-1-covariate-logit-case">Worked Example: Analytic
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∇</mi><mi>g</mi></mrow><annotation encoding="application/x-tex">\nabla g</annotation></semantics></math>
-in a 1-Covariate Logit Case<a class="anchor" aria-label="anchor" href="#worked-example-analytic-nabla-g-in-a-1-covariate-logit-case"></a>
-</h3>
-<p>Consider the simple, smooth setting with no trimming (cap
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>=</mo><mi>∞</mi></mrow><annotation encoding="application/x-tex">=\infty</annotation></semantics></math>),
-no auxiliary constraints
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">L=0</annotation></semantics></math>),
-and a logit response model
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>i</mi></msub><mo>=</mo><msub><mi>Z</mi><mi>i</mi></msub><mspace width="0.167em"></mspace><mi>β</mi><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mn>1</mn></msub><msub><mi>x</mi><mi>i</mi></msub><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>w</mi><mi>i</mi></msub><mo>=</mo><msup><mo>logit</mo><mrow><mo>−</mo><mn>1</mn></mrow></msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>η</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>μ</mi><mrow><mi>η</mi><mo>,</mo><mi>i</mi></mrow></msub><mo>=</mo><mfrac><mrow><mi>d</mi><msub><mi>w</mi><mi>i</mi></msub></mrow><mrow><mi>d</mi><msub><mi>η</mi><mi>i</mi></msub></mrow></mfrac><mo>=</mo><msub><mi>w</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>w</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\eta_i = Z_i\,\beta = \beta_0 + \beta_1 x_i,\qquad w_i = \operatorname{logit}^{-1}(\eta_i),\qquad \mu_{\eta,i} = \frac{dw_i}{d\eta_i} = w_i (1-w_i).
-</annotation></semantics></math> Let
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mo>=</mo><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><mi>/</mi><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">C = N_{\text{pop}}/n_{\text{resp\_weighted}} - 1</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>W</mi><mo>=</mo><msup><mo>logit</mo><mrow><mo>−</mo><mn>1</mn></mrow></msup><mrow><mo stretchy="true" form="prefix">(</mo><mi>z</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">W = \operatorname{logit}^{-1}(z)</annotation></semantics></math>,
-so
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mfrac><mi>C</mi><mrow><mn>1</mn><mo>−</mo><mi>W</mi></mrow></mfrac><mo>,</mo><mspace width="2.0em"></mspace><mfrac><mrow><mi>d</mi><mi>W</mi></mrow><mrow><mi>d</mi><mi>z</mi></mrow></mfrac><mo>=</mo><mi>W</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo><mspace width="2.0em"></mspace><mfrac><mrow><mi>d</mi><msub><mi>λ</mi><mi>W</mi></msub></mrow><mrow><mi>d</mi><mi>z</mi></mrow></mfrac><mo>=</mo><mfrac><mrow><mi>C</mi><mspace width="0.167em"></mspace><mi>W</mi></mrow><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow></mfrac><mo>=</mo><msub><mi>λ</mi><mi>W</mi></msub><mspace width="0.167em"></mspace><mfrac><mi>W</mi><mrow><mn>1</mn><mo>−</mo><mi>W</mi></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\lambda_W = \frac{C}{1-W},\qquad \frac{dW}{dz} = W(1-W),\qquad \frac{d\lambda_W}{dz} = \frac{C\,W}{(1-W)} = \lambda_W\,\frac{W}{1-W}.
-</annotation></semantics></math> With no auxiliaries, the EL denominator
-and weights for respondents are
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mo>+</mo><msub><mi>λ</mi><mi>W</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>π</mi><mi>i</mi></msub><mo>=</mo><mfrac><msub><mi>a</mi><mi>i</mi></msub><msub><mi>D</mi><mi>i</mi></msub></mfrac><mo>,</mo><mspace width="2.0em"></mspace><mi>B</mi><mo>=</mo><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>π</mi><mi>i</mi></msub><mo>,</mo><mspace width="2.0em"></mspace><mover><mi>Y</mi><mo accent="true">̂</mo></mover><mo>=</mo><mi>g</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>θ</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>π</mi><mi>i</mi></msub><msub><mi>Y</mi><mi>i</mi></msub></mrow><mi>B</mi></mfrac><mo>,</mo></mrow><annotation encoding="application/x-tex">
-D_i = 1 + \lambda_W (w_i - W),\qquad \pi_i = \frac{a_i}{D_i},\qquad B = \sum_i \pi_i,\qquad \hat Y = g(\theta) = \frac{\sum_i \pi_i Y_i}{B},
-</annotation></semantics></math> where
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>a</mi><mi>i</mi></msub><annotation encoding="application/x-tex">a_i</annotation></semantics></math>
-are base weights
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>a</mi><mi>i</mi></msub><mo>≡</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">a_i\equiv 1</annotation></semantics></math>
-for IID; design weights for survey). The analytic gradient of
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>g</mi><annotation encoding="application/x-tex">g</annotation></semantics></math>
-follows from the ratio rule and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∂</mi><msub><mi>π</mi><mi>i</mi></msub><mi>/</mi><mi>∂</mi><mi>θ</mi></mrow><annotation encoding="application/x-tex">\partial\pi_i/\partial\theta</annotation></semantics></math>.</p>
-<ol style="list-style-type: decimal">
-<li>Gradient w.r.t.
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>.</li>
-</ol>
-<p>Since
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∂</mi><msub><mi>D</mi><mi>i</mi></msub><mi>/</mi><mi>∂</mi><mi>β</mi><mo>=</mo><msub><mi>λ</mi><mi>W</mi></msub><mspace width="0.167em"></mspace><msub><mi>μ</mi><mrow><mi>η</mi><mo>,</mo><mi>i</mi></mrow></msub><mspace width="0.167em"></mspace><msub><mi>Z</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\partial D_i/\partial\beta = \lambda_W\,\mu_{\eta,i}\,Z_i</annotation></semantics></math>,
-we have
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∂</mi><msub><mi>π</mi><mi>i</mi></msub><mi>/</mi><mi>∂</mi><mi>β</mi><mo>=</mo><mo>−</mo><mspace width="0.167em"></mspace><msub><mi>a</mi><mi>i</mi></msub><mspace width="0.167em"></mspace><msub><mi>λ</mi><mi>W</mi></msub><mspace width="0.167em"></mspace><msub><mi>μ</mi><mrow><mi>η</mi><mo>,</mo><mi>i</mi></mrow></msub><mspace width="0.167em"></mspace><msub><mi>Z</mi><mi>i</mi></msub><mi>/</mi><msubsup><mi>D</mi><mi>i</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">\partial\pi_i/\partial\beta = -\,a_i\,\lambda_W\,\mu_{\eta,i}\,Z_i/ D_i^2</annotation></semantics></math>,
-and therefore
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><menclose notation="box"><mrow><mspace width="0.278em"></mspace><mfrac><mrow><mi>∂</mi><mi>g</mi></mrow><mrow><mi>∂</mi><mi>β</mi></mrow></mfrac><mspace width="0.167em"></mspace><mo>=</mo><mspace width="0.167em"></mspace><mfrac><mn>1</mn><mi>B</mi></mfrac><munder><mo>∑</mo><mi>i</mi></munder><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>Y</mi><mi>i</mi></msub><mo>−</mo><mover><mi>Y</mi><mo accent="true">̂</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.167em"></mspace><mfrac><mrow><mi>∂</mi><msub><mi>π</mi><mi>i</mi></msub></mrow><mrow><mi>∂</mi><mi>β</mi></mrow></mfrac><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><mo>−</mo><mspace width="0.167em"></mspace><mfrac><mn>1</mn><mi>B</mi></mfrac><munder><mo>∑</mo><mi>i</mi></munder><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>Y</mi><mi>i</mi></msub><mo>−</mo><mover><mi>Y</mi><mo accent="true">̂</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.167em"></mspace><mfrac><mrow><msub><mi>a</mi><mi>i</mi></msub><mspace width="0.167em"></mspace><msub><mi>λ</mi><mi>W</mi></msub><mspace width="0.167em"></mspace><msub><mi>μ</mi><mrow><mi>η</mi><mo>,</mo><mi>i</mi></mrow></msub></mrow><msubsup><mi>D</mi><mi>i</mi><mn>2</mn></msubsup></mfrac><mspace width="0.167em"></mspace><msub><mi>Z</mi><mi>i</mi></msub><mspace width="0.278em"></mspace></mrow></menclose><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\boxed{\;\frac{\partial g}{\partial \beta} \,=\, \frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{\partial \pi_i}{\partial\beta}
-\;=\; -\,\frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{a_i\,\lambda_W\,\mu_{\eta,i}}{D_i^2}\,Z_i\; }.
-</annotation></semantics></math></p>
-<ol start="2" style="list-style-type: decimal">
-<li>Gradient w.r.t. the reparametrized
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi><mo>=</mo><mo>logit</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">z = \operatorname{logit}(W)</annotation></semantics></math>.</li>
-</ol>
-<p>Using
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∂</mi><msub><mi>D</mi><mi>i</mi></msub><mi>/</mi><mi>∂</mi><mi>z</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>d</mi><msub><mi>λ</mi><mi>W</mi></msub><mi>/</mi><mi>d</mi><mi>z</mi><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><msub><mi>λ</mi><mi>W</mi></msub><mspace width="0.167em"></mspace><mfrac><mrow><mi>d</mi><mi>W</mi></mrow><mrow><mi>d</mi><mi>z</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">\partial D_i/\partial z = (d\lambda_W/dz)\,(w_i - W) - \lambda_W\,\frac{dW}{dz}</annotation></semantics></math>,
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><menclose notation="box"><mrow><mspace width="0.278em"></mspace><mfrac><mrow><mi>∂</mi><mi>g</mi></mrow><mrow><mi>∂</mi><mi>z</mi></mrow></mfrac><mspace width="0.167em"></mspace><mo>=</mo><mspace width="0.167em"></mspace><mfrac><mn>1</mn><mi>B</mi></mfrac><munder><mo>∑</mo><mi>i</mi></munder><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>Y</mi><mi>i</mi></msub><mo>−</mo><mover><mi>Y</mi><mo accent="true">̂</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.167em"></mspace><mfrac><mrow><mi>∂</mi><msub><mi>π</mi><mi>i</mi></msub></mrow><mrow><mi>∂</mi><mi>z</mi></mrow></mfrac><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><mo>−</mo><mspace width="0.167em"></mspace><mfrac><mn>1</mn><mi>B</mi></mfrac><munder><mo>∑</mo><mi>i</mi></munder><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>Y</mi><mi>i</mi></msub><mo>−</mo><mover><mi>Y</mi><mo accent="true">̂</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.167em"></mspace><mfrac><msub><mi>a</mi><mi>i</mi></msub><msubsup><mi>D</mi><mi>i</mi><mn>2</mn></msubsup></mfrac><mspace width="0.167em"></mspace><mo minsize="1.8" maxsize="1.8" stretchy="false" form="prefix">[</mo><mspace width="0.167em"></mspace><mfrac><mrow><mi>d</mi><msub><mi>λ</mi><mi>W</mi></msub></mrow><mrow><mi>d</mi><mi>z</mi></mrow></mfrac><mspace width="0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><msub><mi>λ</mi><mi>W</mi></msub><mspace width="0.167em"></mspace><mfrac><mrow><mi>d</mi><mi>W</mi></mrow><mrow><mi>d</mi><mi>z</mi></mrow></mfrac><mspace width="0.167em"></mspace><mo minsize="1.8" maxsize="1.8" stretchy="false" form="postfix">]</mo><mspace width="0.278em"></mspace></mrow></menclose><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\boxed{\;\frac{\partial g}{\partial z} \,=\, \frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{\partial \pi_i}{\partial z}
-\;=\; -\,\frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{a_i}{D_i^2}\,\Big[\,\frac{d\lambda_W}{dz}\,(w_i - W) - \lambda_W\,\frac{dW}{dz}\,\Big]\; }.
-</annotation></semantics></math></p>
-<ol start="3" style="list-style-type: decimal">
-<li>(Optional) With auxiliaries
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>X</mi><mi>i</mi></msub><annotation encoding="application/x-tex">X_i</annotation></semantics></math>
-and centered
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>X</mi><mrow><mi>c</mi><mo>,</mo><mi>i</mi></mrow></msub><mo>=</mo><msub><mi>X</mi><mi>i</mi></msub><mo>−</mo><msub><mi>μ</mi><mi>x</mi></msub></mrow><annotation encoding="application/x-tex">X_{c,i}=X_i-\mu_x</annotation></semantics></math>,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mo>+</mo><msub><mi>λ</mi><mi>W</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>+</mo><msubsup><mi>X</mi><mrow><mi>c</mi><mo>,</mo><mi>i</mi></mrow><mi>⊤</mi></msubsup><msub><mi>λ</mi><mi>x</mi></msub></mrow><annotation encoding="application/x-tex">D_i = 1 + \lambda_W(w_i - W) + X_{c,i}^\top\lambda_x</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∂</mi><msub><mi>D</mi><mi>i</mi></msub><mi>/</mi><mi>∂</mi><msub><mi>λ</mi><mi>x</mi></msub><mo>=</mo><msub><mi>X</mi><mrow><mi>c</mi><mo>,</mo><mi>i</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\partial D_i/\partial\lambda_x = X_{c,i}</annotation></semantics></math>,
-hence
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><menclose notation="box"><mrow><mspace width="0.278em"></mspace><mfrac><mrow><mi>∂</mi><mi>g</mi></mrow><mrow><mi>∂</mi><msub><mi>λ</mi><mi>x</mi></msub></mrow></mfrac><mspace width="0.167em"></mspace><mo>=</mo><mspace width="0.167em"></mspace><mo>−</mo><mspace width="0.167em"></mspace><mfrac><mn>1</mn><mi>B</mi></mfrac><munder><mo>∑</mo><mi>i</mi></munder><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>Y</mi><mi>i</mi></msub><mo>−</mo><mover><mi>Y</mi><mo accent="true">̂</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.167em"></mspace><mfrac><msub><mi>a</mi><mi>i</mi></msub><msubsup><mi>D</mi><mi>i</mi><mn>2</mn></msubsup></mfrac><mspace width="0.167em"></mspace><msub><mi>X</mi><mrow><mi>c</mi><mo>,</mo><mi>i</mi></mrow></msub><mspace width="0.278em"></mspace></mrow></menclose><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\boxed{\;\frac{\partial g}{\partial \lambda_x} \,=\, -\,\frac{1}{B}\sum_i (Y_i - \hat Y)\,\frac{a_i}{D_i^2}\,X_{c,i}\; }.
-</annotation></semantics></math>
-</li>
-</ol>
-<p>Numerical safeguards. In practice we enforce
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>i</mi></msub><mo>≥</mo><mi>ε</mi></mrow><annotation encoding="application/x-tex">D_i \ge \varepsilon</annotation></semantics></math>
-(e.g.,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ε</mi><mo>=</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>8</mn></mrow></msup></mrow><annotation encoding="application/x-tex">\varepsilon=10^{-8}</annotation></semantics></math>)
-when forming the gradient and the score contributions used in
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>B</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\widehat B</annotation></semantics></math>.
-The same guard is used in the estimating equations and in the analytic
-Jacobian, ensuring consistency between
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>F</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>θ</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">F(\theta)</annotation></semantics></math>,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mo>=</mo><mi>∂</mi><mi>F</mi><mi>/</mi><mi>∂</mi><mi>θ</mi></mrow><annotation encoding="application/x-tex">A=\partial F/\partial\theta</annotation></semantics></math>,
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∇</mi><mi>g</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>θ</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\nabla g(\theta)</annotation></semantics></math>.</p>
-<p>Code mapping. The implementation uses these expressions when
-<code>trim_cap = Inf</code> (smooth case) inside
-<code>el_compute_delta_variance()</code>; otherwise it falls back to a
-stabilized numeric gradient. See
-<code>src_dev/engines/el/impl/variance.R</code> for the exact code paths
-and <code>src_dev/engines/el/impl/jacobian.R</code> for the matching
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>A</mi><annotation encoding="application/x-tex">A</annotation></semantics></math>.</p>
-</div>
+<p>Analytical delta variance for the EL estimator is temporarily
+unavailable in the package. When requested via
+<code>variance_method = "delta"</code>, the implementation returns
+<code>NA</code> with a guidance message. We recommend
+<code>variance_method = "bootstrap"</code> for standard errors in both
+IID and survey settings.</p>
+<p>Implementation: The analytical delta variance for EL is disabled in
+the codebase.</p>
 <div class="section level3">
 <h3 id="solving-strategy-and-initialization">Solving Strategy and Initialization<a class="anchor" aria-label="anchor" href="#solving-strategy-and-initialization"></a>
 </h3>
@@ -993,71 +869,11 @@ converge; this is not a user-facing mode.</li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="variance-assembly-and-numerical-stability">Variance Assembly and Numerical Stability<a class="anchor" aria-label="anchor" href="#variance-assembly-and-numerical-stability"></a>
+<h3 id="variance-and-stability">Variance and Stability<a class="anchor" aria-label="anchor" href="#variance-and-stability"></a>
 </h3>
-<p>Let
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mo>=</mo><mfrac><mrow><mi>∂</mi><mi>F</mi></mrow><mrow><mi>∂</mi><mi>θ</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">A = \frac{\partial F}{\partial \theta}</annotation></semantics></math>
-be the Jacobian of the estimating system. The delta variance uses the
-sandwich
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∇</mi><mi>g</mi><mspace width="0.167em"></mspace><msup><mi>A</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><mi>B</mi><msup><mi>A</mi><mrow><mo>−</mo><mi>T</mi></mrow></msup><mspace width="0.167em"></mspace><mi>∇</mi><msup><mi>g</mi><mi>T</mi></msup></mrow><annotation encoding="application/x-tex">\nabla g\,A^{-1} B A^{-T}\,\nabla g^T</annotation></semantics></math>.
-Numerically we avoid forming an explicit inverse:</p>
-<ul>
-<li>Solve
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mi>X</mi><mo>=</mo><mi>B</mi></mrow><annotation encoding="application/x-tex">A X = B</annotation></semantics></math>
-(first linear solve) and then
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>A</mi><mi>T</mi></msup><mi>Y</mi><mo>=</mo><msup><mi>X</mi><mi>T</mi></msup></mrow><annotation encoding="application/x-tex">A^T Y = X^T</annotation></semantics></math>
-(second linear solve), so that
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Σ</mi><mi>θ</mi></msub><mo>=</mo><msup><mi>A</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><mi>B</mi><msup><mi>A</mi><mrow><mo>−</mo><mi>T</mi></mrow></msup><mo>=</mo><msup><mi>Y</mi><mi>T</mi></msup></mrow><annotation encoding="application/x-tex">\Sigma_\theta = A^{-1} B A^{-T} = Y^T</annotation></semantics></math>.
-We lightly symmetrize
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>Σ</mi><mi>θ</mi></msub><annotation encoding="application/x-tex">\Sigma_\theta</annotation></semantics></math>
-to reduce round-off.</li>
-<li>If the solves fail or yield non-finite/near-zero variance for
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>Y</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat Y</annotation></semantics></math>,
-we return NA with a clear warning. This occurs in regimes where the
-first-order delta method is not applicable (e.g., trimming, very weak
-identification). Bootstrap variance is recommended in those cases.</li>
-</ul>
-<div class="section level4">
-<h4 id="variance-identities-used-in-code">Variance Identities (Used in Code)<a class="anchor" aria-label="anchor" href="#variance-identities-used-in-code"></a>
-</h4>
-<p>To avoid forming explicit inverses and to preserve non-negativity
-when
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>B</mi><annotation encoding="application/x-tex">B</annotation></semantics></math>
-is PSD, we use the following algebraically equivalent identities:</p>
-<ul>
-<li>Mean (scalar):</li>
-</ul>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">V</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi></mrow><mrow><mo stretchy="true" form="prefix">(</mo><mover><mi>Y</mi><mo accent="true">̂</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><mi>∇</mi><msup><mi>g</mi><mi>T</mi></msup><mspace width="0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><msup><mi>A</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><mi>B</mi><msup><mi>A</mi><mrow><mo>−</mo><mi>T</mi></mrow></msup><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.167em"></mspace><mi>∇</mi><mi>g</mi><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><msup><mi>x</mi><mi>T</mi></msup><mi>B</mi><mi>x</mi><mo>,</mo><mspace width="1.0em"></mspace><mrow><mtext mathvariant="normal">where </mtext><mspace width="0.333em"></mspace></mrow><msup><mi>A</mi><mi>T</mi></msup><mi>x</mi><mo>=</mo><mi>∇</mi><mi>g</mi><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\mathrm{Var}(\hat Y) \;=\; \nabla g^T \,(A^{-1} B A^{-T})\, \nabla g \;=\; x^T B x,\quad \text{where } A^T x = \nabla g.
-</annotation></semantics></math></p>
-<ul>
-<li>Response-model coefficients (matrix): let
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>E</mi><mi>β</mi></msub><annotation encoding="application/x-tex">E_\beta</annotation></semantics></math>
-select the
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>
-coordinates in
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>θ</mi><annotation encoding="application/x-tex">\theta</annotation></semantics></math>
-(same ordering as the stacked system). Then</li>
-</ul>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">V</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi></mrow><mrow><mo stretchy="true" form="prefix">(</mo><mover><mi>β</mi><mo accent="true">̂</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><mo minsize="1.2" maxsize="1.2" stretchy="false" form="prefix">(</mo><msup><mi>A</mi><mrow><mo>−</mo><mi>T</mi></mrow></msup><msub><mi>E</mi><mi>β</mi></msub><msup><mo minsize="1.2" maxsize="1.2" stretchy="false" form="postfix">)</mo><mi>T</mi></msup><mi>B</mi><mo minsize="1.2" maxsize="1.2" stretchy="false" form="prefix">(</mo><msup><mi>A</mi><mrow><mo>−</mo><mi>T</mi></mrow></msup><msub><mi>E</mi><mi>β</mi></msub><mo minsize="1.2" maxsize="1.2" stretchy="false" form="postfix">)</mo><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><msubsup><mi>X</mi><mi>β</mi><mi>T</mi></msubsup><mi>B</mi><msub><mi>X</mi><mi>β</mi></msub><mo>,</mo><mspace width="1.0em"></mspace><mrow><mtext mathvariant="normal">where </mtext><mspace width="0.333em"></mspace></mrow><msup><mi>A</mi><mi>T</mi></msup><msub><mi>X</mi><mi>β</mi></msub><mo>=</mo><msub><mi>E</mi><mi>β</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\mathrm{Var}(\hat\beta) \;=\; \big(A^{-T} E_\beta\big)^T B \big(A^{-T} E_\beta\big) \;=\; X_\beta^T B X_\beta,\quad \text{where } A^T X_\beta = E_\beta.
-</annotation></semantics></math></p>
-<p>Both identities equal the corresponding blocks of the sandwich
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>A</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><mi>B</mi><msup><mi>A</mi><mrow><mo>−</mo><mi>T</mi></mrow></msup></mrow><annotation encoding="application/x-tex">A^{-1} B A^{-T}</annotation></semantics></math>
-in exact arithmetic, but they are numerically more stable. The
-implementation uses these two-solve forms for the mean and for
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">V</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi></mrow><mrow><mo stretchy="true" form="prefix">(</mo><mover><mi>β</mi><mo accent="true">̂</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\mathrm{Var}(\hat\beta)</annotation></semantics></math>.</p>
-<p>Remarks:</p>
-<ul>
-<li>The “minus sign” seen in some derivations for
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>−</mo><msup><mi>A</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">-A^{-1}</annotation></semantics></math>
-cancels inside the sandwich.</li>
-<li>With finite weight trimming,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>g</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>θ</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">g(\theta)</annotation></semantics></math>
-is non-smooth; delta variance is not applicable. Prefer
-<code>variance_method = "bootstrap"</code>.</li>
-</ul>
-</div>
+<p>For standard errors, use bootstrap variance. Analytical delta
+variance for EL is disabled in this version; derivations are
+omitted.</p>
 </div>
 <div class="section level3">
 <h3 id="practical-identifiability-and-diagnostics">Practical Identifiability and Diagnostics<a class="anchor" aria-label="anchor" href="#practical-identifiability-and-diagnostics"></a>
@@ -1286,8 +1102,7 @@ Broyden fallback).</li>
 <li>Jacobian: <code>build_el_jacobian(...)</code> in
 <code>src_dev/engines/el/impl/jacobian.R</code> returns analytic A
 whenever family supplies <code>d2mu.deta2</code> (logit, probit).</li>
-<li>Variance: <code>src_dev/engines/el/impl/variance.R</code> assembles
-B and computes delta variance; bootstrap variance in
+<li>Variance: Bootstrap variance is implemented in
 <code>src_dev/shared/bootstrap.R</code>.</li>
 <li>S3 result: <code>src_dev/engines/el/s3.R</code> provides
 print/tidy/glance and accessors.</li>
@@ -1387,13 +1202,11 @@ when trimming is finite.</li>
 </ul>
 </li>
 <li>
-<strong>variance_method</strong> (default: “delta”)
+<strong>variance_method</strong> (default: “none”)
 <ul>
-<li>“delta”: analytic delta method variance via two linear solves for
-the sandwich. Returns NA with a clear warning when trimmed or when
-solves are numerically fragile.</li>
 <li>“bootstrap”: IID resampling or survey replicate weights via
-<code>svrep</code>; preferred with trimming or near-boundary cases.</li>
+<code>svrep</code>; preferred for SEs.</li>
+<li>“none”: skip variance calculation.</li>
 </ul>
 </li>
 <li>bootstrap_reps (default: 500)
@@ -1427,7 +1240,7 @@ fraction. These help assess identification and numerical stability.</li>
 <h3 id="recommended-settings">Recommended settings<a class="anchor" aria-label="anchor" href="#recommended-settings"></a>
 </h3>
 <ul>
-<li>Default: <code>variance_method = "delta"</code>,
+<li>Default: <code>variance_method = "none"</code>,
 <code>standardize = TRUE</code>.</li>
 <li>With trimming or suspected weak identification: prefer
 <code>variance_method = "bootstrap"</code>.</li>

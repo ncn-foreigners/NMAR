@@ -283,10 +283,11 @@ survey.design<a class="anchor" aria-label="anchor" href="#implmethod_survey-r-me
 <li>Subset respondents via <code>observed_mask</code>.</li>
 <li>Get respondent base weights via <code>weights(resp_design)</code>
 and set <code>N_pop &lt;- sum(weights(design))</code>.</li>
-<li>Compute the covariance of “total scores” for the delta variance
-using <code>svytotal(~ scores, design)</code> followed by
-<code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>. See the <strong>Variance</strong> subsection
-below.</li>
+<li>For survey designs that require design-based variance, you may
+compute the covariance of score totals via
+<code>svytotal(~ scores, design)</code> followed by <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>.
+For EL, analytical delta variance is disabled; use bootstrap variance
+instead.</li>
 </ul>
 </div>
 <div class="section level4">
@@ -302,24 +303,12 @@ constraints).</p>
 <h4 id="implmethod_variance-r">7) <code>impl/&lt;method&gt;_variance.R</code><a class="anchor" aria-label="anchor" href="#implmethod_variance-r"></a>
 </h4>
 <ul>
-<li>For delta variance: assemble
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mo>=</mo><mi>∂</mi><mi>F</mi><mi>/</mi><mi>∂</mi><mi>θ</mi></mrow><annotation encoding="application/x-tex">A = \partial F/\partial \theta</annotation></semantics></math>,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>=</mo><mi>V</mi><mi>a</mi><mi>r</mi><mrow><mo stretchy="true" form="prefix">(</mo><mo>∑</mo><mi>s</mi><mi>c</mi><mi>o</mi><mi>r</mi><mi>e</mi><mi>s</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">B = Var(\sum scores)</annotation></semantics></math>
-and the gradient of the functional
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>g</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>θ</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">g(\theta)</annotation></semantics></math>.
-Reuse shared helpers:
-<ul>
-<li>Delta variance: assemble A, B and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∇</mi><mi>g</mi></mrow><annotation encoding="application/x-tex">\nabla g</annotation></semantics></math>;
-use a two‑solve sandwich at the solution. When inversion is fragile or
-trimming is active, return NA and recommend bootstrap.</li>
-<li>IID B: cross‑product of respondent score rows “expanded” to N (zeros
-for nonrespondents).</li>
-<li>Survey B: covariance of design totals via
-<code>svytotal</code>.</li>
-</ul>
-</li>
-<li>Add option to use shared bootstrap variance helpers
+<li>If applicable for your method, assemble <span class="math inline">$A
+= \\partial F/\\partial \\theta$</span>, <span class="math inline">$B =
+Var(\\sum scores)$</span> and the gradient of the functional <span class="math inline">$g(\\theta)$</span> for an analytical delta
+variance. For EL, analytical delta variance is currently disabled and
+the engine returns NA when requested.</li>
+<li>Add an option to use shared bootstrap variance helpers
 (<code><a href="../reference/bootstrap_variance.html">bootstrap_variance()</a></code>) for IID or survey designs.</li>
 </ul>
 </div>
