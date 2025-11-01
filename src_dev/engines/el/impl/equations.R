@@ -20,7 +20,10 @@ el_build_equation_system <- function(family, response_model_matrix, auxiliary_ma
   force(mu_x_scaled)
   K_beta <- ncol(response_model_matrix)
   K_aux <- if (is.null(auxiliary_matrix) || ncol(auxiliary_matrix) == 0) 0 else ncol(auxiliary_matrix)
+# Hoist centered auxiliaries and constants outside parameter closure
   X_centered <- if (K_aux > 0) sweep(auxiliary_matrix, 2, mu_x_scaled, "-") else matrix(nrow = nrow(response_model_matrix), ncol = 0)
+  C_const <- (N_pop / n_resp_weighted) - 1
+  ETA_CAP <- get_eta_cap()
   function(params) {
     beta_vec <- params[1:K_beta]
     z <- params[K_beta + 1]
@@ -29,8 +32,7 @@ el_build_equation_system <- function(family, response_model_matrix, auxiliary_ma
     lambda_x <- if (K_aux > 0) params[(K_beta + 2):length(params)] else numeric(0)
     W_bounded <- W
 # QLS Eq. (10): lambda_W = (N/n - 1) / (1 - W)
-    lambda_W <- ((N_pop / n_resp_weighted) - 1) / (1 - W_bounded)
-    ETA_CAP <- get_eta_cap()
+    lambda_W <- C_const / (1 - W_bounded)
     eta_raw <- as.vector(response_model_matrix %*% beta_vec)
     eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
     w_i <- family$linkinv(eta_i)
@@ -45,7 +47,7 @@ el_build_equation_system <- function(family, response_model_matrix, auxiliary_ma
     beta_eq_term <- dlw_i - lambda_W * mu_eta_i * inv_denominator
     eq_betas <- shared_weighted_Xty(response_model_matrix, respondent_weights, beta_eq_term)
 # W equation (QLS Eq. 8)
-    eq_W <- sum(respondent_weights * (w_i - W_bounded) * inv_denominator)
+    eq_W <- as.numeric(crossprod(respondent_weights * inv_denominator, (w_i - W_bounded)))
 # Auxiliary constraints (QLS Eq. 7)
     eq_constraints <- if (K_aux > 0) shared_weighted_Xty(X_centered, respondent_weights, inv_denominator) else numeric(0)
     c(as.vector(eq_betas), eq_W, as.vector(eq_constraints))

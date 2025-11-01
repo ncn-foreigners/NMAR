@@ -36,7 +36,10 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     mu_x_scaled_vec <- as.numeric(mu_x_scaled[colnames(auxiliary_matrix_mat)])
     names(mu_x_scaled_vec) <- colnames(auxiliary_matrix_mat)
   }
+# Precompute centered auxiliary design once (avoids per-call sweep)
+  X_centered_base <- if (K_aux > 0) sweep(auxiliary_matrix_mat, 2, mu_x_scaled_vec, "-") else matrix(nrow = n_resp, ncol = 0)
   C_const <- (N_pop / n_resp_weighted) - 1
+  ETA_CAP <- get_eta_cap()
   function(params) {
     if (length(params) != (K_beta + 1 + K_aux)) stop("Parameter vector length mismatch.")
     beta_vec <- as.numeric(params[1:K_beta])
@@ -49,13 +52,12 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     lambda_W <- C_const / (1 - W_bounded)
     d_lambda_W_dWb <- C_const / (1 - W_bounded)^2
     d_lambda_W_dTheta <- d_lambda_W_dWb * dWb_dTheta
-    ETA_CAP <- get_eta_cap()
     eta_raw <- as.vector(response_model_matrix %*% beta_vec)
     eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
     p_i <- family$linkinv(eta_i)
     m_i <- family$mu.eta(eta_i)
     m2_i <- family$d2mu.deta2(eta_i)
-    X_centered <- if (K_aux > 0) sweep(auxiliary_matrix_mat, 2, mu_x_scaled_vec, "-") else matrix(nrow = n_resp, ncol = 0)
+    X_centered <- X_centered_base
 # QLS Eq. (5): Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
     denominator <- 1 + lambda_W * (p_i - W_bounded)
     if (K_aux > 0) denominator <- denominator + as.vector(X_centered %*% lambda_x)
@@ -84,7 +86,7 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     term21 <- m_i * inv_denom - (p_i - W_bounded) * inv_denom_sq * (lambda_W * m_i) * active
     J21 <- t(shared_weighted_Xty(response_model_matrix, respondent_weights, term21))
     term22 <- -dWb_dTheta * inv_denom - (p_i - W_bounded) * inv_denom_sq * dden_dTheta
-    J22 <- sum(as.numeric(respondent_weights * term22))
+    J22 <- as.numeric(crossprod(respondent_weights, term22))
     J23 <- if (K_aux > 0) t(shared_weighted_Xty(X_centered, respondent_weights, (-(p_i - W_bounded) * inv_denom_sq * active))) else matrix(nrow = 1, ncol = 0)
     if (K_aux > 0) {
       term31 <- -dden_deta * inv_denom_sq

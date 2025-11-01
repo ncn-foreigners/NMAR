@@ -520,21 +520,15 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   se_y_hat <- NA
   vcov_unscaled <- NA
   vcov_message <- "Calculation successful"
-  if (variance_method == "delta" && is.finite(trim_cap)) {
-    warning("Delta method variance is not recommended with weight trimming. Consider variance_method = 'bootstrap'.", call. = FALSE)
-  }
 
 # Variance estimation section (LEVEL 1 header, LEVEL 2 details)
   if (variance_method != "none") {
     verboser("", level = 1)
     verboser("-- VARIANCE ESTIMATION --", level = 1)
     verboser(sprintf("  Method:                   %s", variance_method), level = 2)
-
     if (variance_method == "bootstrap") {
       verboser(sprintf("  Replications:             %d", bootstrap_reps), level = 2)
       verboser("  Running bootstrap...", level = 2)
-    } else if (variance_method == "delta") {
-      verboser("  Note: Delta variance not implemented for EL", level = 2)
     }
   }
 
@@ -585,13 +579,6 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     } else {
       se_y_hat <- NA_real_
     }
-  } else if (variance_method == "delta") {
-    warning("Empirical likelihood delta variance is not implemented; returning NA. Use variance_method='bootstrap' for SEs.", call. = FALSE)
-    se_y_hat <- NA_real_
-    vcov_unscaled <- matrix(NA_real_, K_beta, K_beta,
-                            dimnames = list(colnames(response_model_matrix_unscaled),
-                                            colnames(response_model_matrix_unscaled)))
-    vcov_message <- "Delta variance not implemented for EL; returned NA."
   } else if (variance_method == "none") {
 # Skip variance calculation entirely
     se_y_hat <- NA_real_

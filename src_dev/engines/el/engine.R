@@ -171,9 +171,11 @@ el_engine <- function(
     start = start,
     family = family
   )
+# Validate and coerce unsupported variance modes upfront
   validate_nmar_engine_el(engine)
   if (identical(engine$variance_method, "delta")) {
-    warning("Empirical likelihood delta variance is not implemented; results will report NA SE. Use variance_method='bootstrap' for SEs.", call. = FALSE)
+    warning("Empirical likelihood 'delta' variance is not implemented; using variance_method='none'.", call. = FALSE)
+    engine$variance_method <- "none"
   }
   new_nmar_engine_el(engine)
 }

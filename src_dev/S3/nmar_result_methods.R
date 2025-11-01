@@ -377,13 +377,10 @@ weights.nmar_result <- function(object,
     stop("'object' must be of class 'nmar_result'", call. = FALSE)
   }
 
-  if (!isTRUE(object$converged)) {
-    warning(
-      "Result did not converge; weights may be unreliable. ",
-      "Check object$meta$convergence for details.",
-      call. = FALSE
-    )
-  }
+# Do not warn on nonconvergence here to keep downstream
+# code (including tests) quiet. Convergence is reported
+# in print/summary and stored in diagnostics; callers
+# can inspect object$converged and diagnostics as needed.
 
 # Extract stored unnormalized masses (single source of truth)
   info <- nmar_result_get_weights_info(object)

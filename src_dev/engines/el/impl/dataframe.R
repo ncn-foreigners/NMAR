@@ -32,6 +32,8 @@ el.data.frame <- function(data, formula,
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
   variance_method <- match.arg(variance_method)
+# Coerce unsupported mode to 'none' locally (engine-level warning already issued)
+  if (identical(variance_method, "delta")) variance_method <- "none"
 
 
 # If respondents-only data is supplied (no NA in outcome), require n_total

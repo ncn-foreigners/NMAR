@@ -73,7 +73,7 @@ trim_weights <- function(weights, cap, tol = 1e-12, warn_tol = 1e-8) {
     out <- numeric(n)
     out[pos_idx] <- cap
     warning(sprintf(
-      "EL mass trimming: cannot preserve total mass: sum(weights)=%.6f exceeds %d * cap=%.6f.",
+      "Cannot preserve total mass: sum(weights)=%.6f exceeds %d * cap=%.6f.",
       total, mpos, mpos * cap
     ), call. = FALSE)
     return(list(
