@@ -28,6 +28,7 @@ el_build_equation_system <- function(family, response_model_matrix, auxiliary_ma
     W <- min(max(W, 1e-12), 1 - 1e-12)
     lambda_x <- if (K_aux > 0) params[(K_beta + 2):length(params)] else numeric(0)
     W_bounded <- W
+# QLS Eq. (10): lambda_W = (N/n - 1) / (1 - W)
     lambda_W <- ((N_pop / n_resp_weighted) - 1) / (1 - W_bounded)
     ETA_CAP <- get_eta_cap()
     eta_raw <- as.vector(response_model_matrix %*% beta_vec)
@@ -36,12 +37,16 @@ el_build_equation_system <- function(family, response_model_matrix, auxiliary_ma
     mu_eta_i <- family$mu.eta(eta_i)
 # For logit, d/deta log w equals 1 - w; for probit, use family score implementation
     dlw_i <- family$score_eta(eta_i, delta = 1)
+# QLS Eq. (5): Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
     denominator <- 1 + lambda_W * (w_i - W_bounded)
     if (K_aux > 0) denominator <- denominator + as.vector(X_centered %*% lambda_x)
     inv_denominator <- 1 / pmax(denominator, nmar_get_el_denom_floor())
-    scalar_beta_term <- dlw_i - lambda_W * mu_eta_i * inv_denominator
-    eq_betas <- shared_weighted_Xty(response_model_matrix, respondent_weights, scalar_beta_term)
+# beta block (QLS Eq. 9): score_eta(eta) - lambda_W * mu.eta(eta) / Di
+    beta_eq_term <- dlw_i - lambda_W * mu_eta_i * inv_denominator
+    eq_betas <- shared_weighted_Xty(response_model_matrix, respondent_weights, beta_eq_term)
+# W equation (QLS Eq. 8)
     eq_W <- sum(respondent_weights * (w_i - W_bounded) * inv_denominator)
+# Auxiliary constraints (QLS Eq. 7)
     eq_constraints <- if (K_aux > 0) shared_weighted_Xty(X_centered, respondent_weights, inv_denominator) else numeric(0)
     c(as.vector(eq_betas), eq_W, as.vector(eq_constraints))
   }

@@ -145,10 +145,11 @@ el_post_solution <- function(estimates,
   if (K_aux > 0) denominator_hat <- denominator_hat + as.vector(sweep(auxiliary_matrix_scaled, 2, mu_x_scaled, "-") %*% lambda_hat)
 # Guard denominators for weight construction
   denom_guard <- pmax(as.numeric(denominator_hat), nmar_get_el_denom_floor())
-  p_i_untrimmed <- respondent_weights / denom_guard
+# EL unnormalized masses (w_tilde_i = d_i / D_i)
+  mass_untrimmed <- respondent_weights / denom_guard
 # Negativity check (prior to cap)
   TOL <- 1e-8
-  min_w <- suppressWarnings(min(p_i_untrimmed, na.rm = TRUE))
+  min_w <- suppressWarnings(min(mass_untrimmed, na.rm = TRUE))
   if (is.finite(min_w) && min_w < -TOL) {
     msg <- paste0(
       "Negative EL weights produced (min = ", round(min_w, 6), "). This often indicates that the auxiliary means are ",
@@ -156,22 +157,22 @@ el_post_solution <- function(estimates,
     )
     return(list(error = TRUE, message = msg))
   }
-  p_i_untrimmed[p_i_untrimmed < 0] <- 0
-  trim_results <- trim_weights(p_i_untrimmed, cap = trim_cap)
-  w_trimmed <- trim_results$weights
+  mass_untrimmed[mass_untrimmed < 0] <- 0
+  trim_results <- trim_weights(mass_untrimmed, cap = trim_cap)
+  mass_trimmed <- trim_results$weights
 
 # CRITICAL FIX: Compute mean using probability masses (QLS 2002, Eq. 11)
 # y_bar = sum p_i * y_i where p_i = w_tilde_i / sum w_tilde_j
 # This ensures correct formula even with trimming
-  sum_w <- sum(w_trimmed)
-  p_prob <- w_trimmed / sum_w # Normalized probability masses
-  y_hat <- sum(p_prob * respondent_data[[outcome_var]])
+  total_mass <- sum(mass_trimmed)
+  prob_mass <- mass_trimmed / total_mass # Normalized probability masses
+  y_hat <- sum(prob_mass * respondent_data[[outcome_var]])
   beta_hat_unscaled <- if (standardize) unscale_coefficients(beta_hat_scaled, matrix(0, K_beta, K_beta), nmar_scaling_recipe)$coefficients else beta_hat_scaled
   names(beta_hat_unscaled) <- colnames(response_model_matrix_unscaled)
   list(
     error = FALSE,
     y_hat = y_hat,
-    weights = w_trimmed, # Store unnormalized (trimmed) masses as single source of truth
+    weights = mass_trimmed, # Store unnormalized (trimmed) EL masses as single source of truth
     trimmed_fraction = trim_results$trimmed_fraction,
     beta_hat_scaled = beta_hat_scaled,
     beta_hat_unscaled = beta_hat_unscaled,

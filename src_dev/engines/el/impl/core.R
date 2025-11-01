@@ -292,10 +292,10 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 # Initial parameters (LEVEL 3)
   verboser("", level = 3)
   verboser("  Starting values:", level = 3)
-  verboser(sprintf("    β (response model):     %s", paste(sprintf("%.4f", init_beta), collapse = ", ")), level = 3)
+  verboser(sprintf("    beta (response model):  %s", paste(sprintf("%.4f", init_beta), collapse = ", ")), level = 3)
   verboser(sprintf("    z (logit response rate): %.4f", init_z), level = 3)
   if (K_aux > 0) {
-    verboser(sprintf("    λ (auxiliary):          %s", paste(sprintf("%.4f", init_lambda), collapse = ", ")), level = 3)
+    verboser(sprintf("    lambda_x (auxiliary):   %s", paste(sprintf("%.4f", init_lambda), collapse = ", ")), level = 3)
   }
 
 # Instrumentation for timing and solver used
@@ -407,7 +407,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 
 # Weight diagnostics (LEVEL 2)
   verboser("", level = 2)
-  verboser("-- WEIGHT DIAGNOSTICS --", level = 2)
+  verboser("-- EL MASS DIAGNOSTICS --", level = 2)
 
   weight_sum <- sum(w_unnorm_trimmed)
   verboser(sprintf("  Estimated response rate:  %.4f", W_hat), level = 2)
@@ -421,17 +421,17 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   verboser("", level = 3)
   verboser("-- DETAILED DIAGNOSTICS --", level = 3)
 
-  verboser(sprintf("  β (response model, unscaled):"), level = 3)
+  verboser(sprintf("  beta (response model, unscaled):"), level = 3)
   for (i in seq_along(beta_hat_unscaled)) {
     param_name <- if (!is.null(names(beta_hat_unscaled))) names(beta_hat_unscaled)[i] else paste0("beta", i)
     verboser(sprintf("    %-25s %.6f", param_name, beta_hat_unscaled[i]), level = 3)
   }
 
   verboser(sprintf("  W (response rate):        %.6f", W_hat), level = 3)
-  verboser(sprintf("  λ_W (response multiplier): %.6f", lambda_W_hat), level = 3)
+  verboser(sprintf("  lambda_W (response multiplier): %.6f", lambda_W_hat), level = 3)
 
   if (K_aux > 0) {
-    verboser(sprintf("  λ_x (auxiliary multipliers):"), level = 3)
+    verboser(sprintf("  lambda_x (auxiliary multipliers):"), level = 3)
     for (i in seq_along(lambda_hat)) {
       param_name <- if (!is.null(names(lambda_hat))) names(lambda_hat)[i] else paste0("lambda", i)
       verboser(sprintf("    %-25s %.6f", param_name, lambda_hat[i]), level = 3)
@@ -451,14 +451,15 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     p_small = mean(denominator_hat < 1e-6),
     p_floor = mean(denominator_hat <= denom_floor)
   )
-  p_untrim <- respondent_weights / denominator_hat
+# Unnormalized EL masses used in constraints: mass_untrim = d_i / Di
+  mass_untrim <- respondent_weights / denominator_hat
   Xc_centered_diag <- NULL
   if (K_aux > 0) {
     mu_match <- as.numeric(mu_x_scaled[colnames(auxiliary_matrix_scaled)])
     Xc_centered_diag <- sweep(auxiliary_matrix_scaled, 2, mu_match, "-")
   }
   cons <- tryCatch(
-    constraint_summaries(w_i_hat, W_hat, p_untrim, Xc_centered_diag),
+    constraint_summaries(w_i_hat, W_hat, mass_untrim, Xc_centered_diag),
     error = function(e) {
 # Fallback: derive constraint sums directly from the stacked equations at the estimate
       eq_vals <- tryCatch(equation_system_func(estimates), error = function(e2) NULL)
@@ -480,7 +481,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 
 # Normalization identity and constraint residual diagnostics
   sum_respondent_weights <- sum(respondent_weights)
-  sum_unnormalized_weights_untrimmed <- sum(p_untrim)
+  sum_unnormalized_weights_untrimmed <- sum(mass_untrim)
   normalization_ratio <- sum_unnormalized_weights_untrimmed / sum_respondent_weights
 
 # Check constraint residuals are near zero (paper requirement)

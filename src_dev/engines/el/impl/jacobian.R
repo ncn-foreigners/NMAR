@@ -56,10 +56,11 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     m_i <- family$mu.eta(eta_i)
     m2_i <- family$d2mu.deta2(eta_i)
     X_centered <- if (K_aux > 0) sweep(auxiliary_matrix_mat, 2, mu_x_scaled_vec, "-") else matrix(nrow = n_resp, ncol = 0)
+# QLS Eq. (5): Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
     denominator <- 1 + lambda_W * (p_i - W_bounded)
     if (K_aux > 0) denominator <- denominator + as.vector(X_centered %*% lambda_x)
     denom_floor <- nmar_get_el_denom_floor()
-# Active mask for the max(denom, floor) kink: derivative is zero when clamped
+# Active mask for max(Di, floor) kink: derivative is zero when clamped
     active <- as.numeric(denominator > denom_floor)
     denominator <- pmax(denominator, denom_floor)
     inv_denom <- 1 / denominator
@@ -69,16 +70,17 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
 # Score wrt eta for log-likelihood: d/deta log p(eta) = m_i / p_i
     p_i_clipped <- pmin(pmax(p_i, 1e-12), 1 - 1e-12)
     dlw_i <- m_i / p_i_clipped
-    scalar_beta_term <- dlw_i - lambda_W * m_i * inv_denom
-# Derivative wrt eta: d/deta(m/p) = (m2*p - m^2)/p^2
+# beta block term (QLS Eq. 9)
+    beta_eq_term <- dlw_i - lambda_W * m_i * inv_denom
+# Derivative wrt eta: d/deta(m/p) = (m2 * p - m^2) / p^2
     d_deta_logw <- (m2_i * p_i_clipped - m_i^2) / (p_i_clipped^2)
-    dscalar_deta <- d_deta_logw - lambda_W * m2_i * inv_denom + (lambda_W^2) * (m_i^2) * inv_denom_sq
-    dscalar_dTheta <- -d_lambda_W_dTheta * m_i * inv_denom + lambda_W * m_i * inv_denom_sq * dden_dTheta
-    dscalar_dlambda_mat <- if (K_aux > 0) lambda_W * m_i * inv_denom_sq * X_centered else matrix(nrow = n_resp, ncol = 0)
-    w_eff_11 <- as.numeric(respondent_weights * dscalar_deta)
+    d_betaeq_deta <- d_deta_logw - lambda_W * m2_i * inv_denom + (lambda_W^2) * (m_i^2) * inv_denom_sq
+    d_betaeq_dTheta <- -d_lambda_W_dTheta * m_i * inv_denom + lambda_W * m_i * inv_denom_sq * dden_dTheta
+    d_betaeq_dlambda_mat <- if (K_aux > 0) lambda_W * m_i * inv_denom_sq * X_centered else matrix(nrow = n_resp, ncol = 0)
+    w_eff_11 <- as.numeric(respondent_weights * d_betaeq_deta)
     J11 <- shared_weighted_gram(response_model_matrix, w_eff_11)
-    J12 <- shared_weighted_Xty(response_model_matrix, respondent_weights, dscalar_dTheta)
-    J13 <- if (K_aux > 0) shared_weighted_XtY(response_model_matrix, respondent_weights, as.matrix(dscalar_dlambda_mat)) else matrix(nrow = K_beta, ncol = 0)
+    J12 <- shared_weighted_Xty(response_model_matrix, respondent_weights, d_betaeq_dTheta)
+    J13 <- if (K_aux > 0) shared_weighted_XtY(response_model_matrix, respondent_weights, as.matrix(d_betaeq_dlambda_mat)) else matrix(nrow = K_beta, ncol = 0)
     term21 <- m_i * inv_denom - (p_i - W_bounded) * inv_denom_sq * (lambda_W * m_i) * active
     J21 <- t(shared_weighted_Xty(response_model_matrix, respondent_weights, term21))
     term22 <- -dWb_dTheta * inv_denom - (p_i - W_bounded) * inv_denom_sq * dden_dTheta
@@ -89,7 +91,7 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
       J31 <- shared_weighted_XtY(X_centered, as.numeric(respondent_weights * term31), response_model_matrix)
       term32 <- -dden_dTheta * inv_denom_sq
       J32 <- shared_weighted_Xty(X_centered, respondent_weights, term32)
-# J33 = - Xc' diag(a_i * inv_denom^2) Xc; SPD path via Gram helper (gated by active)
+# J33 = - Xc' diag(inv_denom^2) Xc scaled by respondent weights; SPD path (gated by active)
       J33 <- -shared_weighted_gram(X_centered, as.numeric(respondent_weights * (inv_denom_sq * active)))
     } else {
       J31 <- matrix(nrow = 0, ncol = K_beta)
