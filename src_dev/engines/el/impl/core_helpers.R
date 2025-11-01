@@ -144,7 +144,7 @@ el_post_solution <- function(estimates,
   denominator_hat <- 1 + lambda_W_hat * (w_i_hat - W_hat)
   if (K_aux > 0) denominator_hat <- denominator_hat + as.vector(sweep(auxiliary_matrix_scaled, 2, mu_x_scaled, "-") %*% lambda_hat)
 # Guard denominators for weight construction
-  denom_guard <- pmax(as.numeric(denominator_hat), 1e-8)
+  denom_guard <- pmax(as.numeric(denominator_hat), nmar_get_el_denom_floor())
   p_i_untrimmed <- respondent_weights / denom_guard
 # Negativity check (prior to cap)
   TOL <- 1e-8

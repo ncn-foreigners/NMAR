@@ -31,6 +31,19 @@ get_eta_cap <- function() {
   nmar_get_numeric_settings()$eta_cap
 }
 
+#' EL denominator floor (global, consistent)
+#'
+#' Returns the small positive floor \eqn{\delta} used to guard the empirical
+#' likelihood denominator \eqn{D_i(\theta)} away from zero. This guard must be
+#' applied consistently in the estimating equations, analytic Jacobian, and
+#' post-solution weight construction. Advanced users can override via
+#' `options(nmar.el_denom_floor = 1e-8)`.
+#' @keywords internal
+nmar_get_el_denom_floor <- function() {
+  val <- getOption("nmar.el_denom_floor", 1e-8)
+  if (!is.numeric(val) || length(val) != 1L || !is.finite(val) || val <= 0) 1e-8 else val
+}
+
 #' Numeric gradient helper
 #' @description Thin wrapper around numDeriv::grad for internal use across engines.
 #' @param x Numeric vector at which to evaluate the gradient.

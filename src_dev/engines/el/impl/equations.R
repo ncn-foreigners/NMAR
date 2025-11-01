@@ -38,7 +38,7 @@ el_build_equation_system <- function(family, response_model_matrix, auxiliary_ma
     dlw_i <- family$score_eta(eta_i, delta = 1)
     denominator <- 1 + lambda_W * (w_i - W_bounded)
     if (K_aux > 0) denominator <- denominator + as.vector(X_centered %*% lambda_x)
-    inv_denominator <- 1 / pmax(denominator, 1e-8)
+    inv_denominator <- 1 / pmax(denominator, nmar_get_el_denom_floor())
     scalar_beta_term <- dlw_i - lambda_W * mu_eta_i * inv_denominator
     eq_betas <- shared_weighted_Xty(response_model_matrix, respondent_weights, scalar_beta_term)
     eq_W <- sum(respondent_weights * (w_i - W_bounded) * inv_denominator)

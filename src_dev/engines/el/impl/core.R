@@ -445,7 +445,12 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   eq_residuals <- tryCatch(equation_system_func(estimates), error = function(e) rep(NA_real_, length(estimates)))
   max_eq_resid <- suppressWarnings(max(abs(eq_residuals), na.rm = TRUE))
   A_condition <- tryCatch({ kappa(analytical_jac_func(estimates)) }, error = function(e) NA_real_)
-  denom_stats <- list(min = suppressWarnings(min(denominator_hat, na.rm = TRUE)), p_small = mean(denominator_hat < 1e-6))
+  denom_floor <- nmar_get_el_denom_floor()
+  denom_stats <- list(
+    min = suppressWarnings(min(denominator_hat, na.rm = TRUE)),
+    p_small = mean(denominator_hat < 1e-6),
+    p_floor = mean(denominator_hat <= denom_floor)
+  )
   p_untrim <- respondent_weights / denominator_hat
   Xc_centered_diag <- NULL
   if (K_aux > 0) {
@@ -654,6 +659,8 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
       denom_q05 = denom_q[[2]],
       denom_median = denom_q[[3]],
       denom_count_lt_1e4 = denom_cnt_1e4,
+      denom_floor = denom_floor,
+      denom_floor_hits = denom_stats$p_floor,
       weight_max_share = weight_max_share,
       weight_top5_share = weight_top5_share,
       weight_ess = weight_ess,
