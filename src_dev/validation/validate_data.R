@@ -25,7 +25,7 @@ validate_data <- function(data,
                           allow_respondents_only = FALSE) {
 # Validate data object type
   if (!inherits(data, c("data.frame", "survey.design"))) {
-    stop("'data' must be a data.frame or survey.design object. Received: ", class(data)[1])
+    stop("'data' must be a data.frame or survey.design object. Received: ", class(data)[1], call. = FALSE)
   }
 
 # Extract variables from survey object
@@ -35,7 +35,7 @@ validate_data <- function(data,
 
 # Check for empty data
   if (nrow(data) == 0) {
-    stop("Input dataset is empty (0 rows).")
+    stop("Input dataset is empty (0 rows).", call. = FALSE)
   }
 
   if (!is.character(outcome_variable) || length(outcome_variable) != 1) {
@@ -50,15 +50,15 @@ validate_data <- function(data,
 
   if (anyDuplicated(covariates_for_outcome)) {
     dup <- unique(covariates_for_outcome[duplicated(covariates_for_outcome)])
-    stop("Duplicate variables found in covariates_for_outcome: ", paste(dup, collapse = ", "))
+    stop("Duplicate variables found in covariates_for_outcome: ", paste(dup, collapse = ", "), call. = FALSE)
   }
   if (anyDuplicated(covariates_for_missingness)) {
     dup <- unique(covariates_for_missingness[duplicated(covariates_for_missingness)])
-    stop("Duplicate variables found in covariates_for_missingness: ", paste(dup, collapse = ", "))
+    stop("Duplicate variables found in covariates_for_missingness: ", paste(dup, collapse = ", "), call. = FALSE)
   }
 
   if (!allow_outcome_in_missingness && outcome_variable %in% covariates_for_missingness) {
-    stop("Outcome variable cannot be reused as a response covariate unless explicitly allowed.")
+    stop("Outcome variable cannot be reused as a response covariate unless explicitly allowed.", call. = FALSE)
   }
 
   overlap <- intersect(covariates_for_outcome, covariates_for_missingness)
@@ -75,7 +75,7 @@ validate_data <- function(data,
 # Check variable existence in data
   missing_vars <- setdiff(all_vars, names(data))
   if (length(missing_vars) > 0) {
-    stop("Variables not found in data: ", paste(missing_vars, collapse = ", "))
+    stop("Variables not found in data: ", paste(missing_vars, collapse = ", "), call. = FALSE)
   }
 
 # Check for non-finite values (Inf, -Inf, NaN) in all variables
@@ -106,13 +106,13 @@ validate_data <- function(data,
 # Check for required NAs in outcome unless respondents-only is allowed
   if (!anyNA(data[[outcome_variable]])) {
     if (!isTRUE(allow_respondents_only)) {
-      stop("Outcome variable '", outcome_variable, "' must contain NA values.")
+      stop("Outcome variable '", outcome_variable, "' must contain NA values.", call. = FALSE)
     }
   }
 
 # Check for at least one non-NA value in outcome
   if (all(is.na(data[[outcome_variable]]))) {
-    stop("Outcome variable '", outcome_variable, "' cannot be entirely NA.")
+    stop("Outcome variable '", outcome_variable, "' cannot be entirely NA.", call. = FALSE)
   }
 
 # Validate covariates
