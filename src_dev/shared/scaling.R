@@ -70,14 +70,13 @@ compute_weighted_stats <- function(values, weights = NULL) {
     stop("`weights` must have the same length as the data being scaled.", call. = FALSE)
   }
   weights <- as.numeric(weights)
-  mask <- !is.na(values) & is.finite(values) & !is.na(weights)
+  mask <- is.finite(values) & is.finite(weights)
   if (!any(mask)) {
-    mean_val <- NA_real_
-    sd_val <- NA_real_
-    return(list(mean = mean_val, sd = sd_val))
+    return(list(mean = NA_real_, sd = NA_real_))
   }
   w <- weights[mask]
   x <- values[mask]
+  if (any(w < 0)) stop("`weights` must be nonnegative.", call. = FALSE)
   w_sum <- sum(w)
   if (w_sum <= 0 || all(w == 0)) {
     mean_val <- mean(x, na.rm = TRUE)
@@ -85,8 +84,7 @@ compute_weighted_stats <- function(values, weights = NULL) {
     return(list(mean = mean_val, sd = sd_val))
   }
   mean_val <- sum(w * x) / w_sum
-  variance_num <- sum(w * (x - mean_val)^2)
-  sd_val <- sqrt(variance_num / w_sum)
+  sd_val <- sqrt(sum(w * (x - mean_val)^2) / w_sum)
   list(mean = mean_val, sd = sd_val)
 }
 
@@ -129,10 +127,17 @@ create_nmar_scaling_recipe <- function(..., intercept_col = "(Intercept)", weigh
       stats <- compute_weighted_stats(col_data, weights)
       col_mean <- stats$mean
       col_sd <- stats$sd
-      if (is.na(col_sd) || col_sd < tol_constant) {
+      if (!is.finite(col_sd) || !is.finite(col_mean)) {
         if (warn_on_constant) {
-          warning(sprintf("Column '%s' is nearly constant under the scaling weights; leaving unscaled.", col_name), call. = FALSE)
+          warning(sprintf("Column '%s' has undefined weighted moments; leaving as identity scale.", col_name), call. = FALSE)
         }
+# True no-op to avoid NA propagation
+        recipe[[col_name]] <- list(mean = 0, sd = 1)
+      } else if (col_sd < tol_constant) {
+        if (warn_on_constant) {
+          warning(sprintf("Column '%s' is nearly constant under the scaling weights; centering to zero column.", col_name), call. = FALSE)
+        }
+# Center to zero column to avoid redundant constant columns
         recipe[[col_name]] <- list(mean = col_mean, sd = 1)
       } else {
         recipe[[col_name]] <- list(mean = col_mean, sd = col_sd)
@@ -175,6 +180,10 @@ prepare_nmar_scaling <- function(Z_un, X_un, mu_x_un, standardize,
   if (!standardize) {
     return(list(Z = Z_un, X = X_un, mu_x = if (is.null(mu_x_un)) numeric(0) else mu_x_un, recipe = NULL))
   }
+# Row consistency
+  if (!is.null(X_un) && nrow(Z_un) != nrow(X_un)) {
+    stop("`Z_un` and `X_un` must have the same number of rows.", call. = FALSE)
+  }
   if (!is.null(X_un)) {
     if (!setequal(colnames(X_un), names(mu_x_un))) stop("Names of `auxiliary_means` do not match RHS variables.", call. = FALSE)
     mu_x <- mu_x_un[colnames(X_un)]
@@ -187,7 +196,14 @@ prepare_nmar_scaling <- function(Z_un, X_un, mu_x_un, standardize,
   Z <- apply_nmar_scaling(Z_un, recipe)
   X <- if (is.null(X_un)) X_un else apply_nmar_scaling(X_un, recipe)
   if (length(mu_x)) {
-    mu_x <- vapply(names(mu_x), function(n) (mu_x[[n]] - recipe[[n]]$mean) / recipe[[n]]$sd, numeric(1))
+    mu_x <- vapply(names(mu_x), function(n) {
+      if (n %in% names(recipe)) {
+        (mu_x[[n]] - recipe[[n]]$mean) / recipe[[n]]$sd
+      } else {
+        warning("No scaling info for mu_x component '", n, "'. Leaving unscaled.")
+        mu_x[[n]]
+      }
+    }, numeric(1))
   }
   list(Z = Z, X = X, mu_x = mu_x, recipe = recipe)
 }
@@ -209,6 +225,15 @@ validate_and_apply_nmar_scaling <- function(standardize, has_aux, response_model
                                             weights = NULL, weight_mask = NULL) {
   nmar_scaling_recipe <- NULL
   if (standardize) {
+# Coerce NULL auxiliaries to 0-column matrix aligned to Z rows
+    if (is.null(auxiliary_matrix_unscaled)) {
+      auxiliary_matrix_unscaled <- matrix(nrow = nrow(response_model_matrix_unscaled), ncol = 0,
+        dimnames = list(NULL, character()))
+    }
+# Row consistency check
+    if (nrow(response_model_matrix_unscaled) != nrow(auxiliary_matrix_unscaled)) {
+      stop("Response and auxiliary matrices must have the same number of rows.", call. = FALSE)
+    }
     if (has_aux) {
       if (!setequal(colnames(auxiliary_matrix_unscaled), names(mu_x_unscaled))) {
         stop("Names of `auxiliary_means` do not match the variables specified on the RHS of the formula.")
@@ -272,7 +297,7 @@ scale_coefficients <- function(beta_unscaled, recipe, columns) {
     }
   }
 # Intercept: b0_scaled = b0_unscaled + sum_j b_j_unscaled * mean_j
-  b0_un <- beta_unscaled[["(Intercept)"]] %||% 0
+  b0_un <- if (!is.null(beta_unscaled[["(Intercept)"]])) beta_unscaled[["(Intercept)"]] else 0
   adj <- 0
   for (nm in columns) {
     if (nm == "(Intercept)") next
@@ -321,6 +346,9 @@ scale_aux_multipliers <- function(lambda_unscaled, recipe, columns) {
 #'
 #' @keywords internal
 unscale_coefficients <- function(scaled_coeffs, scaled_vcov, recipe) {
+  if (is.null(recipe)) {
+    return(list(coefficients = scaled_coeffs, vcov = scaled_vcov))
+  }
   n_params <- length(scaled_coeffs)
   param_names <- names(scaled_coeffs)
   D <- diag(n_params)
@@ -338,14 +366,16 @@ unscale_coefficients <- function(scaled_coeffs, scaled_vcov, recipe) {
   }
   missing_in_recipe <- setdiff(param_names[param_names != intercept_name], names(recipe))
   if (length(missing_in_recipe)) {
-    stop(
+    warning(
       "Scaling recipe is missing entries for coefficients: ",
       paste(missing_in_recipe, collapse = ", "),
-      ". Ensure all predictors were present during scaling.",
+      ". Treating as unscaled (identity).",
       call. = FALSE
     )
   }
   unscaled_coeffs <- drop(D %*% scaled_coeffs)
   unscaled_vcov <- D %*% scaled_vcov %*% t(D)
+# Preserve attribute semantics: if input had no dimnames, do not add them
+  if (is.null(dimnames(scaled_vcov))) dimnames(unscaled_vcov) <- NULL
   list(coefficients = unscaled_coeffs, vcov = unscaled_vcov)
 }
