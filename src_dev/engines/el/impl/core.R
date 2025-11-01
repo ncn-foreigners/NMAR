@@ -342,7 +342,11 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 
   if (any(is.na(solution$x)) || solution$termcd > 2) {
     if (on_failure == "error") {
-      stop(convergenceError(paste("Solver failed to converge:", solution$message)))
+      stop(
+        "Empirical likelihood solver failed to converge: ", solution$message,
+        "\n  Try increasing iterations with control = list(maxit = 500) or use on_failure = 'return' for diagnostics.",
+        call. = FALSE
+      )
     } else {
       return(list(
         converged = FALSE,
@@ -382,7 +386,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   )
   if (post$error) {
     if (on_failure == "error") {
-      stop(convergenceError(post$message))
+      stop(post$message, call. = FALSE)
     } else {
       return(list(
         converged = FALSE,
