@@ -41,6 +41,10 @@ el_run_solver <- function(equation_system_func,
 # Create verboser for this function
   verboser <- create_verboser(trace_level)
   solver_method_used <- "Newton"
+# Curated defaults: Newton + analytic Jacobian, quadratic line search, auto scaling
+  user_specified_global <- !is.null(top_args$global)
+  user_specified_xscalm <- !is.null(top_args$xscalm)
+
   nl_args <- list(
     x = init,
     fn = equation_system_func,
@@ -48,8 +52,9 @@ el_run_solver <- function(equation_system_func,
     method = "Newton",
     control = final_control
   )
-  if (!is.null(top_args$global)) nl_args$global <- top_args$global else nl_args$global <- "dbldog"
-  if (!is.null(top_args$xscalm)) nl_args$xscalm <- top_args$xscalm
+# Defaults if user did not specify: prefer robust line search and auto scaling
+  if (!is.null(top_args$global)) nl_args$global <- top_args$global else nl_args$global <- "qline"
+  if (!is.null(top_args$xscalm)) nl_args$xscalm <- top_args$xscalm else nl_args$xscalm <- "auto"
 
   nl_args_b <- nl_args
   nl_args_b$x <- init
@@ -68,6 +73,8 @@ el_run_solver <- function(equation_system_func,
   }
 
   solution <- do.call(nleqslv::nleqslv, nl_args)
+
+# Small pool of perturbed restarts with the same configuration
   if (any(is.na(solution$x)) || solution$termcd > 2) {
     verboser("  Initial attempt failed, trying perturbed starts...", level = 3)
     for (i in seq_len(3)) {
@@ -85,12 +92,30 @@ el_run_solver <- function(equation_system_func,
       }
     }
   }
+
+# Minimal, deterministic fallback ladder
+  if (solver_method == "auto" && (any(is.na(solution$x)) || solution$termcd > 2)) {
+# If the user did not choose a global strategy, try an alternative globalization before switching method
+    if (!user_specified_global) {
+      alt_args <- nl_args
+      alt_args$global <- if (identical(nl_args$global, "qline")) "dbldog" else "qline"
+      verboser(sprintf("  Newton failed; retry with global='%s'...", alt_args$global), level = 2)
+      solution2 <- do.call(nleqslv::nleqslv, alt_args)
+      if (!any(is.na(solution2$x)) && solution2$termcd <= 2) {
+        solution <- solution2
+      }
+    }
+  }
+
   if (solver_method == "auto" && (any(is.na(solution$x)) || solution$termcd > 2)) {
     verboser("  Newton method failed, falling back to Broyden...", level = 2)
     broyden_control <- final_control
     if (!is.null(broyden_control$maxit) && is.finite(broyden_control$maxit) && broyden_control$maxit < 5) {
       broyden_control$maxit <- 50
     }
+# Prefer the same or more conservative global for Broyden
+    nl_args_b$global <- nl_args$global %||% "qline"
+    nl_args_b$xscalm <- nl_args$xscalm %||% "auto"
     nl_args_b$control <- broyden_control
     solution <- do.call(nleqslv::nleqslv, nl_args_b)
     solver_method_used <- "Broyden"
@@ -98,7 +123,7 @@ el_run_solver <- function(equation_system_func,
       verboser("  [OK] Broyden method converged successfully", level = 2, type = "result")
     }
   }
-  list(solution = solution, method = solver_method_used, used_top = list(global = top_args$global %||% NULL, xscalm = top_args$xscalm %||% NULL))
+  list(solution = solution, method = solver_method_used, used_top = list(global = nl_args$global %||% NULL, xscalm = nl_args$xscalm %||% NULL))
 }
 
 #' Post-solution: compute weights and point estimate

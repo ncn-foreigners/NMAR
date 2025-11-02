@@ -30,7 +30,7 @@
 #' positivity guards, predictor standardization, and stable linear algebra)
 #' are applied. After solving, weights are constructed with denominator guards
 #' and optional trimming. Variance is available via bootstrap; analytical
-#' delta variance for EL is temporarily disabled and returns NA with a
+#' delta variance for EL has not been implemented and returns NA with a
 #' guidance message.
 #'
 #' Steps
@@ -276,7 +276,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   init <- c(unname(init_beta), init_z, unname(init_lambda))
 # Split user control into top-level nleqslv args (global/xscalm) and control list
   control_top <- validate_nleqslv_top(extract_nleqslv_top(control))
-  final_control <- modifyList(list(ftol = 1e-8, xtol = 1e-8, maxit = 100, trace = FALSE), control)
+  final_control <- modifyList(list(ftol = 1e-8, xtol = 1e-8, maxit = 150, trace = FALSE), control)
   final_control <- sanitize_nleqslv_control(final_control)
 
 # Solver configuration (LEVEL 1 header, LEVEL 2 details)
@@ -284,7 +284,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   verboser("-- NONLINEAR SOLVER --", level = 1)
 
   verboser("  Method:                   Newton with analytic Jacobian", level = 2)
-  verboser(sprintf("  Global strategy:          %s", control_top$global %||% "dbldog"), level = 2)
+  verboser(sprintf("  Global strategy:          %s", control_top$global %||% "qline"), level = 2)
   verboser(sprintf("  Max iterations:           %d", final_control$maxit), level = 2)
   verboser(sprintf("  Function tolerance:       %.2e", final_control$ftol), level = 2)
   verboser(sprintf("  Parameter tolerance:      %.2e", final_control$xtol), level = 2)

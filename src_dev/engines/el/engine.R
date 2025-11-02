@@ -20,10 +20,11 @@
 #' @param auxiliary_means named numeric vector; population means for auxiliaries
 #'   (names must match the RHS of the outcome formula). Optional.
 #' @param control list; optional solver control for \code{nleqslv::nleqslv()}.
-#'   Recognized fields:
+#'   Recognized fields (defaults in parentheses):
 #'   \itemize{
-#'     \item Top-level: \code{global} (\code{"dbldog"}, \code{"pwldog"}, \code{"qline"}, \code{"none"}),
-#'       \code{xscalm} (\code{"auto"}, \code{"fixed"})
+#'     \item Top-level: \code{global} = \code{"qline"} (quadratic line search) or one of
+#'       \code{"dbldog"}, \code{"pwldog"}, \code{"cline"}, \code{"gline"}, \code{"hook"}, \code{"none"};
+#'       \code{xscalm} = \code{"auto"} or \code{"fixed"}
 #'     \item In \code{control=}: \code{xtol}, \code{ftol}, \code{btol}, \code{maxit}, \code{trace},
 #'       \code{stepmax}, \code{delta}, \code{allowSing}
 #'   }
@@ -51,13 +52,14 @@
 #' i.e., \code{mu.eta(eta)/linkinv(eta)}, valid for both logit and probit links.
 #' Response predictors need not coincide with auxiliary predictors; only auxiliaries
 #' require known population moments. See Qin, Leung and Shao (2002) for the EL estimating
-#' equations. Analytical delta variance for EL is temporarily unavailable;
+#' equations. Analytical delta variance for EL has not been implemented;
 #' when \code{variance_method = "delta"}, the estimator returns \code{NA}
 #' standard errors with a guidance message. Use \code{variance_method = "bootstrap"}
 #' for standard errors.
 #'
-#' We rely on standard globalization provided by \code{nleqslv} and do not
-#' implement custom EL solver algorithms.
+#' We rely on standard globalization provided by \code{nleqslv}. The default
+#' configuration is Newton with an analytic Jacobian, \code{global = "qline"},
+#' and \code{xscalm = "auto"}. Users can override these via \code{control}.
 #'
 #' @section Progress Reporting:
 #' When \code{variance_method = "bootstrap"}, progress reporting is available via the

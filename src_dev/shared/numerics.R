@@ -95,7 +95,35 @@ sanitize_nleqslv_control <- function(ctrl) {
   if (is.null(ctrl) || !is.list(ctrl)) return(list())
 # Keep a conservative whitelist to avoid unknown-name errors on older versions
   allowed <- c("xtol", "ftol", "btol", "maxit", "trace", "stepmax", "delta", "allowSing")
-  ctrl[names(ctrl) %in% allowed]
+# Treat top-level keys 'global' and 'xscalm' as handled elsewhere; drop silently here
+  ctrl <- ctrl[setdiff(names(ctrl), c("global", "xscalm", "method"))]
+  unknown <- setdiff(names(ctrl), allowed)
+  if (length(unknown) > 0) {
+    warning(sprintf("Ignoring unknown nleqslv control fields: %s", paste(unknown, collapse = ", ")), call. = FALSE)
+  }
+  out <- ctrl[names(ctrl) %in% allowed]
+# Light range checks with coercion warnings
+  num_pos <- function(x, nm) {
+    if (!is.null(x) && (!is.finite(x) || x <= 0)) {
+      warning(sprintf("Coercing control$%s to a positive finite value; using default.", nm), call. = FALSE)
+      return(NULL)
+    }
+    x
+  }
+  out$xtol <- num_pos(out$xtol, "xtol")
+  out$ftol <- num_pos(out$ftol, "ftol")
+  out$btol <- num_pos(out$btol, "btol")
+  out$maxit <- if (!is.null(out$maxit) && (!is.finite(out$maxit) || out$maxit <= 0)) {
+    warning("Coercing control$maxit to a positive integer; using default.", call. = FALSE)
+    NULL
+  } else out$maxit
+  if (!is.null(out$trace) && !is.logical(out$trace)) {
+    warning("Coercing control$trace to logical; using default.", call. = FALSE)
+    out$trace <- NULL
+  }
+  out$stepmax <- num_pos(out$stepmax, "stepmax")
+  out$delta <- num_pos(out$delta, "delta")
+  out
 }
 
 #' Extract top-level nleqslv arguments from a control-like list
@@ -115,12 +143,22 @@ validate_nleqslv_top <- function(top) {
   if (is.null(top) || !is.list(top)) return(list())
   out <- list()
   if (!is.null(top$global)) {
-    allowed_g <- c("dbldog", "pwldog", "qline", "none")
-    out$global <- if (is.character(top$global) && top$global[1] %in% allowed_g) top$global[1] else "dbldog"
+    allowed_g <- c("dbldog", "pwldog", "qline", "cline", "gline", "hook", "none")
+    if (is.character(top$global) && top$global[1] %in% allowed_g) {
+      out$global <- top$global[1]
+    } else {
+      warning("Unknown nleqslv 'global' value in control; using default 'qline'.", call. = FALSE)
+      out$global <- "qline"
+    }
   }
   if (!is.null(top$xscalm)) {
     allowed_x <- c("auto", "fixed")
-    out$xscalm <- if (is.character(top$xscalm) && top$xscalm[1] %in% allowed_x) top$xscalm[1] else "auto"
+    if (is.character(top$xscalm) && top$xscalm[1] %in% allowed_x) {
+      out$xscalm <- top$xscalm[1]
+    } else {
+      warning("Unknown nleqslv 'xscalm' value in control; using default 'auto'.", call. = FALSE)
+      out$xscalm <- "auto"
+    }
   }
 # We ignore method from user-facing API to keep a single solver path
   out

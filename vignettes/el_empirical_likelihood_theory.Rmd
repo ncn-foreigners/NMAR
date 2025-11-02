@@ -291,7 +291,7 @@ These are exactly what `build_el_jacobian` computes (`src_dev/engines/el/impl/ja
 
 ## Variance Estimation (delta disabled)
 
-Analytical delta variance for the EL estimator is temporarily unavailable in the
+Analytical delta variance for the EL estimator has not been implemented in the
 package. When requested via `variance_method = "delta"`, the implementation
 returns `NA` with a guidance message. We recommend `variance_method = "bootstrap"`
 for standard errors in both IID and survey settings.

@@ -1,7 +1,7 @@
 #' Empirical likelihood for survey designs (NMAR)
 #' @description Internal method dispatched by `el()` when `data` is a `survey.design`.
-#'   Variance via bootstrap is supported. Analytical delta variance for EL is
-#'   temporarily unavailable and returns NA when requested.
+#'   Variance via bootstrap is supported. Analytical delta variance for EL
+#'   has not been implemented and returns NA when requested.
 #' @param data A `survey.design` created with [survey::svydesign()].
 #' @param formula Two-sided formula: NA-valued outcome on LHS; auxiliaries on RHS.
 #' @param auxiliary_means Named numeric vector of population means for auxiliaries.
