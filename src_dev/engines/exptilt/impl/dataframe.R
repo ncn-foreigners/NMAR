@@ -608,13 +608,7 @@ exptilt_estimator_core <- function(model, respondent_mask,
       bootstrap_reps = model$bootstrap_reps
     )
 
-    if (isTRUE(model$is_survey)) {
-# For complex designs, allow omission of failed replicates to avoid
-# hard failure when a few replicates are numerically unstable.
-# This aligns with survey::svrVar() so long as rscales are subset
-# accordingly (handled inside bootstrap_variance.survey.design).
-      base_args$survey_na_policy <- "omit"
-    }
+# Use the default survey_na_policy from bootstrap_variance() (strict).
 
     if (!model$is_survey) {
       respondent_mask_guard <- respondent_mask
