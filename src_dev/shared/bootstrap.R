@@ -161,11 +161,7 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
           p() # Signal progress
           res
         },
-        future.seed = TRUE,
-        future.globals = list(
-          replicate_fn = replicate_fn,
-          p = p
-        )
+        future.seed = TRUE
       )
     })
   } else {
@@ -173,10 +169,7 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
     lst <- future.apply::future_lapply(
       seq_len(bootstrap_reps),
       replicate_fn,
-      future.seed = TRUE,
-      future.globals = list(
-        replicate_fn = replicate_fn
-      )
+      future.seed = TRUE
     )
   }
 
