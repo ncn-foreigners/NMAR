@@ -1,13 +1,25 @@
 #' Empirical likelihood estimating equations
-#' @details Returns a function that evaluates the full stacked EL system for
-#'   \eqn{\theta = (\beta, z, \lambda_x)} with \eqn{z = \operatorname{logit}(W)};
-#'   the auxiliary block is omitted when no constraints are present. The
-#'   response-model score with respect to the linear predictor uses the
-#'   derivative of the Bernoulli log-likelihood, which is valid for both logit
-#'   and probit links. This matches the semiparametric EL system in Qin, Leung
-#'   and Shao (2002). Denominator guards are applied to avoid invalid weights.
+#' @details Returns a function that evaluates the stacked EL system for
+#'   \eqn{\theta = (\beta, z, \lambda_x)} with \eqn{z = \operatorname{logit}(W)}.
+#'   Blocks correspond to: (i) response-model score equations in \eqn{\beta},
+#'   (ii) the response-rate equation in \eqn{W}, and (iii) auxiliary moment
+#'   constraints in \eqn{\lambda_x}. When no auxiliaries are present the last
+#'   block is omitted. The system matches Qin, Leung, and Shao (2002, Eqs. 7-10)
+#'   with empirical masses \eqn{m_i = d_i/D_i(\theta)}, \eqn{D_i} as in the paper.
+#'   We clip \eqn{\eta} and \eqn{p} and guard \eqn{D_i} away from zero to ensure
+#'   numerical stability; these guards are applied consistently in equations,
+#'   Jacobian, and post-solution weights.
+#'
+#'   The score with respect to the linear predictor uses the Bernoulli form
+#'   \eqn{s_i(\beta) = \partial \log p_i / \partial \eta_i = \mu.\eta(\eta_i)/p_i},
+#'   which is valid for both logit and probit links when \eqn{p_i} is clipped.
+#'
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
+#'
+#' Wu, C., and Sitter, R. R. (2001). A model-calibration approach to using complete
+#' auxiliary information from survey data. Journal of the American Statistical Association,
+#' 96(453), 185-193.
 #' @keywords internal
 el_build_equation_system <- function(family, response_model_matrix, auxiliary_matrix,
                                      respondent_weights, N_pop, n_resp_weighted, mu_x_scaled) {

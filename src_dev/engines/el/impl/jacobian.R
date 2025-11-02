@@ -1,12 +1,18 @@
 #' Analytical Jacobian for empirical likelihood
-#' @details Builds the block Jacobian \eqn{A=\partial F/\partial \theta} for the
-#'   full EL system with \eqn{\theta=(\beta, z, \lambda_x)} and \eqn{z=\operatorname{logit}(W)}.
-#'   The response-model score derivative with respect to the linear predictor
-#'   is used for both logit and probit links. This is consistent with the EL
-#'   formulation in Qin, Leung and Shao (2002). Denominator guards are applied
-#'   when forming terms that depend on the empirical likelihood weights.
+#' @details Builds the block Jacobian \eqn{A = \partial F/\partial \theta} for the
+#'   EL system with \eqn{\theta = (\beta, z, \lambda_x)} and \eqn{z = \operatorname{logit}(W)}.
+#'   Blocks follow Qin, Leung, and Shao (2002, Eqs. 7-10). The derivative with
+#'   respect to the linear predictor uses the Bernoulli score form
+#'   \eqn{\partial/\partial\eta\, \log p(\eta) = \mu.\eta(\eta)/p(\eta)} with
+#'   link-inverse clipping. Denominator guards are applied consistently when
+#'   forming terms depending on \eqn{D_i(\theta)}.
+#'
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
+#'
+#' Wu, C., and Sitter, R. R. (2001). A model-calibration approach to using complete
+#' auxiliary information from survey data. Journal of the American Statistical Association,
+#' 96(453), 185-193.
 #' @keywords internal
 build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
                               respondent_weights, N_pop, n_resp_weighted, mu_x_scaled) {

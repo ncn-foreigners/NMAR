@@ -13,18 +13,18 @@ vignette: >
 
 # Overview
 
-This vignette demonstrates the empirical likelihood (EL) estimator for Not Missing At Random (NMAR) data in the NMAR package. The method implements the estimator of Qin, Leung, and Shao (2002), using empirical likelihood weights that satisfy estimating equations for the response mechanism and (optionally) auxiliary moment constraints. For full derivations and the analytic Jacobian/variance details, see the companion article "Empirical Likelihood Theory for NMAR".
+This vignette demonstrates the empirical likelihood (EL) estimator for Not Missing At Random (NMAR) data in the NMAR package. The method implements the estimator of Qin, Leung, and Shao (2002), using empirical likelihood weights that satisfy estimating equations for the response mechanism and (optionally) auxiliary moment constraints. For full derivations, the analytic Jacobian, and variance discussion (bootstrap), see the companion article "Empirical Likelihood Theory for NMAR".
 
 Key features:
 
-- Supports `data.frame` (IID) and `survey.design` objects (design-based variance) via the same `nmar()` API.
-- Variance via bootstrap.
+- Supports `data.frame` (IID) and `survey.design` objects via the same `nmar()` API.
+- Variance via bootstrap (IID resampling or survey replicate weights).
 - Optional standardization of predictors; weight trimming for robustness.
 - Rich S3 surface: `summary()`, `confint()`, `tidy()`, `glance()`, `plot()`/`autoplot()`.
 
 ## Quick start
 
-- Specify the model with a two-sided formula: `Y_miss ~ X1 + X2 | Z1 + Z2` where auxiliaries are left of `|` and response‑only predictors are right of `|`. If `|` is omitted, only auxiliaries are used.
+- Specify the model with a two-sided formula: `Y_miss ~ X1 + X2 | Z1 + Z2` where auxiliaries are left of `|` and response-only predictors are right of `|`. If `|` is omitted, only auxiliaries are used.
   - Variables on the outcome RHS (e.g., `X1 + X2`) are auxiliaries; supply their known population means via `auxiliary_means = c(X1 = ..., X2 = ...)`.
   - Predictors to the right of `|` enter only the response model (no auxiliary constraint) and do not need population means.
 - Choose the engine: `el_engine(...)`, e.g., `el_engine(auxiliary_means = c(X1 = 0), variance_method = "bootstrap", standardize = TRUE)`.
@@ -55,9 +55,9 @@ dat$Y_miss[!R] <- NA_real_
 
 
 ```{r}
-engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap", standardize = TRUE
+engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "none", standardize = TRUE
   )
-# Fit EL estimator (bootstrap variance)
+# Fit EL estimator (no variance for speed in vignette)
 fit <- nmar(
   formula = Y_miss ~ X,
   data = dat,
@@ -65,13 +65,13 @@ fit <- nmar(
 )
 
 summary(fit)
-confint(fit)
+# For confidence intervals, use bootstrap variance (see example below).
 ```
 
 Probit family (optional):
 
 ```{r}
-engine <- el_engine(auxiliary_means = c(X = 0), family = "probit", variance_method = "bootstrap", standardize = TRUE)
+engine <- el_engine(auxiliary_means = c(X = 0), family = "probit", variance_method = "none", standardize = TRUE)
 
 fit_probit <- nmar(
   formula = Y_miss ~ X,
@@ -144,7 +144,7 @@ p <- plogis(-0.6 + 0.5 * scale(Y)[, 1] + 0.4 * Z)
 R <- runif(N) < p
 df2 <- data.frame(Y_miss = Y, X = X, Z = Z)
 df2$Y_miss[!R] <- NA_real_
-engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap", standardize = TRUE)
+engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "none", standardize = TRUE)
 
 # Use X as auxiliary (known population mean 0), and Z as response-only predictor
 fit_resp_only <- nmar(
@@ -179,7 +179,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
 
   dclus1 <- svydesign(id = ~dnum, weights = ~pw, data = apiclus1, fpc = ~fpc)
   pop_mean_ell <- mean(apiclus1$ell)
-  engine <- el_engine(auxiliary_means = c(ell = pop_mean_ell), variance_method = "bootstrap", standardize = TRUE)
+  engine <- el_engine(auxiliary_means = c(ell = pop_mean_ell), variance_method = "none", standardize = TRUE)
 
   fit_svy <- nmar(
     formula = api00_miss ~ ell,
@@ -197,7 +197,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
 - Solver control: set `control = list(xtol = 1e-10, ftol = 1e-10, maxit = 200)` for tighter tolerances if needed. Globalization details are managed internally by `nleqslv`.
 - Standardization: `standardize = TRUE` typically improves numerical stability and comparability across predictors and auxiliary means.
 - Diagnostics: Inspect `fit$diagnostics` (Jacobian condition number, max equation residuals, trimming fraction) to assess numerical health and identification strength.
-- Response-only predictors: Variables in `response_predictors` do not need to appear on the RHS of the outcome formula; they enter only the response model. Auxiliary means must be supplied only for variables on the outcome RHS.
+- Response-only predictors: Variables to the right of `|` do not need to appear on the RHS of the outcome formula; they enter only the response model. Auxiliary means must be supplied only for variables on the outcome RHS.
 - Inconsistent auxiliaries: If provided auxiliary means are grossly inconsistent with the sample, EL weights may go negative and the solver may fail. Consider revisiting the constraints, relaxing them, or using `trim_cap` and bootstrap variance.
 
 Troubleshooting:
@@ -218,13 +218,13 @@ invisible(nmar(Y_miss ~ X, data = dat, engine = eng_ctrl))
 
 # References and further reading
 
-- Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193–200. doi:10.1198/016214502753479338
+- Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200. doi:10.1198/016214502753479338
 
 # Families and numerical stability
 
 - Family: `el_engine(family = "logit")` (default) or `family = "probit"`.
-- Probit stability: the response-model score uses a stable log-ratio for $\phi/\Phi$ under the hood.
-- Theory mapping: see the companion article “Empirical Likelihood Theory for NMAR” for equations, Jacobian blocks, and variance details.
+- Probit stability: the response-model score uses $\mu.\eta(\eta)/\mathrm{linkinv}(\eta)$ with clipping; for probit this behaves like $\phi/\Phi$ when probabilities are bounded away from 0 and 1.
+- Theory mapping: see the companion article "Empirical Likelihood Theory for NMAR" for equations, Jacobian blocks, and variance details.
 
 ```{r}
 sessionInfo()
@@ -233,4 +233,4 @@ sessionInfo()
 # Notes on variance choices
 
 - Analytical delta variance for EL is not implemented in this version. Use `variance_method = "bootstrap"` for SEs.
-- For speed‑critical bootstraps, you can set `variance_method = "none"` for point fits and let the bootstrap call use it internally for replicates (this is the default behavior when you request bootstrap SEs through `el_engine(...)`).
+- For speed-critical bootstraps, you can set `variance_method = "none"` for point fits and let the bootstrap call use it internally for replicates (this is the default behavior when you request bootstrap SEs through `el_engine(...)`).

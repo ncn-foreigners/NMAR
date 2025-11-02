@@ -1,7 +1,8 @@
 #' EL core helpers
-#' @description Internal helpers for solving and post-processing the EL system:
-#'   `el_run_solver()` orchestrates nleqslv with restarts/fallback; `el_post_solution()`
-#'   computes weights and the point estimate with denominator guards and trimming.
+#' @description Internal helpers for solving and post-processing the EL system.
+#'   `el_run_solver()` orchestrates `nleqslv` with a small, deterministic fallback
+#'   ladder; `el_post_solution()` computes masses and the point estimate with
+#'   denominator guards and optional trimming.
 #' @name el_core_helpers
 #' @keywords internal
 NULL
@@ -15,15 +16,15 @@ NULL
 #' @param analytical_jac_func Analytic Jacobian function; may be NULL if
 #'   unavailable or when forcing Broyden.
 #' @param init Numeric vector of initial parameter values.
-#' @param final_control List passed to nleqslv control=.
-#' @param top_args List of top-level nleqslv args (e.g., global, xscalm).
+#' @param final_control List passed to `nleqslv(control = ...)`.
+#' @param top_args List of top-level `nleqslv` args (e.g., `global`, `xscalm`).
 #' @param solver_method Character; one of "auto", "newton", or "broyden".
 #' @param use_solver_jac Logical; whether to pass analytic Jacobian to Newton.
 #' @param K_beta Integer; number of response model parameters.
 #' @param K_aux Integer; number of auxiliary constraints.
 #' @param respondent_weights Numeric vector of base sampling weights.
 #' @param N_pop Numeric; population total (weighted when survey design).
-#' @param trace_level Integer; verbosity level (0=silent, 1-3=increasingly verbose).
+#' @param trace_level Integer; verbosity level (0 silent, 1-3 increasingly verbose).
 #'
 #' @keywords internal
 el_run_solver <- function(equation_system_func,

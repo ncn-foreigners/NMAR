@@ -80,7 +80,7 @@ The paper (Qin-Leung-Shao, JASA 2002) sets EL under nonignorable response using:
   - Auxiliary moments: $\sum p_i^{\text{EL}} (X_i - \mu_x) = 0$
 - A **response model probability** $w_i = g(\eta_i)$, $\eta_i = Z_i \, \beta$
 
-In our code, we adopt the same EL structure and estimating equations. We extend it to arbitrary $Z$ and $X$, and to survey designs via design-based covariance for variance estimation. Because $\hat Y$ is a ratio-of-weights estimator, any common normalization of $p_i^{\text{EL}} \propto a_i/D_i$ cancels in $\hat Y$; only relative weights matter (the KKT multipliers $\lambda$ enforce the constraints; normalization affects only a common scale that vanishes in the ratio).
+In our code, we adopt the same EL structure and estimating equations. We extend it to arbitrary $Z$ and $X$, and to survey designs. For uncertainty, we provide bootstrap variance (IID resampling and survey replicate-weight bootstrap). Because $\hat Y$ is a ratio-of-weights estimator, any common normalization of $p_i^{\text{EL}} \propto a_i/D_i$ cancels in $\hat Y$; only relative weights matter (the KKT multipliers $\lambda$ enforce the constraints; normalization affects only a common scale that vanishes in the ratio).
 
 ### Equation Crosswalk (QLS 2002 -> This Vignette/Code)
 
@@ -181,7 +181,7 @@ Define $C = \frac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1$, with $n_{\tex
 
 **Denominator**: $D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T \lambda_x$, with $D_i \geq \epsilon$ enforced numerically.
 
-Define the score term $s_i = \mu_{\eta,i}/w_i$ (the unit-level contribution to the log-likelihood score with respect to $\eta$). For logit, $s_i = 1 - w_i$; for probit, $s_i = \phi(\eta_i)/\Phi(\eta_i)$ (computed stably in code).
+Define the score term $s_i = \mu_{\eta,i}/w_i$ (the unit-level contribution to the log-likelihood score with respect to $\eta$). For logit, $s_i = 1 - w_i$; for probit, $s_i$ behaves like $\phi(\eta_i)/\Phi(\eta_i)$ when $w_i$ is bounded away from 0 via clipping (as implemented).
 
 Intuition (why this score appears): for each respondent we observe $R_i=1$, so the Bernoulli log-likelihood contribution of the response model is $\log w_i(\eta_i)$. Differentiating w.r.t. the linear predictor gives
 \[
@@ -201,13 +201,13 @@ $$\sum a_i (w_i - W) / D_i = 0$$
 **Auxiliary constraints** ($L$ equations):
 $$\sum a_i (X_i - \mu_x) / D_i = 0$$
 
-These are exactly how `build_equation_system` constructs the function in code (`src_dev/engines/el/impl/equations.R`).
+These are exactly how `el_build_equation_system` constructs the function in code (`src_dev/engines/el/impl/equations.R`).
 
 Intuition: the $\beta$-equations equate the score of the respondent log-likelihood with the EL penalty term $\lambda_W \mu_{\eta,i}/D_i$; the $W$-equation centers the modeled response probabilities around the unconditional mean $W$ under the EL weights; the auxiliary equations calibrate the centered auxiliaries to zero mean under the EL weights.
 
 ### Remarks
 
-- For logit and probit, $s_i$ is the log-likelihood score $\partial\log w_i/\partial\eta_i = \mu_{\eta,i}/w_i$ (equals $1-w_i$ for logit; $\phi/\Phi$ for probit). This follows the paper's MLE derivation; EL constraints supply the nonparametric part.
+- For logit and probit, $s_i$ is the log-likelihood score $\partial\log w_i/\partial\eta_i = \mu_{\eta,i}/w_i$ (equals $1-w_i$ for logit; behaves like $\phi/\Phi$ for probit when $w_i$ is clipped away from 0). This follows the paper's MLE derivation; EL constraints supply the nonparametric part.
 
 ## Analytical Jacobian ($A$ Matrix)
 
@@ -301,7 +301,7 @@ Implementation: The analytical delta variance for EL is disabled in the codebase
 ### Solving Strategy and Initialization
 
 - Unknowns are $\theta = (\beta, z, \lambda_x)$ with $W = \mathrm{plogis}(z)$. We solve the full stacked system $F(\theta) = 0$ via Newton with the analytic Jacobian $A = \partial F/\partial\theta$ using `nleqslv`.
-- Globalization and scaling: we rely on `nleqslv`'s globalization (default `global = "dbldog"`) and enforce denominator positivity ($\min_i D_i \ge \varepsilon$) within equation evaluations. Optional standardization of design matrices improves conditioning.
+- Globalization and scaling: we rely on `nleqslv`'s globalization (default `global = "qline"`, `xscalm = "auto"`) and enforce denominator positivity ($\min_i D_i \ge \varepsilon$) within equation evaluations. Optional standardization of design matrices improves conditioning.
 - Initialization: by default $\beta$ starts at zeros in the scaled space (unless the user supplies `start$beta`), and $z$ is seeded at $\mathrm{logit}(\text{observed response rate})$. An internal last-chance Broyden retry may be used if Newton fails to converge; this is not a user-facing mode.
 
 ### Variance and Stability
@@ -327,21 +327,11 @@ Mitigations include standardizing predictors, trimming extreme weights (`trim_ca
 
 We extend QLS's methodology to complex surveys in two complementary ways:
 
-- **Estimating equations with base weights:** All sums already include the base weight $a_i$; set $a_i$ to the survey design weight for respondents. Totals $N_{\text{pop}}$ and $n_{\text{resp\_weighted}}=\sum a_i$ are computed from the design weights, which feeds into $\lambda_W = ((N_{\text{pop}}/n_{\text{resp\_weighted}}) - 1)/(1-W)$.
+- **Estimating equations with base weights:** All sums include the base weight $a_i$; set $a_i$ to the survey design weight for respondents. Totals $N_{\text{pop}}$ and $n_{\text{resp\_weighted}}=\sum a_i$ are computed from the design weights, which feeds into $\lambda_W = ((N_{\text{pop}}/n_{\text{resp\_weighted}}) - 1)/(1-W)$.
 
-- **Design-based variance for totals:** Rather than assuming i.i.d. sampling, we estimate $B = \operatorname{Var}(\sum U_i)$ using the design:
-  - Create full-design score variables by placing the respondent contributions $U_i$ on observed rows and zeros on nonrespondents.
-  - Compute survey totals `svytotal(~U, design)` and take their covariance via `vcov(...)` to obtain $\widehat B$.
+- **Bootstrap variance via replicate weights:** For standard errors, we use bootstrap replicate-weight designs created with `svrep::as_bootstrap_design`. For each replicate, the estimator is re-fit on a reconstructed design using that replicate's weights, and `survey::svrVar` is used to compute the variance of replicate estimates with appropriate scaling.
 
-In short form, we compute
-
-\[
-\widehat B \;=\; \operatorname{vcov}\!\big(\,\texttt{svytotal}(\,\sim U,\; \texttt{design}\,)\,\big),
-\]
-
-where $U$ stacks the respondent score contributions and zeros elsewhere.
-
-This matches the paper's guidance to adapt the likelihood/estimating framework to stratification or unequal-probability sampling. Our approach keeps the EL structure and uses standard survey inference tools for the second-order properties.
+This matches the paper's guidance to adapt the likelihood/estimating framework to stratification or unequal-probability sampling while relying on standard survey resampling for uncertainty. Analytical delta variance is not implemented for EL at this time.
 
 Degrees-of-freedom: For confidence intervals, we use survey degrees-of-freedom (t-quantiles) when a `survey.design` is supplied; otherwise, we use normal quantiles.
 
