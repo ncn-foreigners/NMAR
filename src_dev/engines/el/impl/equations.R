@@ -1,13 +1,25 @@
 #' Empirical likelihood estimating equations
-#' @details Returns a function that evaluates the full stacked EL system for
-#'   \eqn{\theta = (\beta, z, \lambda_x)} with \eqn{z = \operatorname{logit}(W)};
-#'   the auxiliary block is omitted when no constraints are present. The
-#'   response-model score with respect to the linear predictor uses the
-#'   derivative of the Bernoulli log-likelihood, which is valid for both logit
-#'   and probit links. This matches the semiparametric EL system in Qin, Leung
-#'   and Shao (2002). Denominator guards are applied to avoid invalid weights.
+#' @details Returns a function that evaluates the stacked EL system for
+#'   \eqn{\theta = (\beta, z, \lambda_x)} with \eqn{z = \operatorname{logit}(W)}.
+#'   Blocks correspond to: (i) response-model score equations in \eqn{\beta},
+#'   (ii) the response-rate equation in \eqn{W}, and (iii) auxiliary moment
+#'   constraints in \eqn{\lambda_x}. When no auxiliaries are present the last
+#'   block is omitted. The system matches Qin, Leung, and Shao (2002, Eqs. 7-10)
+#'   with empirical masses \eqn{m_i = d_i/D_i(\theta)}, \eqn{D_i} as in the paper.
+#'   We clip \eqn{\eta} and \eqn{p} and guard \eqn{D_i} away from zero to ensure
+#'   numerical stability; these guards are applied consistently in equations,
+#'   Jacobian, and post-solution weights.
+#'
+#'   The score with respect to the linear predictor uses the Bernoulli form
+#'   \eqn{s_i(\beta) = \partial \log p_i / \partial \eta_i = \mu.\eta(\eta_i)/p_i},
+#'   which is valid for both logit and probit links when \eqn{p_i} is clipped.
+#'
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
+#'
+#' Wu, C., and Sitter, R. R. (2001). A model-calibration approach to using complete
+#' auxiliary information from survey data. Journal of the American Statistical Association,
+#' 96(453), 185-193.
 #' @keywords internal
 el_build_equation_system <- function(family, response_model_matrix, auxiliary_matrix,
                                      respondent_weights, N_pop, n_resp_weighted, mu_x_scaled) {
@@ -20,7 +32,10 @@ el_build_equation_system <- function(family, response_model_matrix, auxiliary_ma
   force(mu_x_scaled)
   K_beta <- ncol(response_model_matrix)
   K_aux <- if (is.null(auxiliary_matrix) || ncol(auxiliary_matrix) == 0) 0 else ncol(auxiliary_matrix)
+# Hoist centered auxiliaries and constants outside parameter closure
   X_centered <- if (K_aux > 0) sweep(auxiliary_matrix, 2, mu_x_scaled, "-") else matrix(nrow = nrow(response_model_matrix), ncol = 0)
+  C_const <- (N_pop / n_resp_weighted) - 1
+  ETA_CAP <- get_eta_cap()
   function(params) {
     beta_vec <- params[1:K_beta]
     z <- params[K_beta + 1]
@@ -28,21 +43,31 @@ el_build_equation_system <- function(family, response_model_matrix, auxiliary_ma
     W <- min(max(W, 1e-12), 1 - 1e-12)
     lambda_x <- if (K_aux > 0) params[(K_beta + 2):length(params)] else numeric(0)
     W_bounded <- W
-    lambda_W <- ((N_pop / n_resp_weighted) - 1) / (1 - W_bounded)
-    ETA_CAP <- get_eta_cap()
+# QLS Eq. (10): lambda_W = (N/n - 1) / (1 - W)
+    lambda_W <- C_const / (1 - W_bounded)
     eta_raw <- as.vector(response_model_matrix %*% beta_vec)
     eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
     w_i <- family$linkinv(eta_i)
     mu_eta_i <- family$mu.eta(eta_i)
-# For logit, d/deta log w equals 1 - w; for probit, use family score implementation
-    dlw_i <- family$score_eta(eta_i, delta = 1)
+# Unified score w.r.t. eta for delta=1: mu.eta(eta) / p(eta)
+    p_i_clipped <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
+    dlw_i <- mu_eta_i / p_i_clipped
+# QLS Eq. (5): Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
     denominator <- 1 + lambda_W * (w_i - W_bounded)
     if (K_aux > 0) denominator <- denominator + as.vector(X_centered %*% lambda_x)
-    inv_denominator <- 1 / pmax(denominator, 1e-8)
-    scalar_beta_term <- dlw_i - lambda_W * mu_eta_i * inv_denominator
-    eq_betas <- shared_weighted_Xty(response_model_matrix, respondent_weights, scalar_beta_term)
-    eq_W <- sum(respondent_weights * (w_i - W_bounded) * inv_denominator)
-    eq_constraints <- if (K_aux > 0) shared_weighted_Xty(X_centered, respondent_weights, inv_denominator) else numeric(0)
+    inv_denominator <- 1 / pmax(denominator, nmar_get_el_denom_floor())
+# beta block (QLS Eq. 9): score_eta(eta) - lambda_W * mu.eta(eta) / Di
+    beta_eq_term <- dlw_i - lambda_W * mu_eta_i * inv_denominator
+    eq_betas <- shared_weighted_Xty(response_model_matrix, respondent_weights, beta_eq_term)
+# W equation (QLS Eq. 8)
+    eq_W <- as.numeric(crossprod(respondent_weights * inv_denominator, (w_i - W_bounded)))
+# Auxiliary constraints (QLS Eq. 7)
+    if (K_aux > 0) {
+      eq_constraints <- shared_weighted_Xty(X_centered, respondent_weights, inv_denominator)
+    } else {
+# Avoid allocating zero-width matrices repeatedly
+      eq_constraints <- numeric(0)
+    }
     c(as.vector(eq_betas), eq_W, as.vector(eq_constraints))
   }
 }

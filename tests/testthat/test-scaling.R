@@ -37,13 +37,16 @@ test_that("validate_and_apply_nmar_scaling warns on constant predictors", {
   expect_equal(Z_scaled[, "x1"], rep(0, 3))
 })
 
-test_that("unscale_coefficients errors when recipe incomplete", {
+test_that("unscale_coefficients warns when recipe incomplete (identity fallback)", {
   coeffs <- c(`(Intercept)` = 1, x1 = 0.5, x2 = -0.2)
   vcov <- diag(c(0.04, 0.01, 0.09))
   recipe <- structure(list(x1 = list(mean = 0, sd = 1)), class = "nmar_scaling_recipe")
-  expect_error(
-    NMAR:::unscale_coefficients(coeffs, vcov, recipe),
+  expect_warning(
+    res <- NMAR:::unscale_coefficients(coeffs, vcov, recipe),
     "missing entries",
     fixed = FALSE
   )
+# Identity fallback should preserve inputs for missing item(s)
+  expect_equal(res$coefficients, coeffs)
+  expect_equal(res$vcov, vcov)
 })

@@ -30,7 +30,7 @@
 #' positivity guards, predictor standardization, and stable linear algebra)
 #' are applied. After solving, weights are constructed with denominator guards
 #' and optional trimming. Variance is available via bootstrap; analytical
-#' delta variance for EL is temporarily disabled and returns NA with a
+#' delta variance for EL has not been implemented and returns NA with a
 #' guidance message.
 #'
 #' Steps
@@ -276,7 +276,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   init <- c(unname(init_beta), init_z, unname(init_lambda))
 # Split user control into top-level nleqslv args (global/xscalm) and control list
   control_top <- validate_nleqslv_top(extract_nleqslv_top(control))
-  final_control <- modifyList(list(ftol = 1e-8, xtol = 1e-8, maxit = 100, trace = FALSE), control)
+  final_control <- modifyList(list(ftol = 1e-8, xtol = 1e-8, maxit = 150, trace = FALSE), control)
   final_control <- sanitize_nleqslv_control(final_control)
 
 # Solver configuration (LEVEL 1 header, LEVEL 2 details)
@@ -284,7 +284,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   verboser("-- NONLINEAR SOLVER --", level = 1)
 
   verboser("  Method:                   Newton with analytic Jacobian", level = 2)
-  verboser(sprintf("  Global strategy:          %s", control_top$global %||% "dbldog"), level = 2)
+  verboser(sprintf("  Global strategy:          %s", control_top$global %||% "qline"), level = 2)
   verboser(sprintf("  Max iterations:           %d", final_control$maxit), level = 2)
   verboser(sprintf("  Function tolerance:       %.2e", final_control$ftol), level = 2)
   verboser(sprintf("  Parameter tolerance:      %.2e", final_control$xtol), level = 2)
@@ -292,10 +292,10 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 # Initial parameters (LEVEL 3)
   verboser("", level = 3)
   verboser("  Starting values:", level = 3)
-  verboser(sprintf("    β (response model):     %s", paste(sprintf("%.4f", init_beta), collapse = ", ")), level = 3)
+  verboser(sprintf("    beta (response model):  %s", paste(sprintf("%.4f", init_beta), collapse = ", ")), level = 3)
   verboser(sprintf("    z (logit response rate): %.4f", init_z), level = 3)
   if (K_aux > 0) {
-    verboser(sprintf("    λ (auxiliary):          %s", paste(sprintf("%.4f", init_lambda), collapse = ", ")), level = 3)
+    verboser(sprintf("    lambda_x (auxiliary):   %s", paste(sprintf("%.4f", init_lambda), collapse = ", ")), level = 3)
   }
 
 # Instrumentation for timing and solver used
@@ -367,6 +367,13 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   beta_hat_scaled <- estimates[1:K_beta]
   lambda_hat <- if (K_aux > 0) estimates[(K_beta + 2):(K_beta + 1 + K_aux)] else numeric(0)
   solver_time <- proc.time()[[3]] - t_solve_start
+# Precompute centered auxiliary design once for reuse
+  Xc_centered_diag <- NULL
+  if (K_aux > 0) {
+    mu_match <- as.numeric(mu_x_scaled[colnames(auxiliary_matrix_scaled)])
+    Xc_centered_diag <- sweep(auxiliary_matrix_scaled, 2, mu_match, "-")
+  }
+
   post <- el_post_solution(
     estimates = estimates,
     response_model_matrix_scaled = response_model_matrix_scaled,
@@ -382,7 +389,8 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     K_aux = K_aux,
     nmar_scaling_recipe = nmar_scaling_recipe,
     standardize = standardize,
-    trim_cap = trim_cap
+    trim_cap = trim_cap,
+    X_centered = Xc_centered_diag
   )
   if (post$error) {
     if (on_failure == "error") {
@@ -407,7 +415,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 
 # Weight diagnostics (LEVEL 2)
   verboser("", level = 2)
-  verboser("-- WEIGHT DIAGNOSTICS --", level = 2)
+  verboser("-- EL MASS DIAGNOSTICS --", level = 2)
 
   weight_sum <- sum(w_unnorm_trimmed)
   verboser(sprintf("  Estimated response rate:  %.4f", W_hat), level = 2)
@@ -421,17 +429,17 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   verboser("", level = 3)
   verboser("-- DETAILED DIAGNOSTICS --", level = 3)
 
-  verboser(sprintf("  β (response model, unscaled):"), level = 3)
+  verboser(sprintf("  beta (response model, unscaled):"), level = 3)
   for (i in seq_along(beta_hat_unscaled)) {
     param_name <- if (!is.null(names(beta_hat_unscaled))) names(beta_hat_unscaled)[i] else paste0("beta", i)
     verboser(sprintf("    %-25s %.6f", param_name, beta_hat_unscaled[i]), level = 3)
   }
 
   verboser(sprintf("  W (response rate):        %.6f", W_hat), level = 3)
-  verboser(sprintf("  λ_W (response multiplier): %.6f", lambda_W_hat), level = 3)
+  verboser(sprintf("  lambda_W (response multiplier): %.6f", lambda_W_hat), level = 3)
 
   if (K_aux > 0) {
-    verboser(sprintf("  λ_x (auxiliary multipliers):"), level = 3)
+    verboser(sprintf("  lambda_x (auxiliary multipliers):"), level = 3)
     for (i in seq_along(lambda_hat)) {
       param_name <- if (!is.null(names(lambda_hat))) names(lambda_hat)[i] else paste0("lambda", i)
       verboser(sprintf("    %-25s %.6f", param_name, lambda_hat[i]), level = 3)
@@ -445,15 +453,16 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   eq_residuals <- tryCatch(equation_system_func(estimates), error = function(e) rep(NA_real_, length(estimates)))
   max_eq_resid <- suppressWarnings(max(abs(eq_residuals), na.rm = TRUE))
   A_condition <- tryCatch({ kappa(analytical_jac_func(estimates)) }, error = function(e) NA_real_)
-  denom_stats <- list(min = suppressWarnings(min(denominator_hat, na.rm = TRUE)), p_small = mean(denominator_hat < 1e-6))
-  p_untrim <- respondent_weights / denominator_hat
-  Xc_centered_diag <- NULL
-  if (K_aux > 0) {
-    mu_match <- as.numeric(mu_x_scaled[colnames(auxiliary_matrix_scaled)])
-    Xc_centered_diag <- sweep(auxiliary_matrix_scaled, 2, mu_match, "-")
-  }
+  denom_floor <- nmar_get_el_denom_floor()
+  denom_stats <- list(
+    min = suppressWarnings(min(denominator_hat, na.rm = TRUE)),
+    p_small = mean(denominator_hat < 1e-6),
+    p_floor = mean(denominator_hat <= denom_floor)
+  )
+# Unnormalized EL masses used in constraints: mass_untrim = d_i / Di
+  mass_untrim <- respondent_weights / denominator_hat
   cons <- tryCatch(
-    constraint_summaries(w_i_hat, W_hat, p_untrim, Xc_centered_diag),
+    constraint_summaries(w_i_hat, W_hat, post$mass_untrim, Xc_centered_diag),
     error = function(e) {
 # Fallback: derive constraint sums directly from the stacked equations at the estimate
       eq_vals <- tryCatch(equation_system_func(estimates), error = function(e2) NULL)
@@ -475,7 +484,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 
 # Normalization identity and constraint residual diagnostics
   sum_respondent_weights <- sum(respondent_weights)
-  sum_unnormalized_weights_untrimmed <- sum(p_untrim)
+  sum_unnormalized_weights_untrimmed <- sum(post$mass_untrim)
   normalization_ratio <- sum_unnormalized_weights_untrimmed / sum_respondent_weights
 
 # Check constraint residuals are near zero (paper requirement)
@@ -514,21 +523,15 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   se_y_hat <- NA
   vcov_unscaled <- NA
   vcov_message <- "Calculation successful"
-  if (variance_method == "delta" && is.finite(trim_cap)) {
-    warning("Delta method variance is not recommended with weight trimming. Consider variance_method = 'bootstrap'.", call. = FALSE)
-  }
 
 # Variance estimation section (LEVEL 1 header, LEVEL 2 details)
   if (variance_method != "none") {
     verboser("", level = 1)
     verboser("-- VARIANCE ESTIMATION --", level = 1)
     verboser(sprintf("  Method:                   %s", variance_method), level = 2)
-
     if (variance_method == "bootstrap") {
       verboser(sprintf("  Replications:             %d", bootstrap_reps), level = 2)
       verboser("  Running bootstrap...", level = 2)
-    } else if (variance_method == "delta") {
-      verboser("  Note: Delta variance not implemented for EL", level = 2)
     }
   }
 
@@ -579,13 +582,6 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     } else {
       se_y_hat <- NA_real_
     }
-  } else if (variance_method == "delta") {
-    warning("Empirical likelihood delta variance is not implemented; returning NA. Use variance_method='bootstrap' for SEs.", call. = FALSE)
-    se_y_hat <- NA_real_
-    vcov_unscaled <- matrix(NA_real_, K_beta, K_beta,
-                            dimnames = list(colnames(response_model_matrix_unscaled),
-                                            colnames(response_model_matrix_unscaled)))
-    vcov_message <- "Delta variance not implemented for EL; returned NA."
   } else if (variance_method == "none") {
 # Skip variance calculation entirely
     se_y_hat <- NA_real_
@@ -654,6 +650,8 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
       denom_q05 = denom_q[[2]],
       denom_median = denom_q[[3]],
       denom_count_lt_1e4 = denom_cnt_1e4,
+      denom_floor = denom_floor,
+      denom_floor_hits = denom_stats$p_floor,
       weight_max_share = weight_max_share,
       weight_top5_share = weight_top5_share,
       weight_ess = weight_ess,

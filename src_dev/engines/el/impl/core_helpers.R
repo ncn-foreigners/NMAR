@@ -1,7 +1,8 @@
 #' EL core helpers
-#' @description Internal helpers for solving and post-processing the EL system:
-#'   `el_run_solver()` orchestrates nleqslv with restarts/fallback; `el_post_solution()`
-#'   computes weights and the point estimate with denominator guards and trimming.
+#' @description Internal helpers for solving and post-processing the EL system.
+#'   `el_run_solver()` orchestrates `nleqslv` with a small, deterministic fallback
+#'   ladder; `el_post_solution()` computes masses and the point estimate with
+#'   denominator guards and optional trimming.
 #' @name el_core_helpers
 #' @keywords internal
 NULL
@@ -15,15 +16,15 @@ NULL
 #' @param analytical_jac_func Analytic Jacobian function; may be NULL if
 #'   unavailable or when forcing Broyden.
 #' @param init Numeric vector of initial parameter values.
-#' @param final_control List passed to nleqslv control=.
-#' @param top_args List of top-level nleqslv args (e.g., global, xscalm).
+#' @param final_control List passed to `nleqslv(control = ...)`.
+#' @param top_args List of top-level `nleqslv` args (e.g., `global`, `xscalm`).
 #' @param solver_method Character; one of "auto", "newton", or "broyden".
 #' @param use_solver_jac Logical; whether to pass analytic Jacobian to Newton.
 #' @param K_beta Integer; number of response model parameters.
 #' @param K_aux Integer; number of auxiliary constraints.
 #' @param respondent_weights Numeric vector of base sampling weights.
 #' @param N_pop Numeric; population total (weighted when survey design).
-#' @param trace_level Integer; verbosity level (0=silent, 1-3=increasingly verbose).
+#' @param trace_level Integer; verbosity level (0 silent, 1-3 increasingly verbose).
 #'
 #' @keywords internal
 el_run_solver <- function(equation_system_func,
@@ -41,6 +42,10 @@ el_run_solver <- function(equation_system_func,
 # Create verboser for this function
   verboser <- create_verboser(trace_level)
   solver_method_used <- "Newton"
+# Curated defaults: Newton + analytic Jacobian, quadratic line search, auto scaling
+  user_specified_global <- !is.null(top_args$global)
+  user_specified_xscalm <- !is.null(top_args$xscalm)
+
   nl_args <- list(
     x = init,
     fn = equation_system_func,
@@ -48,8 +53,9 @@ el_run_solver <- function(equation_system_func,
     method = "Newton",
     control = final_control
   )
-  if (!is.null(top_args$global)) nl_args$global <- top_args$global else nl_args$global <- "dbldog"
-  if (!is.null(top_args$xscalm)) nl_args$xscalm <- top_args$xscalm
+# Defaults if user did not specify: prefer robust line search and auto scaling
+  if (!is.null(top_args$global)) nl_args$global <- top_args$global else nl_args$global <- "qline"
+  if (!is.null(top_args$xscalm)) nl_args$xscalm <- top_args$xscalm else nl_args$xscalm <- "auto"
 
   nl_args_b <- nl_args
   nl_args_b$x <- init
@@ -68,6 +74,8 @@ el_run_solver <- function(equation_system_func,
   }
 
   solution <- do.call(nleqslv::nleqslv, nl_args)
+
+# Small pool of perturbed restarts with the same configuration
   if (any(is.na(solution$x)) || solution$termcd > 2) {
     verboser("  Initial attempt failed, trying perturbed starts...", level = 3)
     for (i in seq_len(3)) {
@@ -85,12 +93,30 @@ el_run_solver <- function(equation_system_func,
       }
     }
   }
+
+# Minimal, deterministic fallback ladder
+  if (solver_method == "auto" && (any(is.na(solution$x)) || solution$termcd > 2)) {
+# If the user did not choose a global strategy, try an alternative globalization before switching method
+    if (!user_specified_global) {
+      alt_args <- nl_args
+      alt_args$global <- if (identical(nl_args$global, "qline")) "dbldog" else "qline"
+      verboser(sprintf("  Newton failed; retry with global='%s'...", alt_args$global), level = 2)
+      solution2 <- do.call(nleqslv::nleqslv, alt_args)
+      if (!any(is.na(solution2$x)) && solution2$termcd <= 2) {
+        solution <- solution2
+      }
+    }
+  }
+
   if (solver_method == "auto" && (any(is.na(solution$x)) || solution$termcd > 2)) {
     verboser("  Newton method failed, falling back to Broyden...", level = 2)
     broyden_control <- final_control
     if (!is.null(broyden_control$maxit) && is.finite(broyden_control$maxit) && broyden_control$maxit < 5) {
       broyden_control$maxit <- 50
     }
+# Prefer the same or more conservative global for Broyden
+    nl_args_b$global <- nl_args$global %||% "qline"
+    nl_args_b$xscalm <- nl_args$xscalm %||% "auto"
     nl_args_b$control <- broyden_control
     solution <- do.call(nleqslv::nleqslv, nl_args_b)
     solver_method_used <- "Broyden"
@@ -98,7 +124,7 @@ el_run_solver <- function(equation_system_func,
       verboser("  [OK] Broyden method converged successfully", level = 2, type = "result")
     }
   }
-  list(solution = solution, method = solver_method_used, used_top = list(global = top_args$global %||% NULL, xscalm = top_args$xscalm %||% NULL))
+  list(solution = solution, method = solver_method_used, used_top = list(global = nl_args$global %||% NULL, xscalm = nl_args$xscalm %||% NULL))
 }
 
 #' Post-solution: compute weights and point estimate
@@ -133,7 +159,8 @@ el_post_solution <- function(estimates,
                              K_aux,
                              nmar_scaling_recipe,
                              standardize,
-                             trim_cap) {
+                             trim_cap,
+                             X_centered = NULL) {
   beta_hat_scaled <- estimates[1:K_beta]
   names(beta_hat_scaled) <- colnames(response_model_matrix_scaled)
   W_hat <- stats::plogis(estimates[K_beta + 1])
@@ -142,13 +169,20 @@ el_post_solution <- function(estimates,
   w_i_hat <- family$linkinv(eta_i_hat)
   lambda_W_hat <- ((N_pop / sum(respondent_weights)) - 1) / (1 - W_hat)
   denominator_hat <- 1 + lambda_W_hat * (w_i_hat - W_hat)
-  if (K_aux > 0) denominator_hat <- denominator_hat + as.vector(sweep(auxiliary_matrix_scaled, 2, mu_x_scaled, "-") %*% lambda_hat)
+  if (K_aux > 0) {
+    if (is.null(X_centered)) {
+# Fallback centering (should be provided by caller for efficiency)
+      X_centered <- sweep(auxiliary_matrix_scaled, 2, mu_x_scaled, "-")
+    }
+    denominator_hat <- denominator_hat + as.vector(X_centered %*% lambda_hat)
+  }
 # Guard denominators for weight construction
-  denom_guard <- pmax(as.numeric(denominator_hat), 1e-8)
-  p_i_untrimmed <- respondent_weights / denom_guard
+  denom_guard <- pmax(as.numeric(denominator_hat), nmar_get_el_denom_floor())
+# EL unnormalized masses (w_tilde_i = d_i / D_i)
+  mass_untrimmed <- respondent_weights / denom_guard
 # Negativity check (prior to cap)
   TOL <- 1e-8
-  min_w <- suppressWarnings(min(p_i_untrimmed, na.rm = TRUE))
+  min_w <- suppressWarnings(min(mass_untrimmed, na.rm = TRUE))
   if (is.finite(min_w) && min_w < -TOL) {
     msg <- paste0(
       "Negative EL weights produced (min = ", round(min_w, 6), "). This often indicates that the auxiliary means are ",
@@ -156,22 +190,23 @@ el_post_solution <- function(estimates,
     )
     return(list(error = TRUE, message = msg))
   }
-  p_i_untrimmed[p_i_untrimmed < 0] <- 0
-  trim_results <- trim_weights(p_i_untrimmed, cap = trim_cap)
-  w_trimmed <- trim_results$weights
+  mass_untrimmed[mass_untrimmed < 0] <- 0
+  trim_results <- trim_weights(mass_untrimmed, cap = trim_cap)
+  mass_trimmed <- trim_results$weights
 
 # CRITICAL FIX: Compute mean using probability masses (QLS 2002, Eq. 11)
 # y_bar = sum p_i * y_i where p_i = w_tilde_i / sum w_tilde_j
 # This ensures correct formula even with trimming
-  sum_w <- sum(w_trimmed)
-  p_prob <- w_trimmed / sum_w # Normalized probability masses
-  y_hat <- sum(p_prob * respondent_data[[outcome_var]])
+  total_mass <- sum(mass_trimmed)
+  prob_mass <- mass_trimmed / total_mass # Normalized probability masses
+  y_hat <- sum(prob_mass * respondent_data[[outcome_var]])
   beta_hat_unscaled <- if (standardize) unscale_coefficients(beta_hat_scaled, matrix(0, K_beta, K_beta), nmar_scaling_recipe)$coefficients else beta_hat_scaled
   names(beta_hat_unscaled) <- colnames(response_model_matrix_unscaled)
   list(
     error = FALSE,
     y_hat = y_hat,
-    weights = w_trimmed, # Store unnormalized (trimmed) masses as single source of truth
+    weights = mass_trimmed, # Store unnormalized (trimmed) EL masses as single source of truth
+    mass_untrim = mass_untrimmed,
     trimmed_fraction = trim_results$trimmed_fraction,
     beta_hat_scaled = beta_hat_scaled,
     beta_hat_unscaled = beta_hat_unscaled,

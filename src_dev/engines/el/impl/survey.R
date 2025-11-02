@@ -1,7 +1,7 @@
 #' Empirical likelihood for survey designs (NMAR)
 #' @description Internal method dispatched by `el()` when `data` is a `survey.design`.
 #'   Variance via bootstrap is supported. Analytical delta variance for EL is
-#'   temporarily unavailable and returns NA when requested.
+#'   not implemented and returns NA when requested.
 #' @param data A `survey.design` created with [survey::svydesign()].
 #' @param formula Two-sided formula: NA-valued outcome on LHS; auxiliaries on RHS.
 #' @param auxiliary_means Named numeric vector of population means for auxiliaries.
@@ -13,10 +13,18 @@
 #' @param bootstrap_reps Integer; reps when `variance_method = "bootstrap"`.
 #' @param ... Passed to solver.
 #' @details Implements the empirical likelihood estimator with design weights.
-#'   Use bootstrap variance via replicate weights for standard errors. Analytical
-#'   delta variance for EL is disabled and returns NA with a guidance message.
+#'   If `n_total` is supplied, design weights are rescaled internally to ensure
+#'   `sum(weights(design))` and `n_total` are on the same scale; this guarantees
+#'   the response-multiplier formula uses consistent totals. If `n_total` is not
+#'   supplied, `sum(weights(design))` is used as the population total `N_pop`.
+#'   Result weights are the unnormalized EL masses `d_i/D_i(\theta)` on this
+#'   design scale; `weights(result, scale = "population")` sums to `N_pop`.
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
+#'
+#' Wu, C., and Sitter, R. R. (2001). A model-calibration approach to using complete
+#' auxiliary information from survey data. Journal of the American Statistical Association,
+#' 96(453), 185-193.
 #' @return `c('nmar_result_el','nmar_result')`.
 #'
 #' @name el_survey
@@ -32,6 +40,8 @@ el.survey.design <- function(data, formula,
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
   variance_method <- match.arg(variance_method)
+# Coerce unsupported mode to 'none' locally (engine-level warning already issued when called via nmar)
+  if (identical(variance_method, "delta")) variance_method <- "none"
 
 
   design <- data

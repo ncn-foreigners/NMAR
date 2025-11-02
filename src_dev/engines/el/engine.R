@@ -1,13 +1,13 @@
 #' Empirical likelihood (EL) engine for NMAR
 #'
-#' Constructs a configuration for the empirical likelihood estimator under
-#' nonignorable nonresponse (NMAR) and optional auxiliary moment constraints.
-#' The estimator solves the full stacked EL system in \eqn{(\beta, z, \lambda_x)}
-#' with \eqn{z = \mathrm{logit}(W)} using a Newton solver with analytic
+#' Constructs a configuration object for the empirical likelihood estimator under
+#' nonignorable nonresponse (NMAR) with optional auxiliary moment constraints.
+#' The estimator solves the stacked system in \eqn{\theta = (\beta, z, \lambda_x)}
+#' with \eqn{z = \operatorname{logit}(W)} using a Newton method with analytic
 #' Jacobian and globalization via \link[nleqslv]{nleqslv}. Numerical safeguards
-#' (denominator-positivity guards, predictor standardization, and stable linear
-#' algebra) improve robustness. Pass the returned engine to \link{nmar} together
-#' with a formula and data.
+#' (bounded linear predictor, link-inverse clipping, denominator floors, and
+#' stable linear algebra) improve robustness. Pass the engine to \link{nmar}
+#' together with a formula and data.
 #'
 #' @param family character; response model family, either \code{"logit"} or \code{"probit"},
 #'   or a family object created by \code{logit_family()} / \code{probit_family()}.
@@ -20,10 +20,11 @@
 #' @param auxiliary_means named numeric vector; population means for auxiliaries
 #'   (names must match the RHS of the outcome formula). Optional.
 #' @param control list; optional solver control for \code{nleqslv::nleqslv()}.
-#'   Recognized fields:
+#'   Recognized fields (defaults in parentheses):
 #'   \itemize{
-#'     \item Top-level: \code{global} (\code{"dbldog"}, \code{"pwldog"}, \code{"qline"}, \code{"none"}),
-#'       \code{xscalm} (\code{"auto"}, \code{"fixed"})
+#'     \item Top-level: \code{global} = \code{"qline"} (quadratic line search) or one of
+#'       \code{"dbldog"}, \code{"pwldog"}, \code{"cline"}, \code{"gline"}, \code{"hook"}, \code{"none"};
+#'       \code{xscalm} = \code{"auto"} or \code{"fixed"}
 #'     \item In \code{control=}: \code{xtol}, \code{ftol}, \code{btol}, \code{maxit}, \code{trace},
 #'       \code{stepmax}, \code{delta}, \code{allowSing}
 #'   }
@@ -45,19 +46,32 @@
 #'   }
 #'
 #' @details
-#' The EL estimator uses weights that satisfy estimating equations for the response
-#' mechanism and optional auxiliary moment constraints. The response-model score is
-#' the derivative of the Bernoulli log-likelihood with respect to the linear predictor,
-#' i.e., \code{mu.eta(eta)/linkinv(eta)}, valid for both logit and probit links.
-#' Response predictors need not coincide with auxiliary predictors; only auxiliaries
-#' require known population moments. See Qin, Leung and Shao (2002) for the EL estimating
-#' equations. Analytical delta variance for EL is temporarily unavailable;
-#' when \code{variance_method = "delta"}, the estimator returns \code{NA}
-#' standard errors with a guidance message. Use \code{variance_method = "bootstrap"}
-#' for standard errors.
+#' Empirical likelihood assigns masses \eqn{m_i = d_i / D_i(\theta)} to respondents
+#' with base weights \eqn{d_i}. Following Qin, Leung, and Shao (2002, JASA 97:193-200),
+#' the denominator is
+#' \deqn{D_i(\theta) = 1 + \lambda_W\{p_i(\beta) - W\} + X_{i\cdot}^{(c)}\,\lambda_x,}
+#' where \eqn{p_i(\beta) = g(\eta_i)} with link-inverse \eqn{g}, \eqn{\eta_i = x_i^\top\beta},
+#' \eqn{W} is the (unknown) response rate, and \eqn{X^{(c)} = X - \mu_X} centers
+#' auxiliary columns at their population means. The multiplier for the response-rate
+#' equation is
+#' \deqn{\lambda_W = \{N_\mathrm{pop}/\sum_i d_i - 1\}/(1 - W),}
+#' which ensures scale coherence for both IID data (\eqn{d_i \equiv 1}) and survey
+#' designs (\eqn{d_i} are design weights). The estimating equations impose
+#' \eqn{\sum_i m_i\{p_i(\beta) - W\} = 0},
+#' \eqn{\sum_i m_i\,s_i(\beta) = 0} with \eqn{s_i(\beta) = \partial \log p_i / \partial \eta_i},
+#' and, when present, \eqn{\sum_i m_i X_{i\cdot}^{(c)} = 0}.
 #'
-#' We rely on standard globalization provided by \code{nleqslv} and do not
-#' implement custom EL solver algorithms.
+#' The response-model score used in both equations and Jacobian is the derivative
+#' of the Bernoulli log-likelihood with respect to the linear predictor, i.e.
+#' \code{mu.eta(eta) / linkinv(eta)}. This form is stable across logit and probit
+#' provided we clip \eqn{\eta} and \eqn{p} away from extreme tails. When
+#' \code{variance_method = "delta"} is requested, the estimator returns \code{NA}
+#' standard errors with a message; use \code{variance_method = "bootstrap"} for SEs.
+#'
+#' Solver configuration uses \code{nleqslv} with an analytic Jacobian and a robust
+#' globalization. Defaults are \code{global = "qline"} and \code{xscalm = "auto"};
+#' users can override via \code{control}. Invalid values are coerced to these
+#' defaults with a warning.
 #'
 #' @section Progress Reporting:
 #' When \code{variance_method = "bootstrap"}, progress reporting is available via the
@@ -103,6 +117,12 @@
 #' Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. \emph{Journal of the American
 #' Statistical Association}, 97(457), 193-200.
+#'
+#' Wu, C., and Sitter, R. R. (2001). A model-calibration approach to using
+#' complete auxiliary information from survey data. \emph{Journal of the American
+#' Statistical Association}, 96(453), 185-193. Related to design-based
+#' calibration; our EL approach balances auxiliary moments through empirical
+#' likelihood constraints rather than calibration adjustments to weights.
 #'
 #'
 #' @keywords engine
@@ -171,9 +191,11 @@ el_engine <- function(
     start = start,
     family = family
   )
+# Validate and coerce unsupported variance modes upfront
   validate_nmar_engine_el(engine)
   if (identical(engine$variance_method, "delta")) {
-    warning("Empirical likelihood delta variance is not implemented; results will report NA SE. Use variance_method='bootstrap' for SEs.", call. = FALSE)
+    warning("Empirical likelihood 'delta' variance is not implemented; using variance_method='none'.", call. = FALSE)
+    engine$variance_method <- "none"
   }
   new_nmar_engine_el(engine)
 }

@@ -20,7 +20,7 @@ test_that("trim_weights caps and redistributes mass", {
 test_that("trim_weights warns when all mass is capped", {
   w <- c(5, 5)
   cap <- 1
-  expect_warning(res <- NMAR:::trim_weights(w, cap), "reduced total weight")
+  expect_warning(res <- NMAR:::trim_weights(w, cap), "Cannot preserve total mass")
   expect_equal(res$weights, rep(cap, length(w)))
 })
 
