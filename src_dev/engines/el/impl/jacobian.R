@@ -37,7 +37,7 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     names(mu_x_scaled_vec) <- colnames(auxiliary_matrix_mat)
   }
 # Precompute centered auxiliary design once (avoids per-call sweep)
-  X_centered_base <- if (K_aux > 0) sweep(auxiliary_matrix_mat, 2, mu_x_scaled_vec, "-") else matrix(nrow = n_resp, ncol = 0)
+  X_centered_base <- if (K_aux > 0) sweep(auxiliary_matrix_mat, 2, mu_x_scaled_vec, "-") else NULL
   C_const <- (N_pop / n_resp_weighted) - 1
   ETA_CAP <- get_eta_cap()
   function(params) {
@@ -57,7 +57,7 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     p_i <- family$linkinv(eta_i)
     m_i <- family$mu.eta(eta_i)
     m2_i <- family$d2mu.deta2(eta_i)
-    X_centered <- X_centered_base
+    X_centered <- if (K_aux > 0) X_centered_base else NULL
 # QLS Eq. (5): Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
     denominator <- 1 + lambda_W * (p_i - W_bounded)
     if (K_aux > 0) denominator <- denominator + as.vector(X_centered %*% lambda_x)
@@ -69,7 +69,7 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     inv_denom_sq <- inv_denom^2
     dden_dTheta <- active * (d_lambda_W_dTheta * (p_i - W_bounded) - lambda_W * dWb_dTheta)
     dden_deta <- active * (lambda_W * m_i)
-# Score wrt eta for log-likelihood: d/deta log p(eta) = m_i / p_i
+# Score wrt eta for delta=1: m/p (unified across links)
     p_i_clipped <- pmin(pmax(p_i, 1e-12), 1 - 1e-12)
     dlw_i <- m_i / p_i_clipped
 # beta block term (QLS Eq. 9)
@@ -78,36 +78,51 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     d_deta_logw <- (m2_i * p_i_clipped - m_i^2) / (p_i_clipped^2)
     d_betaeq_deta <- d_deta_logw - lambda_W * m2_i * inv_denom + (lambda_W^2) * (m_i^2) * inv_denom_sq
     d_betaeq_dTheta <- -d_lambda_W_dTheta * m_i * inv_denom + lambda_W * m_i * inv_denom_sq * dden_dTheta
-    d_betaeq_dlambda_mat <- if (K_aux > 0) lambda_W * m_i * inv_denom_sq * X_centered else matrix(nrow = n_resp, ncol = 0)
+# Build blocks with preallocation to avoid cbind/rbind overhead
+    p_dim <- K_beta + 1 + K_aux
+    full_mat <- matrix(0, nrow = p_dim, ncol = p_dim)
+# Indices
+    idx_beta <- seq_len(K_beta)
+    idx_W <- K_beta + 1L
+    idx_lambda <- if (K_aux > 0) (K_beta + 2L):(K_beta + 1L + K_aux) else integer(0)
+
+# J11: d beta eqs / d beta
     w_eff_11 <- as.numeric(respondent_weights * d_betaeq_deta)
-    J11 <- shared_weighted_gram(response_model_matrix, w_eff_11)
-    J12 <- shared_weighted_Xty(response_model_matrix, respondent_weights, d_betaeq_dTheta)
-    J13 <- if (K_aux > 0) shared_weighted_XtY(response_model_matrix, respondent_weights, as.matrix(d_betaeq_dlambda_mat)) else matrix(nrow = K_beta, ncol = 0)
-    term21 <- m_i * inv_denom - (p_i - W_bounded) * inv_denom_sq * (lambda_W * m_i) * active
-    J21 <- t(shared_weighted_Xty(response_model_matrix, respondent_weights, term21))
-    term22 <- -dWb_dTheta * inv_denom - (p_i - W_bounded) * inv_denom_sq * dden_dTheta
-    J22 <- as.numeric(crossprod(respondent_weights, term22))
-    J23 <- if (K_aux > 0) t(shared_weighted_Xty(X_centered, respondent_weights, (-(p_i - W_bounded) * inv_denom_sq * active))) else matrix(nrow = 1, ncol = 0)
+    full_mat[idx_beta, idx_beta] <- shared_weighted_gram(response_model_matrix, w_eff_11)
+# J12: d beta eqs / d W
+    j12_vec <- shared_weighted_Xty(response_model_matrix, respondent_weights, d_betaeq_dTheta)
+    full_mat[idx_beta, idx_W] <- as.numeric(j12_vec)
+# J13: d beta eqs / d lambda
     if (K_aux > 0) {
-      term31 <- -dden_deta * inv_denom_sq
-      J31 <- shared_weighted_XtY(X_centered, as.numeric(respondent_weights * term31), response_model_matrix)
-      term32 <- -dden_dTheta * inv_denom_sq
-      J32 <- shared_weighted_Xty(X_centered, respondent_weights, term32)
-# J33 = - Xc' diag(inv_denom^2) Xc scaled by respondent weights; SPD path (gated by active)
-      J33 <- -shared_weighted_gram(X_centered, as.numeric(respondent_weights * (inv_denom_sq * active)))
-    } else {
-      J31 <- matrix(nrow = 0, ncol = K_beta)
-      J32 <- matrix(nrow = 0, ncol = 1)
-      J33 <- matrix(nrow = 0, ncol = 0)
+      d_betaeq_dlambda_mat <- lambda_W * m_i * inv_denom_sq * X_centered
+      full_mat[idx_beta, idx_lambda] <- shared_weighted_XtY(response_model_matrix, respondent_weights, as.matrix(d_betaeq_dlambda_mat))
     }
-    top <- cbind(J11, J12, J13)
-    middle <- cbind(J21, matrix(J22, nrow = 1, ncol = 1), J23)
-    bottom <- cbind(J31, J32, J33)
-    full_mat <- rbind(top, middle, bottom)
-    param_names <- c(colnames(response_model_matrix), "(W) (logit)", if (K_aux > 0) paste0("lambda_", colnames(X_centered)) else NULL)
+# J21: d W eq / d beta
+    term21 <- m_i * inv_denom - (p_i - W_bounded) * inv_denom_sq * (lambda_W * m_i) * active
+    full_mat[idx_W, idx_beta] <- as.numeric(t(shared_weighted_Xty(response_model_matrix, respondent_weights, term21)))
+# J22: d W eq / d W
+    term22 <- -dWb_dTheta * inv_denom - (p_i - W_bounded) * inv_denom_sq * dden_dTheta
+    full_mat[idx_W, idx_W] <- as.numeric(crossprod(respondent_weights, term22))
+# J23: d W eq / d lambda
+    if (K_aux > 0) {
+      j23 <- t(shared_weighted_Xty(X_centered, respondent_weights, (-(p_i - W_bounded) * inv_denom_sq * active)))
+      full_mat[idx_W, idx_lambda] <- as.numeric(j23)
+    }
+    if (K_aux > 0) {
+# J31: d aux eq / d beta
+      term31 <- -dden_deta * inv_denom_sq
+      full_mat[idx_lambda, idx_beta] <- shared_weighted_XtY(X_centered, as.numeric(respondent_weights * term31), response_model_matrix)
+# J32: d aux eq / d W
+      term32 <- -dden_dTheta * inv_denom_sq
+      full_mat[idx_lambda, idx_W] <- as.numeric(shared_weighted_Xty(X_centered, respondent_weights, term32))
+# J33: d aux eq / d lambda (SPD, negative definite of weighted Gram)
+      full_mat[idx_lambda, idx_lambda] <- -shared_weighted_gram(X_centered, as.numeric(respondent_weights * (inv_denom_sq * active)))
+    }
+# Optional names (kept minimal to reduce overhead)
+    param_names <- c(colnames(response_model_matrix), "(W) (logit)", if (K_aux > 0) paste0("lambda_", colnames(auxiliary_matrix_mat)) else NULL)
     if (!is.null(param_names) && length(param_names) == ncol(full_mat)) {
       colnames(full_mat) <- rownames(full_mat) <- param_names
     }
-    as.matrix(full_mat)
+    full_mat
   }
 }

@@ -367,6 +367,13 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   beta_hat_scaled <- estimates[1:K_beta]
   lambda_hat <- if (K_aux > 0) estimates[(K_beta + 2):(K_beta + 1 + K_aux)] else numeric(0)
   solver_time <- proc.time()[[3]] - t_solve_start
+# Precompute centered auxiliary design once for reuse
+  Xc_centered_diag <- NULL
+  if (K_aux > 0) {
+    mu_match <- as.numeric(mu_x_scaled[colnames(auxiliary_matrix_scaled)])
+    Xc_centered_diag <- sweep(auxiliary_matrix_scaled, 2, mu_match, "-")
+  }
+
   post <- el_post_solution(
     estimates = estimates,
     response_model_matrix_scaled = response_model_matrix_scaled,
@@ -382,7 +389,8 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     K_aux = K_aux,
     nmar_scaling_recipe = nmar_scaling_recipe,
     standardize = standardize,
-    trim_cap = trim_cap
+    trim_cap = trim_cap,
+    X_centered = Xc_centered_diag
   )
   if (post$error) {
     if (on_failure == "error") {
@@ -453,13 +461,8 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   )
 # Unnormalized EL masses used in constraints: mass_untrim = d_i / Di
   mass_untrim <- respondent_weights / denominator_hat
-  Xc_centered_diag <- NULL
-  if (K_aux > 0) {
-    mu_match <- as.numeric(mu_x_scaled[colnames(auxiliary_matrix_scaled)])
-    Xc_centered_diag <- sweep(auxiliary_matrix_scaled, 2, mu_match, "-")
-  }
   cons <- tryCatch(
-    constraint_summaries(w_i_hat, W_hat, mass_untrim, Xc_centered_diag),
+    constraint_summaries(w_i_hat, W_hat, post$mass_untrim, Xc_centered_diag),
     error = function(e) {
 # Fallback: derive constraint sums directly from the stacked equations at the estimate
       eq_vals <- tryCatch(equation_system_func(estimates), error = function(e2) NULL)
@@ -481,7 +484,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 
 # Normalization identity and constraint residual diagnostics
   sum_respondent_weights <- sum(respondent_weights)
-  sum_unnormalized_weights_untrimmed <- sum(mass_untrim)
+  sum_unnormalized_weights_untrimmed <- sum(post$mass_untrim)
   normalization_ratio <- sum_unnormalized_weights_untrimmed / sum_respondent_weights
 
 # Check constraint residuals are near zero (paper requirement)

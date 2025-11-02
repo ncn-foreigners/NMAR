@@ -16,7 +16,7 @@ test_that("EL weights normalize correctly (probability and population)", {
   expect_true(abs(sum(wN) - N_pop) < 1e-8)
 
 # Relationship holds numerically (ignore attributes)
-  expect_equal(unname(as.numeric(wN)), as.numeric(N_pop) * unname(as.numeric(wp)), tolerance = 1e-12, check.attributes = FALSE)
+  expect_equal(unname(as.numeric(wN)), as.numeric(N_pop) * unname(as.numeric(wp)), tolerance = 1e-12, ignore_attr = TRUE)
 })
 
 test_that("Trimming caps EL masses and normalization still holds", {
@@ -51,5 +51,5 @@ test_that("Trimming caps EL masses and normalization still holds", {
   wN <- weights(fit, scale = "population")
   N_pop <- fit$sample$n_total
   expect_true(abs(sum(wN) - N_pop) < 1e-8)
-  expect_equal(unname(as.numeric(wN)), as.numeric(N_pop) * unname(as.numeric(wp)), tolerance = 1e-12, check.attributes = FALSE)
+  expect_equal(unname(as.numeric(wN)), as.numeric(N_pop) * unname(as.numeric(wp)), tolerance = 1e-12, ignore_attr = TRUE)
 })

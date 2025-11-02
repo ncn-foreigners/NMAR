@@ -158,7 +158,8 @@ el_post_solution <- function(estimates,
                              K_aux,
                              nmar_scaling_recipe,
                              standardize,
-                             trim_cap) {
+                             trim_cap,
+                             X_centered = NULL) {
   beta_hat_scaled <- estimates[1:K_beta]
   names(beta_hat_scaled) <- colnames(response_model_matrix_scaled)
   W_hat <- stats::plogis(estimates[K_beta + 1])
@@ -167,7 +168,13 @@ el_post_solution <- function(estimates,
   w_i_hat <- family$linkinv(eta_i_hat)
   lambda_W_hat <- ((N_pop / sum(respondent_weights)) - 1) / (1 - W_hat)
   denominator_hat <- 1 + lambda_W_hat * (w_i_hat - W_hat)
-  if (K_aux > 0) denominator_hat <- denominator_hat + as.vector(sweep(auxiliary_matrix_scaled, 2, mu_x_scaled, "-") %*% lambda_hat)
+  if (K_aux > 0) {
+    if (is.null(X_centered)) {
+# Fallback centering (should be provided by caller for efficiency)
+      X_centered <- sweep(auxiliary_matrix_scaled, 2, mu_x_scaled, "-")
+    }
+    denominator_hat <- denominator_hat + as.vector(X_centered %*% lambda_hat)
+  }
 # Guard denominators for weight construction
   denom_guard <- pmax(as.numeric(denominator_hat), nmar_get_el_denom_floor())
 # EL unnormalized masses (w_tilde_i = d_i / D_i)
@@ -198,6 +205,7 @@ el_post_solution <- function(estimates,
     error = FALSE,
     y_hat = y_hat,
     weights = mass_trimmed, # Store unnormalized (trimmed) EL masses as single source of truth
+    mass_untrim = mass_untrimmed,
     trimmed_fraction = trim_results$trimmed_fraction,
     beta_hat_scaled = beta_hat_scaled,
     beta_hat_unscaled = beta_hat_unscaled,

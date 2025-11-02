@@ -37,8 +37,9 @@ el_build_equation_system <- function(family, response_model_matrix, auxiliary_ma
     eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
     w_i <- family$linkinv(eta_i)
     mu_eta_i <- family$mu.eta(eta_i)
-# For logit, d/deta log w equals 1 - w; for probit, use family score implementation
-    dlw_i <- family$score_eta(eta_i, delta = 1)
+# Unified score w.r.t. eta for delta=1: mu.eta(eta) / p(eta)
+    p_i_clipped <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
+    dlw_i <- mu_eta_i / p_i_clipped
 # QLS Eq. (5): Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
     denominator <- 1 + lambda_W * (w_i - W_bounded)
     if (K_aux > 0) denominator <- denominator + as.vector(X_centered %*% lambda_x)
@@ -49,7 +50,12 @@ el_build_equation_system <- function(family, response_model_matrix, auxiliary_ma
 # W equation (QLS Eq. 8)
     eq_W <- as.numeric(crossprod(respondent_weights * inv_denominator, (w_i - W_bounded)))
 # Auxiliary constraints (QLS Eq. 7)
-    eq_constraints <- if (K_aux > 0) shared_weighted_Xty(X_centered, respondent_weights, inv_denominator) else numeric(0)
+    if (K_aux > 0) {
+      eq_constraints <- shared_weighted_Xty(X_centered, respondent_weights, inv_denominator)
+    } else {
+# Avoid allocating zero-width matrices repeatedly
+      eq_constraints <- numeric(0)
+    }
     c(as.vector(eq_betas), eq_W, as.vector(eq_constraints))
   }
 }
