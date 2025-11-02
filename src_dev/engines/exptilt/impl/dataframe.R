@@ -263,8 +263,24 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   model$x_for_y_obs <- auxiliary_matrix_scaled[respondent_mask, , drop = FALSE]
   model$x_for_y_unobs <- auxiliary_matrix_scaled[!respondent_mask, , drop = FALSE]
 
+# Normalize design weights to respondent length
+# - For non-survey: unit weights for respondents
+# - For survey: subset analysis weights to respondent rows to avoid length mismatches
   if (!isTRUE(model$is_survey)) {
     model$design_weights <- rep(1, nrow(model$x_1))
+  } else {
+    if (!is.null(model$design_weights)) {
+      if (length(model$design_weights) == nrow(model$x)) {
+        model$design_weights <- model$design_weights[respondent_mask]
+      } else if (length(model$design_weights) != nrow(model$x_1)) {
+        stop(sprintf(
+          "design_weights length (%d) must match respondents (%d) or full data (%d).",
+          length(model$design_weights), nrow(model$x_1), nrow(model$x)
+        ), call. = FALSE)
+      }
+    } else {
+      model$design_weights <- rep(1, nrow(model$x_1))
+    }
   }
 
 
@@ -516,6 +532,8 @@ exptilt_estimator_core <- function(model, respondent_mask,
     }
 
     if (isTRUE(model$is_survey)) {
+      warning("Delta variance is not supported for survey designs; using bootstrap instead.",
+              call. = FALSE)
       return(FALSE)
     }
 
@@ -554,7 +572,20 @@ exptilt_estimator_core <- function(model, respondent_mask,
       bootstrap_model$variance_method <- "delta"
       bootstrap_model$is_bootstrap_running <- TRUE
       bootstrap_model$verboser <- function(...) invisible(NULL)
-      bootstrap_model$verbose = FALSE
+      bootstrap_model$verbose <- FALSE
+
+# If 'data' is a survey.design, extract variables and weights to reuse the
+# unified data.frame path (avoids recursion and enforces consistent internals)
+      if (inherits(data, "survey.design")) {
+        design_vars <- data$variables
+        design_weights <- as.numeric(stats::weights(data))
+        bootstrap_model$is_survey <- TRUE
+        bootstrap_model$design <- data
+        bootstrap_model$design_weights <- design_weights
+        data <- design_vars
+      } else {
+        bootstrap_model$is_survey <- FALSE
+      }
 
 # Call without passing on_failure explicitly to avoid duplicate argument issues
       call_args <- list(
@@ -576,6 +607,14 @@ exptilt_estimator_core <- function(model, respondent_mask,
       point_estimate = estim_mean(model),
       bootstrap_reps = model$bootstrap_reps
     )
+
+    if (isTRUE(model$is_survey)) {
+# For complex designs, allow omission of failed replicates to avoid
+# hard failure when a few replicates are numerically unstable.
+# This aligns with survey::svrVar() so long as rscales are subset
+# accordingly (handled inside bootstrap_variance.survey.design).
+      base_args$survey_na_policy <- "omit"
+    }
 
     if (!model$is_survey) {
       respondent_mask_guard <- respondent_mask
