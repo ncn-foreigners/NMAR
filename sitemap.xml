@@ -35,6 +35,7 @@
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/el_post_solution.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/el_run_solver.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/el_survey.html</loc></url>
+<url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/enforce_nonneg_weights.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/engine_config.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/engine_name.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/engine_traits.html</loc></url>
@@ -59,6 +60,7 @@
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_fmt_num.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_format_call_line.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_get_digits.html</loc></url>
+<url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_get_el_denom_floor.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_get_numeric_settings.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_rebuild_partitioned_formula.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_result_get_estimate.html</loc></url>

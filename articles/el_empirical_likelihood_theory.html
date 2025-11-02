@@ -369,8 +369,8 @@ We extend it to arbitrary
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>Z</mi><annotation encoding="application/x-tex">Z</annotation></semantics></math>
 and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>X</mi><annotation encoding="application/x-tex">X</annotation></semantics></math>,
-and to survey designs via design-based covariance for variance
-estimation. Because
+and to survey designs. For uncertainty, we provide bootstrap variance
+(IID resampling and survey replicate-weight bootstrap). Because
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>Y</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat Y</annotation></semantics></math>
 is a ratio-of-weights estimator, any common normalization of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>p</mi><mi>i</mi><mtext mathvariant="normal">EL</mtext></msubsup><mo>∝</mo><msub><mi>a</mi><mi>i</mi></msub><mi>/</mi><msub><mi>D</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">p_i^{\text{EL}} \propto a_i/D_i</annotation></semantics></math>
@@ -622,8 +622,12 @@ enforced numerically.</p>
 For logit,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mo>−</mo><msub><mi>w</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">s_i = 1 - w_i</annotation></semantics></math>;
 for probit,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>i</mi></msub><mo>=</mo><mi>ϕ</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>η</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mi>Φ</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>η</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">s_i = \phi(\eta_i)/\Phi(\eta_i)</annotation></semantics></math>
-(computed stably in code).</p>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>s</mi><mi>i</mi></msub><annotation encoding="application/x-tex">s_i</annotation></semantics></math>
+behaves like
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ϕ</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>η</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mi>Φ</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>η</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\phi(\eta_i)/\Phi(\eta_i)</annotation></semantics></math>
+when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>w</mi><mi>i</mi></msub><annotation encoding="application/x-tex">w_i</annotation></semantics></math>
+is bounded away from 0 via clipping (as implemented).</p>
 <p>Intuition (why this score appears): for each respondent we observe
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>R</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">R_i=1</annotation></semantics></math>,
 so the Bernoulli log-likelihood contribution of the response model is
@@ -662,8 +666,8 @@ equations):
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>L</mi><annotation encoding="application/x-tex">L</annotation></semantics></math>
 equations):
 <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>∑</mo><msub><mi>a</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>X</mi><mi>i</mi></msub><mo>−</mo><msub><mi>μ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><msub><mi>D</mi><mi>i</mi></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\sum a_i (X_i - \mu_x) / D_i = 0</annotation></semantics></math></p>
-<p>These are exactly how <code>build_equation_system</code> constructs
-the function in code
+<p>These are exactly how <code>el_build_equation_system</code>
+constructs the function in code
 (<code>src_dev/engines/el/impl/equations.R</code>).</p>
 <p>Intuition: the
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>-equations
@@ -687,10 +691,12 @@ is the log-likelihood score
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∂</mi><mo>log</mo><msub><mi>w</mi><mi>i</mi></msub><mi>/</mi><mi>∂</mi><msub><mi>η</mi><mi>i</mi></msub><mo>=</mo><msub><mi>μ</mi><mrow><mi>η</mi><mo>,</mo><mi>i</mi></mrow></msub><mi>/</mi><msub><mi>w</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\partial\log w_i/\partial\eta_i = \mu_{\eta,i}/w_i</annotation></semantics></math>
 (equals
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>−</mo><msub><mi>w</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">1-w_i</annotation></semantics></math>
-for logit;
+for logit; behaves like
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ϕ</mi><mi>/</mi><mi>Φ</mi></mrow><annotation encoding="application/x-tex">\phi/\Phi</annotation></semantics></math>
-for probit). This follows the paper’s MLE derivation; EL constraints
-supply the nonparametric part.</li>
+for probit when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>w</mi><mi>i</mi></msub><annotation encoding="application/x-tex">w_i</annotation></semantics></math>
+is clipped away from 0). This follows the paper’s MLE derivation; EL
+constraints supply the nonparametric part.</li>
 </ul>
 </div>
 </div>
@@ -830,8 +836,8 @@ is critical for fast, stable convergence.</li>
 <div class="section level2">
 <h2 id="variance-estimation-delta-disabled">Variance Estimation (delta disabled)<a class="anchor" aria-label="anchor" href="#variance-estimation-delta-disabled"></a>
 </h2>
-<p>Analytical delta variance for the EL estimator is temporarily
-unavailable in the package. When requested via
+<p>Analytical delta variance for the EL estimator has not been
+implemented in the package. When requested via
 <code>variance_method = "delta"</code>, the implementation returns
 <code>NA</code> with a guidance message. We recommend
 <code>variance_method = "bootstrap"</code> for standard errors in both
@@ -852,8 +858,8 @@ via Newton with the analytic Jacobian
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mo>=</mo><mi>∂</mi><mi>F</mi><mi>/</mi><mi>∂</mi><mi>θ</mi></mrow><annotation encoding="application/x-tex">A = \partial F/\partial\theta</annotation></semantics></math>
 using <code>nleqslv</code>.</li>
 <li>Globalization and scaling: we rely on <code>nleqslv</code>’s
-globalization (default <code>global = "dbldog"</code>) and enforce
-denominator positivity
+globalization (default <code>global = "qline"</code>,
+<code>xscalm = "auto"</code>) and enforce denominator positivity
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>min</mo><mi>i</mi></msub><msub><mi>D</mi><mi>i</mi></msub><mo>≥</mo><mi>ε</mi></mrow><annotation encoding="application/x-tex">\min_i D_i \ge \varepsilon</annotation></semantics></math>)
 within equation evaluations. Optional standardization of design matrices
 improves conditioning.</li>
@@ -927,7 +933,7 @@ fragility.</p>
 ways:</p>
 <ul>
 <li><p><strong>Estimating equations with base weights:</strong> All sums
-already include the base weight
+include the base weight
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>a</mi><mi>i</mi></msub><annotation encoding="application/x-tex">a_i</annotation></semantics></math>;
 set
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>a</mi><mi>i</mi></msub><annotation encoding="application/x-tex">a_i</annotation></semantics></math>
@@ -937,33 +943,17 @@ and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo>=</mo><mo>∑</mo><msub><mi>a</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">n_{\text{resp\_weighted}}=\sum a_i</annotation></semantics></math>
 are computed from the design weights, which feeds into
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><mi>/</mi><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\lambda_W = ((N_{\text{pop}}/n_{\text{resp\_weighted}}) - 1)/(1-W)</annotation></semantics></math>.</p></li>
-<li>
-<p><strong>Design-based variance for totals:</strong> Rather than
-assuming i.i.d. sampling, we estimate
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>=</mo><mo>Var</mo><mrow><mo stretchy="true" form="prefix">(</mo><mo>∑</mo><msub><mi>U</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">B = \operatorname{Var}(\sum U_i)</annotation></semantics></math>
-using the design:</p>
-<ul>
-<li>Create full-design score variables by placing the respondent
-contributions
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>U</mi><mi>i</mi></msub><annotation encoding="application/x-tex">U_i</annotation></semantics></math>
-on observed rows and zeros on nonrespondents.</li>
-<li>Compute survey totals <code>svytotal(~U, design)</code> and take
-their covariance via <code>vcov(...)</code> to obtain
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>B</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\widehat B</annotation></semantics></math>.</li>
+<li><p><strong>Bootstrap variance via replicate weights:</strong> For
+standard errors, we use bootstrap replicate-weight designs created with
+<code><a href="https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html" class="external-link">svrep::as_bootstrap_design</a></code>. For each replicate, the
+estimator is re-fit on a reconstructed design using that replicate’s
+weights, and <code><a href="https://rdrr.io/pkg/survey/man/svrVar.html" class="external-link">survey::svrVar</a></code> is used to compute the variance
+of replicate estimates with appropriate scaling.</p></li>
 </ul>
-</li>
-</ul>
-<p>In short form, we compute</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>B</mi><mo accent="true">̂</mo></mover><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><mo>vcov</mo><mspace width="-0.167em"></mspace><mo minsize="1.2" maxsize="1.2" stretchy="false" form="prefix">(</mo><mspace width="0.167em"></mspace><mtext mathvariant="monospace">𝚜𝚟𝚢𝚝𝚘𝚝𝚊𝚕</mtext><mrow><mo stretchy="true" form="prefix">(</mo><mspace width="0.167em"></mspace><mo>∼</mo><mi>U</mi><mo>,</mo><mspace width="0.278em"></mspace><mtext mathvariant="monospace">𝚍𝚎𝚜𝚒𝚐𝚗</mtext><mspace width="0.167em"></mspace><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.167em"></mspace><mo minsize="1.2" maxsize="1.2" stretchy="false" form="postfix">)</mo><mo>,</mo></mrow><annotation encoding="application/x-tex">
-\widehat B \;=\; \operatorname{vcov}\!\big(\,\texttt{svytotal}(\,\sim U,\; \texttt{design}\,)\,\big),
-</annotation></semantics></math></p>
-<p>where
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>U</mi><annotation encoding="application/x-tex">U</annotation></semantics></math>
-stacks the respondent score contributions and zeros elsewhere.</p>
 <p>This matches the paper’s guidance to adapt the likelihood/estimating
-framework to stratification or unequal-probability sampling. Our
-approach keeps the EL structure and uses standard survey inference tools
-for the second-order properties.</p>
+framework to stratification or unequal-probability sampling while
+relying on standard survey resampling for uncertainty. Analytical delta
+variance is not implemented for EL at this time.</p>
 <p>Degrees-of-freedom: For confidence intervals, we use survey
 degrees-of-freedom (t-quantiles) when a <code>survey.design</code> is
 supplied; otherwise, we use normal quantiles.</p>

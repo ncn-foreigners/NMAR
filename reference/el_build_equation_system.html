@@ -60,18 +60,27 @@
 
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Returns a function that evaluates the full stacked EL system for
-  \(\theta = (\beta, z, \lambda_x)\) with \(z = \operatorname{logit}(W)\);
-  the auxiliary block is omitted when no constraints are present. The
-  response-model score with respect to the linear predictor uses the
-  derivative of the Bernoulli log-likelihood, which is valid for both logit
-  and probit links. This matches the semiparametric EL system in Qin, Leung
-  and Shao (2002). Denominator guards are applied to avoid invalid weights.</p>
+    <p>Returns a function that evaluates the stacked EL system for
+  \(\theta = (\beta, z, \lambda_x)\) with \(z = \operatorname{logit}(W)\).
+  Blocks correspond to: (i) response-model score equations in \(\beta\),
+  (ii) the response-rate equation in \(W\), and (iii) auxiliary moment
+  constraints in \(\lambda_x\). When no auxiliaries are present the last
+  block is omitted. The system matches Qin, Leung, and Shao (2002, Eqs. 7-10)
+  with empirical masses \(m_i = d_i/D_i(\theta)\), \(D_i\) as in the paper.
+  We clip \(\eta\) and \(p\) and guard \(D_i\) away from zero to ensure
+  numerical stability; these guards are applied consistently in equations,
+  Jacobian, and post-solution weights.</p>
+<p>The score with respect to the linear predictor uses the Bernoulli form
+  \(s_i(\beta) = \partial \log p_i / \partial \eta_i = \mu.\eta(\eta_i)/p_i\),
+  which is valid for both logit and probit links when \(p_i\) is clipped.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.</p>
+<p>Wu, C., and Sitter, R. R. (2001). A model-calibration approach to using complete
+auxiliary information from survey data. Journal of the American Statistical Association,
+96(453), 185-193.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
