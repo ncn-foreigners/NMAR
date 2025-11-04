@@ -572,7 +572,8 @@ exptilt_estimator_core <- function(model, respondent_mask,
       bootstrap_model$variance_method <- "delta"
       bootstrap_model$is_bootstrap_running <- TRUE
       bootstrap_model$verboser <- function(...) invisible(NULL)
-      bootstrap_model$verbose <- FALSE
+# bootstrap_model$verbose <- FALSE
+      bootstrap_model$trace_level = 0
 
 # If 'data' is a survey.design, extract variables and weights to reuse the
 # unified data.frame path (avoids recursion and enforces consistent internals)
