@@ -327,8 +327,6 @@ names(model$theta) <- c("(Intercept)", model$cols_delta, model$col_y)
   verboser("-- CONDITIONAL DENSITY ESTIMATION --", level = 1)
   dens_response <- generate_conditional_density(model)
   model$density_fun <- dens_response$density_function
-  model$density_fun_gradient <- dens_response$density_function_grad
-  model$density_fun_hess <- dens_response$density_function_hess
   model$density_num_of_coefs <- dens_response$num_of_coefs
   model$chosen_y_dens <- dens_response$chosen_distribution
 
