@@ -19,7 +19,18 @@
 #'   \code{variance_method = "bootstrap"}.
 #' @param auxiliary_means named numeric vector; population means for auxiliaries
 #'   (names must match the RHS of the outcome formula). Optional.
-#' @param control list; optional solver control for \code{nleqslv::nleqslv()}.
+#' @param control list; optional solver control for \code{nleqslv::nleqslv()} or
+#'   the block concentrated-likelihood optimizer. Recognized top-level fields:
+#'   \itemize{
+#'     \item \code{solver}: \code{"joint"} (default, Newton on KKT with analytic
+#'       Jacobian) or \code{"block"} (outer optimization in (beta,W), inner
+#'       Wu multiplier solve in (lambda_x, lambda_W)).
+#'     \item \code{global}, \code{xscalm}: forwarded to \code{nleqslv} in joint mode.
+#'     \item \code{block.inner_tol}: tolerance for inner multiplier solve (default 1e-8).
+#'     \item \code{block.inner_maxit}: max inner iterations (default 50).
+#'     \item \code{block.kappa}: feasibility buffer multiplier for denominators (default 10).
+#'     \item \code{block.outer_method}: outer optimizer (\code{"BFGS"} default).
+#'   }
 #'   Recognized fields (defaults in parentheses):
 #'   \itemize{
 #'     \item Top-level: \code{global} = \code{"qline"} (quadratic line search) or one of

@@ -222,9 +222,187 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     family = family, response_model_matrix = response_model_matrix_scaled, auxiliary_matrix = auxiliary_matrix_scaled,
     respondent_weights = respondent_weights, N_pop = N_pop, n_resp_weighted = n_resp_weighted, mu_x_scaled = mu_x_scaled
   )
-# 4. Solve for Parameters with a safeguarded Newton method
-  K_beta <- ncol(response_model_matrix_scaled)
-  K_aux <- ncol(auxiliary_matrix_scaled)
+# 4. Solve for Parameters
+  use_block_solver <- isTRUE(tolower(control$solver %||% "joint") == "block")
+
+  if (use_block_solver) {
+# Concentrated log-likelihood block solver (outer (beta,W), inner (lambda) via Wu)
+    K_beta <- ncol(response_model_matrix_scaled)
+    K_aux <- ncol(auxiliary_matrix_scaled)
+# Centered auxiliaries once
+    Xc_centered <- if (K_aux > 0) {
+      mu_match <- as.numeric(mu_x_scaled[colnames(auxiliary_matrix_scaled)])
+      sweep(auxiliary_matrix_scaled, 2, mu_match, "-")
+    } else {
+      matrix(nrow = nrow(response_model_matrix_scaled), ncol = 0)
+    }
+# Initial (beta,z)
+    init_beta <- rep(0, K_beta)
+    names(init_beta) <- colnames(response_model_matrix_scaled)
+# Avoid pathological start with constant w_i (beta all zeros).
+# Give small slope(s) to induce variation in w for inner solve feasibility.
+    if (K_beta > 1) {
+      nz <- setdiff(names(init_beta), "(Intercept)")
+      init_beta[nz] <- 1.0
+    }
+    init_z <- {
+      W0 <- sum(respondent_weights) / N_pop
+      W0 <- min(max(W0, 1e-12), 1 - 1e-12)
+      stats::qlogis(W0)
+    }
+    if (!is.null(start) && is.list(start)) {
+      if (!is.null(start$beta)) init_beta <- scale_coefficients(start$beta, nmar_scaling_recipe, colnames(response_model_matrix_scaled))
+      if (!is.null(start$z)) init_z <- as.numeric(start$z)[1]
+      if (!is.finite(init_z) && !is.null(start$W)) init_z <- stats::qlogis(min(max(as.numeric(start$W)[1], 1e-12), 1 - 1e-12))
+    }
+
+# Build objective closures
+    inner_tol <- control$block.inner_tol %||% 1e-10
+    inner_maxit <- control$block.inner_maxit %||% 80
+    kappa <- control$block.kappa %||% 10
+    eta_cap <- get_eta_cap()
+    is_survey_data <- inherits(full_data, "survey.design")
+    obj <- el_build_concentrated_obj(
+      family = family,
+      Z = response_model_matrix_scaled,
+      Xc = Xc_centered,
+      d = respondent_weights,
+      N_pop = N_pop,
+      denom_floor = nmar_get_el_denom_floor(),
+      kappa = kappa,
+      inner_tol = inner_tol,
+      inner_maxit = inner_maxit,
+      eta_cap = eta_cap,
+      fix_lambda_W = FALSE,
+      numeric_grad = isTRUE(control$block.numeric_grad)
+    )
+    init_theta <- c(init_beta, init_z)
+    method_outer <- control$block.outer_method %||% "BFGS"
+    outer_ctrl <- list(maxit = control$maxit %||% 200, reltol = control$ftol %||% 1e-8)
+    outer <- el_run_block_outer(obj$value, obj$gradient, init = init_theta, method = method_outer, control = outer_ctrl)
+    if (outer$convergence != 0) {
+      if (on_failure == "error") {
+        stop("Block optimizer failed to converge: ", outer$message %||% "nonzero convergence code", call. = FALSE)
+      } else {
+        return(list(
+          converged = FALSE,
+          diagnostics = list(
+            convergence_code = outer$convergence,
+            message = outer$message %||% NA_character_
+          ),
+          nmar_scaling_recipe = nmar_scaling_recipe
+        ))
+      }
+    }
+# Extract solution
+    estimates <- outer$theta
+# Refresh inner cache at the final point to ensure consistency
+    invisible(obj$value(estimates))
+    beta_hat_scaled <- estimates[1:K_beta]
+    z_hat <- estimates[K_beta + 1L]
+    W_hat_val <- stats::plogis(z_hat)
+# For robustness, recompute inner multipliers at the final (beta_hat, W_hat)
+    eta_final <- as.vector(response_model_matrix_scaled %*% beta_hat_scaled)
+    eta_final <- pmax(pmin(eta_final, get_eta_cap()), -get_eta_cap())
+    w_final <- family$linkinv(eta_final)
+    w_final <- pmin(pmax(w_final, 1e-12), 1 - 1e-12)
+    if (K_aux > 0) {
+      U_final <- cbind(Xc_centered, w_final - W_hat_val)
+      colnames(U_final) <- c(colnames(Xc_centered), "(w-W)")
+    } else {
+      U_final <- matrix(w_final - W_hat_val, ncol = 1)
+      colnames(U_final) <- "(w-W)"
+    }
+# Recompute inner with fixed lambda_W per QLS (10)
+# Use full inner solve for final point
+    if (K_aux > 0) {
+      U_final <- cbind(Xc_centered, w_final - W_hat_val)
+      colnames(U_final) <- c(colnames(Xc_centered), "(w-W)")
+    } else {
+      U_final <- matrix(w_final - W_hat_val, ncol = 1)
+      colnames(U_final) <- "(w-W)"
+    }
+    inner_final <- el_inner_wu_solve(U = U_final, d = respondent_weights,
+                                     denom_floor = nmar_get_el_denom_floor(),
+                                     kappa = kappa, tol = inner_tol, maxit = inner_maxit)
+    D_final <- inner_final$D
+    lambda_hat <- if (K_aux > 0) inner_final$lambda[seq_len(K_aux)] else numeric(0)
+    lambda_W_final <- as.numeric(inner_final$lambda[length(inner_final$lambda)])
+# Post-processing uses our computed denominators and lambda_W
+    solver_time <- NA_real_
+    Xc_centered_diag <- Xc_centered
+    post <- el_post_solution(
+      estimates = c(beta_hat_scaled, z_hat, lambda_hat),
+      response_model_matrix_scaled = response_model_matrix_scaled,
+      response_model_matrix_unscaled = response_model_matrix_unscaled,
+      auxiliary_matrix_scaled = auxiliary_matrix_scaled,
+      mu_x_scaled = mu_x_scaled,
+      respondent_data = respondent_data,
+      outcome_var = outcome_var,
+      family = family,
+      N_pop = N_pop,
+      respondent_weights = respondent_weights,
+      K_beta = K_beta,
+      K_aux = K_aux,
+      nmar_scaling_recipe = nmar_scaling_recipe,
+      standardize = standardize,
+      trim_cap = trim_cap,
+      X_centered = Xc_centered_diag,
+      override_denominator = D_final,
+      override_lambda_W = lambda_W_final
+    )
+    if (post$error) {
+      if (on_failure == "error") stop(post$message, call. = FALSE)
+      return(list(converged = FALSE, diagnostics = list(convergence_code = -1, message = post$message), nmar_scaling_recipe = nmar_scaling_recipe))
+    }
+    y_hat <- post$y_hat
+    w_unnorm_trimmed <- post$weights
+    beta_hat_unscaled <- post$beta_hat_unscaled
+    W_hat <- post$W_hat
+    lambda_hat <- post$lambda_hat
+    eta_i_hat <- post$eta_i_hat
+    w_i_hat <- post$w_i_hat
+    denominator_hat <- post$denominator_hat
+    lambda_W_hat <- post$lambda_W_hat
+
+# Minimal diagnostics for block path (we reuse existing ones where possible)
+# Create a faux 'solution' record so downstream diagnostics that reference it are defined
+    solution <- list(
+      termcd = 0L,
+      message = "block optimizer converged",
+      iter = if (!is.null(outer$counts)) outer$counts[["function"]] %||% NA_integer_ else NA_integer_
+    )
+    solver_method_used <- "block"
+    nleqslv_global_used <- NA_character_
+    nleqslv_xscalm_used <- NA_character_
+    eq_residuals <- NA
+    max_eq_resid <- NA
+    A_condition <- NA
+    denom_floor <- nmar_get_el_denom_floor()
+    denom_stats <- list(
+      min = suppressWarnings(min(denominator_hat, na.rm = TRUE)),
+      p_small = mean(denominator_hat < 1e-6),
+      p_floor = mean(denominator_hat <= denom_floor)
+    )
+# Constraints using untrimmed mass directly from inner_final (exact to solver tolerance)
+    mass_untrim <- respondent_weights / inner_final$D
+    constraint_eqW_sum <- sum(mass_untrim * (w_final - W_hat_val))
+    if (K_aux > 0) {
+      aux_sum <- as.numeric(crossprod(mass_untrim, Xc_centered))
+      names(aux_sum) <- colnames(Xc_centered)
+      constraint_aux_sum <- aux_sum
+    } else {
+      constraint_aux_sum <- numeric(0)
+    }
+    sum_respondent_weights <- sum(respondent_weights)
+    sum_unnormalized_weights_untrimmed <- sum(mass_untrim)
+    normalization_ratio <- sum_unnormalized_weights_untrimmed / sum_respondent_weights
+
+# Skip variance here; handled below as in joint path
+  } else {
+# 4. Solve for Parameters with a safeguarded Newton method (joint path)
+    K_beta <- ncol(response_model_matrix_scaled)
+    K_aux <- ncol(auxiliary_matrix_scaled)
 # Optional user-provided starting values on the original scale
   init_beta <- rep(0, K_beta)
   names(init_beta) <- colnames(response_model_matrix_scaled)
@@ -362,36 +540,39 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   }
   }
 
-# 5. Post-processing and Point Estimate Calculation
-  estimates <- solution$x
-  beta_hat_scaled <- estimates[1:K_beta]
-  lambda_hat <- if (K_aux > 0) estimates[(K_beta + 2):(K_beta + 1 + K_aux)] else numeric(0)
-  solver_time <- proc.time()[[3]] - t_solve_start
+  if (!use_block_solver) {
+# 5. Post-processing and Point Estimate Calculation (joint path)
+    estimates <- solution$x
+    beta_hat_scaled <- estimates[1:K_beta]
+    lambda_hat <- if (K_aux > 0) estimates[(K_beta + 2):(K_beta + 1 + K_aux)] else numeric(0)
+    solver_time <- proc.time()[[3]] - t_solve_start
 # Precompute centered auxiliary design once for reuse
-  Xc_centered_diag <- NULL
-  if (K_aux > 0) {
-    mu_match <- as.numeric(mu_x_scaled[colnames(auxiliary_matrix_scaled)])
-    Xc_centered_diag <- sweep(auxiliary_matrix_scaled, 2, mu_match, "-")
+    Xc_centered_diag <- NULL
+    if (K_aux > 0) {
+      mu_match <- as.numeric(mu_x_scaled[colnames(auxiliary_matrix_scaled)])
+      Xc_centered_diag <- sweep(auxiliary_matrix_scaled, 2, mu_match, "-")
+    }
+    post <- el_post_solution(
+      estimates = estimates,
+      response_model_matrix_scaled = response_model_matrix_scaled,
+      response_model_matrix_unscaled = response_model_matrix_unscaled,
+      auxiliary_matrix_scaled = auxiliary_matrix_scaled,
+      mu_x_scaled = mu_x_scaled,
+      respondent_data = respondent_data,
+      outcome_var = outcome_var,
+      family = family,
+      N_pop = N_pop,
+      respondent_weights = respondent_weights,
+      K_beta = K_beta,
+      K_aux = K_aux,
+      nmar_scaling_recipe = nmar_scaling_recipe,
+      standardize = standardize,
+      trim_cap = trim_cap,
+      X_centered = Xc_centered_diag
+    )
   }
-
-  post <- el_post_solution(
-    estimates = estimates,
-    response_model_matrix_scaled = response_model_matrix_scaled,
-    response_model_matrix_unscaled = response_model_matrix_unscaled,
-    auxiliary_matrix_scaled = auxiliary_matrix_scaled,
-    mu_x_scaled = mu_x_scaled,
-    respondent_data = respondent_data,
-    outcome_var = outcome_var,
-    family = family,
-    N_pop = N_pop,
-    respondent_weights = respondent_weights,
-    K_beta = K_beta,
-    K_aux = K_aux,
-    nmar_scaling_recipe = nmar_scaling_recipe,
-    standardize = standardize,
-    trim_cap = trim_cap,
-    X_centered = Xc_centered_diag
-  )
+# Close the 'else' branch for the joint solver path
+  }
   if (post$error) {
     if (on_failure == "error") {
       stop(post$message, call. = FALSE)

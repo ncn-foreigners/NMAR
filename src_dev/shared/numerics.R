@@ -96,7 +96,8 @@ sanitize_nleqslv_control <- function(ctrl) {
 # Keep a conservative whitelist to avoid unknown-name errors on older versions
   allowed <- c("xtol", "ftol", "btol", "maxit", "trace", "stepmax", "delta", "allowSing")
 # Treat top-level keys 'global' and 'xscalm' as handled elsewhere; drop silently here
-  ctrl <- ctrl[setdiff(names(ctrl), c("global", "xscalm", "method"))]
+# Drop top-level keys handled elsewhere and non-nleqslv keys used by engines
+  ctrl <- ctrl[setdiff(names(ctrl), c("global", "xscalm", "method", "solver", "block.inner_tol", "block.inner_maxit", "block.kappa", "block.outer_method"))]
   unknown <- setdiff(names(ctrl), allowed)
   if (length(unknown) > 0) {
     warning(sprintf("Ignoring unknown nleqslv control fields: %s", paste(unknown, collapse = ", ")), call. = FALSE)

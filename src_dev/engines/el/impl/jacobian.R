@@ -100,8 +100,15 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     full_mat[idx_beta, idx_W] <- as.numeric(j12_vec)
 # J13: d beta eqs / d lambda
     if (K_aux > 0) {
-      d_betaeq_dlambda_mat <- lambda_W * m_i * inv_denom_sq * X_centered
-      full_mat[idx_beta, idx_lambda] <- shared_weighted_XtY(response_model_matrix, respondent_weights, as.matrix(d_betaeq_dlambda_mat))
+# Include the activity mask so derivatives vanish when D_i is clamped
+# at the floor (consistent with other blocks and stability guards).
+      w_row <- as.numeric(lambda_W * m_i * inv_denom_sq * active)
+      d_betaeq_dlambda_mat <- sweep(X_centered, 1, w_row, "*")
+      full_mat[idx_beta, idx_lambda] <- shared_weighted_XtY(
+        response_model_matrix,
+        respondent_weights,
+        as.matrix(d_betaeq_dlambda_mat)
+      )
     }
 # J21: d W eq / d beta
     term21 <- m_i * inv_denom - (p_i - W_bounded) * inv_denom_sq * (lambda_W * m_i) * active

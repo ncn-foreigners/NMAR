@@ -160,21 +160,34 @@ el_post_solution <- function(estimates,
                              nmar_scaling_recipe,
                              standardize,
                              trim_cap,
-                             X_centered = NULL) {
+                             X_centered = NULL,
+                             override_denominator = NULL,
+                             override_lambda_W = NULL) {
   beta_hat_scaled <- estimates[1:K_beta]
   names(beta_hat_scaled) <- colnames(response_model_matrix_scaled)
   W_hat <- stats::plogis(estimates[K_beta + 1])
   lambda_hat <- if (K_aux > 0) estimates[(K_beta + 2):length(estimates)] else numeric(0)
   eta_i_hat <- as.vector(response_model_matrix_scaled %*% beta_hat_scaled)
   w_i_hat <- family$linkinv(eta_i_hat)
-  lambda_W_hat <- ((N_pop / sum(respondent_weights)) - 1) / (1 - W_hat)
-  denominator_hat <- 1 + lambda_W_hat * (w_i_hat - W_hat)
-  if (K_aux > 0) {
-    if (is.null(X_centered)) {
+  if (!is.null(override_lambda_W)) {
+    lambda_W_hat <- as.numeric(override_lambda_W)[1]
+  } else {
+    lambda_W_hat <- ((N_pop / sum(respondent_weights)) - 1) / (1 - W_hat)
+  }
+# Build denominator. If an override is provided, treat it as the full
+# denominator 1 + Xc %* lambda_x + lambda_W (w - W) and DO NOT add the
+# auxiliary term again.
+  if (!is.null(override_denominator)) {
+    denominator_hat <- as.numeric(override_denominator)
+  } else {
+    denominator_hat <- 1 + lambda_W_hat * (w_i_hat - W_hat)
+    if (K_aux > 0) {
+      if (is.null(X_centered)) {
 # Fallback centering (should be provided by caller for efficiency)
-      X_centered <- sweep(auxiliary_matrix_scaled, 2, mu_x_scaled, "-")
+        X_centered <- sweep(auxiliary_matrix_scaled, 2, mu_x_scaled, "-")
+      }
+      denominator_hat <- denominator_hat + as.vector(X_centered %*% lambda_hat)
     }
-    denominator_hat <- denominator_hat + as.vector(X_centered %*% lambda_hat)
   }
 # Guard denominators for weight construction
   denom_guard <- pmax(as.numeric(denominator_hat), nmar_get_el_denom_floor())
