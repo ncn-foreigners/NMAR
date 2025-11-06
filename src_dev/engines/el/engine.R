@@ -63,15 +63,20 @@
 #'
 #' The response-model score used in both equations and Jacobian is the derivative
 #' of the Bernoulli log-likelihood with respect to the linear predictor, i.e.
-#' \code{mu.eta(eta) / linkinv(eta)}. This form is stable across logit and probit
-#' provided we clip \eqn{\eta} and \eqn{p} away from extreme tails. When
+#' \code{mu.eta(eta) / linkinv(eta)} (logit: \code{1 - p}; probit: Mills ratio \code{phi/Phi}).
+#' We apply a consistent guarding policy (cap \eqn{\eta}, clip \eqn{p}, floor denominators
+#' with an "active" mask in the Jacobian) to ensure numerical stability and to make the
+#' analytic Jacobian match the piecewise-smooth equations being solved. When
 #' \code{variance_method = "delta"} is requested, the estimator returns \code{NA}
 #' standard errors with a message; use \code{variance_method = "bootstrap"} for SEs.
 #'
-#' Solver configuration uses \code{nleqslv} with an analytic Jacobian and a robust
-#' globalization. Defaults are \code{global = "qline"} and \code{xscalm = "auto"};
-#' users can override via \code{control}. Invalid values are coerced to these
-#' defaults with a warning.
+#' Survey designs are handled by replacing counts in QLS (2002) with design-weighted
+#' totals. In particular, the response-rate multiplier generalizes to
+#' \eqn{\lambda_W = \{N_\mathrm{pop}/\sum_{i:\,R_i=1} d_i - 1\}/(1 - W)}, which reduces
+#' to the QLS expression when \eqn{d_i \equiv 1}. Solver configuration uses \code{nleqslv}
+#' with an analytic Jacobian and line-search globalization. Defaults are
+#' \code{global = "qline"} and \code{xscalm = "auto"}; users can override via \code{control}.
+#' Invalid values are coerced to these defaults with a warning.
 #'
 #' @section Progress Reporting:
 #' When \code{variance_method = "bootstrap"}, progress reporting is available via the

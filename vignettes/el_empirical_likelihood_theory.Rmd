@@ -82,6 +82,25 @@ The paper (Qin-Leung-Shao, JASA 2002) sets EL under nonignorable response using:
 
 In our code, we adopt the same EL structure and estimating equations. We extend it to arbitrary $Z$ and $X$, and to survey designs. For uncertainty, we provide bootstrap variance (IID resampling and survey replicate-weight bootstrap). Because $\hat Y$ is a ratio-of-weights estimator, any common normalization of $p_i^{\text{EL}} \propto a_i/D_i$ cancels in $\hat Y$; only relative weights matter (the KKT multipliers $\lambda$ enforce the constraints; normalization affects only a common scale that vanishes in the ratio).
 
+### Survey-Weighted Generalization of $\lambda_W$ (QLS Eq. 10)
+
+QLS derive $\lambda_W = (N/n - 1)/(1-W)$ when $a_i \equiv 1$ and $n$ counts respondents. In survey settings, let $A_{\text{resp}} = \sum_{i:R_i=1} a_i$ be the respondent-weighted total and let $N_{\text{pop}}$ be the analysis-scale population total (either $\sum a_i$ or a user-supplied $n_{\text{total}}$). We use the weighted analogue
+
+$$\lambda_W = \frac{N_{\text{pop}}/A_{\text{resp}} - 1}{1 - W},$$
+
+which reduces to QLS when $a_i \equiv 1$.
+
+### Guarding and Numerical Stability
+
+We solve the stacked system with a consistent guarding policy across equations, Jacobian, and post-solution:
+
+- Cap $\eta$: $\eta \leftarrow \max\{\min(\eta,\,\eta_{\max}),\,-\eta_{\max}\}$
+- Compute $w = \mathrm{linkinv}(\eta)$; clip $w$ to $[10^{-12}, 1-10^{-12}]$ when used in ratios
+- Guard denominators: $D_i \leftarrow \max\{D_i,\,\delta\}$ with a small $\delta>0$
+- In the Jacobian, multiply terms involving $\partial(1/D_i)/\partial\cdot$ by $\mathbb{1}\{D_i^{\text{raw}} > \delta\}$ so the analytic Jacobian matches the piecewise-smooth equations being solved
+
+For the probit link, $s_i(\eta) = \partial\log w/\partial\eta = \phi(\eta)/\Phi(\eta)$ (Mills ratio) is computed in the log domain for stability; its derivative is $\frac{d s_i}{d\eta} = -\eta\,s_i - s_i^2$.
+
 ### Equation Crosswalk (QLS 2002 -> This Vignette/Code)
 
 - QLS (5): Discrete mass form for $p_i$ with two multipliers -> Our $D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T \lambda_x$ and $p_i^{\text{EL}} \propto a_i/D_i$.

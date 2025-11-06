@@ -127,19 +127,27 @@ el_run_solver <- function(equation_system_func,
   list(solution = solution, method = solver_method_used, used_top = list(global = nl_args$global %||% NULL, xscalm = nl_args$xscalm %||% NULL))
 }
 
-#' Post-solution: compute weights and point estimate
+#' Post-solution: denominators, masses, and mean (EL)
+#'
+#' Computes EL denominators and masses and the mean estimate after the solver
+#' converges. The mean is calculated from normalized probability masses per
+#' Qin, Leung, and Shao (2002, Eq. 11). When trimming is active, the masses are
+#' capped and renormalized before computing the mean; diagnostics still report
+#' constraint sums based on untrimmed masses. Denominator floors and the
+#' guarding policy used in equations/Jacobian are applied consistently here for
+#' diagnostic coherence.
 #'
 #' @param estimates Numeric vector (beta, z, lambda) at the solution.
-#' @param response_model_matrix_scaled Scaled design matrix for response model.
-#' @param response_model_matrix_unscaled Unscaled design matrix for response model.
+#' @param response_model_matrix_scaled Scaled design matrix for the response model.
+#' @param response_model_matrix_unscaled Unscaled design matrix for the response model.
 #' @param auxiliary_matrix_scaled Scaled auxiliary matrix (or empty matrix).
 #' @param mu_x_scaled Vector of population means for scaled auxiliaries (or NULL).
 #' @param respondent_data Data frame of respondents.
 #' @param outcome_var Character; outcome column name in respondent_data.
 #' @param family Family object with linkinv and mu.eta.
-#' @param N_pop Numeric; population total.
+#' @param N_pop Numeric; population total on the analysis scale.
 #' @param respondent_weights Base weights for respondents.
-#' @param K_beta, K_aux Integers; sizes of beta and lambda.
+#' @param K_beta,K_aux Integers; sizes of beta and lambda.
 #' @param nmar_scaling_recipe Scaling recipe object for unscaling.
 #' @param standardize Logical; whether coefficients need unscaling.
 #' @param trim_cap Numeric; weight trimming cap (Inf = no trimming).
@@ -166,55 +174,41 @@ el_post_solution <- function(estimates,
   W_hat <- stats::plogis(estimates[K_beta + 1])
   lambda_hat <- if (K_aux > 0) estimates[(K_beta + 2):length(estimates)] else numeric(0)
   eta_i_hat <- as.vector(response_model_matrix_scaled %*% beta_hat_scaled)
-  w_i_hat <- family$linkinv(eta_i_hat)
-  lambda_W_hat <- ((N_pop / sum(respondent_weights)) - 1) / (1 - W_hat)
-  denominator_hat <- 1 + lambda_W_hat * (w_i_hat - W_hat)
+# Clip eta consistently with equations/Jacobian for diagnostic coherence
+  ETA_CAP <- get_eta_cap()
+  eta_i_hat_capped <- pmax(pmin(eta_i_hat, ETA_CAP), -ETA_CAP)
+  w_i_hat <- family$linkinv(eta_i_hat_capped)
+  C_const <- (N_pop / sum(respondent_weights)) - 1
+  lambda_W_hat <- el_lambda_W(C_const, W_hat)
   if (K_aux > 0) {
     if (is.null(X_centered)) {
 # Fallback centering (should be provided by caller for efficiency)
       X_centered <- sweep(auxiliary_matrix_scaled, 2, mu_x_scaled, "-")
     }
-    denominator_hat <- denominator_hat + as.vector(X_centered %*% lambda_hat)
+    Xc_lambda <- as.vector(X_centered %*% lambda_hat)
+  } else {
+    Xc_lambda <- 0
   }
-# Guard denominators for weight construction
-  denom_guard <- pmax(as.numeric(denominator_hat), nmar_get_el_denom_floor())
-# EL unnormalized masses (w_tilde_i = d_i / D_i)
-  mass_untrimmed <- respondent_weights / denom_guard
-# Negativity check (prior to cap)
-  TOL <- 1e-8
-  min_w <- suppressWarnings(min(mass_untrimmed, na.rm = TRUE))
-  if (is.finite(min_w) && min_w < -TOL) {
-    msg <- paste0(
-      "Negative EL weights produced (min = ", round(min_w, 6), "). This often indicates that the auxiliary means are ",
-      "inconsistent with the sample data, or the model has failed to converge to a valid solution."
-    )
-    return(list(error = TRUE, message = msg))
-  }
-  mass_untrimmed[mass_untrimmed < 0] <- 0
-  trim_results <- trim_weights(mass_untrimmed, cap = trim_cap)
-  mass_trimmed <- trim_results$weights
-
-# CRITICAL FIX: Compute mean using probability masses (QLS 2002, Eq. 11)
-# y_bar = sum p_i * y_i where p_i = w_tilde_i / sum w_tilde_j
-# This ensures correct formula even with trimming
-  total_mass <- sum(mass_trimmed)
-  prob_mass <- mass_trimmed / total_mass # Normalized probability masses
-  y_hat <- sum(prob_mass * respondent_data[[outcome_var]])
+  denom_floor <- nmar_get_el_denom_floor()
+  dpack <- el_denominator(lambda_W_hat, W_hat, Xc_lambda, w_i_hat, denom_floor)
+  masses <- el_masses(respondent_weights, dpack$denom, denom_floor, trim_cap)
+  prob_mass <- masses$prob_mass
+  y_hat <- el_mean(prob_mass, respondent_data[[outcome_var]])
   beta_hat_unscaled <- if (standardize) unscale_coefficients(beta_hat_scaled, matrix(0, K_beta, K_beta), nmar_scaling_recipe)$coefficients else beta_hat_scaled
   names(beta_hat_unscaled) <- colnames(response_model_matrix_unscaled)
   list(
     error = FALSE,
     y_hat = y_hat,
-    weights = mass_trimmed, # Store unnormalized (trimmed) EL masses as single source of truth
-    mass_untrim = mass_untrimmed,
-    trimmed_fraction = trim_results$trimmed_fraction,
+    weights = masses$mass_trimmed, # Store unnormalized (trimmed) EL masses as single source of truth
+    mass_untrim = masses$mass_untrim,
+    trimmed_fraction = masses$trimmed_fraction,
     beta_hat_scaled = beta_hat_scaled,
     beta_hat_unscaled = beta_hat_unscaled,
     W_hat = W_hat,
     lambda_hat = lambda_hat,
     eta_i_hat = eta_i_hat,
     w_i_hat = w_i_hat,
-    denominator_hat = denom_guard,
+    denominator_hat = dpack$denom,
     lambda_W_hat = lambda_W_hat
   )
 }

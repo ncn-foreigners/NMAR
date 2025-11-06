@@ -149,7 +149,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   verboser("", level = 2)
   verboser("-- MODEL SPECIFICATION --", level = 2)
   verboser(sprintf("  Outcome variable:         %s", outcome_var), level = 2)
-  verboser(sprintf("  Response model family:    %s", family$family), level = 2)
+  verboser(sprintf("  Response model family:    %s", family$name %||% "<unknown>"), level = 2)
   verboser(sprintf("  Response predictors:      %d", K_beta), level = 2)
 
   if (K_aux > 0) {
@@ -185,32 +185,20 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 # 3. Build Solver Components
   n_resp_weighted <- sum(respondent_weights)
 
-# Heuristic inconsistency check for user-supplied auxiliary means:
-# Compare provided means to respondents' sample means; if far (|z|>threshold),
-# warn and record diagnostics.
+# Heuristic inconsistency check for user-supplied auxiliary means
   aux_inconsistency_max_z <- NA_real_
   aux_inconsistency_cols <- character(0)
   if (has_aux && !is.null(auxiliary_means)) {
-    aux_df <- model.matrix(internal_formula$auxiliary, data = respondent_data)
-# Drop columns with near-zero variance to avoid division by zero
-    bad_sd <- apply(aux_df, 2, function(col) stats::sd(col) < 1e-8)
-    if (any(bad_sd)) aux_df <- aux_df[, !bad_sd, drop = FALSE]
-    if (ncol(aux_df) > 0) {
-      sample_means <- colMeans(aux_df)
-      sample_sds <- apply(aux_df, 2, stats::sd)
-      means_provided <- auxiliary_means[colnames(aux_df)]
-      z_scores <- abs((means_provided - sample_means) / pmax(sample_sds, 1e-8))
-      thr <- getOption("nmar.el_aux_z_threshold", 8)
-      if (!is.numeric(thr) || length(thr) != 1L || !is.finite(thr) || thr <= 0) thr <- 8
-      aux_inconsistency_max_z <- suppressWarnings(max(z_scores, na.rm = TRUE))
-      flag <- is.finite(aux_inconsistency_max_z) && aux_inconsistency_max_z > thr
-      if (flag) {
-        aux_inconsistency_cols <- names(z_scores)[which(is.finite(z_scores) & z_scores > thr)]
-        warning(sprintf(
-          "Auxiliary means appear far from respondents' support (max |z| = %.2f, threshold = %.2f). Proceeding; see diagnostics.",
-          aux_inconsistency_max_z, thr
-        ), call. = FALSE)
-      }
+    thr <- getOption("nmar.el_aux_z_threshold", 8)
+    if (!is.numeric(thr) || length(thr) != 1L || !is.finite(thr) || thr <= 0) thr <- 8
+    chk <- el_check_aux_inconsistency(respondent_data, internal_formula$auxiliary, provided_means = auxiliary_means, threshold = thr)
+    aux_inconsistency_max_z <- chk$max_z
+    aux_inconsistency_cols <- chk$cols
+    if (is.finite(aux_inconsistency_max_z) && aux_inconsistency_max_z > thr) {
+      warning(sprintf(
+        "Auxiliary means appear far from respondents' support (max |z| = %.2f, threshold = %.2f). Proceeding; see diagnostics.",
+        aux_inconsistency_max_z, thr
+      ), call. = FALSE)
     }
   }
 # Build full stacked builders
@@ -276,7 +264,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   init <- c(unname(init_beta), init_z, unname(init_lambda))
 # Split user control into top-level nleqslv args (global/xscalm) and control list
   control_top <- validate_nleqslv_top(extract_nleqslv_top(control))
-  final_control <- modifyList(list(ftol = 1e-8, xtol = 1e-8, maxit = 150, trace = FALSE), control)
+  final_control <- modifyList(list(ftol = 1e-8, xtol = 1e-8, maxit = 200, trace = FALSE), control)
   final_control <- sanitize_nleqslv_control(final_control)
 
 # Solver configuration (LEVEL 1 header, LEVEL 2 details)
@@ -460,7 +448,6 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     p_floor = mean(denominator_hat <= denom_floor)
   )
 # Unnormalized EL masses used in constraints: mass_untrim = d_i / Di
-  mass_untrim <- respondent_weights / denominator_hat
   cons <- tryCatch(
     constraint_summaries(w_i_hat, W_hat, post$mass_untrim, Xc_centered_diag),
     error = function(e) {

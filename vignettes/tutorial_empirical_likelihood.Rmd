@@ -178,8 +178,9 @@ if (requireNamespace("survey", quietly = TRUE)) {
   apiclus1$api00_miss[miss] <- NA_real_
 
   dclus1 <- svydesign(id = ~dnum, weights = ~pw, data = apiclus1, fpc = ~fpc)
-  pop_mean_ell <- mean(apiclus1$ell)
-  engine <- el_engine(auxiliary_means = c(ell = pop_mean_ell), variance_method = "none", standardize = TRUE)
+# Let the engine infer auxiliary means from the full design (design-weighted).
+# Alternatively, you can supply known population means via auxiliary_means.
+  engine <- el_engine(auxiliary_means = NULL, variance_method = "none", standardize = TRUE)
 
   fit_svy <- nmar(
     formula = api00_miss ~ ell,
@@ -223,7 +224,7 @@ invisible(nmar(Y_miss ~ X, data = dat, engine = eng_ctrl))
 # Families and numerical stability
 
 - Family: `el_engine(family = "logit")` (default) or `family = "probit"`.
-- Probit stability: the response-model score uses $\mu.\eta(\eta)/\mathrm{linkinv}(\eta)$ with clipping; for probit this behaves like $\phi/\Phi$ when probabilities are bounded away from 0 and 1.
+- Probit stability: the response-model score is evaluated as the Mills ratio $\phi(\eta)/\Phi(\eta)$ in the log domain for numerical stability; the logit score simplifies to $1-\mathrm{plogis}(\eta)$. We also cap the linear predictor and clip probabilities used in ratios.
 - Theory mapping: see the companion article "Empirical Likelihood Theory for NMAR" for equations, Jacobian blocks, and variance details.
 
 ```{r}

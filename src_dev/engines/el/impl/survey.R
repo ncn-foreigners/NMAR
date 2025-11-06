@@ -61,7 +61,7 @@ el.survey.design <- function(data, formula,
   observed_indices <- which(observed_mask)
   resp_design <- subset(design, observed_mask)
 
-# SCALE COHERENCE FIX: Ensure N_pop and design weights on same scale
+# Scale coherence: ensure N_pop and design weights are on the same scale
   design_weight_sum <- sum(weights(design))
 
   if (!is.null(n_total)) {

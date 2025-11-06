@@ -10,6 +10,12 @@
 #'   numerical stability; these guards are applied consistently in equations,
 #'   Jacobian, and post-solution weights.
 #'
+#'   Guarding policy (must remain consistent across equations/Jacobian/post):
+#'   - Cap eta: eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())
+#'   - Compute p <- family$linkinv(eta); clip to [1e-12, 1-1e-12] when used in ratios
+#'   - Denominator floor: Di <- pmax(Di_raw, nmar_get_el_denom_floor());
+#'     in the Jacobian, multiply terms that depend on d(1/Di)/d· by active = 1(Di_raw > floor)
+#'
 #'   The score with respect to the linear predictor uses the Bernoulli form
 #'   \eqn{s_i(\beta) = \partial \log p_i / \partial \eta_i = \mu.\eta(\eta_i)/p_i},
 #'   which is valid for both logit and probit links when \eqn{p_i} is clipped.
@@ -44,18 +50,30 @@ el_build_equation_system <- function(family, response_model_matrix, auxiliary_ma
     lambda_x <- if (K_aux > 0) params[(K_beta + 2):length(params)] else numeric(0)
     W_bounded <- W
 # QLS Eq. (10): lambda_W = (N/n - 1) / (1 - W)
-    lambda_W <- C_const / (1 - W_bounded)
+    lambda_W <- el_lambda_W(C_const, W_bounded)
     eta_raw <- as.vector(response_model_matrix %*% beta_vec)
     eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
     w_i <- family$linkinv(eta_i)
     mu_eta_i <- family$mu.eta(eta_i)
-# Unified score w.r.t. eta for delta=1: mu.eta(eta) / p(eta)
+# Unified score w.r.t. eta for delta=1: prefer numerically stable family score
     p_i_clipped <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
-    dlw_i <- mu_eta_i / p_i_clipped
+    if (!is.null(family$name) && identical(family$name, "logit")) {
+# For logit, dlw = 1 - p
+      dlw_i <- 1 - p_i_clipped
+    } else if (!is.null(family$name) && identical(family$name, "probit")) {
+# For probit, use Mills ratio in log domain
+      log_phi <- stats::dnorm(eta_i, log = TRUE)
+      log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
+      dlw_i <- exp(log_phi - log_Phi)
+    } else if (!is.null(family$score_eta)) {
+      dlw_i <- family$score_eta(eta_i, 1)
+    } else {
+      dlw_i <- mu_eta_i / p_i_clipped
+    }
 # QLS Eq. (5): Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
-    denominator <- 1 + lambda_W * (w_i - W_bounded)
-    if (K_aux > 0) denominator <- denominator + as.vector(X_centered %*% lambda_x)
-    inv_denominator <- 1 / pmax(denominator, nmar_get_el_denom_floor())
+    Xc_lambda <- if (K_aux > 0) as.vector(X_centered %*% lambda_x) else 0
+    dpack <- el_denominator(lambda_W, W_bounded, Xc_lambda, w_i, nmar_get_el_denom_floor())
+    inv_denominator <- dpack$inv
 # beta block (QLS Eq. 9): score_eta(eta) - lambda_W * mu.eta(eta) / Di
     beta_eq_term <- dlw_i - lambda_W * mu_eta_i * inv_denominator
     eq_betas <- shared_weighted_Xty(response_model_matrix, respondent_weights, beta_eq_term)
