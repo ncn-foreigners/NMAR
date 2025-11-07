@@ -12,13 +12,6 @@
 #'   - Compute w <- family$linkinv(eta); clip to [1e-12, 1-1e-12] when used in ratios
 #'   - Denominator floor: Di <- pmax(Di_raw, nmar_get_el_denom_floor());
 #'     multiply terms that depend on d(1/Di)/d(.) by active = 1(Di_raw > floor)
-#'
-#' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
-#' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
-#'
-#' Wu, C., and Sitter, R. R. (2001). A model-calibration approach to using complete
-#' auxiliary information from survey data. Journal of the American Statistical Association,
-#' 96(453), 185-193.
 #' @keywords internal
 el_build_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
                               respondent_weights, N_pop, n_resp_weighted, mu_x_scaled) {

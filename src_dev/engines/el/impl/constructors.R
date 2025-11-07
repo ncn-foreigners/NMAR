@@ -86,7 +86,7 @@ prepare_el_inputs <- function(formula, data, require_na = TRUE) {
   }
   env <- environment(formula)
   if (is.null(env)) env <- parent.frame()
-  outcome_var <- all.vars(formula[[2]])
+  outcome_var <- all.vars(formula[[2]])[[1L]]
 
 # Split RHS by `|` if present: auxiliaries on the left, response-only on the right
   rhs <- formula[[3]]
@@ -100,28 +100,24 @@ prepare_el_inputs <- function(formula, data, require_na = TRUE) {
   response_predictors <- if (is.null(resp_expr)) character() else unique(all.vars(resp_expr))
   if (!outcome_var %in% names(data)) stop(sprintf("Outcome variable '%s' not found in the data.", outcome_var), call. = FALSE)
   if (isTRUE(require_na) && !anyNA(data[[outcome_var]])) stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_var), call. = FALSE)
-  response_predictors_full <- c(outcome_var, response_predictors)
   missing_in_data <- setdiff(response_predictors, names(data))
   if (length(missing_in_data) > 0) stop(sprintf("Variables in response part not found in data: %s", paste(missing_in_data, collapse = ", ")), call. = FALSE)
-  delta_name <- "..nmar_delta.."
-  if (delta_name %in% names(data)) {
-    i <- 1L
-    while (paste0(delta_name, i) %in% names(data)) i <- i + 1L
-    delta_name <- paste0(delta_name, i)
-  }
+
+# Create unique delta and append to data
+  delta_name <- nmar_make_unique_colname("..nmar_delta..", names(data))
   data2 <- data
   data2[[delta_name]] <- as.integer(!is.na(data2[[outcome_var]]))
-  outcome_fml <- stats::as.formula(paste(outcome_var, "~ 1"))
-  environment(outcome_fml) <- env
-  response_rhs <- if (length(response_predictors_full) > 0) paste(response_predictors_full, collapse = " + ") else "1"
-  response_fml <- stats::as.formula(paste(delta_name, "~", response_rhs))
-  environment(response_fml) <- env
-  auxiliary_fml <- if (length(rhs_vars) > 0) {
-    f <- stats::as.formula(paste("~", paste(rhs_vars, collapse = " + "), "- 1"))
-    environment(f) <- env
-    f
-  } else {
-    NULL
-  }
-  list(data = data2, formula_list = list(outcome = outcome_fml, response = response_fml, auxiliary = auxiliary_fml))
+
+# Build internal formulas using language objects
+# Only build auxiliary formula if there are actual variables on aux side
+  aux_lang_use <- if (length(rhs_vars) > 0) aux_expr else NULL
+  forms <- nmar_build_internal_formulas(
+    delta_name = delta_name,
+    outcome_var = outcome_var,
+    aux_rhs_lang = aux_lang_use,
+    response_rhs_lang = resp_expr,
+    env = env
+  )
+
+  list(data = data2, formula_list = forms)
 }

@@ -51,6 +51,8 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
       outcome = outcome_vars,
       auxiliary_vars = auxiliary_vars,
       response_predictors = response_predictors,
+      aux_rhs_lang = aux_expr,
+      response_rhs_lang = resp_expr,
       data = data_df,
       original_data = data,
       is_survey = is_survey,
@@ -193,6 +195,8 @@ new_nmar_task <- function(spec, traits) {
       outcome = spec$outcome,
       auxiliary_vars = spec$auxiliary_vars,
       response_predictors = spec$response_predictors,
+      aux_rhs_lang = spec$aux_rhs_lang,
+      response_rhs_lang = spec$response_rhs_lang,
       data = spec$data,
       original_data = spec$original_data,
       is_survey = spec$is_survey,
@@ -252,46 +256,100 @@ prepare_nmar_design <- function(task,
     survey_design = if (isTRUE(task$is_survey)) task$original_data else NULL,
     formula = task$formula,
     standardize = standardize,
-    auxiliary_means = auxiliary_means
+    auxiliary_means = auxiliary_means,
+    aux_rhs_lang = if (isTRUE(include_auxiliary)) task$aux_rhs_lang else NULL,
+    response_rhs_lang = if (isTRUE(include_response)) task$response_rhs_lang else NULL
   )
 }
 
 #' Rebuild a partitioned formula y ~ aux | response
 #'
 #' Given a base formula whose RHS contains auxiliaries only (the normalized
-#' task$formula) and a character vector of response-only predictors, construct
-#' a new formula that partitions the RHS as `aux | response` using language
-#' objects (no deparse/paste). If `response_predictors` is empty, returns the
-#' base formula unchanged.
+#' `task$formula`) and language objects for the auxiliary and response partitions,
+#' construct a new partitioned formula `y ~ aux | response` without string
+#' manipulation. If `response_rhs_lang` is `NULL`, returns an unpartitioned
+#' `y ~ aux` formula. The formula environment is preserved.
 #'
 #' @param base_formula A two-sided formula (y ~ aux-only) whose environment is set.
-#' @param response_predictors Character vector of response-only predictors.
-#' @param env Optional formula environment override; defaults to base formula env.
+#' @param response_rhs_lang An R language object for the response-only predictors (right of `|`), or `NULL`.
+#' @param aux_rhs_lang An R language object for the auxiliary predictors (left of `|`), or `NULL` to reuse the base RHS.
+#' @param env Optional formula environment override; defaults to the base formula environment.
 #' @keywords internal
 nmar_rebuild_partitioned_formula <- function(base_formula,
-                                            response_predictors,
+                                            response_rhs_lang = NULL,
+                                            aux_rhs_lang = NULL,
                                             env = NULL) {
   if (!inherits(base_formula, "formula") || length(base_formula) != 3L) {
     stop("`base_formula` must be a two-sided formula.", call. = FALSE)
   }
-  if (length(response_predictors) == 0L) return(base_formula)
-  if (!is.character(response_predictors) || anyNA(response_predictors)) {
-    stop("`response_predictors` must be a non-NA character vector.", call. = FALSE)
-  }
-
-  make_plus_expr <- function(vars) {
-    if (length(vars) == 1L) return(as.name(vars[[1L]]))
-    Reduce(function(a, b) call("+", a, as.name(b)), vars[-1L], init = as.name(vars[[1L]]))
-  }
-
   lhs <- base_formula[[2L]]
-  rhs_aux <- base_formula[[3L]]
-  rhs_resp <- make_plus_expr(response_predictors)
-  rhs_bar <- call("|", rhs_aux, rhs_resp)
-  f <- call("~", lhs, rhs_bar)
+  rhs_aux <- aux_rhs_lang %||% base_formula[[3L]]
+# If no response language provided, return base or aux-adjusted formula
+  if (is.null(response_rhs_lang)) {
+    f <- call("~", lhs, rhs_aux)
+  } else {
+    rhs_bar <- call("|", rhs_aux, response_rhs_lang)
+    f <- call("~", lhs, rhs_bar)
+  }
   if (is.null(env)) env <- environment(base_formula)
   if (is.null(env)) env <- parent.frame()
   class(f) <- "formula"
   attr(f, ".Environment") <- env
   f
+}
+
+# Split a partitioned formula y ~ aux | response into language parts
+# Returns list(outcome_var, aux_rhs_lang, response_rhs_lang, env)
+nmar_split_partitioned_formula <- function(formula) {
+  if (!inherits(formula, "formula") || length(formula) != 3L) {
+    stop("`formula` must be a two-sided formula.", call. = FALSE)
+  }
+  env <- environment(formula)
+  if (is.null(env)) env <- parent.frame()
+  outcome_var <- all.vars(formula[[2L]])
+  if (length(outcome_var) != 1L) stop("LHS must be a single outcome variable.", call. = FALSE)
+  rhs <- formula[[3L]]
+  aux_expr <- rhs
+  resp_expr <- NULL
+  if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) {
+    aux_expr <- rhs[[2L]]
+    resp_expr <- rhs[[3L]]
+  }
+  list(outcome_var = outcome_var[[1L]], aux_rhs_lang = aux_expr, response_rhs_lang = resp_expr, env = env)
+}
+
+# Build internal EL formulas (outcome, response, auxiliary) using language objects
+# delta_name must already be unique in the provided data
+nmar_build_internal_formulas <- function(delta_name, outcome_var, aux_rhs_lang, response_rhs_lang, env) {
+# outcome: y ~ 1
+  outcome_fml <- stats::as.formula(call("~", as.name(outcome_var), 1L))
+  attr(outcome_fml, ".Environment") <- env
+# response: delta ~ outcome + response_rhs_lang (or ~ outcome if NULL)
+  rhs_resp <- if (is.null(response_rhs_lang)) {
+    as.name(outcome_var)
+  } else {
+    call("+", as.name(outcome_var), response_rhs_lang)
+  }
+  response_fml <- stats::as.formula(call("~", as.name(delta_name), rhs_resp))
+  attr(response_fml, ".Environment") <- env
+# auxiliary: ~ 0 + aux_rhs_lang (or NULL)
+  auxiliary_fml <- NULL
+  if (!is.null(aux_rhs_lang)) {
+    rhs_aux <- call("+", 0, aux_rhs_lang) # 0 + x removes intercept
+    auxiliary_fml <- stats::as.formula(call("~", rhs_aux))
+    attr(auxiliary_fml, ".Environment") <- env
+  }
+  list(outcome = outcome_fml, response = response_fml, auxiliary = auxiliary_fml)
+}
+
+# Generate a unique column name that does not collide with names(data)
+nmar_make_unique_colname <- function(base, data_names) {
+  nm <- base
+  if (!(nm %in% data_names)) return(nm)
+  i <- 1L
+  repeat {
+    cand <- paste0(base, i)
+    if (!(cand %in% data_names)) return(cand)
+    i <- i + 1L
+  }
 }

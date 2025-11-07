@@ -15,7 +15,8 @@ run_engine.nmar_engine_el <- function(engine, task) {
 # Reconstruct a formula carrying response-only predictors to the right of `|`
   f_use <- nmar_rebuild_partitioned_formula(
     base_formula = task$formula,
-    response_predictors = design_info$response_predictors,
+    response_rhs_lang = design_info$response_rhs_lang,
+    aux_rhs_lang = design_info$aux_rhs_lang,
     env = task$environment
   )
 

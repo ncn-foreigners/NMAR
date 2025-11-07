@@ -171,7 +171,46 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
 # model$x_for_y_obs <- model$x_1[,model$cols_y_observed,drop=FALSE]
 # model$x_for_y_unobs <- model$x_0[,model$cols_y_observed,drop=FALSE]
 
-  has_aux <- length(model$cols_y_observed) > 0 && !is.null(model$auxiliary_means)
+# Build response and auxiliary design matrices via model.matrix to preserve transforms
+# Response predictors (missingness model) exclude the outcome; outcome enters separately
+  env <- environment(model$formula)
+  if (is.null(env)) env <- parent.frame()
+  split <- nmar_split_partitioned_formula(model$formula)
+  resp_expr <- split$response_rhs_lang
+  aux_expr <- split$aux_rhs_lang
+# Response (delta) design: ~ 0 + resp_expr
+  X_delta <- if (is.null(resp_expr)) {
+    matrix(nrow = nrow(model$x), ncol = 0,
+           dimnames = list(NULL, character()))
+  } else {
+    f_delta <- stats::as.formula(call("~", call("+", 0, resp_expr)))
+    attr(f_delta, ".Environment") <- env
+    mm <- model.matrix(f_delta, data = model$x)
+# Drop intercept if any slipped in
+    if ("(Intercept)" %in% colnames(mm)) mm <- mm[, setdiff(colnames(mm), "(Intercept)"), drop = FALSE]
+    mm
+  }
+
+# Auxiliary matrix: ~ 0 + aux_expr
+  X_aux <- if (is.null(aux_expr)) {
+    matrix(nrow = nrow(model$x), ncol = 0,
+           dimnames = list(NULL, character()))
+  } else {
+    f_aux <- stats::as.formula(call("~", call("+", 0, aux_expr)))
+    attr(f_aux, ".Environment") <- env
+    mm <- model.matrix(f_aux, data = model$x)
+    if ("(Intercept)" %in% colnames(mm)) mm <- mm[, setdiff(colnames(mm), "(Intercept)"), drop = FALSE]
+    mm
+  }
+
+# Outcome column
+  y_col <- model$x[, model$col_y, drop = FALSE]
+
+# Update model-col sets based on matrices
+  model$cols_delta <- colnames(X_delta)
+  model$cols_y_observed <- colnames(X_aux)
+
+  has_aux <- ncol(X_aux) > 0 && !is.null(model$auxiliary_means)
   filtered_aux_means <- if (has_aux) {
     aux_names <- intersect(names(model$auxiliary_means), model$cols_y_observed)
     model$auxiliary_means[aux_names]
@@ -238,11 +277,15 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
 # helper can zero-out nonrespondents without reallocating weights
   weight_mask <- if (length(respondent_mask) == nrow(model$x)) respondent_mask else NULL
 
+# Assemble response model matrix as [y, X_delta]
+  response_unscaled <- if (ncol(X_delta) > 0) cbind(y_col, X_delta) else y_col
+  colnames(response_unscaled)[1] <- model$col_y
+
   scaling_result <- validate_and_apply_nmar_scaling(
     standardize = model$standardize,
     has_aux = has_aux,
-    response_model_matrix_unscaled = model$x[, c(model$col_y, model$cols_delta), drop = FALSE],
-    auxiliary_matrix_unscaled = model$x[, model$cols_y_observed, drop = FALSE],
+    response_model_matrix_unscaled = response_unscaled,
+    auxiliary_matrix_unscaled = X_aux,
     mu_x_unscaled = filtered_aux_means,
     weights = scaling_weights,
     weight_mask = weight_mask

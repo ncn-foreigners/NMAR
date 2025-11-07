@@ -74,7 +74,10 @@ generate_conditional_density <- function(model) {
   beta_names <- names(coefs)
 
   design_mat <- function(x) {
-    as.matrix(cbind(Intercept = 1, x[covar_names]))
+# Build design in the order of fitted coefficients (excluding intercept)
+    pred_names <- setdiff(beta_names, "(Intercept)")
+    X <- if (length(pred_names)) x[, pred_names, drop = FALSE] else x[, character(), drop = FALSE]
+    as.matrix(cbind(Intercept = 1, X))
   }
 
   if (chosen_dist %in% c("normal", "lognormal")) {
@@ -84,7 +87,6 @@ generate_conditional_density <- function(model) {
 
   density_fun <- function(y, x) {
     x_mat <- design_mat(x)
-
     validator$assert_matrix_ncol(x_mat, length(coefs[beta_names]), name = "design_mat/coefs")
 
     mean_val <- x_mat %*% coefs[beta_names]

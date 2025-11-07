@@ -22,15 +22,8 @@
 #'   requested you must also provide population auxiliary means via
 #'   \code{auxiliary_means}. Result weights are the unnormalized EL masses
 #'   \code{d_i/D_i(theta)} on this design scale;\code{weights(result, scale = "population")} sums to \code{N_pop}.
-#' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
-#' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
-#'
-#' Wu, C., and Sitter, R. R. (2001). A model-calibration approach to using complete
-#' auxiliary information from survey data. Journal of the American Statistical Association,
-#' 96(453), 185-193.
 #' @return `c('nmar_result_el','nmar_result')`.
 #'
-#' @name el_survey
 #' @keywords internal
 el.survey.design <- function(data, formula,
                              auxiliary_means = NULL, standardize = TRUE,
