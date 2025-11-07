@@ -15,6 +15,8 @@
 #' @param trim_cap numeric; cap for EL weights (\code{Inf} = no trimming).
 #' @param on_failure character; \code{"return"} or \code{"error"} on solver failure.
 #' @param variance_method character; one of \code{"delta"}, \code{"bootstrap"}, or \code{"none"}.
+#'   The analytical delta method for EL is currently not implemented; when
+#'   \code{"delta"} is supplied it is coerced to \code{"none"} with a warning.
 #' @param bootstrap_reps integer; number of bootstrap replicates when
 #'   \code{variance_method = "bootstrap"}.
 #' @param auxiliary_means named numeric vector; population means for auxiliaries

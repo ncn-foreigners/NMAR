@@ -13,12 +13,15 @@
 #' @param bootstrap_reps Integer; reps when `variance_method = "bootstrap"`.
 #' @param ... Passed to solver.
 #' @details Implements the empirical likelihood estimator with design weights.
-#'   If `n_total` is supplied, design weights are rescaled internally to ensure
-#'   `sum(weights(design))` and `n_total` are on the same scale; this guarantees
-#'   the response-multiplier formula uses consistent totals. If `n_total` is not
-#'   supplied, `sum(weights(design))` is used as the population total `N_pop`.
-#'   Result weights are the unnormalized EL masses `d_i/D_i(theta)` on this
-#'   design scale; `weights(result, scale = "population")` sums to `N_pop`.
+#'   If \code{n_total} is supplied, design weights are rescaled internally to
+#'   ensure \code{sum(weights(design))} and \code{n_total} are on the same scale;
+#'   this guarantees the response-multiplier formula uses consistent totals. If
+#'   \code{n_total} is not supplied, \code{sum(weights(design))} is used as the
+#'   population total \code{N_pop}. When respondents-only designs are used (no
+#'   NA in the outcome), \code{n_total} must be provided; if auxiliaries are
+#'   requested you must also provide population auxiliary means via
+#'   \code{auxiliary_means}. Result weights are the unnormalized EL masses
+#'   \code{d_i/D_i(theta)} on this design scale;\code{weights(result, scale = "population")} sums to \code{N_pop}.
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
 #'
@@ -46,9 +49,24 @@ el.survey.design <- function(data, formula,
 
   design <- data
 
-# If respondents-only design is supplied (no NA in outcome), require n_total
+# If respondents-only design is supplied, enforce auxiliary_means first (if auxiliaries requested),
+# then require n_total for scale coherence.
   outcome_var_check <- all.vars(formula[[2]])
-  if (length(outcome_var_check) == 1 && !anyNA(design$variables[[outcome_var_check]]) && is.null(n_total)) {
+  rhs <- formula[[3]]
+  aux_expr <- rhs
+  if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) aux_expr <- rhs[[2L]]
+  has_aux_rhs <- length(all.vars(aux_expr)) > 0
+  respondents_only_0 <- length(outcome_var_check) == 1 && !anyNA(design$variables[[outcome_var_check]])
+  if (respondents_only_0 && has_aux_rhs && is.null(auxiliary_means)) {
+    stop(
+      paste0(
+        "Respondents-only survey design (no NAs in outcome) and auxiliary constraints were requested, ",
+        "but 'auxiliary_means' was not provided. Provide population auxiliary means via auxiliary_means=."
+      ),
+      call. = FALSE
+    )
+  }
+  if (respondents_only_0 && is.null(n_total)) {
     stop("Respondents-only survey design detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total design weight or population total>).", call. = FALSE)
   }
 
@@ -60,6 +78,8 @@ el.survey.design <- function(data, formula,
   observed_mask <- design$variables[[response_var]] == 1
   observed_indices <- which(observed_mask)
   resp_design <- subset(design, observed_mask)
+
+# (Guard handled earlier.)
 
 # Scale coherence: ensure N_pop and design weights are on the same scale
   design_weight_sum <- sum(weights(design))
