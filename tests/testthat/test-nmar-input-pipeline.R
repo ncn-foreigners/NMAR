@@ -46,3 +46,31 @@ test_that("nonparam engine accepts multi-outcome formulas", {
   traits_default <- NMAR:::engine_traits(exptilt_engine())
   expect_error(NMAR:::validate_nmar_args(spec, traits_default))
 })
+
+test_that("parse_nmar_spec resolves dots and factors", {
+  df <- data.frame(
+    Y = c(1, NA, 3),
+    X = 1:3,
+    Z = rnorm(3),
+    F = factor(c("a", "b", "a"))
+  )
+  spec <- NMAR:::parse_nmar_spec(Y ~ . | F, df)
+  expect_setequal(spec$auxiliary_vars, c("X", "Z", "F"))
+  expect_equal(spec$response_predictors, "F")
+  traits <- NMAR:::engine_traits(el_engine(auxiliary_means = c(X = 0)))
+  expect_silent(NMAR:::validate_nmar_args(spec, traits))
+})
+
+test_that("multi-outcome validation enforces trait restrictions", {
+  df <- data.frame(
+    Y1 = c(1, 2, 3),
+    Y2 = c(4, 5, 6),
+    X = c(0.1, 0.2, 0.3),
+    Z = c(1, 1, 0)
+  )
+  spec <- NMAR:::parse_nmar_spec(Y1 + Y2 ~ X | Z, df)
+  traits_np <- NMAR:::engine_traits(exptilt_nonparam_engine(refusal_col = "Z"))
+  expect_silent(NMAR:::validate_nmar_args(spec, traits_np))
+  traits_block <- NMAR:::engine_traits(exptilt_engine())
+  expect_error(NMAR:::validate_nmar_args(spec, traits_block))
+})

@@ -122,26 +122,8 @@ validate_data <- function(data,
     covariates_for_missingness
   }
 
-  covariate_vars <- unique(c(covariates_for_outcome, covariates_for_missingness_checked))
-
-  for (var in covariate_vars) {
-# Check type
-    if (!is.numeric(data[[var]]) && !is.logical(data[[var]])) {
-      bad_val <- data[[var]][which(!is.numeric(data[[var]]) & !is.logical(data[[var]]))[1]]
-      stop(
-        "Covariate '", var, "' must be numeric or logical.\n",
-        "First invalid value: '", bad_val, "' at row ", which(!is.numeric(data[[var]]) & !is.logical(data[[var]]))[1]
-      )
-    }
-
-# Check for NAs
-    if (anyNA(data[[var]])) {
-      stop(
-        "Covariate '", var, "' contains NA values.\n",
-        "First NA at row ", which(is.na(data[[var]]))[1]
-      )
-    }
-  }
+  nmar_validate_covariates(data, covariates_for_outcome, block_label = "auxiliary")
+  nmar_validate_covariates(data, covariates_for_missingness_checked, block_label = "response")
 
   invisible(NULL)
 }

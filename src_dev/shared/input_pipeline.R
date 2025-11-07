@@ -26,9 +26,6 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
     resp_expr <- rhs[[3L]]
   }
 
-  auxiliary_vars <- unique(all.vars(aux_expr))
-  response_predictors <- if (is.null(resp_expr)) character() else unique(all.vars(resp_expr))
-
   validator$assert_data_frame_or_survey(data, name = "data")
 
   is_survey <- inherits(data, "survey.design")
@@ -45,6 +42,17 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
     normalized_formula[[3L]] <- aux_expr
   }
 
+  blueprint <- nmar_build_formula_blueprint(
+    outcome_vars = outcome_vars,
+    aux_expr = aux_expr,
+    response_expr = resp_expr,
+    data = data_df,
+    env = environment(formula)
+  )
+
+  auxiliary_vars <- blueprint$aux$source_variables
+  response_predictors <- blueprint$response$source_variables
+
   structure(
     list(
       formula = normalized_formula,
@@ -56,7 +64,8 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
       data = data_df,
       original_data = data,
       is_survey = is_survey,
-      environment = environment(formula)
+      environment = environment(formula),
+      blueprint = blueprint
     ),
     class = "nmar_input_spec"
   )
@@ -143,6 +152,14 @@ validate_nmar_args <- function(spec, traits = list()) {
     stop("The formula must have exactly one outcome variable on the left-hand side.", call. = FALSE)
   }
 
+  validate_predictor_relationships(
+    outcomes = spec$outcome,
+    auxiliary_vars = spec$auxiliary_vars,
+    response_vars = spec$response_predictors,
+    allow_outcome_in_missingness = traits$allow_outcome_in_missingness,
+    allow_covariate_overlap = traits$allow_covariate_overlap
+  )
+
   if (length(spec$outcome) == 1L) {
     validate_data(
       data = spec$original_data,
@@ -154,26 +171,9 @@ validate_nmar_args <- function(spec, traits = list()) {
       allow_respondents_only = isTRUE(traits$allow_respondents_only)
     )
   } else {
-    missing_outcomes <- setdiff(spec$outcome, names(spec$data))
-    if (length(missing_outcomes) > 0) {
-      stop("Outcome variables not found in data: ", paste(missing_outcomes, collapse = ", "))
-    }
-    for (outcome_var in spec$outcome) {
-      col <- spec$data[[outcome_var]]
-      if (!is.numeric(col)) {
-        bad_val <- col[which(!is.numeric(col))[1]]
-        stop(
-          "Outcome variable '", outcome_var, "' must be numeric.\n",
-          "First invalid value: '", bad_val, "' at row ", which(!is.numeric(col))[1]
-        )
-      }
-      if (anyNA(col)) {
-        stop(
-          "Outcome variable '", outcome_var, "' contains NA values.\n",
-          "First NA at row ", which(is.na(col))[1]
-        )
-      }
-    }
+    validate_multi_outcome_data(spec$data, spec$outcome)
+    nmar_validate_covariates(spec$data, spec$auxiliary_vars, block_label = "auxiliary")
+    nmar_validate_covariates(spec$data, spec$response_predictors, block_label = "response")
   }
 
   invisible(spec)
@@ -201,7 +201,8 @@ new_nmar_task <- function(spec, traits) {
       original_data = spec$original_data,
       is_survey = spec$is_survey,
       environment = spec$environment,
-      traits = traits
+      traits = traits,
+      blueprint = spec$blueprint
     ),
     class = "nmar_task"
   )
@@ -258,7 +259,10 @@ prepare_nmar_design <- function(task,
     standardize = standardize,
     auxiliary_means = auxiliary_means,
     aux_rhs_lang = if (isTRUE(include_auxiliary)) task$aux_rhs_lang else NULL,
-    response_rhs_lang = if (isTRUE(include_response)) task$response_rhs_lang else NULL
+    response_rhs_lang = if (isTRUE(include_response)) task$response_rhs_lang else NULL,
+    blueprint = task$blueprint,
+    aux_terms = if (isTRUE(include_auxiliary)) task$blueprint$aux$terms else NULL,
+    response_terms = if (isTRUE(include_response)) task$blueprint$response$terms else NULL
   )
 }
 
@@ -351,5 +355,187 @@ nmar_make_unique_colname <- function(base, data_names) {
     cand <- paste0(base, i)
     if (!(cand %in% data_names)) return(cand)
     i <- i + 1L
+  }
+}
+
+# Build formula terms/metadata so engines can reuse resolved model matrices
+nmar_build_formula_blueprint <- function(outcome_vars,
+                                         aux_expr,
+                                         response_expr,
+                                         data,
+                                         env) {
+  aux_formula <- nmar_make_aux_formula(outcome_vars, aux_expr, env)
+  aux_terms <- nmar_build_terms_info(aux_formula, data, drop_response = TRUE)
+
+  response_formula <- nmar_make_response_formula(outcome_vars, response_expr, env)
+  response_info <- nmar_build_terms_info(response_formula, data, drop_response = TRUE)
+
+  list(
+    aux = aux_terms,
+    response = response_info,
+    outcome = outcome_vars
+  )
+}
+
+nmar_make_aux_formula <- function(outcome_vars, aux_expr, env) {
+  if (is.null(aux_expr)) return(NULL)
+  if (length(all.vars(aux_expr)) == 0L) return(NULL)
+  lhs <- nmar_make_lhs_expr(outcome_vars)
+  rhs <- call("+", 0, aux_expr)
+  if (is.null(lhs)) {
+    f <- call("~", rhs)
+  } else {
+    f <- call("~", lhs, rhs)
+  }
+  formula <- stats::as.formula(f, env = env)
+  formula
+}
+
+nmar_make_response_formula <- function(outcome_vars, response_expr, env) {
+  if (is.null(response_expr)) return(NULL)
+  if (length(all.vars(response_expr)) == 0L) return(NULL)
+  lhs <- nmar_make_lhs_expr(outcome_vars)
+  if (is.null(lhs)) {
+    f <- call("~", response_expr)
+  } else {
+    f <- call("~", lhs, response_expr)
+  }
+  stats::as.formula(f, env = env)
+}
+
+nmar_build_terms_info <- function(formula, data, drop_response = FALSE) {
+  if (is.null(formula)) {
+    return(list(
+      formula = NULL,
+      terms = NULL,
+      column_names = character(),
+      source_variables = character(),
+      xlevels = NULL,
+      contrasts = NULL
+    ))
+  }
+  vars_needed <- unique(setdiff(all.vars(formula), "."))
+  missing_vars <- setdiff(vars_needed, names(data))
+  if (length(missing_vars) > 0) {
+    stop("Variables not found in data: ", paste(missing_vars, collapse = ", "), call. = FALSE)
+  }
+  mf <- stats::model.frame(formula, data = data, na.action = stats::na.pass, drop.unused.levels = FALSE)
+  tr <- attr(mf, "terms")
+  tr_use <- tr
+  if (isTRUE(drop_response) && attr(tr, "response") > 0) {
+    tr_use <- stats::delete.response(tr)
+  }
+  mm <- stats::model.matrix(tr_use, mf)
+  list(
+    formula = formula,
+    terms = tr_use,
+    column_names = colnames(mm),
+    source_variables = unique(all.vars(attr(tr_use, "variables"))),
+    xlevels = attr(mf, "xlevels"),
+    contrasts = attr(mm, "contrasts")
+  )
+}
+
+nmar_make_lhs_expr <- function(outcome_vars) {
+  if (length(outcome_vars) == 0L) return(NULL)
+  lhs <- as.name(outcome_vars[[1L]])
+  if (length(outcome_vars) == 1L) return(lhs)
+  for (var in outcome_vars[-1L]) {
+    lhs <- call("+", lhs, as.name(var))
+  }
+  lhs
+}
+
+validate_multi_outcome_data <- function(data, outcome_vars) {
+  missing_outcomes <- setdiff(outcome_vars, names(data))
+  if (length(missing_outcomes) > 0) {
+    stop("Outcome variables not found in data: ", paste(missing_outcomes, collapse = ", "))
+  }
+  for (outcome_var in outcome_vars) {
+    col <- data[[outcome_var]]
+    if (!is.numeric(col)) {
+      bad_val <- col[which(!is.numeric(col))[1]]
+      stop(
+        "Outcome variable '", outcome_var, "' must be numeric.\n",
+        "First invalid value: '", bad_val, "' at row ", which(!is.numeric(col))[1]
+      )
+    }
+    if (anyNA(col)) {
+      stop(
+        "Outcome variable '", outcome_var, "' contains NA values.\n",
+        "First NA at row ", which(is.na(col))[1]
+      )
+    }
+  }
+}
+
+validate_predictor_relationships <- function(outcomes,
+                                             auxiliary_vars,
+                                             response_vars,
+                                             allow_outcome_in_missingness,
+                                             allow_covariate_overlap) {
+  if (!allow_outcome_in_missingness) {
+    outcome_on_rhs <- intersect(outcomes, response_vars)
+    if (length(outcome_on_rhs) > 0) {
+      stop(
+        "Outcome variable cannot appear on the response-model side unless the engine allows it.\n",
+        "Variables: ", paste(outcome_on_rhs, collapse = ", "),
+        call. = FALSE
+      )
+    }
+  }
+
+  if (!allow_covariate_overlap) {
+    overlap <- intersect(auxiliary_vars, response_vars)
+    if (length(overlap) > 0) {
+      stop(
+        "Covariate sets must be mutually exclusive. Overlapping variables: ",
+        paste(overlap, collapse = ", "),
+        call. = FALSE
+      )
+    }
+  }
+}
+
+nmar_validate_covariates <- function(data, vars, block_label) {
+  vars <- unique(vars)
+  if (!length(vars)) return(invisible(NULL))
+  missing_vars <- setdiff(vars, names(data))
+  if (length(missing_vars) > 0) {
+    stop(
+      block_label, " covariates not found in data: ",
+      paste(missing_vars, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  for (var in vars) {
+    column <- data[[var]]
+    valid_type <- is.numeric(column) || is.logical(column) || is.factor(column) || is.character(column)
+    if (!valid_type) {
+      stop(
+        "Covariate '", var, "' in ", block_label, " predictors must be numeric, logical, factor, or character.\n",
+        "Detected type: ", paste(class(column), collapse = "/"),
+        call. = FALSE
+      )
+    }
+    if (is.numeric(column)) {
+      bad_indices <- which(!is.na(column) & !is.finite(column))
+      if (length(bad_indices) > 0) {
+        first_bad_idx <- bad_indices[1]
+        bad_val <- column[first_bad_idx]
+        stop(
+          block_label, " covariate '", var, "' contains non-finite values (Inf, -Inf, or NaN).\n",
+          "First non-finite value: ", bad_val, " at row ", first_bad_idx,
+          call. = FALSE
+        )
+      }
+    }
+    if (anyNA(column)) {
+      stop(
+        block_label, " covariate '", var, "' contains NA values.\n",
+        "First NA at row ", which(is.na(column))[1],
+        call. = FALSE
+      )
+    }
   }
 }
