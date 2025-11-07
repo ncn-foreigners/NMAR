@@ -18,7 +18,7 @@
 #'   probit links. When respondents-only data is supplied (no NA in the outcome),
 #'   set `n_total` to the total number of sampled units; otherwise the total is
 #'   taken as `nrow(data)`. Result weights are the unnormalized EL masses
-#'   `d_i/D_i(\theta)` on this analysis scale.
+#'   `d_i/D_i(theta)` on this analysis scale.
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
 #'

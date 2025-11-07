@@ -32,7 +32,7 @@ test_that("analytic Jacobian matches numeric Jacobian at solution (logit and pro
 
   for (fam in list(NMAR:::logit_family(), NMAR:::probit_family())) {
     eq_fun <- NMAR:::el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
-    jac_fun <- NMAR:::build_el_jacobian(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
+    jac_fun <- NMAR:::el_build_jacobian(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
     J_num <- numDeriv::jacobian(eq_fun, theta)
     J_ana <- jac_fun(theta)
     denom <- max(1e-8, norm(J_num, type = "F"))

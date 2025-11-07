@@ -17,7 +17,7 @@
 #'   `sum(weights(design))` and `n_total` are on the same scale; this guarantees
 #'   the response-multiplier formula uses consistent totals. If `n_total` is not
 #'   supplied, `sum(weights(design))` is used as the population total `N_pop`.
-#'   Result weights are the unnormalized EL masses `d_i/D_i(\theta)` on this
+#'   Result weights are the unnormalized EL masses `d_i/D_i(theta)` on this
 #'   design scale; `weights(result, scale = "population")` sums to `N_pop`.
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.

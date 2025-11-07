@@ -45,26 +45,32 @@
 #'       are mapped to the scaled space internally.
 #'   }
 #'
+#' @return
+#' A list of class \code{"nmar_engine_el"} (also inheriting from \code{"nmar_engine"})
+#' containing configuration fields to be supplied to \code{nmar()}. Users rarely
+#' access fields directly; instead, pass the engine to \code{nmar()} together with a
+#' formula and data.
+#'
 #' @details
 #' Empirical likelihood assigns masses \eqn{m_i = d_i / D_i(\theta)} to respondents
 #' with base weights \eqn{d_i}. Following Qin, Leung, and Shao (2002, JASA 97:193-200),
 #' the denominator is
-#' \deqn{D_i(\theta) = 1 + \lambda_W\{p_i(\beta) - W\} + X_{i\cdot}^{(c)}\,\lambda_x,}
-#' where \eqn{p_i(\beta) = g(\eta_i)} with link-inverse \eqn{g}, \eqn{\eta_i = x_i^\top\beta},
+#' \deqn{D_i(\theta) = 1 + \lambda_W\{w_i(\beta) - W\} + X_{i\cdot}^{(c)}\,\lambda_x,}
+#' where \eqn{w_i(\beta) = g(\eta_i)} with link-inverse \eqn{g}, \eqn{\eta_i = x_i^\top\beta},
 #' \eqn{W} is the (unknown) response rate, and \eqn{X^{(c)} = X - \mu_X} centers
 #' auxiliary columns at their population means. The multiplier for the response-rate
 #' equation is
 #' \deqn{\lambda_W = \{N_\mathrm{pop}/\sum_i d_i - 1\}/(1 - W),}
 #' which ensures scale coherence for both IID data (\eqn{d_i \equiv 1}) and survey
 #' designs (\eqn{d_i} are design weights). The estimating equations impose
-#' \eqn{\sum_i m_i\{p_i(\beta) - W\} = 0},
-#' \eqn{\sum_i m_i\,s_i(\beta) = 0} with \eqn{s_i(\beta) = \partial \log p_i / \partial \eta_i},
+#' \eqn{\sum_i m_i\{w_i(\beta) - W\} = 0},
+#' \eqn{\sum_i m_i\,s_i(\beta) = 0} with \eqn{s_i(\beta) = \partial \log w_i / \partial \eta_i},
 #' and, when present, \eqn{\sum_i m_i X_{i\cdot}^{(c)} = 0}.
 #'
 #' The response-model score used in both equations and Jacobian is the derivative
 #' of the Bernoulli log-likelihood with respect to the linear predictor, i.e.
-#' \code{mu.eta(eta) / linkinv(eta)} (logit: \code{1 - p}; probit: Mills ratio \code{phi/Phi}).
-#' We apply a consistent guarding policy (cap \eqn{\eta}, clip \eqn{p}, floor denominators
+#' \code{mu.eta(eta) / linkinv(eta)} (logit: \code{1 - w}; probit: Mills ratio \code{phi/Phi}).
+#' We apply a consistent guarding policy (cap \eqn{\eta}, clip \eqn{w}, floor denominators
 #' with an "active" mask in the Jacobian) to ensure numerical stability and to make the
 #' analytic Jacobian match the piecewise-smooth equations being solved. When
 #' \code{variance_method = "delta"} is requested, the estimator returns \code{NA}
@@ -77,6 +83,26 @@
 #' with an analytic Jacobian and line-search globalization. Defaults are
 #' \code{global = "qline"} and \code{xscalm = "auto"}; users can override via \code{control}.
 #' Invalid values are coerced to these defaults with a warning.
+#'
+#' \strong{Formula syntax}: \code{nmar()} supports a partitioned right-hand side
+#' \code{y_miss ~ aux1 + aux2 | z1 + z2}. Variables left of \code{|} are auxiliaries
+#' (used in EL moment constraints); variables right of \code{|} are response-model
+#' predictors only. The outcome appears on the left-hand side and is included as a
+#' response predictor by default.
+#'
+#' \strong{Weights in results}: Calling \code{weights()} on the returned \code{nmar_result}
+#' gives respondent weights on either the probability scale (sum to 1) or the population
+#' scale (sum to \eqn{N_\mathrm{pop}}). The reported masses come from the empirical
+#' likelihood construction \eqn{a_i/D_i(\theta)} and are normalized in \code{weights()}.
+#'
+#' \strong{Variance}: Analytical delta variance for EL is not implemented. Requesting
+#' \code{variance_method = "delta"} is coerced to \code{"none"} with a warning. For standard
+#' errors in both IID and survey settings, use \code{variance_method = "bootstrap"}.
+#'
+#' @references
+#' Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
+#' nonignorable nonresponse or informative sampling. Journal of the American Statistical
+#' Association, 97(457), 193-200.
 #'
 #' @section Progress Reporting:
 #' When \code{variance_method = "bootstrap"}, progress reporting is available via the
@@ -132,6 +158,8 @@
 #'
 #' @keywords engine
 #' @export
+#' @seealso [nmar()], [weights.nmar_result()], [summary.nmar_result]
+#'
 #' @examples
 #' \donttest{
 #' set.seed(1)
@@ -143,7 +171,7 @@
 #' R <- runif(n) < p
 #' df <- data.frame(Y_miss = Y, X = X)
 #' df$Y_miss[!R] <- NA_real_
-#' eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap")
+#' eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
 #' fit <- nmar(Y_miss ~ X, data = df, engine = eng)
 #' summary(fit)
 #'
@@ -157,7 +185,7 @@
 #' # Survey design usage
 #' if (requireNamespace("survey", quietly = TRUE)) {
 #'   des <- survey::svydesign(ids = ~1, weights = ~1, data = df)
-#'   eng3 <- el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap")
+#'   eng3 <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
 #'   fit3 <- nmar(Y_miss ~ X, data = des, engine = eng3)
 #'   summary(fit3)
 #' }

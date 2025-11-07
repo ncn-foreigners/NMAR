@@ -206,7 +206,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
     family = family, response_model_matrix = response_model_matrix_scaled, auxiliary_matrix = auxiliary_matrix_scaled,
     respondent_weights = respondent_weights, N_pop = N_pop, n_resp_weighted = n_resp_weighted, mu_x_scaled = mu_x_scaled
   )
-  analytical_jac_func <- build_el_jacobian(
+  analytical_jac_func <- el_build_jacobian(
     family = family, response_model_matrix = response_model_matrix_scaled, auxiliary_matrix = auxiliary_matrix_scaled,
     respondent_weights = respondent_weights, N_pop = N_pop, n_resp_weighted = n_resp_weighted, mu_x_scaled = mu_x_scaled
   )

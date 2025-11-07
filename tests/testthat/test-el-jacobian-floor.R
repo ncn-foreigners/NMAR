@@ -21,7 +21,7 @@ test_that("EL Jacobian respects denominator floor (active mask)", {
     n_resp_weighted = n_resp_wt,
     mu_x_scaled = mu_x
   )
-  jac <- NMAR:::build_el_jacobian(
+  jac <- NMAR:::el_build_jacobian(
     family = fam,
     response_model_matrix = X,
     auxiliary_matrix = aux,

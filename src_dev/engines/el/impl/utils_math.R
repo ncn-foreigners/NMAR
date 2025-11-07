@@ -16,7 +16,7 @@ el_lambda_W <- function(C_const, W) {
 #' Build denominator and floor pack
 #' @param lambda_W numeric scalar
 #' @param W numeric scalar in (0,1)
-#' @param Xc_lambda numeric vector (X_centered %*% lambda_x) or 0
+#' @param Xc_lambda numeric vector (X_centered \%*\% lambda_x) or 0
 #' @param p_i numeric vector of response probabilities
 #' @param floor numeric scalar > 0, denominator floor
 #' @return list with denom, active, inv, inv_sq
@@ -42,10 +42,10 @@ el_denominator <- function(lambda_W, W, Xc_lambda, p_i, floor) {
 el_masses <- function(weights, denom, floor, trim_cap) {
   mass_untrim <- as.numeric(weights) / as.numeric(denom)
 # enforce nonnegativity softly then trim
-  nn <- NMAR:::enforce_nonneg_weights(mass_untrim)
+  nn <- enforce_nonneg_weights(mass_untrim)
   if (!nn$ok) stop(nn$message, call. = FALSE)
   mass_untrim <- nn$weights
-  trim_res <- NMAR:::trim_weights(mass_untrim, cap = trim_cap)
+  trim_res <- trim_weights(mass_untrim, cap = trim_cap)
   mass_trim <- trim_res$weights
   total <- sum(mass_trim)
   prob_mass <- if (total > 0) mass_trim / total else rep(NA_real_, length(mass_trim))

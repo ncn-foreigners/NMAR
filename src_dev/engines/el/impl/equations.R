@@ -12,13 +12,13 @@
 #'
 #'   Guarding policy (must remain consistent across equations/Jacobian/post):
 #'   - Cap eta: eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())
-#'   - Compute p <- family$linkinv(eta); clip to [1e-12, 1-1e-12] when used in ratios
+#'   - Compute w <- family$linkinv(eta); clip to [1e-12, 1-1e-12] when used in ratios
 #'   - Denominator floor: Di <- pmax(Di_raw, nmar_get_el_denom_floor());
-#'     in the Jacobian, multiply terms that depend on d(1/Di)/d· by active = 1(Di_raw > floor)
+#'     in the Jacobian, multiply terms that depend on d(1/Di)/d(.) by active = 1(Di_raw > floor)
 #'
 #'   The score with respect to the linear predictor uses the Bernoulli form
-#'   \eqn{s_i(\beta) = \partial \log p_i / \partial \eta_i = \mu.\eta(\eta_i)/p_i},
-#'   which is valid for both logit and probit links when \eqn{p_i} is clipped.
+#'   \eqn{s_{\eta,i}(\beta) = \partial \log w_i / \partial \eta_i = \mu.\eta(\eta_i)/w_i},
+#'   which is valid for both logit and probit links when \eqn{w_i} is clipped.
 #'
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
@@ -56,26 +56,26 @@ el_build_equation_system <- function(family, response_model_matrix, auxiliary_ma
     w_i <- family$linkinv(eta_i)
     mu_eta_i <- family$mu.eta(eta_i)
 # Unified score w.r.t. eta for delta=1: prefer numerically stable family score
-    p_i_clipped <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
+    w_i_clipped <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
     if (!is.null(family$name) && identical(family$name, "logit")) {
-# For logit, dlw = 1 - p
-      dlw_i <- 1 - p_i_clipped
+# For logit, s_eta = 1 - w
+      s_eta_i <- 1 - w_i_clipped
     } else if (!is.null(family$name) && identical(family$name, "probit")) {
 # For probit, use Mills ratio in log domain
       log_phi <- stats::dnorm(eta_i, log = TRUE)
       log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
-      dlw_i <- exp(log_phi - log_Phi)
+      s_eta_i <- exp(log_phi - log_Phi)
     } else if (!is.null(family$score_eta)) {
-      dlw_i <- family$score_eta(eta_i, 1)
+      s_eta_i <- family$score_eta(eta_i, 1)
     } else {
-      dlw_i <- mu_eta_i / p_i_clipped
+      s_eta_i <- mu_eta_i / w_i_clipped
     }
 # QLS Eq. (5): Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
     Xc_lambda <- if (K_aux > 0) as.vector(X_centered %*% lambda_x) else 0
     dpack <- el_denominator(lambda_W, W_bounded, Xc_lambda, w_i, nmar_get_el_denom_floor())
     inv_denominator <- dpack$inv
-# beta block (QLS Eq. 9): score_eta(eta) - lambda_W * mu.eta(eta) / Di
-    beta_eq_term <- dlw_i - lambda_W * mu_eta_i * inv_denominator
+# beta block (QLS Eq. 9): s_eta(eta) - lambda_W * mu.eta(eta) / Di
+    beta_eq_term <- s_eta_i - lambda_W * mu_eta_i * inv_denominator
     eq_betas <- shared_weighted_Xty(response_model_matrix, respondent_weights, beta_eq_term)
 # W equation (QLS Eq. 8)
     eq_W <- as.numeric(crossprod(respondent_weights * inv_denominator, (w_i - W_bounded)))
