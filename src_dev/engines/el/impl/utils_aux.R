@@ -12,10 +12,14 @@ NULL
 #' @param threshold numeric, z-score threshold for flagging
 #' @return list(max_z = numeric(1) or NA, cols = character())
 #' @keywords internal
-el_check_aux_inconsistency <- function(respondent_df, aux_formula, provided_means = NULL, threshold = 8) {
+el_check_aux_inconsistency <- function(respondent_df,
+                                       aux_formula,
+                                       provided_means = NULL,
+                                       threshold = 8,
+                                       precomputed_resp = NULL) {
   out <- list(max_z = NA_real_, cols = character(0))
   if (is.null(aux_formula)) return(out)
-  mm <- tryCatch(model.matrix(aux_formula, data = respondent_df), error = function(e) NULL)
+  mm <- precomputed_resp %||% tryCatch(model.matrix(aux_formula, data = respondent_df), error = function(e) NULL)
   if (is.null(mm) || ncol(mm) == 0) return(out)
 # Drop near-constant columns
   sds <- apply(mm, 2, stats::sd)
@@ -64,7 +68,9 @@ el_check_aux_inconsistency <- function(respondent_df, aux_formula, provided_mean
 el_resolve_auxiliaries <- function(full_data,
                                    respondent_data,
                                    aux_formula,
-                                   auxiliary_means) {
+                                   auxiliary_means,
+                                   precomputed_resp = NULL,
+                                   precomputed_full = NULL) {
 # No auxiliaries requested
   if (is.null(aux_formula)) {
     return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
@@ -72,8 +78,9 @@ el_resolve_auxiliaries <- function(full_data,
                 has_aux = FALSE))
   }
 
-  aux_resp <- tryCatch(model.matrix(aux_formula, data = respondent_data),
-                       error = function(e) NULL)
+  aux_resp <- precomputed_resp %||%
+    tryCatch(model.matrix(aux_formula, data = respondent_data),
+             error = function(e) NULL)
   if (is.null(aux_resp) || ncol(aux_resp) == 0) {
     return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
                 means = NULL,
@@ -96,8 +103,9 @@ el_resolve_auxiliaries <- function(full_data,
 
 # Otherwise compute from the full data (design-weighted if survey)
   if (inherits(full_data, "survey.design")) {
-    mm_full <- tryCatch(model.matrix(aux_formula, data = full_data$variables),
-                        error = function(e) NULL)
+    mm_full <- precomputed_full %||%
+      tryCatch(model.matrix(aux_formula, data = full_data$variables),
+               error = function(e) NULL)
     if (is.null(mm_full) || ncol(mm_full) == 0) {
       return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
                   means = NULL,
@@ -117,8 +125,9 @@ el_resolve_auxiliaries <- function(full_data,
     mu <- mu[colnames(aux_resp)]
     return(list(matrix = aux_resp, means = mu, has_aux = TRUE))
   } else {
-    mm_full <- tryCatch(model.matrix(aux_formula, data = full_data),
-                        error = function(e) NULL)
+    mm_full <- precomputed_full %||%
+      tryCatch(model.matrix(aux_formula, data = full_data),
+               error = function(e) NULL)
     if (is.null(mm_full) || ncol(mm_full) == 0) {
       return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
                   means = NULL,
@@ -138,4 +147,48 @@ el_resolve_auxiliaries <- function(full_data,
     mu <- mu[colnames(aux_resp)]
     return(list(matrix = aux_resp, means = mu, has_aux = TRUE))
   }
+}
+
+el_build_precomputed_design <- function(design_matrices,
+                                        estimation_data,
+                                        outcome_var,
+                                        respondent_indices) {
+  if (is.null(design_matrices)) {
+    return(NULL)
+  }
+  n_resp <- length(respondent_indices)
+  response_pred_full <- design_matrices$response
+  aux_full <- design_matrices$auxiliary
+
+  if (!n_resp) {
+    response_pred <- matrix(nrow = 0, ncol = if (is.null(response_pred_full)) 0 else ncol(response_pred_full))
+    aux_resp <- matrix(nrow = 0, ncol = if (is.null(aux_full)) 0 else ncol(aux_full))
+    response_matrix <- cbind(`(Intercept)` = numeric(0), matrix(nrow = 0, ncol = 0))
+  } else {
+    response_pred <- if (is.null(response_pred_full)) {
+      matrix(nrow = n_resp, ncol = 0)
+    } else {
+      response_pred_full[respondent_indices, , drop = FALSE]
+    }
+    outcome_vals <- estimation_data[respondent_indices, outcome_var, drop = TRUE]
+    outcome_col <- matrix(outcome_vals, ncol = 1)
+    colnames(outcome_col) <- outcome_var
+    if (!outcome_var %in% colnames(response_pred)) {
+      response_pred <- cbind(outcome_col, response_pred)
+    } else {
+      response_pred[, outcome_var] <- outcome_vals
+    }
+    response_matrix <- cbind(`(Intercept)` = rep(1, n_resp), response_pred)
+    aux_resp <- if (is.null(aux_full)) {
+      matrix(nrow = n_resp, ncol = 0)
+    } else {
+      aux_full[respondent_indices, , drop = FALSE]
+    }
+  }
+
+  list(
+    response_matrix = response_matrix,
+    auxiliary_resp = aux_resp,
+    auxiliary_full = aux_full
+  )
 }

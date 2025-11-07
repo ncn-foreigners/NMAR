@@ -6,6 +6,9 @@
 #' @param formula Two-sided formula `Y_miss ~ auxiliaries`.
 #' @param auxiliary_means Named numeric vector of population means for auxiliary variables (names must match RHS of outcome formula).
 #' @param standardize Logical; whether to standardize predictors prior to estimation.
+#' @param design_matrices Internal list of precomputed design matrices produced by
+#'   the NMAR input pipeline. Users should leave this as `NULL`; engines call the
+#'   method with populated matrices to avoid recomputing model matrices.
 #' @param trim_cap Numeric; cap for EL weights (`Inf` = no trimming).
 #' @param control List; optional solver control parameters for `nleqslv(control=...)`.
 #' @param on_failure Character; one of `"return"` or `"error"` on solver failure.
@@ -25,6 +28,7 @@
 #' @keywords internal
 el.data.frame <- function(data, formula,
                           auxiliary_means = NULL, standardize = TRUE,
+                          design_matrices = NULL,
                           trim_cap = Inf, control = list(),
                           on_failure = c("return", "error"),
                           variance_method = c("delta", "bootstrap", "none"),
@@ -59,11 +63,38 @@ el.data.frame <- function(data, formula,
     stop("Respondents-only data detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total sample size>).", call. = FALSE)
   }
 
-  parsed_inputs <- prepare_el_inputs(formula, data, require_na = is.null(n_total))
+  design_payload <- design_matrices
+  data_for_formula <- data
+  if (is.null(design_payload)) {
+    spec <- parse_nmar_spec(formula, data, env = environment(formula) %||% parent.frame())
+    dummy_engine <- list(n_total = n_total)
+    class(dummy_engine) <- c("nmar_engine_el", "nmar_engine")
+    dummy_traits <- engine_traits(dummy_engine)
+    validate_nmar_args(spec, dummy_traits)
+    task <- new_nmar_task(spec, dummy_traits, trace_level = trace_level)
+    design_info <- prepare_nmar_design(
+      task,
+      standardize = standardize,
+      auxiliary_means = auxiliary_means,
+      include_response = TRUE,
+      include_auxiliary = TRUE
+    )
+    design_payload <- design_info$design_matrices
+    data_for_formula <- design_info$data
+  }
+
+  parsed_inputs <- prepare_el_inputs(formula, data_for_formula, require_na = is.null(n_total))
   estimation_data <- parsed_inputs$data
   internal_formula <- parsed_inputs$formula_list
   response_var <- all.vars(internal_formula$response)[1]
   observed_indices <- which(estimation_data[[response_var]] == 1)
+  outcome_name <- all.vars(internal_formula$outcome)[1]
+  precomputed_design <- el_build_precomputed_design(
+    design_matrices = design_payload,
+    estimation_data = estimation_data,
+    outcome_var = outcome_name,
+    respondent_indices = observed_indices
+  )
 
 # (Guard handled above, before any n_total enforcement.)
 
@@ -86,7 +117,8 @@ el.data.frame <- function(data, formula,
     standardize = standardize, trim_cap = trim_cap, control = control,
     on_failure = on_failure,
     variance_method = variance_method, bootstrap_reps = bootstrap_reps,
-    user_args = user_args, start = start, trace_level = trace_level, ...
+    user_args = user_args, start = start, trace_level = trace_level,
+    precomputed_design = precomputed_design, ...
   )
 
   sample_info <- list(

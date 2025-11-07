@@ -40,7 +40,8 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
                               trim_cap, control,
                               on_failure, family = logit_family(),
                               variance_method, bootstrap_reps,
-                              user_args, start = NULL, trace_level = 0, ...) {
+                              user_args, start = NULL, trace_level = 0,
+                              precomputed_design = NULL, ...) {
 
 # 0. Setup
   force(family)
@@ -55,15 +56,24 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
 # 1. Data Preparation
   has_aux <- !is.null(internal_formula$auxiliary)
 
-  response_model_formula <- update(internal_formula$response, NULL ~ .)
-  response_model_matrix_unscaled <- model.matrix(response_model_formula, data = respondent_data)
+  if (!is.null(precomputed_design) && !is.null(precomputed_design$response_matrix)) {
+    response_model_matrix_unscaled <- precomputed_design$response_matrix
+  } else {
+    response_model_formula <- update(internal_formula$response, NULL ~ .)
+    response_model_matrix_unscaled <- model.matrix(response_model_formula, data = respondent_data)
+  }
 
 # Resolve auxiliaries and their population means in a single place
+  precomputed_aux_resp <- if (!is.null(precomputed_design)) precomputed_design$auxiliary_resp else NULL
+  precomputed_aux_full <- if (!is.null(precomputed_design)) precomputed_design$auxiliary_full else NULL
+
   aux_res <- el_resolve_auxiliaries(
     full_data = full_data,
     respondent_data = respondent_data,
     aux_formula = internal_formula$auxiliary,
-    auxiliary_means = auxiliary_means
+    auxiliary_means = auxiliary_means,
+    precomputed_resp = precomputed_aux_resp,
+    precomputed_full = precomputed_aux_full
   )
   auxiliary_matrix_unscaled <- aux_res$matrix
   mu_x_unscaled <- aux_res$means
@@ -109,7 +119,13 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   if (has_aux && !is.null(auxiliary_means)) {
     thr <- getOption("nmar.el_aux_z_threshold", 8)
     if (!is.numeric(thr) || length(thr) != 1L || !is.finite(thr) || thr <= 0) thr <- 8
-    chk <- el_check_aux_inconsistency(respondent_data, internal_formula$auxiliary, provided_means = auxiliary_means, threshold = thr)
+    chk <- el_check_aux_inconsistency(
+      respondent_df = respondent_data,
+      aux_formula = internal_formula$auxiliary,
+      provided_means = auxiliary_means,
+      threshold = thr,
+      precomputed_resp = precomputed_aux_resp
+    )
     aux_inconsistency_max_z <- chk$max_z
     aux_inconsistency_cols <- chk$cols
     if (is.finite(aux_inconsistency_max_z) && aux_inconsistency_max_z > thr) {

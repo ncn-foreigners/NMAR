@@ -49,16 +49,33 @@
 #'   convergence information, and other relevant output from the chosen NMAR method.
 #'
 #' @details
-#'   Auxiliary means naming (for engines that use auxiliary moment constraints,
-#'   e.g., [el_engine()]): When supplying `auxiliary_means`, the names must match
-#'   the column names of the auxiliary model matrix generated from the left-of-`|`
-#'   RHS after removing the intercept. In particular, if transforms or
+#'   \strong{Auxiliary means naming}: For engines that use auxiliary moment
+#'   constraints (e.g., [el_engine()]), when supplying `auxiliary_means`, the
+#'   names must match the column names of the auxiliary model matrix generated
+#'   from the left-of-`|` RHS after removing the intercept. If transforms or
 #'   interactions are used, names should follow `model.matrix()` conventions —
 #'   for example, `I(X^2)` for squared terms, and `X1:X2` for interaction terms.
 #'   Mismatched or missing names are dropped, and if no names match, auxiliary
 #'   constraints are disabled.
 #'
-#'   The formula’s original environment is preserved; any user-defined functions
+#'   \strong{Factor variables}: Categorical variables (factors or character
+#'   vectors) are automatically converted to dummy variables via `model.matrix()`.
+#'   The first level (alphabetically) is used as the reference category, and
+#'   coefficients represent differences from the reference. For example, if
+#'   `region` is a factor with levels `c("North", "South", "West")`, the formula
+#'   `Y ~ region` creates dummy variables `regionSouth` and `regionWest`, with
+#'   coefficients representing effects relative to North (the reference).
+#'
+#'   \strong{Formula transformations}: All standard R formula transformations work
+#'   correctly. Transformations such as `I(X^2)`, `log(Y)`, `poly(X, 2)` are
+#'   evaluated first, then the resulting transformed variables are standardized
+#'   (if `standardize = TRUE` in the engine). Coefficients are automatically
+#'   unscaled to the original parameter space after estimation. Note that
+#'   transformations of the outcome (e.g., `log(Y)`) estimate the mean of the
+#'   transformed outcome; users must back-transform results if needed.
+#'
+#'   \strong{Environment preservation}: The formula's original environment is
+#'   preserved throughout the estimation process. Any user-defined functions
 #'   used in transforms must be visible in that environment.
 #' @keywords nmar
 #' @export
@@ -74,22 +91,20 @@ nmar <- function(formula, data, engine, trace_level = 1) {
   )
 
   traits <- engine_traits(engine)
-# Activate respondents-only relaxation only when the engine supplies
-# the required extra information (currently: n_total for EL).
-  if (isTRUE(traits$allow_respondents_only)) {
-    has_n_total <- !is.null(engine$n_total)
-    traits$allow_respondents_only <- isTRUE(has_n_total)
-  }
   validate_nmar_args(spec, traits)
 
 # Wrap the validated spec and engine traits into a task object so every
 # engine sees the same downstream interface.
-  task <- new_nmar_task(spec, traits)
+  task <- new_nmar_task(spec, traits, trace_level = trace_level)
 
-# Pass trace_level to the engine
-  task$trace_level <- trace_level
-
-  run_engine(engine, task)
+  result <- run_engine(engine, task)
+  if (!inherits(result, "nmar_result")) {
+    stop("`run_engine()` must return an object inheriting from 'nmar_result'.", call. = FALSE)
+  }
+  primary_class <- setdiff(class(result), "nmar_result")
+  target_class <- if (length(primary_class)) primary_class[[1]] else "nmar_result"
+  result <- validate_nmar_result(result, target_class)
+  result
 }
 
 run_engine <- function(engine, task) {

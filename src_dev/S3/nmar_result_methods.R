@@ -189,6 +189,8 @@ glance.nmar_result <- function(x, ...) {
 #' @param which Which plot: one of `"weights"`, `"fitted"`, `"constraints"`, `"diagnostics"`.
 #' @param ... Ignored.
 #' @keywords internal
+#' @method plot nmar_result
+#' @export
 plot.nmar_result <- function(x, which = c("weights", "fitted", "constraints", "diagnostics"), ...) {
   which <- match.arg(which)
   op <- graphics::par(no.readonly = TRUE)
@@ -238,20 +240,24 @@ plot.nmar_result <- function(x, which = c("weights", "fitted", "constraints", "d
   invisible(x)
 }
 
-#' ggplot2 autoplot generic
-#' @description Generic for autoplot; methods provide plotting for NMAR results.
-#' @param object An object.
-#' @param ... Passed to methods.
-#' @keywords internal
-autoplot <- function(object, ...) UseMethod("autoplot")
+#' Autoplot generic
+#'
+#' Generic function for creating ggplot2 plots. If ggplot2 is loaded, its
+#' generic will be used; otherwise, this minimal generic enables S3 dispatch.
+#' @param object An object
+#' @param ... Additional arguments passed to methods
+#' @export
+autoplot <- function(object, ...) {
+  UseMethod("autoplot")
+}
 
-#' Default ggplot2 autoplot for NMAR results
+#' ggplot2 autoplot method for NMAR results
 #' @description Quick ggplot2 visualizations for result objects.
 #' @param object An object of class `nmar_result` or a subclass.
 #' @param type One of "weights", "fitted", or "constraints".
 #' @param ... Ignored.
 #' @return A `ggplot` object.
-#' @keywords internal
+#' @export
 autoplot.nmar_result <- function(object, type = c("weights", "fitted", "constraints"), ...) {
   type <- match.arg(type)
   if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 is required for autoplot.nmar_result", call. = FALSE)
@@ -451,6 +457,17 @@ formula.nmar_result <- function(x, ...) {
 }
 
 
+#' Standard error generic
+#'
+#' Generic function for extracting standard errors from model objects.
+#' @param object An object
+#' @param ... Additional arguments passed to methods
+#' @return Numeric value or vector of standard errors
+#' @export
+se <- function(object, ...) {
+  UseMethod("se")
+}
+
 #' Extract standard error for NMAR results
 #'
 #' Returns the standard error of the primary mean estimate.
@@ -460,10 +477,6 @@ formula.nmar_result <- function(x, ...) {
 #' @keywords result_param
 #' @exportS3Method se nmar_result
 se.nmar_result <- function(object, ...) nmar_result_get_se(object)
-
-se <- function(...) {
-  UseMethod("se", ...)
-}
 
 
 

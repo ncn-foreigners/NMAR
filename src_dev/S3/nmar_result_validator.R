@@ -18,7 +18,7 @@ validate_nmar_result <- function(x, class_name) {
   if (is.null(x$estimate_name)) x$estimate_name <- NA_character_
   validator$assert_scalar_character(x$estimate_name, name = "estimate_name", allow_na = TRUE, non_empty = FALSE)
 
-  if (is.null(x$converged)) x$converged <- NA
+  if (is.null(x$converged)) x$converged <- FALSE
   validator$assert_scalar_logical(x$converged, name = "converged")
 
 # Model

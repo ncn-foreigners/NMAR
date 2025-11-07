@@ -6,6 +6,9 @@
 #' @param formula Two-sided formula: NA-valued outcome on LHS; auxiliaries on RHS.
 #' @param auxiliary_means Named numeric vector of population means for auxiliaries.
 #' @param standardize Logical; standardize predictors.
+#' @param design_matrices Internal list of precomputed design matrices from the
+#'   NMAR input pipeline. Users should not supply this; engines populate it to
+#'   avoid recomputing model matrices.
 #' @param trim_cap Numeric; cap for EL weights (Inf = no trimming).
 #' @param control List; solver control for `nleqslv(control=...)`.
 #' @param on_failure Character; "return" or "error" on solver failure.
@@ -27,6 +30,7 @@
 #' @keywords internal
 el.survey.design <- function(data, formula,
                              auxiliary_means = NULL, standardize = TRUE,
+                             design_matrices = NULL,
                              trim_cap = Inf, control = list(),
                              on_failure = c("return", "error"),
                              variance_method = c("delta", "bootstrap", "none"),
@@ -63,6 +67,25 @@ el.survey.design <- function(data, formula,
     stop("Respondents-only survey design detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total design weight or population total>).", call. = FALSE)
   }
 
+  design_payload <- design_matrices
+  if (is.null(design_payload)) {
+    spec <- parse_nmar_spec(formula, design, env = environment(formula) %||% parent.frame())
+    dummy_engine <- list(n_total = n_total)
+    class(dummy_engine) <- c("nmar_engine_el", "nmar_engine")
+    dummy_traits <- engine_traits(dummy_engine)
+    validate_nmar_args(spec, dummy_traits)
+    task <- new_nmar_task(spec, dummy_traits, trace_level = trace_level)
+    design_info <- prepare_nmar_design(
+      task,
+      standardize = standardize,
+      auxiliary_means = auxiliary_means,
+      include_response = TRUE,
+      include_auxiliary = TRUE
+    )
+    design_payload <- design_info$design_matrices
+    design$variables <- design_info$data
+  }
+
   parsed_inputs <- prepare_el_inputs(formula, design$variables,
                                      require_na = is.null(n_total))
   design$variables <- parsed_inputs$data
@@ -71,6 +94,13 @@ el.survey.design <- function(data, formula,
   observed_mask <- design$variables[[response_var]] == 1
   observed_indices <- which(observed_mask)
   resp_design <- subset(design, observed_mask)
+  outcome_name <- all.vars(internal_formula$outcome)[1]
+  precomputed_design <- el_build_precomputed_design(
+    design_matrices = design_payload,
+    estimation_data = design$variables,
+    outcome_var = outcome_name,
+    respondent_indices = observed_indices
+  )
 
 # (Guard handled earlier.)
 
@@ -148,7 +178,8 @@ el.survey.design <- function(data, formula,
     standardize = standardize, trim_cap = trim_cap, control = control,
     on_failure = on_failure,
     variance_method = variance_method, bootstrap_reps = bootstrap_reps,
-    user_args = user_args, start = start, trace_level = trace_level, ...
+    user_args = user_args, start = start, trace_level = trace_level,
+    precomputed_design = precomputed_design, ...
   )
 
   sample_info <- list(

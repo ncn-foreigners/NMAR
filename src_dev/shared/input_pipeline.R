@@ -9,7 +9,9 @@
 #' @keywords internal
 parse_nmar_spec <- function(formula, data, env = parent.frame()) {
   validator$assert_formula_two_sided(formula, name = "formula")
-  if (!is.environment(env)) env <- parent.frame()
+  if (!is.environment(env)) {
+    stop("`env` must be an environment for formula evaluation.", call. = FALSE)
+  }
   if (is.null(environment(formula))) environment(formula) <- env
 
   outcome_vars <- unique(all.vars(formula[[2]]))
@@ -112,12 +114,15 @@ engine_traits.nmar_engine <- function(engine) {
 #' @keywords engine_view
 #' @export
 engine_traits.nmar_engine_el <- function(engine) {
+# Activate respondents-only mode only if n_total is provided by the engine
+  allow_resp_only <- !is.null(engine$n_total)
+
   utils::modifyList(
     engine_traits.default(engine),
     list(
       allow_outcome_in_missingness = TRUE,
       allow_covariate_overlap = TRUE,
-      allow_respondents_only = TRUE
+      allow_respondents_only = allow_resp_only
     )
   )
 }
@@ -183,9 +188,10 @@ validate_nmar_args <- function(spec, traits = list()) {
 #'
 #' @param spec Parsed NMAR specification produced by [parse_nmar_spec()].
 #' @param traits Engine traits returned by [engine_traits()].
+#' @param trace_level Integer 0-3 controlling verbosity during estimation.
 #'
 #' @keywords internal
-new_nmar_task <- function(spec, traits) {
+new_nmar_task <- function(spec, traits, trace_level = 1) {
   if (!inherits(spec, "nmar_input_spec")) {
     stop("`spec` must be created by `parse_nmar_spec()`.", call. = FALSE)
   }
@@ -202,7 +208,8 @@ new_nmar_task <- function(spec, traits) {
       is_survey = spec$is_survey,
       environment = spec$environment,
       traits = traits,
-      blueprint = spec$blueprint
+      blueprint = spec$blueprint,
+      trace_level = trace_level
     ),
     class = "nmar_task"
   )
@@ -247,12 +254,23 @@ prepare_nmar_design <- function(task,
       weights <- rep(1, nrow(data_df))
     }
   }
+  weights <- as.numeric(weights)
+  if (length(weights) != nrow(data_df)) {
+    stop("`design_weights` must have the same length as the supplied data.", call. = FALSE)
+  }
+
+  design_matrices <- nmar_materialize_design_matrices(
+    blueprint = task$blueprint,
+    data = data_df,
+    include_auxiliary = include_auxiliary,
+    include_response = include_response
+  )
   list(
     data = data_df,
     outcome = task$outcome,
     auxiliary_vars = if (isTRUE(include_auxiliary)) task$auxiliary_vars else character(),
     response_predictors = if (isTRUE(include_response)) task$response_predictors else character(),
-    weights = as.numeric(weights),
+    weights = weights,
     is_survey = isTRUE(task$is_survey),
     survey_design = if (isTRUE(task$is_survey)) task$original_data else NULL,
     formula = task$formula,
@@ -262,7 +280,8 @@ prepare_nmar_design <- function(task,
     response_rhs_lang = if (isTRUE(include_response)) task$response_rhs_lang else NULL,
     blueprint = task$blueprint,
     aux_terms = if (isTRUE(include_auxiliary)) task$blueprint$aux$terms else NULL,
-    response_terms = if (isTRUE(include_response)) task$blueprint$response$terms else NULL
+    response_terms = if (isTRUE(include_response)) task$blueprint$response$terms else NULL,
+    design_matrices = design_matrices
   )
 }
 
@@ -395,10 +414,11 @@ nmar_make_response_formula <- function(outcome_vars, response_expr, env) {
   if (is.null(response_expr)) return(NULL)
   if (length(all.vars(response_expr)) == 0L) return(NULL)
   lhs <- nmar_make_lhs_expr(outcome_vars)
+  rhs <- call("+", 0, response_expr)
   if (is.null(lhs)) {
-    f <- call("~", response_expr)
+    f <- call("~", rhs)
   } else {
-    f <- call("~", lhs, response_expr)
+    f <- call("~", lhs, rhs)
   }
   stats::as.formula(f, env = env)
 }
@@ -467,6 +487,35 @@ validate_multi_outcome_data <- function(data, outcome_vars) {
       )
     }
   }
+}
+
+nmar_model_matrix_from_terms <- function(terms_info, data) {
+  if (is.null(terms_info$terms)) {
+    return(NULL)
+  }
+  mf <- stats::model.frame(
+    terms_info$terms,
+    data = data,
+    na.action = stats::na.pass,
+    drop.unused.levels = FALSE,
+    xlev = terms_info$xlevels
+  )
+  stats::model.matrix(terms_info$terms, mf, contrasts.arg = terms_info$contrasts)
+}
+
+nmar_materialize_design_matrices <- function(blueprint,
+                                             data,
+                                             include_auxiliary = TRUE,
+                                             include_response = TRUE) {
+  aux_matrix <- NULL
+  response_matrix <- NULL
+  if (isTRUE(include_auxiliary) && !is.null(blueprint$aux$terms)) {
+    aux_matrix <- nmar_model_matrix_from_terms(blueprint$aux, data)
+  }
+  if (isTRUE(include_response) && !is.null(blueprint$response$terms)) {
+    response_matrix <- nmar_model_matrix_from_terms(blueprint$response, data)
+  }
+  list(auxiliary = aux_matrix, response = response_matrix)
 }
 
 validate_predictor_relationships <- function(outcomes,

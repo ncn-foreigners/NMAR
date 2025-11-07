@@ -63,8 +63,3 @@ new_nmar_result <- function(...) {
   )
   structure(result, class = c(class_name, "nmar_result"))
 }
-
-# Fallback definition for the `%||%` helper used across the S3 stack
-if (!exists("%||%")) {
-  `%||%` <- function(a, b) if (!is.null(a)) a else b
-}

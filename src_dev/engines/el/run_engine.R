@@ -25,6 +25,7 @@ run_engine.nmar_engine_el <- function(engine, task) {
     formula = f_use,
     auxiliary_means = design_info$auxiliary_means,
     standardize = design_info$standardize,
+    design_matrices = design_info$design_matrices,
     n_total = engine$n_total,
     start = engine$start,
     trim_cap = engine$trim_cap,

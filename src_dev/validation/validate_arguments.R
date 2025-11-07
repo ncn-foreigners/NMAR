@@ -51,21 +51,34 @@ validator$assert_list <- function(x, name) {
 }
 
 #' @title Assert Number
-#' @description Checks if a value is a number within a specified range.
+#' @description Checks if a value is a single number within a specified range.
 #' @param x The value to check.
 #' @param name A string representing the name of the argument being checked.
 #' @param min The minimum allowed value (inclusive). Defaults to -Inf.
 #' @param max The maximum allowed value (inclusive). Defaults to Inf.
+#' @param na.ok Logical; if TRUE, NA values are allowed. Defaults to FALSE.
 #' @return Returns nothing on success, stops with an error on failure.
 #' @rdname nmar_validator_helpers
 #' @noRd
-validator$assert_number <- function(x, name, min = -Inf, max = Inf) {
-  if (!is.numeric(x) || any(x < min) || any(x > max)) {
+validator$assert_number <- function(x, name, min = -Inf, max = Inf, na.ok = FALSE) {
+# Check type and length (must be scalar)
+  if (!is.numeric(x) || length(x) != 1L) {
+    stop(paste0("Argument '", name, "' must be a single numeric value."), call. = FALSE)
+  }
+
+# Check NA
+  if (!na.ok && is.na(x)) {
+    stop(paste0("Argument '", name, "' cannot be NA."), call. = FALSE)
+  }
+
+# Check range (only for finite values)
+  if (is.finite(x) && (x < min || x > max)) {
     stop(
       paste0(
-        "Argument '", name, "' should be a number in range (",
-        min, ", ", max, "). Value is '", x, "'."
-      )
+        "Argument '", name, "' must be in range [", min, ", ", max,
+        "]. Got: ", x, "."
+      ),
+      call. = FALSE
     )
   }
 }
