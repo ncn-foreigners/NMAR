@@ -251,17 +251,22 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;     y_hat std.error conf.low conf.high converged trimmed_fraction</span></span>
 <span><span class="co">#&gt; 1 1.87866        NA       NA        NA      TRUE                0</span></span>
 <span><span class="co">#&gt;   variance_method jacobian_condition_number max_equation_residual</span></span>
-<span><span class="co">#&gt; 1            none                  36.83019          5.095924e-13</span></span>
+<span><span class="co">#&gt; 1            none                  36.83019           5.17808e-13</span></span>
 <span><span class="co">#&gt;   min_denominator fraction_small_denominators nobs nobs_resp is_survey</span></span>
 <span><span class="co">#&gt; 1       0.4613402                           0  500       150     FALSE</span></span>
 <span></span>
 <span><span class="co"># plot(fit, which = "weights")</span></span>
 <span><span class="co"># plot(fit, which = "fitted")</span></span></code></pre></div>
-<p>Outputs and diagnostics at a glance:</p>
+<p>Outputs and diagnostics at a glance (probability-scale weights sum to
+1; population-scale weights sum to the analysis total
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><annotation encoding="application/x-tex">N_\text{pop}</annotation></semantics></math>):</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">]</span></span>
 <span><span class="co">#&gt;  [1] 0.008384402 0.008937803 0.004381958 0.014450653 0.006959120 0.007160884</span></span>
 <span><span class="co">#&gt;  [7] 0.005995129 0.006358571 0.007390444 0.007842733</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights</a></span><span class="op">(</span><span class="va">fit</span>, scale <span class="op">=</span> <span class="st">"population"</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">]</span></span>
+<span><span class="co">#&gt;  [1] 4.192201 4.468901 2.190979 7.225327 3.479560 3.580442 2.997564 3.179285</span></span>
+<span><span class="co">#&gt;  [9] 3.695222 3.921366</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">]</span></span>
 <span><span class="co">#&gt;  [1] 0.2385382 0.2237686 0.4564170 0.1384020 0.2873926 0.2792951 0.3336042</span></span>
 <span><span class="co">#&gt;  [8] 0.3145361 0.2706197 0.2550132</span></span>
@@ -278,10 +283,10 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;  $ solver_time                       : num 0.005</span></span>
 <span><span class="co">#&gt;  $ variance_time                     : num 0</span></span>
 <span><span class="co">#&gt;  $ reparam_W                         : chr "logit"</span></span>
-<span><span class="co">#&gt;  $ max_equation_residual             : num 5.1e-13</span></span>
+<span><span class="co">#&gt;  $ max_equation_residual             : num 5.18e-13</span></span>
 <span><span class="co">#&gt;  $ jacobian_condition_number         : num 36.8</span></span>
 <span><span class="co">#&gt;  $ aux_inconsistency_max_z           : num 0.114</span></span>
-<span><span class="co">#&gt;  $ aux_inconsistency_cols            : chr(0) </span></span>
+<span><span class="co">#&gt;  $ aux_inconsistency_cols            : chr "X"</span></span>
 <span><span class="co">#&gt;  $ grad_source                       : chr NA</span></span>
 <span><span class="co">#&gt;  $ var_y_hat_val                     : num NA</span></span>
 <span><span class="co">#&gt;  $ var_anal2                         : num NA</span></span>
@@ -299,23 +304,28 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;  $ weight_max_share                  : num 0.0145</span></span>
 <span><span class="co">#&gt;  $ weight_top5_share                 : num 0.0665</span></span>
 <span><span class="co">#&gt;  $ weight_ess                        : num 137</span></span>
-<span><span class="co">#&gt;  $ constraint_sum_W                  : num -3.35e-13</span></span>
-<span><span class="co">#&gt;  $ constraint_sum_aux                : Named num -5.1e-13</span></span>
+<span><span class="co">#&gt;  $ constraint_sum_W                  : num -3.33e-13</span></span>
+<span><span class="co">#&gt;  $ constraint_sum_aux                : Named num -5.18e-13</span></span>
 <span><span class="co">#&gt;   ..- attr(*, "names")= chr "X"</span></span>
 <span><span class="co">#&gt;  $ sum_respondent_weights            : num 150</span></span>
 <span><span class="co">#&gt;  $ sum_unnormalized_weights_untrimmed: num 150</span></span>
 <span><span class="co">#&gt;  $ normalization_ratio               : num 1</span></span>
-<span><span class="co">#&gt;  $ max_constraint_residual           : num 5.1e-13</span></span></code></pre></div>
-<p>Bootstrap variance (keep reps small for speed):</p>
+<span><span class="co">#&gt;  $ max_constraint_residual           : num 5.18e-13</span></span></code></pre></div>
+<p>Bootstrap variance (keep reps small for speed). This example requires
+the optional future.apply package; the chunk runs only if it is
+available:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">engine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"bootstrap"</span>, bootstrap_reps <span class="op">=</span> <span class="fl">15</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">fit_boot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
-<span>  formula <span class="op">=</span> <span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>,</span>
-<span>  engine <span class="op">=</span> <span class="va">engine</span>,</span>
-<span>  data <span class="op">=</span> <span class="va">dat</span></span>
-<span></span>
-<span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"future.apply"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">engine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"bootstrap"</span>, bootstrap_reps <span class="op">=</span> <span class="fl">15</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>  <span class="va">fit_boot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
+<span>    formula <span class="op">=</span> <span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>,</span>
+<span>    engine <span class="op">=</span> <span class="va">engine</span>,</span>
+<span>    data <span class="op">=</span> <span class="va">dat</span></span>
+<span>  <span class="op">)</span></span>
+<span>  <span class="va">fit_boot</span><span class="op">$</span><span class="va">se</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Skipping bootstrap example: future.apply not installed"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
 <span><span class="co">#&gt; [STEP-1] ============================================================ </span></span>
 <span><span class="co">#&gt; [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED </span></span>
 <span><span class="co">#&gt; [STEP-1] ============================================================ </span></span>
@@ -671,7 +681,6 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt; [RESULT]   Standard error:           0.187963 </span></span>
 <span><span class="co">#&gt; [RESULT]   95% CI:                   [1.510252, 2.247068] </span></span>
 <span><span class="co">#&gt; [INFO]</span></span>
-<span><span class="va">fit_boot</span><span class="op">$</span><span class="va">se</span></span>
 <span><span class="co">#&gt; [1] 0.1879633</span></span></code></pre></div>
 </div>
 </div>
@@ -818,8 +827,9 @@ need auxiliary means.</li>
 <span>  <span class="va">apiclus1</span><span class="op">$</span><span class="va">api00_miss</span><span class="op">[</span><span class="va">miss</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NA_real_</span></span>
 <span></span>
 <span>  <span class="va">dclus1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survey/man/svydesign.html" class="external-link">svydesign</a></span><span class="op">(</span>id <span class="op">=</span> <span class="op">~</span><span class="va">dnum</span>, weights <span class="op">=</span> <span class="op">~</span><span class="va">pw</span>, data <span class="op">=</span> <span class="va">apiclus1</span>, fpc <span class="op">=</span> <span class="op">~</span><span class="va">fpc</span><span class="op">)</span></span>
-<span>  <span class="va">pop_mean_ell</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">apiclus1</span><span class="op">$</span><span class="va">ell</span><span class="op">)</span></span>
-<span>  <span class="va">engine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>ell <span class="op">=</span> <span class="va">pop_mean_ell</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"none"</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co"># Let the engine infer auxiliary means from the full design (design-weighted).</span></span>
+<span><span class="co"># Alternatively, you can supply known population means via auxiliary_means.</span></span>
+<span>  <span class="va">engine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/el_engine.html">el_engine</a></span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="cn">NULL</span>, variance_method <span class="op">=</span> <span class="st">"none"</span>, standardize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span>  <span class="va">fit_svy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
 <span>    formula <span class="op">=</span> <span class="va">api00_miss</span> <span class="op">~</span> <span class="va">ell</span>,</span>
@@ -970,11 +980,13 @@ American Statistical Association, 97(457), 193-200. <a href="doi:10.1198/0162145
 <ul>
 <li>Family: <code>el_engine(family = "logit")</code> (default) or
 <code>family = "probit"</code>.</li>
-<li>Probit stability: the response-model score uses
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mi>.</mi><mi>η</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>η</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">k</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">v</mi></mrow><mrow><mo stretchy="true" form="prefix">(</mo><mi>η</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\mu.\eta(\eta)/\mathrm{linkinv}(\eta)</annotation></semantics></math>
-with clipping; for probit this behaves like
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ϕ</mi><mi>/</mi><mi>Φ</mi></mrow><annotation encoding="application/x-tex">\phi/\Phi</annotation></semantics></math>
-when probabilities are bounded away from 0 and 1.</li>
+<li>Probit stability: the response-model score is evaluated as the Mills
+ratio
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ϕ</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>η</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mi>Φ</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>η</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\phi(\eta)/\Phi(\eta)</annotation></semantics></math>
+in the log domain for numerical stability; the logit score simplifies to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>−</mo><mrow><mi mathvariant="normal">p</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi></mrow><mrow><mo stretchy="true" form="prefix">(</mo><mi>η</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">1-\mathrm{plogis}(\eta)</annotation></semantics></math>.
+We also cap the linear predictor and clip probabilities used in
+ratios.</li>
 <li>Theory mapping: see the companion article “Empirical Likelihood
 Theory for NMAR” for equations, Jacobian blocks, and variance
 details.</li>
@@ -1017,7 +1029,7 @@ details.</li>
 <span><span class="co">#&gt; [25] DBI_1.2.3           bslib_0.9.0         pillar_1.11.1      </span></span>
 <span><span class="co">#&gt; [28] rlang_1.1.6         cachem_1.1.0        broom_1.0.10       </span></span>
 <span><span class="co">#&gt; [31] xfun_0.54           fs_1.6.6            sass_0.4.10        </span></span>
-<span><span class="co">#&gt; [34] cli_3.6.5           progressr_0.17.0    pkgdown_2.1.3      </span></span>
+<span><span class="co">#&gt; [34] cli_3.6.5           progressr_0.18.0    pkgdown_2.2.0      </span></span>
 <span><span class="co">#&gt; [37] magrittr_2.0.4      digest_0.6.37       lifecycle_1.0.4    </span></span>
 <span><span class="co">#&gt; [40] vctrs_0.6.5         evaluate_1.0.5      glue_1.8.0         </span></span>
 <span><span class="co">#&gt; [43] listenv_0.10.0      mitools_2.4         codetools_0.2-20   </span></span>
@@ -1049,7 +1061,7 @@ behavior when you request bootstrap SEs through
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>

@@ -129,6 +129,13 @@ known; names match columns of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>X</mi><annotation encoding="application/x-tex">X</annotation></semantics></math>
 </li>
 </ul>
+<p>Mapping to code: - <code>response_model_matrix</code> corresponds to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>Z</mi><annotation encoding="application/x-tex">Z</annotation></semantics></math>
+(includes an intercept column) - <code>auxiliary_matrix</code>
+corresponds to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>X</mi><annotation encoding="application/x-tex">X</annotation></semantics></math>
+(no intercept); we center it in code as
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>X</mi><mo>−</mo><msub><mi>μ</mi><mi>x</mi></msub></mrow><annotation encoding="application/x-tex">X - \mu_x</annotation></semantics></math></p>
 </div>
 <div class="section level3">
 <h3 id="response-model-family-functions">Response Model (Family functions)<a class="anchor" aria-label="anchor" href="#response-model-family-functions"></a>
@@ -381,6 +388,65 @@ only relative weights matter (the KKT multipliers
 enforce the constraints; normalization affects only a common scale that
 vanishes in the ratio).</p>
 <div class="section level3">
+<h3 id="survey-weighted-generalization-of-lambda_w-qls-eq--10">Survey-Weighted Generalization of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>
+(QLS Eq. 10)<a class="anchor" aria-label="anchor" href="#survey-weighted-generalization-of-lambda_w-qls-eq--10"></a>
+</h3>
+<p>QLS derive
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>N</mi><mi>/</mi><mi>n</mi><mo>−</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\lambda_W = (N/n - 1)/(1-W)</annotation></semantics></math>
+when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>a</mi><mi>i</mi></msub><mo>≡</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">a_i \equiv 1</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
+counts respondents. In survey settings, let
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>A</mi><mtext mathvariant="normal">resp</mtext></msub><mo>=</mo><msub><mo>∑</mo><mrow><mi>i</mi><mo>:</mo><msub><mi>R</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow></msub><msub><mi>a</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">A_{\text{resp}} = \sum_{i:R_i=1} a_i</annotation></semantics></math>
+be the respondent-weighted total and let
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><annotation encoding="application/x-tex">N_{\text{pop}}</annotation></semantics></math>
+be the analysis-scale population total (either
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>∑</mo><msub><mi>a</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\sum a_i</annotation></semantics></math>
+or a user-supplied
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>n</mi><mtext mathvariant="normal">total</mtext></msub><annotation encoding="application/x-tex">n_{\text{total}}</annotation></semantics></math>).
+We use the weighted analogue</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mfrac><mrow><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><mi>/</mi><msub><mi>A</mi><mtext mathvariant="normal">resp</mtext></msub><mo>−</mo><mn>1</mn></mrow><mrow><mn>1</mn><mo>−</mo><mi>W</mi></mrow></mfrac><mo>,</mo></mrow><annotation encoding="application/x-tex">\lambda_W = \frac{N_{\text{pop}}/A_{\text{resp}} - 1}{1 - W},</annotation></semantics></math></p>
+<p>which reduces to QLS when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>a</mi><mi>i</mi></msub><mo>≡</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">a_i \equiv 1</annotation></semantics></math>.</p>
+</div>
+<div class="section level3">
+<h3 id="guarding-and-numerical-stability">Guarding and Numerical Stability<a class="anchor" aria-label="anchor" href="#guarding-and-numerical-stability"></a>
+</h3>
+<p>We solve the stacked system with a consistent guarding policy across
+equations, Jacobian, and post-solution:</p>
+<ul>
+<li>Cap
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>η</mi><annotation encoding="application/x-tex">\eta</annotation></semantics></math>:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>η</mi><mo>←</mo><mo>max</mo><mo stretchy="false" form="prefix">{</mo><mo>min</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>η</mi><mo>,</mo><mspace width="0.167em"></mspace><msub><mi>η</mi><mo>max</mo></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo><mspace width="0.167em"></mspace><mo>−</mo><msub><mi>η</mi><mo>max</mo></msub><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\eta \leftarrow \max\{\min(\eta,\,\eta_{\max}),\,-\eta_{\max}\}</annotation></semantics></math>
+</li>
+<li>Compute
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>w</mi><mo>=</mo><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">k</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">v</mi></mrow><mrow><mo stretchy="true" form="prefix">(</mo><mi>η</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">w = \mathrm{linkinv}(\eta)</annotation></semantics></math>;
+clip
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>w</mi><annotation encoding="application/x-tex">w</annotation></semantics></math>
+to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">[</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>12</mn></mrow></msup><mo>,</mo><mn>1</mn><mo>−</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>12</mn></mrow></msup><mo stretchy="true" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">[10^{-12}, 1-10^{-12}]</annotation></semantics></math>
+when used in ratios</li>
+<li>Guard denominators:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>i</mi></msub><mo>←</mo><mo>max</mo><mo stretchy="false" form="prefix">{</mo><msub><mi>D</mi><mi>i</mi></msub><mo>,</mo><mspace width="0.167em"></mspace><mi>δ</mi><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">D_i \leftarrow \max\{D_i,\,\delta\}</annotation></semantics></math>
+with a small
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>&gt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\delta&gt;0</annotation></semantics></math>
+</li>
+<li>In the Jacobian, multiply terms involving
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∂</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mi>/</mi><msub><mi>D</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mi>∂</mi><mo>⋅</mo></mrow><annotation encoding="application/x-tex">\partial(1/D_i)/\partial\cdot</annotation></semantics></math>
+by
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>𝟙</mn><mo stretchy="false" form="prefix">{</mo><msubsup><mi>D</mi><mi>i</mi><mtext mathvariant="normal">raw</mtext></msubsup><mo>&gt;</mo><mi>δ</mi><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\mathbb{1}\{D_i^{\text{raw}} &gt; \delta\}</annotation></semantics></math>
+so the analytic Jacobian matches the piecewise-smooth equations being
+solved</li>
+</ul>
+<p>For the probit link,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>η</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mi>∂</mi><mo>log</mo><mi>w</mi><mi>/</mi><mi>∂</mi><mi>η</mi><mo>=</mo><mi>ϕ</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>η</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mi>Φ</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>η</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">s_i(\eta) = \partial\log w/\partial\eta = \phi(\eta)/\Phi(\eta)</annotation></semantics></math>
+(Mills ratio) is computed in the log domain for stability; its
+derivative is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><mrow><mi>d</mi><msub><mi>s</mi><mi>i</mi></msub></mrow><mrow><mi>d</mi><mi>η</mi></mrow></mfrac><mo>=</mo><mo>−</mo><mi>η</mi><mspace width="0.167em"></mspace><msub><mi>s</mi><mi>i</mi></msub><mo>−</mo><msubsup><mi>s</mi><mi>i</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">\frac{d s_i}{d\eta} = -\eta\,s_i - s_i^2</annotation></semantics></math>.</p>
+</div>
+<div class="section level3">
 <h3 id="equation-crosswalk-qls-2002---this-vignettecode">Equation Crosswalk (QLS 2002 -&gt; This Vignette/Code)<a class="anchor" aria-label="anchor" href="#equation-crosswalk-qls-2002---this-vignettecode"></a>
 </h3>
 <ul>
@@ -471,9 +537,12 @@ introducing the multipliers.</p>
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>λ</mi><mn>0</mn></msub><mo>,</mo><msub><mi>λ</mi><mi>x</mi></msub><mo>,</mo><msub><mi>λ</mi><mi>W</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\lambda_0,\lambda_x,\lambda_W)</annotation></semantics></math>
 for these constraints and profiling the
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>p</mi><mi>i</mi></msub><annotation encoding="application/x-tex">p_i</annotation></semantics></math>’s
-gives the KKT stationarity conditions</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><mi>∂</mi><mrow><mi>∂</mi><msub><mi>p</mi><mi>i</mi></msub></mrow></mfrac><mo minsize="1.8" maxsize="1.8" stretchy="false" form="prefix">[</mo><munder><mo>∑</mo><mi>j</mi></munder><mo>log</mo><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>a</mi><mi>j</mi></msub><msub><mi>p</mi><mi>j</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><msub><mi>λ</mi><mn>0</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><munder><mo>∑</mo><mi>j</mi></munder><msub><mi>p</mi><mi>j</mi></msub><mo>−</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><msubsup><mi>λ</mi><mi>x</mi><mi>T</mi></msubsup><munder><mo>∑</mo><mi>j</mi></munder><msub><mi>p</mi><mi>j</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>X</mi><mi>j</mi></msub><mo>−</mo><msub><mi>μ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><msub><mi>λ</mi><mi>W</mi></msub><munder><mo>∑</mo><mi>j</mi></munder><msub><mi>p</mi><mi>j</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>w</mi><mi>j</mi></msub><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo minsize="1.8" maxsize="1.8" stretchy="false" form="postfix">]</mo><mo>=</mo><mn>0</mn><mo>,</mo></mrow><annotation encoding="application/x-tex">
-\frac{\partial}{\partial p_i} \Big[ \sum_j \log(a_j p_j) - \lambda_0 (\sum_j p_j - 1) - \lambda_x^T \sum_j p_j (X_j - \mu_x) - \lambda_W \sum_j p_j (w_j - W) \Big] = 0,
+gives the KKT stationarity conditions (in a survey-weighted setting,
+with base weights
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>a</mi><mi>i</mi></msub><annotation encoding="application/x-tex">a_i</annotation></semantics></math>
+acting as multiplicities in the empirical likelihood)</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><mi>∂</mi><mrow><mi>∂</mi><msub><mi>p</mi><mi>i</mi></msub></mrow></mfrac><mo minsize="1.8" maxsize="1.8" stretchy="false" form="prefix">[</mo><munder><mo>∑</mo><mi>j</mi></munder><msub><mi>a</mi><mi>j</mi></msub><mspace width="0.167em"></mspace><mo>log</mo><msub><mi>p</mi><mi>j</mi></msub><mo>−</mo><msub><mi>λ</mi><mn>0</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><munder><mo>∑</mo><mi>j</mi></munder><msub><mi>p</mi><mi>j</mi></msub><mo>−</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><msubsup><mi>λ</mi><mi>x</mi><mi>T</mi></msubsup><munder><mo>∑</mo><mi>j</mi></munder><msub><mi>p</mi><mi>j</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>X</mi><mi>j</mi></msub><mo>−</mo><msub><mi>μ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><msub><mi>λ</mi><mi>W</mi></msub><munder><mo>∑</mo><mi>j</mi></munder><msub><mi>p</mi><mi>j</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>w</mi><mi>j</mi></msub><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo minsize="1.8" maxsize="1.8" stretchy="false" form="postfix">]</mo><mo>=</mo><mn>0</mn><mo>,</mo></mrow><annotation encoding="application/x-tex">
+\frac{\partial}{\partial p_i} \Big[ \sum_j a_j\, \log p_j - \lambda_0 (\sum_j p_j - 1) - \lambda_x^T \sum_j p_j (X_j - \mu_x) - \lambda_W \sum_j p_j (w_j - W) \Big] = 0,
 </annotation></semantics></math></p>
 <p>which solve to</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mspace width="0.278em"></mspace><mo>∝</mo><mspace width="0.278em"></mspace><mfrac><mn>1</mn><mrow><mspace width="0.167em"></mspace><mn>1</mn><mo>+</mo><msubsup><mi>λ</mi><mi>x</mi><mi>T</mi></msubsup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>X</mi><mi>i</mi></msub><mo>−</mo><msub><mi>μ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>+</mo><msub><mi>λ</mi><mi>W</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.167em"></mspace></mrow></mfrac><mspace width="0.278em"></mspace><mo>≡</mo><mspace width="0.278em"></mspace><mfrac><mn>1</mn><msub><mi>D</mi><mi>i</mi></msub></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
@@ -490,8 +559,12 @@ generalization</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>p</mi><mi>i</mi><mtext mathvariant="normal">EL</mtext></msubsup><mspace width="0.278em"></mspace><mo>∝</mo><mspace width="0.278em"></mspace><mfrac><msub><mi>a</mi><mi>i</mi></msub><msub><mi>D</mi><mi>i</mi></msub></mfrac><mspace width="1.0em"></mspace><mtext mathvariant="normal">with</mtext><mspace width="1.0em"></mspace><msub><mi>D</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mo>+</mo><msub><mi>λ</mi><mi>W</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>+</mo><msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>X</mi><mi>i</mi></msub><mo>−</mo><msub><mi>μ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mi>T</mi></msup><msub><mi>λ</mi><mi>x</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
 p_i^{\text{EL}} \;\propto\; \frac{a_i}{D_i} \quad \text{with} \quad D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T\lambda_x.
 </annotation></semantics></math></p>
-<p>This is exactly the working form used in our estimator. The EL
-weights
+<p>This is exactly the working form used in our estimator. With survey
+base weights, the working masses are proportional to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>a</mi><mi>i</mi></msub><mi>/</mi><msub><mi>D</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">a_i/D_i</annotation></semantics></math>,
+so
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>p</mi><mi>i</mi><mtext mathvariant="normal">EL</mtext></msubsup><mo>∝</mo><msub><mi>a</mi><mi>i</mi></msub><mi>/</mi><msub><mi>D</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">p_i^{\text{EL}} \propto a_i/D_i</annotation></semantics></math>.
+The EL weights
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>p</mi><mi>i</mi><mtext mathvariant="normal">EL</mtext></msubsup><annotation encoding="application/x-tex">p_i^{\text{EL}}</annotation></semantics></math>
 are then used to build the mean estimator</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>Y</mi><mo accent="true">̂</mo></mover><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>p</mi><mi>i</mi><mtext mathvariant="normal">EL</mtext></msubsup><msub><mi>Y</mi><mi>i</mi></msub></mrow><mrow><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>p</mi><mi>i</mi><mtext mathvariant="normal">EL</mtext></msubsup></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
@@ -812,7 +885,7 @@ In compact matrix form:</p>
 <p><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>J</mi><mrow><mi>λ</mi><mi>λ</mi></mrow></msub><annotation encoding="application/x-tex">J_{\lambda\lambda}</annotation></semantics></math>
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi><mo>×</mo><mi>L</mi></mrow><annotation encoding="application/x-tex">L \times L</annotation></semantics></math>)</strong>:
 <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><mrow><mi>∂</mi><mi>H</mi></mrow><mrow><mi>∂</mi><msub><mi>λ</mi><mi>x</mi></msub></mrow></mfrac><mo>=</mo><mo>−</mo><msubsup><mi>X</mi><mtext mathvariant="normal">centered</mtext><mi>T</mi></msubsup><mo>diag</mo><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>a</mi><mi>i</mi></msub><mspace width="0.167em"></mspace><msubsup><mtext mathvariant="normal">inv</mtext><mi>i</mi><mn>2</mn></msubsup><mo stretchy="true" form="postfix">)</mo></mrow><msub><mi>X</mi><mtext mathvariant="normal">centered</mtext></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">\frac{\partial H}{\partial \lambda_x} = -X_{\text{centered}}^T \operatorname{diag}(a_i\,\text{inv}_i^2) X_{\text{centered}}.</annotation></semantics></math></p>
-<p>These are exactly what <code>build_el_jacobian</code> computes
+<p>These are exactly what <code>el_build_jacobian</code> computes
 (<code>src_dev/engines/el/impl/jacobian.R</code>).</p>
 </div>
 <div class="section level3">
@@ -1089,7 +1162,7 @@ Broyden fallback).</li>
 <li>Build EL weights, mean, and diagnostics.</li>
 </ul>
 </li>
-<li>Jacobian: <code>build_el_jacobian(...)</code> in
+<li>Jacobian: <code>el_build_jacobian(...)</code> in
 <code>src_dev/engines/el/impl/jacobian.R</code> returns analytic A
 whenever family supplies <code>d2mu.deta2</code> (logit, probit).</li>
 <li>Variance: Bootstrap variance is implemented in
@@ -1252,7 +1325,7 @@ ridge or pseudoinverse at runtime.</li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>

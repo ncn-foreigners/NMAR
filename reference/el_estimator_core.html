@@ -144,22 +144,16 @@ and diagnostic computation.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Implements the complete empirical likelihood pipeline under nonignorable
-nonresponse with optional auxiliary moment constraints. The solver uses the
-full stacked system in \((\beta, z, \lambda_x)\) with an analytic Jacobian
-and globalization via `nleqslv`. Numerical safeguards (denominator
-positivity guards, predictor standardization, and stable linear algebra)
-are applied. After solving, weights are constructed with denominator guards
-and optional trimming. Variance is available via bootstrap; analytical
-delta variance for EL has not been implemented and returns NA with a
-guidance message.</p>
-<p>Steps
-1. Data preparation and scaling
-2. Equation system construction
-3. Nonlinear equation solving with safeguards
-4. Weight construction and optional trimming
-5. Variance estimation
-6. Diagnostic computation</p>
+    <p>Orchestrates EL estimation for NMAR following Qin, Leung, and Shao (2002).
+The stacked system in \((\beta, z, \lambda_x)\) with \(z = \logit(W)\) is
+solved by <code>nleqslv</code> using an analytic Jacobian. Numerical safeguards are
+applied consistently across equations, Jacobian, and post-solution weights:
+bounded linear predictors, probability clipping in ratios, and a small floor
+on denominators <code>D_i()</code> with an active-set mask in derivatives.
+After solving, unnormalized masses <code>d_i/D_i()</code> are formed, optional
+trimming may be applied (with normalization only for reporting), and optional
+variance is computed via bootstrap. The analytical delta method for EL is not
+implemented.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
@@ -171,7 +165,7 @@ guidance message.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer></div>

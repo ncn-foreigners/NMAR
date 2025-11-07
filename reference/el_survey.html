@@ -122,12 +122,15 @@
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Implements the empirical likelihood estimator with design weights.
-  If `n_total` is supplied, design weights are rescaled internally to ensure
-  `sum(weights(design))` and `n_total` are on the same scale; this guarantees
-  the response-multiplier formula uses consistent totals. If `n_total` is not
-  supplied, `sum(weights(design))` is used as the population total `N_pop`.
-  Result weights are the unnormalized EL masses `d_i/D_i()` on this
-  design scale; `weights(result, scale = "population")` sums to `N_pop`.</p>
+  If <code>n_total</code> is supplied, design weights are rescaled internally to
+  ensure <code>sum(weights(design))</code> and <code>n_total</code> are on the same scale;
+  this guarantees the response-multiplier formula uses consistent totals. If
+  <code>n_total</code> is not supplied, <code>sum(weights(design))</code> is used as the
+  population total <code>N_pop</code>. When respondents-only designs are used (no
+  NA in the outcome), <code>n_total</code> must be provided; if auxiliaries are
+  requested you must also provide population auxiliary means via
+  <code>auxiliary_means</code>. Result weights are the unnormalized EL masses
+  <code>d_i/D_i(theta)</code> on this design scale;<code>weights(result, scale = "population")</code> sums to <code>N_pop</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -147,7 +150,7 @@ auxiliary information from survey data. Journal of the American Statistical Asso
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer></div>

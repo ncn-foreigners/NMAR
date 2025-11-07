@@ -1,0 +1,160 @@
+# NMAR
+
+The goal of **NMAR** is to provide a set of functions to **estimate the
+population mean** of data subject to Not Missing At Random (NMAR)
+mechanisms using advanced statistical methods
+
+## Overview
+
+The **NMAR** library provides functions to estimate the mean of **Not
+Missing At Random (NMAR)** data. The estimation functions are built upon
+the following engine functions, each implementing a distinct method:
+
+- `exptilt_engine`: Exponential Tilting Estimator  
+  Minsun Kim Riddles, Jae Kwang Kim, Jongho Im  
+  A Propensity-score-adjustment Method for Nonignorable Nonresponse  
+  <https://doi.org/10.1093/jssam/smv047>
+
+- `exptilt_nonparam_engine`: Nonparametric Exponential Tilting
+  Estimator  
+  Minsun Kim Riddles, Jae Kwang Kim, Jongho Im  
+  A Propensity-score-adjustment Method for Nonignorable Nonresponse  
+  Appendix 2  
+  <https://doi.org/10.1093/jssam/smv047>
+
+- `el_engine`: Empirical Likelihood Estimator  
+  Jing Qin, Denis Leung, Jun Shao  
+  Estimation With Survey Data Under Nonignorable Nonresponse or
+  Informative Sampling  
+  <http://dx.doi.org/10.1198/016214502753479338>
+
+The main user-facing function is
+[`nmar()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md),
+which acts as a unified wrapper around these engine functions.
+
+## Installation
+
+You can install the development version of NMAR from
+[GitHub](https://github.com/) with:
+
+``` r
+# install.packages("pak")
+pak::pak("ncn-foreigners/NMAR")
+```
+
+or
+
+``` R
+remotes::install_github("ncn-foreigners/NMAR@main", force = T, build = T, build_manual = T, build_vignettes = T)
+```
+
+### Project branches:
+
+- `main` - The stable production branch. This is the version you should
+  install for general use
+- `package-pre_prod` - The pre-production development branch. This is a
+  stable, installable version reflecting the latest features. (1:1 clone
+  of `package-dev`)
+- `package-dev` - The **internal development branch**. This branch uses
+  a non-R package structure for internal development purposes. **DO
+  NOT** download or install this branch. For contribution guidelines,
+  please see the CONTRIBUTING.md file or the \[project webpage (TODO:
+  add link to webpage)\]
+
+## Usage
+
+### General naming
+
+- `outcome_var` (f.e Y): The outcome variable (with missing values).
+- `covariates_for_outcome`(f.e x1,x2): Predictors of `outcome_var` value
+  (used in the response model).
+- `covariates_for_missingness`(f.e x3): Predictor of `outcome_var`
+  missingness (used in the missingness model).
+
+`formula` = outcome_var ~ covariates_for_outcome
+
+### Example
+
+If, in a salary survey, richer people were less likely to answer, `Y` is
+salary, `x1` and `x2` are experience and education, and `x3` might be
+gender (if we assume gender affects the likelihood of responding but not
+the salary value itself).
+
+``` r
+generate_test_data <- function(n_rows = 400, n_cols = 2, case = 2, x_var = 0.5, eps_var = 0.5, a = 0.8, b = -0.2, c = NULL) {
+# Generate main features (only the actual predictors)
+  X <- as.data.frame(replicate(n_cols, rnorm(n_rows, 0, x_var)^1))
+  colnames(X) <- paste0("x", 1:n_cols)
+
+# Generate Y using ONLY the main predictors
+  coefs <- runif(n_cols, 0.95, 1.05)
+  eps <- rnorm(n_rows, 0, eps_var)
+
+  if (case == 1) {
+    X$Y <- as.vector(-1 + as.matrix(X) %*% coefs + eps)
+  }
+
+# Add additional column AFTER generating Y
+  if (!is.null(c)) {
+    X$x_additional <- runif(n_rows, 0, 2)
+  }
+
+# Sort by Y
+  X <- X[order(X$Y), ]
+  Y_original <- X$Y
+
+# Generate missingness
+  if (is.null(c)) {
+    pi_obs <- 1 / (1 + exp(-(a + b * X$Y)))
+  } else {
+    pi_obs <- 1 / (1 + exp(-(a + b * X$Y + c * X$x_additional)))
+  }
+
+  mask <- runif(nrow(X)) > pi_obs
+  mask[1] <- FALSE # Ensure at least one observation
+  X$Y[mask] <- NA
+
+  return(list(X = X, Y_original = Y_original))
+}
+
+library(NMAR, quietly = T)
+set.seed(1106)
+res_test_data <- generate_test_data(n_rows = 500, n_cols = 3, case = 1, c = NULL)
+data <- res_test_data$X
+
+exptilt_config <- exptilt_engine(
+  y_dens = 'normal',
+  family = 'probit', # or logit
+  variance_method = 'bootstrap', # or delta
+  bootstrap_reps = 10
+)
+
+formula = Y ~ x1 + x2
+res <- nmar(formula = formula, data = data, engine = exptilt_config, trace_level = 0)
+print(coef(res))
+#> (Intercept)           Y 
+#>  0.60735452 -0.05136721
+print(res)
+#> NMAR Result
+#> ------------
+#> Y mean: -0.955991 (0.043103)
+#> Converged: TRUE 
+#> Variance method: bootstrap 
+#> Estimator: exponential_tilting 
+#> Sample size: 500 (respondents: 372)
+```
+
+## Getting help
+
+If you encounter a clear bug, please file an issue with a minimal
+reproducible example on
+[GitHub](https://github.com/ncn-foreigners/NMAR/issues)
+
+## Authors and acknowledgments
+
+Research grant: [OPUS 20
+\#2020/39/B/HS4/00941](https://ncn-foreigners.ue.poznan.pl/)
+
+- [Maciej Beręsewicz](https://github.com/berenz)
+- [Igor Kołodziej](https://github.com/IgorKolodziej)
+- [Mateusz Iwaniuk](https://github.com/Iwaniukooo11)

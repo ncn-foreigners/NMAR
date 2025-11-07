@@ -67,12 +67,18 @@
   constraints in \(\lambda_x\). When no auxiliaries are present the last
   block is omitted. The system matches Qin, Leung, and Shao (2002, Eqs. 7-10)
   with empirical masses \(m_i = d_i/D_i(\theta)\), \(D_i\) as in the paper.
-  We clip \(\eta\) and \(p\) and guard \(D_i\) away from zero to ensure
-  numerical stability; these guards are applied consistently in equations,
-  Jacobian, and post-solution weights.</p>
+  We cap \(\eta\), clip \(p\), and guard \(D_i\) away from zero to
+  ensure numerical stability; these safeguards are applied consistently in
+  equations, Jacobian, and post-solution weights.</p>
+<p>Guarding policy (must remain consistent across equations/Jacobian/post):
+  - Cap eta: eta &lt;- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())
+  - Compute w &lt;- family$linkinv(eta); clip to [1e-12, 1-1e-12] when used in ratios
+  - Denominator floor: Di &lt;- pmax(Di_raw, nmar_get_el_denom_floor()); in the
+    Jacobian, multiply terms that depend on d(1/Di)/d(.) by
+    active = 1(Di_raw &gt; floor)</p>
 <p>The score with respect to the linear predictor uses the Bernoulli form
-  \(s_i(\beta) = \partial \log p_i / \partial \eta_i = \mu.\eta(\eta_i)/p_i\),
-  which is valid for both logit and probit links when \(p_i\) is clipped.</p>
+  \(s_{\eta,i}(\beta) = \partial \log w_i / \partial \eta_i = \mu.\eta(\eta_i)/w_i\),
+  which is valid for both logit and probit links when \(w_i\) is clipped.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -92,7 +98,7 @@ auxiliary information from survey data. Journal of the American Statistical Asso
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer></div>

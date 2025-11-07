@@ -119,11 +119,13 @@
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Implements the empirical likelihood estimator for IID data with
   optional auxiliary moment constraints. The response-model score is the
-  Bernoulli derivative w.r.t. the linear predictor, supporting logit and
-  probit links. When respondents-only data is supplied (no NA in the outcome),
-  set `n_total` to the total number of sampled units; otherwise the total is
-  taken as `nrow(data)`. Result weights are the unnormalized EL masses
-  `d_i/D_i()` on this analysis scale.</p>
+  Bernoulli derivative with respect to the linear predictor, supporting logit
+  and probit links. When respondents-only data is supplied (no NA in the
+  outcome), set <code>n_total</code> to the total number of sampled units; otherwise
+  the total is taken as <code>nrow(data)</code>. If respondents-only data is used
+  and auxiliaries are requested, you must also provide population auxiliary
+  means via <code>auxiliary_means</code>. Result weights are the unnormalized EL
+  masses <code>d_i/D_i(theta)</code> on this analysis scale.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -143,7 +145,7 @@ auxiliary information from survey data. Journal of the American Statistical Asso
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer></div>
