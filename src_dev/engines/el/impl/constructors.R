@@ -9,10 +9,10 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
   trim_fraction <- diagnostics$trimmed_fraction %||% NA_real_
 
   sample <- list(
-# BUGFIX: preserve the engine-supplied population total (N_pop)
-# Use data_info$n_total when provided (set by dataframe/survey methods),
-# not data_info$nobs. This ensures weights(object, scale = "population")
-# sums to N_pop and survey-scale reporting is correct.
+# Preserve the engine-supplied analysis-scale population total (N_pop).
+# Use data_info$n_total when provided (set by dataframe/survey methods), not
+# data_info$nobs. This ensures weights(object, scale = "population") sums
+# to N_pop and survey-scale reporting is correct.
     n_total = data_info$n_total %||% data_info$nobs %||% NA_integer_,
     n_respondents = data_info$nobs_resp %||% NA_integer_,
     is_survey = isTRUE(data_info$is_survey),

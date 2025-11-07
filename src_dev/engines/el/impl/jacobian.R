@@ -3,9 +3,15 @@
 #'   EL system with \eqn{\theta = (\beta, z, \lambda_x)} and \eqn{z = \operatorname{logit}(W)}.
 #'   Blocks follow Qin, Leung, and Shao (2002, Eqs. 7-10). The derivative with
 #'   respect to the linear predictor uses the Bernoulli score form
-#'   \eqn{\partial/\partial\eta\, \log p(\eta) = \mu.\eta(\eta)/p(\eta)} with
+#'   \eqn{\partial/\partial\eta\, \log w(\eta) = \mu.\eta(\eta)/w(\eta)} with
 #'   link-inverse clipping. Denominator guards are applied consistently when
 #'   forming terms depending on \eqn{D_i(\theta)}.
+#'
+#'   Guarding policy (must remain consistent across equations/Jacobian/post):
+#'   - Cap eta: eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())
+#'   - Compute w <- family$linkinv(eta); clip to [1e-12, 1-1e-12] when used in ratios
+#'   - Denominator floor: Di <- pmax(Di_raw, nmar_get_el_denom_floor());
+#'     multiply terms that depend on d(1/Di)/d(.) by active = 1(Di_raw > floor)
 #'
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
@@ -14,7 +20,7 @@
 #' auxiliary information from survey data. Journal of the American Statistical Association,
 #' 96(453), 185-193.
 #' @keywords internal
-build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
+el_build_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
                               respondent_weights, N_pop, n_resp_weighted, mu_x_scaled) {
   force(family)
   force(response_model_matrix)
@@ -60,12 +66,12 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     d_lambda_W_dTheta <- d_lambda_W_dWb * dWb_dTheta
     eta_raw <- as.vector(response_model_matrix %*% beta_vec)
     eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
-    p_i <- family$linkinv(eta_i)
-    m_i <- family$mu.eta(eta_i)
-    m2_i <- family$d2mu.deta2(eta_i)
+    w_i <- family$linkinv(eta_i)
+    mu_eta_i <- family$mu.eta(eta_i)
+    d2mu_eta2_i <- family$d2mu.deta2(eta_i)
     X_centered <- if (K_aux > 0) X_centered_base else NULL
 # QLS Eq. (5): Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
-    denominator <- 1 + lambda_W * (p_i - W_bounded)
+    denominator <- 1 + lambda_W * (w_i - W_bounded)
     if (K_aux > 0) denominator <- denominator + as.vector(X_centered %*% lambda_x)
     denom_floor <- nmar_get_el_denom_floor()
 # Active mask for max(Di, floor) kink: derivative is zero when clamped
@@ -73,17 +79,51 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     denominator <- pmax(denominator, denom_floor)
     inv_denom <- 1 / denominator
     inv_denom_sq <- inv_denom^2
-    dden_dTheta <- active * (d_lambda_W_dTheta * (p_i - W_bounded) - lambda_W * dWb_dTheta)
-    dden_deta <- active * (lambda_W * m_i)
-# Score wrt eta for delta=1: m/p (unified across links)
-    p_i_clipped <- pmin(pmax(p_i, 1e-12), 1 - 1e-12)
-    dlw_i <- m_i / p_i_clipped
+    dden_dTheta <- active * (d_lambda_W_dTheta * (w_i - W_bounded) - lambda_W * dWb_dTheta)
+    dden_deta <- active * (lambda_W * mu_eta_i)
+# Score wrt eta for delta=1: use numerically stable family score where available
+    w_i_clipped <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
+    is_logit <- !is.null(family$name) && identical(family$name, "logit")
+    is_probit <- !is.null(family$name) && identical(family$name, "probit")
+    mills_ratio <- NULL
+    if (is_logit) {
+# For logit, s_eta = mu_eta / w = 1 - w, computed stably from w
+      s_eta_i <- 1 - w_i_clipped
+    } else if (is_probit) {
+# For probit, s_eta = phi/Phi (Mills ratio); compute in log-domain
+      log_phi <- stats::dnorm(eta_i, log = TRUE)
+      log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
+      mills_ratio <- exp(log_phi - log_Phi)
+      s_eta_i <- mills_ratio
+    } else if (!is.null(family$score_eta)) {
+# Fallback to family-provided stable score if present
+      s_eta_i <- family$score_eta(eta_i, 1)
+    } else {
+# Generic fallback
+      s_eta_i <- mu_eta_i / w_i_clipped
+    }
 # beta block term (QLS Eq. 9)
-    beta_eq_term <- dlw_i - lambda_W * m_i * inv_denom
-# Derivative wrt eta: d/deta(m/p) = (m2 * p - m^2) / p^2
-    d_deta_logw <- (m2_i * p_i_clipped - m_i^2) / (p_i_clipped^2)
-    d_betaeq_deta <- d_deta_logw - lambda_W * m2_i * inv_denom + (lambda_W^2) * (m_i^2) * inv_denom_sq
-    d_betaeq_dTheta <- -d_lambda_W_dTheta * m_i * inv_denom + lambda_W * m_i * inv_denom_sq * dden_dTheta
+    beta_eq_term <- s_eta_i - lambda_W * mu_eta_i * inv_denom
+# Derivative wrt eta of s_eta := d/deta(mu_eta / w) with link-specific stable forms
+    if (is_logit) {
+# s_eta = 1 - w  => d/deta(s_eta) = -dw/deta = -mu_eta
+      ds_eta_deta <- -mu_eta_i
+    } else if (is_probit) {
+# s_eta = r = phi/Phi (Mills ratio)
+# r' = -eta * r - r^2
+      if (is.null(mills_ratio)) {
+        log_phi <- stats::dnorm(eta_i, log = TRUE)
+        log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
+        mills_ratio <- exp(log_phi - log_Phi)
+      }
+      ds_eta_deta <- -(eta_i * mills_ratio + mills_ratio^2)
+    } else {
+# Generic fallback: d/deta(mu/w) = (d2mu * w - mu^2) / w^2
+      ds_eta_deta <- (d2mu_eta2_i * w_i_clipped - mu_eta_i^2) / (w_i_clipped^2)
+    }
+# Respect denominator floor: terms depending on d(1/Di)/deta vanish when clamped
+    d_betaeq_deta <- ds_eta_deta - lambda_W * d2mu_eta2_i * inv_denom + active * (lambda_W^2) * (mu_eta_i^2) * inv_denom_sq
+    d_betaeq_dTheta <- -d_lambda_W_dTheta * mu_eta_i * inv_denom + lambda_W * mu_eta_i * inv_denom_sq * dden_dTheta
 # Build blocks with preallocation to avoid cbind/rbind overhead
     p_dim <- K_beta + 1 + K_aux
     full_mat <- matrix(0, nrow = p_dim, ncol = p_dim)
@@ -100,18 +140,19 @@ build_el_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     full_mat[idx_beta, idx_W] <- as.numeric(j12_vec)
 # J13: d beta eqs / d lambda
     if (K_aux > 0) {
-      d_betaeq_dlambda_mat <- lambda_W * m_i * inv_denom_sq * X_centered
+# Respect denominator floor via 'active' mask
+      d_betaeq_dlambda_mat <- active * lambda_W * mu_eta_i * inv_denom_sq * X_centered
       full_mat[idx_beta, idx_lambda] <- shared_weighted_XtY(response_model_matrix, respondent_weights, as.matrix(d_betaeq_dlambda_mat))
     }
 # J21: d W eq / d beta
-    term21 <- m_i * inv_denom - (p_i - W_bounded) * inv_denom_sq * (lambda_W * m_i) * active
+    term21 <- mu_eta_i * inv_denom - (w_i - W_bounded) * inv_denom_sq * (lambda_W * mu_eta_i) * active
     full_mat[idx_W, idx_beta] <- as.numeric(t(shared_weighted_Xty(response_model_matrix, respondent_weights, term21)))
 # J22: d W eq / d W
-    term22 <- -dWb_dTheta * inv_denom - (p_i - W_bounded) * inv_denom_sq * dden_dTheta
+    term22 <- -dWb_dTheta * inv_denom - (w_i - W_bounded) * inv_denom_sq * dden_dTheta
     full_mat[idx_W, idx_W] <- as.numeric(crossprod(respondent_weights, term22))
 # J23: d W eq / d lambda
     if (K_aux > 0) {
-      j23 <- t(shared_weighted_Xty(X_centered, respondent_weights, (-(p_i - W_bounded) * inv_denom_sq * active)))
+      j23 <- t(shared_weighted_Xty(X_centered, respondent_weights, (-(w_i - W_bounded) * inv_denom_sq * active)))
       full_mat[idx_W, idx_lambda] <- as.numeric(j23)
     }
     if (K_aux > 0) {

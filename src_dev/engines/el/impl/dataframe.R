@@ -14,11 +14,13 @@
 #' @param ... Additional arguments passed to the solver.
 #' @details Implements the empirical likelihood estimator for IID data with
 #'   optional auxiliary moment constraints. The response-model score is the
-#'   Bernoulli derivative w.r.t. the linear predictor, supporting logit and
-#'   probit links. When respondents-only data is supplied (no NA in the outcome),
-#'   set `n_total` to the total number of sampled units; otherwise the total is
-#'   taken as `nrow(data)`. Result weights are the unnormalized EL masses
-#'   `d_i/D_i(\theta)` on this analysis scale.
+#'   Bernoulli derivative with respect to the linear predictor, supporting logit
+#'   and probit links. When respondents-only data is supplied (no NA in the
+#'   outcome), set \code{n_total} to the total number of sampled units; otherwise
+#'   the total is taken as \code{nrow(data)}. If respondents-only data is used
+#'   and auxiliaries are requested, you must also provide population auxiliary
+#'   means via \code{auxiliary_means}. Result weights are the unnormalized EL
+#'   masses \code{d_i/D_i(theta)} on this analysis scale.
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
 #'
@@ -45,7 +47,22 @@ el.data.frame <- function(data, formula,
 
 # If respondents-only data is supplied (no NA in outcome), require n_total
   outcome_var_check <- all.vars(formula[[2]])
-  if (length(outcome_var_check) == 1 && !anyNA(data[[outcome_var_check]]) && is.null(n_total)) {
+# Detect auxiliaries directly from the RHS (exclude response-only part if | present)
+  rhs <- formula[[3]]
+  aux_expr <- rhs
+  if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) aux_expr <- rhs[[2L]]
+  has_aux_rhs <- length(all.vars(aux_expr)) > 0
+  respondents_only_0 <- length(outcome_var_check) == 1 && !anyNA(data[[outcome_var_check]])
+  if (respondents_only_0 && has_aux_rhs && is.null(auxiliary_means)) {
+    stop(
+      paste0(
+        "Respondents-only data detected (no NAs in outcome) and auxiliary constraints were requested, ",
+        "but 'auxiliary_means' was not provided. Provide population auxiliary means via auxiliary_means=."
+      ),
+      call. = FALSE
+    )
+  }
+  if (respondents_only_0 && is.null(n_total)) {
     stop("Respondents-only data detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total sample size>).", call. = FALSE)
   }
 
@@ -54,6 +71,8 @@ el.data.frame <- function(data, formula,
   internal_formula <- parsed_inputs$formula_list
   response_var <- all.vars(internal_formula$response)[1]
   observed_indices <- which(estimation_data[[response_var]] == 1)
+
+# (Guard handled above, before any n_total enforcement.)
 
   respondent_weights <- rep(1, length(observed_indices))
 # For data frames: if n_total not specified, use total sample size

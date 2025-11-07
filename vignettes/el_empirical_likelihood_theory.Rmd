@@ -23,6 +23,10 @@ This document explains every mathematical object, equation, and derivation behin
 - **Auxiliary covariates**: row vector $X_i \in \mathbb{R}^L$ (possibly $L = 0$), from auxiliary RHS (no intercept)
 - **Population auxiliary means**: $\mu_x \in \mathbb{R}^L$, known; names match columns of $X$
 
+Mapping to code:
+- `response_model_matrix` corresponds to $Z$ (includes an intercept column)
+- `auxiliary_matrix` corresponds to $X$ (no intercept); we center it in code as $X - \mu_x$
+
 ### Response Model (Family functions)
 - **Linear predictor**: $\eta_i = Z_i \, \beta$
 - **Response probability**: $w_i \equiv g(\eta_i) = \mathrm{linkinv}(\eta_i)$
@@ -82,6 +86,25 @@ The paper (Qin-Leung-Shao, JASA 2002) sets EL under nonignorable response using:
 
 In our code, we adopt the same EL structure and estimating equations. We extend it to arbitrary $Z$ and $X$, and to survey designs. For uncertainty, we provide bootstrap variance (IID resampling and survey replicate-weight bootstrap). Because $\hat Y$ is a ratio-of-weights estimator, any common normalization of $p_i^{\text{EL}} \propto a_i/D_i$ cancels in $\hat Y$; only relative weights matter (the KKT multipliers $\lambda$ enforce the constraints; normalization affects only a common scale that vanishes in the ratio).
 
+### Survey-Weighted Generalization of $\lambda_W$ (QLS Eq. 10)
+
+QLS derive $\lambda_W = (N/n - 1)/(1-W)$ when $a_i \equiv 1$ and $n$ counts respondents. In survey settings, let $A_{\text{resp}} = \sum_{i:R_i=1} a_i$ be the respondent-weighted total and let $N_{\text{pop}}$ be the analysis-scale population total (either $\sum a_i$ or a user-supplied $n_{\text{total}}$). We use the weighted analogue
+
+$$\lambda_W = \frac{N_{\text{pop}}/A_{\text{resp}} - 1}{1 - W},$$
+
+which reduces to QLS when $a_i \equiv 1$.
+
+### Guarding and Numerical Stability
+
+We solve the stacked system with a consistent guarding policy across equations, Jacobian, and post-solution:
+
+- Cap $\eta$: $\eta \leftarrow \max\{\min(\eta,\,\eta_{\max}),\,-\eta_{\max}\}$
+- Compute $w = \mathrm{linkinv}(\eta)$; clip $w$ to $[10^{-12}, 1-10^{-12}]$ when used in ratios
+- Guard denominators: $D_i \leftarrow \max\{D_i,\,\delta\}$ with a small $\delta>0$
+- In the Jacobian, multiply terms involving $\partial(1/D_i)/\partial\cdot$ by $\mathbb{1}\{D_i^{\text{raw}} > \delta\}$ so the analytic Jacobian matches the piecewise-smooth equations being solved
+
+For the probit link, $s_i(\eta) = \partial\log w/\partial\eta = \phi(\eta)/\Phi(\eta)$ (Mills ratio) is computed in the log domain for stability; its derivative is $\frac{d s_i}{d\eta} = -\eta\,s_i - s_i^2$.
+
 ### Equation Crosswalk (QLS 2002 -> This Vignette/Code)
 
 - QLS (5): Discrete mass form for $p_i$ with two multipliers -> Our $D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T \lambda_x$ and $p_i^{\text{EL}} \propto a_i/D_i$.
@@ -112,10 +135,10 @@ Remark on conditioning: QLS's Eq. (2) writes the first product as $\prod_i [\, w
 
 ### KKT and Denominator (details)
 
-Introducing Lagrange multipliers $(\lambda_0,\lambda_x,\lambda_W)$ for these constraints and profiling the $p_i$'s gives the KKT stationarity conditions
+Introducing Lagrange multipliers $(\lambda_0,\lambda_x,\lambda_W)$ for these constraints and profiling the $p_i$'s gives the KKT stationarity conditions (in a survey-weighted setting, with base weights $a_i$ acting as multiplicities in the empirical likelihood)
 
 \[
-\frac{\partial}{\partial p_i} \Big[ \sum_j \log(a_j p_j) - \lambda_0 (\sum_j p_j - 1) - \lambda_x^T \sum_j p_j (X_j - \mu_x) - \lambda_W \sum_j p_j (w_j - W) \Big] = 0,
+\frac{\partial}{\partial p_i} \Big[ \sum_j a_j\, \log p_j - \lambda_0 (\sum_j p_j - 1) - \lambda_x^T \sum_j p_j (X_j - \mu_x) - \lambda_W \sum_j p_j (w_j - W) \Big] = 0,
 \]
 
 which solve to
@@ -130,7 +153,7 @@ Normalizing to enforce $\sum p_i = 1$ yields $p_i = \frac{D_i^{-1}}{\sum_j D_j^{
 p_i^{\text{EL}} \;\propto\; \frac{a_i}{D_i} \quad \text{with} \quad D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T\lambda_x.
 \]
 
-This is exactly the working form used in our estimator. The EL weights $p_i^{\text{EL}}$ are then used to build the mean estimator
+This is exactly the working form used in our estimator. With survey base weights, the working masses are proportional to $a_i/D_i$, so $p_i^{\text{EL}} \propto a_i/D_i$. The EL weights $p_i^{\text{EL}}$ are then used to build the mean estimator
 
 \[
 \hat Y \;=\; \frac{\sum_i p_i^{\text{EL}} Y_i}{\sum_i p_i^{\text{EL}}}.
@@ -283,7 +306,7 @@ $$\frac{\partial H}{\partial z} = -\sum a_i \text{inv}_i^2 \left(\frac{\partial 
 **$J_{\lambda\lambda}$ ($L \times L$)**:
 $$\frac{\partial H}{\partial \lambda_x} = -X_{\text{centered}}^T \operatorname{diag}(a_i\,\text{inv}_i^2) X_{\text{centered}}.$$
 
-These are exactly what `build_el_jacobian` computes (`src_dev/engines/el/impl/jacobian.R`).
+These are exactly what `el_build_jacobian` computes (`src_dev/engines/el/impl/jacobian.R`).
 
 ### Why Analytic A Helps
 
@@ -372,7 +395,7 @@ Code mapping:
   - Construct $F(\theta)$ via `el_build_equation_system()` (`src_dev/engines/el/impl/equations.R`).
   - Solve $F(\theta)=0$ via `nleqslv` (Newton with analytic Jacobian when available, Broyden fallback).
   - Build EL weights, mean, and diagnostics.
-- Jacobian: `build_el_jacobian(...)` in `src_dev/engines/el/impl/jacobian.R` returns analytic A whenever family supplies `d2mu.deta2` (logit, probit).
+- Jacobian: `el_build_jacobian(...)` in `src_dev/engines/el/impl/jacobian.R` returns analytic A whenever family supplies `d2mu.deta2` (logit, probit).
 - Variance: Bootstrap variance is implemented in `src_dev/shared/bootstrap.R`.
 - S3 result: `src_dev/engines/el/s3.R` provides print/tidy/glance and accessors.
 

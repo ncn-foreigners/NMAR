@@ -20,9 +20,7 @@ Imports:
     nleqslv,
     utils,
     numDeriv,
-    generics,
-    future,
-    future.apply
+    generics
 RoxygenNote: 7.3.3
 Suggests:
     knitr,
@@ -33,6 +31,8 @@ Suggests:
     svrep,
     broom,
     ggplot2,
-    progressr
+    progressr,
+    future,
+    future.apply
 VignetteBuilder: knitr
 Config/testthat/edition: 3

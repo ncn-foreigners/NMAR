@@ -23,7 +23,7 @@ test_that("EL analytic Jacobian matches numeric (no aux, logit)", {
     n_resp_weighted = sum(resp_w),
     mu_x_scaled = numeric(0)
   )
-  jac <- NMAR:::build_el_jacobian(
+  jac <- NMAR:::el_build_jacobian(
     family = fam,
     response_model_matrix = X,
     auxiliary_matrix = matrix(nrow = n, ncol = 0),
