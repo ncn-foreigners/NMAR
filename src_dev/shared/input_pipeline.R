@@ -190,10 +190,13 @@ validate_nmar_args <- function(spec, traits = list()) {
     stop("The formula must have exactly one outcome variable on the left-hand side.", call. = FALSE)
   }
 
+  aux_vars_check <- unique(c(spec$auxiliary_vars, spec$auxiliary_vars_raw))
+  response_vars_check <- unique(c(spec$response_predictors, spec$response_predictors_raw))
+
   validate_predictor_relationships(
     outcomes = spec$outcome,
-    auxiliary_vars = spec$auxiliary_vars_raw %||% spec$auxiliary_vars,
-    response_vars = spec$response_predictors_raw %||% spec$response_predictors,
+    auxiliary_vars = aux_vars_check,
+    response_vars = response_vars_check,
     allow_outcome_in_missingness = traits$allow_outcome_in_missingness,
     allow_covariate_overlap = traits$allow_covariate_overlap
   )
@@ -202,16 +205,16 @@ validate_nmar_args <- function(spec, traits = list()) {
     validate_data(
       data = spec$original_data,
       outcome_variable = spec$outcome[[1]],
-      covariates_for_outcome = spec$auxiliary_vars,
-      covariates_for_missingness = spec$response_predictors,
+      covariates_for_outcome = aux_vars_check,
+      covariates_for_missingness = response_vars_check,
       allow_outcome_in_missingness = traits$allow_outcome_in_missingness,
       allow_covariate_overlap = traits$allow_covariate_overlap,
       allow_respondents_only = isTRUE(traits$allow_respondents_only)
     )
   } else {
     validate_multi_outcome_data(spec$data, spec$outcome)
-    nmar_validate_covariates(spec$data, spec$auxiliary_vars, block_label = "auxiliary")
-    nmar_validate_covariates(spec$data, spec$response_predictors, block_label = "response")
+    nmar_validate_covariates(spec$data, aux_vars_check, block_label = "auxiliary")
+    nmar_validate_covariates(spec$data, response_vars_check, block_label = "response")
   }
 
   invisible(spec)
@@ -287,9 +290,12 @@ prepare_nmar_design <- function(task,
     env = task$environment
   )
   data_df <- outcome_info$data
-  outcome_column <- outcome_info$column
-  if (isTRUE(task$is_survey) && !is.null(task$original_data) && !is.null(outcome_info$values)) {
-    task$original_data$variables[[outcome_column]] <- outcome_info$values
+  outcome_columns <- outcome_info$columns
+  outcome_column <- outcome_columns[[1L]]
+  if (isTRUE(task$is_survey) && !is.null(task$original_data) && length(outcome_info$added_columns)) {
+    for (col in outcome_info$added_columns) {
+      task$original_data$variables[[col]] <- data_df[[col]]
+    }
   }
 
   weights <- design_weights
@@ -308,7 +314,7 @@ prepare_nmar_design <- function(task,
     stop("`design_weights` must have the same length as the supplied data.", call. = FALSE)
   }
 
-  engine_formula <- nmar_replace_formula_lhs(task$formula, outcome_column)
+  engine_formula <- nmar_replace_formula_lhs(task$formula, outcome_columns)
   user_formula <- nmar_rebuild_partitioned_formula(
     base_formula = task$formula,
     response_rhs_lang = task$response_rhs_lang,
@@ -339,6 +345,7 @@ prepare_nmar_design <- function(task,
     response_rhs_lang = if (isTRUE(include_response)) task$response_rhs_lang else NULL,
     blueprint = task$blueprint,
     outcome_column = outcome_column,
+    outcome_columns = outcome_columns,
     outcome_label = task$outcome_label,
     aux_terms = if (isTRUE(include_auxiliary)) task$blueprint$aux$terms else NULL,
     response_terms = if (isTRUE(include_response)) task$blueprint$response$terms else NULL,
@@ -541,10 +548,10 @@ validate_multi_outcome_data <- function(data, outcome_vars) {
         "First invalid value: '", bad_val, "' at row ", which(!is.numeric(col))[1]
       )
     }
-    if (anyNA(col)) {
+    if (all(is.na(col))) {
       stop(
-        "Outcome variable '", outcome_var, "' contains NA values.\n",
-        "First NA at row ", which(is.na(col))[1]
+        "Outcome variable '", outcome_var, "' cannot be entirely NA.",
+        call. = FALSE
       )
     }
   }
@@ -585,8 +592,13 @@ nmar_prepare_outcome_column <- function(data, expr, env) {
     if (!column %in% names(data)) {
       stop("Outcome variable '", column, "' not found in data.", call. = FALSE)
     }
-    return(list(data = data, column = column, values = NULL))
+    return(list(
+      data = data,
+      columns = column,
+      added_columns = character()
+    ))
   }
+
   outcome_formula <- stats::as.formula(call("~", expr))
   attr(outcome_formula, ".Environment") <- env
   outcome_frame <- stats::model.frame(
@@ -596,39 +608,102 @@ nmar_prepare_outcome_column <- function(data, expr, env) {
     drop.unused.levels = FALSE
   )
   outcome_values <- outcome_frame[[1]]
-  if (is.data.frame(outcome_values) || (is.matrix(outcome_values) && NCOL(outcome_values) != 1L)) {
-    stop("Outcome transformation must return a single numeric vector.", call. = FALSE)
-  }
-  if (is.matrix(outcome_values)) {
-    outcome_values <- outcome_values[, 1, drop = TRUE]
-  }
-  if (!is.numeric(outcome_values)) {
-    stop("Outcome transformation must evaluate to a numeric vector.", call. = FALSE)
-  }
   input_missing <- Reduce(
     "|",
-    lapply(all.vars(expr), function(var) if (var %in% names(data)) is.na(data[[var]]) else rep(FALSE, nrow(data))),
+    lapply(
+      all.vars(expr),
+      function(var) if (var %in% names(data)) is.na(data[[var]]) else rep(FALSE, nrow(data))
+    ),
     init = rep(FALSE, nrow(data))
   )
-  bad_idx <- which(!input_missing & !is.finite(outcome_values))
-  if (length(bad_idx)) {
-    stop(
-      "Outcome transformation produced non-finite values. First offending row: ",
-      bad_idx[1],
-      call. = FALSE
-    )
+
+  coerce_numeric_column <- function(values, label) {
+    if (!is.numeric(values)) {
+      stop("Outcome transformation must evaluate to numeric vector(s). Offending component: ", label, call. = FALSE)
+    }
+    bad_idx <- which(!input_missing & !is.finite(values))
+    if (length(bad_idx)) {
+      stop(
+        "Outcome transformation produced non-finite values in component '", label, "'. ",
+        "First offending row: ", bad_idx[1],
+        call. = FALSE
+      )
+    }
+    values
   }
-  new_column <- nmar_make_unique_colname("..nmar_outcome..", names(data))
-  data[[new_column]] <- outcome_values
-  list(data = data, column = new_column, values = outcome_values)
+
+  append_column <- function(col_values, base_name, data_env) {
+    if (!is.null(base_name) &&
+        base_name %in% names(data_env) &&
+        identical(col_values, data_env[[base_name]])) {
+      return(list(name = base_name, data = data_env, added = FALSE))
+    }
+    new_name <- base_name %||% "..nmar_outcome.."
+    if (new_name %in% names(data_env)) {
+      new_name <- nmar_make_unique_colname(new_name, names(data_env))
+    }
+    data_env[[new_name]] <- col_values
+    list(name = new_name, data = data_env, added = TRUE)
+  }
+
+# Handle vector output
+  if (!is.data.frame(outcome_values) && !(is.matrix(outcome_values) && ncol(outcome_values) > 1L)) {
+    if (is.matrix(outcome_values)) {
+      outcome_values <- outcome_values[, 1L, drop = TRUE]
+    }
+    outcome_values <- coerce_numeric_column(outcome_values, deparse(expr, width.cutoff = 60))
+    new_column <- nmar_make_unique_colname("..nmar_outcome..", names(data))
+    data[[new_column]] <- outcome_values
+    return(list(
+      data = data,
+      columns = new_column,
+      added_columns = new_column
+    ))
+  }
+
+# Handle multi-column output (matrix/data.frame)
+  if (is.matrix(outcome_values)) {
+    outcome_df <- as.data.frame(outcome_values, stringsAsFactors = FALSE)
+  } else {
+    outcome_df <- outcome_values
+  }
+
+  if (!ncol(outcome_df)) {
+    stop("Outcome transformation must produce at least one column.", call. = FALSE)
+  }
+
+  new_columns <- character(ncol(outcome_df))
+  added_columns <- logical(ncol(outcome_df))
+  for (idx in seq_len(ncol(outcome_df))) {
+    col_label <- colnames(outcome_df)[idx] %||% paste0("..nmar_outcome..", idx)
+    col_values <- coerce_numeric_column(outcome_df[[idx]], col_label)
+    insertion <- append_column(col_values, col_label, data)
+    data <- insertion$data
+    new_columns[[idx]] <- insertion$name
+    added_columns[[idx]] <- isTRUE(insertion$added)
+  }
+
+  list(
+    data = data,
+    columns = new_columns,
+    added_columns = new_columns[added_columns]
+  )
 }
 
-nmar_replace_formula_lhs <- function(formula, outcome_column) {
+nmar_replace_formula_lhs <- function(formula, outcome_columns) {
   if (!inherits(formula, "formula") || length(formula) != 3L) {
     stop("`formula` must be a two-sided formula.", call. = FALSE)
   }
   new_formula <- formula
-  new_formula[[2L]] <- as.name(outcome_column)
+  if (!length(outcome_columns)) {
+    stop("`outcome_columns` must contain at least one column name.", call. = FALSE)
+  }
+  lhs_expr <- if (length(outcome_columns) == 1L) {
+    as.name(outcome_columns[[1L]])
+  } else {
+    as.call(c(as.name("cbind"), lapply(outcome_columns, as.name)))
+  }
+  new_formula[[2L]] <- lhs_expr
   attr(new_formula, ".Environment") <- environment(formula)
   new_formula
 }

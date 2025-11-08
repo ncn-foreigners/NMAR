@@ -72,6 +72,26 @@ test_that("parse_nmar_spec resolves dots and factors", {
   expect_silent(NMAR:::validate_nmar_args(spec, traits))
 })
 
+test_that("partition rebuild preserves formula environments", {
+  local_fn <- function(x) x^2
+  env <- environment()
+  df <- data.frame(
+    Y = c(1, 2, NA, 4),
+    X = rnorm(4)
+  )
+  formula <- Y ~ local_fn(X)
+  environment(formula) <- env
+  spec <- NMAR:::parse_nmar_spec(formula, df)
+  traits <- NMAR:::engine_traits(el_engine(auxiliary_means = NULL))
+  NMAR:::validate_nmar_args(spec, traits)
+  task <- NMAR:::new_nmar_task(spec, traits)
+  design <- NMAR:::prepare_nmar_design(task)
+  rebuilt <- design$user_formula
+  expect_identical(attr(rebuilt, ".Environment"), env)
+  mm <- stats::model.matrix(rebuilt, df)
+  expect_true(any(grepl("local_fn", colnames(mm))))
+})
+
 test_that("new_nmar_task preserves raw predictor metadata", {
   df <- data.frame(Y = c(1, NA, 3), X = 1:3, Z = rnorm(3))
   spec <- NMAR:::parse_nmar_spec(Y ~ X | Z + Y, df)
@@ -92,6 +112,24 @@ test_that("outcome transformations must be numeric vectors", {
     "numeric vector",
     fixed = FALSE
   )
+})
+
+test_that("survey designs pick up derived outcome columns", {
+  skip_if_not_installed("survey")
+  df <- data.frame(
+    Y = c(1, 2, NA, 4),
+    X = rnorm(4),
+    w = c(1, 1.5, 0.5, 2)
+  )
+  design <- survey::svydesign(ids = ~1, data = df, weights = ~w)
+  spec <- NMAR:::parse_nmar_spec(log(Y + 10) ~ X, design)
+  traits <- NMAR:::engine_traits(el_engine(auxiliary_means = NULL))
+  NMAR:::validate_nmar_args(spec, traits)
+  task <- NMAR:::new_nmar_task(spec, traits)
+  info <- NMAR:::prepare_nmar_design(task)
+  expect_true(info$is_survey)
+  expect_true(info$outcome_column %in% names(info$survey_design$variables))
+  expect_equal(info$survey_design$variables[[info$outcome_column]], info$data[[info$outcome_column]])
 })
 
 test_that("multi-outcome validation enforces trait restrictions", {

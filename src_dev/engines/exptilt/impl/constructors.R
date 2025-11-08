@@ -46,7 +46,7 @@ new_nmar_result_exptilt <- function(estimate, se, coefficients, vcov, model,
   meta <- list(
     engine_name = "exponential_tilting",
     call = model$call %||% NULL,
-    formula = model$formula %||% NULL
+    formula = model$user_formula %||% model$formula %||% NULL
   )
 
   coeffs_vec <- coefficients %||% NULL

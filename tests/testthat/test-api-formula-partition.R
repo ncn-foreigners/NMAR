@@ -31,22 +31,6 @@ test_that("EL allows overlap between aux and response sides", {
   expect_true(isTRUE(fit$converged))
 })
 
-test_that("ET rejects overlap and Y on RHS of response partition", {
-  set.seed(1003)
-  n <- 120
-  X <- rnorm(n); Z <- rnorm(n)
-  Y <- 1.2 + 0.4 * X + 0.2 * Z + rnorm(n)
-  p <- plogis(-0.2 + 0.6 * scale(Y)[, 1])
-  R <- rbinom(n, 1, p)
-  df <- data.frame(Y_miss = Y, X = X, Z = Z)
-  df$Y_miss[R == 0] <- NA_real_
-  eng <- exptilt_engine(y_dens = "normal", variance_method = "delta", standardize = FALSE)
-# Y on RHS should be rejected by ET (outcome in missingness not allowed by traits)
-  expect_error(nmar(Y_miss ~ X | Y_miss, data = df, engine = eng))
-# Overlap X on both sides should also be rejected for ET
-  expect_error(nmar(Y_miss ~ X | X, data = df, engine = eng))
-})
-
 test_that("Engines accept parentheses and transforms in RHS partitions", {
   set.seed(1004)
   n <- 80

@@ -33,7 +33,8 @@ run_engine.nmar_engine_exptilt <- function(engine, task) {
     supress_warnings = engine$supress_warnings,
     trace_level = task$trace_level,
     sample_size = engine$sample_size,
-    outcome_label = design_info$outcome_label
+    outcome_label = design_info$outcome_label,
+    user_formula = design_info$user_formula
   )
 
   if (!isTRUE(design_info$is_survey)) {

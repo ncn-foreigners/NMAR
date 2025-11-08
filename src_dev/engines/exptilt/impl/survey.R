@@ -13,6 +13,7 @@ exptilt.survey.design <- function(data, formula,
                                   supress_warnings = FALSE,
                                   trace_level = 0,
                                   sample_size = 2000,
+                                  user_formula = formula,
                                   ...) {
   design_vars <- data$variables
   design_weights <- as.numeric(stats::weights(data))
@@ -39,6 +40,7 @@ exptilt.survey.design <- function(data, formula,
     survey_design = data,
     trace_level = trace_level,
     sample_size = sample_size,
+    user_formula = user_formula,
     ...
   )
 }

@@ -15,6 +15,7 @@ test_that("prepare_nmar_design materializes matrices with transforms", {
   expect_equal(design$outcome_label, "log(Y + 5)")
   expect_true(design$outcome_column %in% names(design$data))
   expect_true(all(is.na(df$Y) == is.na(design$data[[design$outcome_column]])))
+  expect_identical(design$outcome_column, design$outcome_columns[[1]])
   expect_equal(design$user_formula, formula)
   expect_match(
     deparse(design$engine_formula),
@@ -77,4 +78,24 @@ test_that("prepare_nmar_design honors include flags", {
   design_resp_only <- NMAR:::prepare_nmar_design(task, include_auxiliary = FALSE)
   expect_equal(design_resp_only$auxiliary_vars, character())
   expect_null(design_resp_only$design_matrices$auxiliary)
+  expect_null(design_aux_only$response_rhs_lang)
+  expect_null(design_resp_only$aux_rhs_lang)
+})
+
+test_that("prepare_nmar_design supports multi-outcome expressions", {
+  df <- data.frame(
+    Y1 = c(1, 2, NA, 4),
+    Y2 = c(NA, 3, 4, 5),
+    X = rnorm(4)
+  )
+  formula <- cbind(Y1, Y2) ~ X
+  spec <- NMAR:::parse_nmar_spec(formula, df)
+  traits <- utils::modifyList(NMAR:::NMAR_DEFAULT_TRAITS, list(requires_single_outcome = FALSE))
+  NMAR:::validate_nmar_args(spec, traits)
+  task <- NMAR:::new_nmar_task(spec, traits)
+  design <- NMAR:::prepare_nmar_design(task)
+  expect_length(design$outcome_columns, 2)
+  expect_true(all(design$outcome_columns %in% names(design$data)))
+  expect_match(deparse(design$engine_formula[[2]]), "cbind", fixed = TRUE)
+  expect_equal(design$user_formula, formula)
 })

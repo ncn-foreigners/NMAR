@@ -17,6 +17,7 @@ exptilt.data.frame <- function(data, formula,
                                trace_level = 0,
                                sample_size = 2000,
                                outcome_label = NULL,
+                               user_formula = formula,
                                ...) {
   prob_model_type <- match.arg(prob_model_type)
   y_dens <- match.arg(y_dens)
@@ -104,6 +105,7 @@ exptilt.data.frame <- function(data, formula,
     design_weights = design_weights,
     design = survey_design,
     formula = formula,
+    user_formula = user_formula,
     call = match.call(),
     trace_level = trace_level,
 
