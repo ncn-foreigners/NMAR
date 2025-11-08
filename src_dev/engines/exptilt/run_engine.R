@@ -12,7 +12,7 @@ run_engine.nmar_engine_exptilt <- function(engine, task) {
 
 # Reconstruct a formula carrying response-only predictors to the right of `|`
   f_use <- nmar_rebuild_partitioned_formula(
-    base_formula = task$formula,
+    base_formula = design_info$engine_formula,
     response_rhs_lang = design_info$response_rhs_lang,
     aux_rhs_lang = design_info$aux_rhs_lang,
     env = task$environment
@@ -32,7 +32,8 @@ run_engine.nmar_engine_exptilt <- function(engine, task) {
     on_failure = engine$on_failure,
     supress_warnings = engine$supress_warnings,
     trace_level = task$trace_level,
-    sample_size = engine$sample_size
+    sample_size = engine$sample_size,
+    outcome_label = design_info$outcome_label
   )
 
   if (!isTRUE(design_info$is_survey)) {

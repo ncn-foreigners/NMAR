@@ -2,9 +2,14 @@ test_that("analytic Jacobian matches numeric Jacobian at solution (logit and pro
   skip_if_not_installed("numDeriv")
   df <- make_iid_nmar(n = 200, alpha = 0.5, seed = 3401)
 # Fit once (logit default) to get a stable solution near the root
-  fit <- NMAR:::el.data.frame(df, Y_miss ~ X,
-    auxiliary_means = c(X = 0), standardize = TRUE,
-    variance_method = "none"
+  fit <- nmar(
+    Y_miss ~ X,
+    df,
+    engine = el_engine(
+      auxiliary_means = c(X = 0),
+      standardize = TRUE,
+      variance_method = "none"
+    )
   )
   expect_type(fit$converged, "logical")
 

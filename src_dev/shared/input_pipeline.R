@@ -14,10 +14,12 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
   }
   if (is.null(environment(formula))) environment(formula) <- env
 
-  outcome_vars <- unique(all.vars(formula[[2]]))
+  outcome_expr <- formula[[2L]]
+  outcome_vars <- unique(all.vars(outcome_expr))
   if (length(outcome_vars) == 0L) {
     stop("The formula must specify at least one outcome variable on the left-hand side.", call. = FALSE)
   }
+  outcome_label <- paste(deparse(outcome_expr, width.cutoff = 500L), collapse = " ")
 
 # Support partitioned RHS using `|`: y ~ aux | response
   rhs <- formula[[3]]
@@ -59,6 +61,8 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
     list(
       formula = normalized_formula,
       outcome = outcome_vars,
+      outcome_expr = outcome_expr,
+      outcome_label = outcome_label,
       auxiliary_vars = auxiliary_vars,
       response_predictors = response_predictors,
       aux_rhs_lang = aux_expr,
@@ -199,6 +203,8 @@ new_nmar_task <- function(spec, traits, trace_level = 1) {
     list(
       formula = spec$formula,
       outcome = spec$outcome,
+      outcome_expr = spec$outcome_expr,
+      outcome_label = spec$outcome_label,
       auxiliary_vars = spec$auxiliary_vars,
       response_predictors = spec$response_predictors,
       aux_rhs_lang = spec$aux_rhs_lang,
@@ -243,6 +249,18 @@ prepare_nmar_design <- function(task,
   if (!is.data.frame(data_df)) {
     stop("`data` must be a data.frame when preparing the NMAR design.", call. = FALSE)
   }
+
+  outcome_info <- nmar_prepare_outcome_column(
+    data = data_df,
+    expr = task$outcome_expr,
+    env = task$environment
+  )
+  data_df <- outcome_info$data
+  outcome_column <- outcome_info$column
+  if (isTRUE(task$is_survey) && !is.null(task$original_data) && !is.null(outcome_info$values)) {
+    task$original_data$variables[[outcome_column]] <- outcome_info$values
+  }
+
   weights <- design_weights
   if (is.null(weights)) {
     if (isTRUE(task$is_survey)) {
@@ -259,6 +277,8 @@ prepare_nmar_design <- function(task,
     stop("`design_weights` must have the same length as the supplied data.", call. = FALSE)
   }
 
+  engine_formula <- nmar_replace_formula_lhs(task$formula, outcome_column)
+
   design_matrices <- nmar_materialize_design_matrices(
     blueprint = task$blueprint,
     data = data_df,
@@ -274,11 +294,14 @@ prepare_nmar_design <- function(task,
     is_survey = isTRUE(task$is_survey),
     survey_design = if (isTRUE(task$is_survey)) task$original_data else NULL,
     formula = task$formula,
+    engine_formula = engine_formula,
     standardize = standardize,
     auxiliary_means = auxiliary_means,
     aux_rhs_lang = if (isTRUE(include_auxiliary)) task$aux_rhs_lang else NULL,
     response_rhs_lang = if (isTRUE(include_response)) task$response_rhs_lang else NULL,
     blueprint = task$blueprint,
+    outcome_column = outcome_column,
+    outcome_label = task$outcome_label,
     aux_terms = if (isTRUE(include_auxiliary)) task$blueprint$aux$terms else NULL,
     response_terms = if (isTRUE(include_response)) task$blueprint$response$terms else NULL,
     design_matrices = design_matrices
@@ -516,6 +539,51 @@ nmar_materialize_design_matrices <- function(blueprint,
     response_matrix <- nmar_model_matrix_from_terms(blueprint$response, data)
   }
   list(auxiliary = aux_matrix, response = response_matrix)
+}
+
+nmar_prepare_outcome_column <- function(data, expr, env) {
+  if (!is.call(expr) && is.symbol(expr)) {
+    column <- as.character(expr)
+    if (!column %in% names(data)) {
+      stop("Outcome variable '", column, "' not found in data.", call. = FALSE)
+    }
+    return(list(data = data, column = column, values = NULL))
+  }
+  outcome_formula <- stats::as.formula(call("~", expr))
+  attr(outcome_formula, ".Environment") <- env
+  outcome_frame <- stats::model.frame(
+    outcome_formula,
+    data = data,
+    na.action = stats::na.pass,
+    drop.unused.levels = FALSE
+  )
+  outcome_values <- outcome_frame[[1]]
+  input_missing <- Reduce(
+    "|",
+    lapply(all.vars(expr), function(var) if (var %in% names(data)) is.na(data[[var]]) else rep(FALSE, nrow(data))),
+    init = rep(FALSE, nrow(data))
+  )
+  bad_idx <- which(!input_missing & !is.finite(outcome_values))
+  if (length(bad_idx)) {
+    stop(
+      "Outcome transformation produced non-finite values. First offending row: ",
+      bad_idx[1],
+      call. = FALSE
+    )
+  }
+  new_column <- nmar_make_unique_colname("..nmar_outcome..", names(data))
+  data[[new_column]] <- outcome_values
+  list(data = data, column = new_column, values = outcome_values)
+}
+
+nmar_replace_formula_lhs <- function(formula, outcome_column) {
+  if (!inherits(formula, "formula") || length(formula) != 3L) {
+    stop("`formula` must be a two-sided formula.", call. = FALSE)
+  }
+  new_formula <- formula
+  new_formula[[2L]] <- as.name(outcome_column)
+  attr(new_formula, ".Environment") <- environment(formula)
+  new_formula
 }
 
 validate_predictor_relationships <- function(outcomes,

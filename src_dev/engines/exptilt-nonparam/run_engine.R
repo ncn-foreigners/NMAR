@@ -59,7 +59,7 @@ run_engine.nmar_engine_exptilt_nonparam <- function(engine, task) {
     engine_name = "exponential_tilting_nonparam",
     call = match.call(),
     formula = nmar_rebuild_partitioned_formula(
-      base_formula = task$formula,
+      base_formula = design_info$engine_formula,
       response_rhs_lang = design_info$response_rhs_lang,
       aux_rhs_lang = design_info$aux_rhs_lang,
       env = task$environment

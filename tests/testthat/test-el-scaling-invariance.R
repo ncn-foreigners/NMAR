@@ -2,9 +2,14 @@ test_that("standardize vs manual scaling yields identical y_hat (df)", {
   df <- make_iid_nmar(n = 200, alpha = 0.4, seed = 3403)
 
 # Auto scaling
-  fit_auto <- NMAR:::el.data.frame(df, Y_miss ~ X,
-    auxiliary_means = c(X = 0), standardize = TRUE,
-    variance_method = "none"
+  fit_auto <- nmar(
+    Y_miss ~ X,
+    df,
+    engine = el_engine(
+      auxiliary_means = c(X = 0),
+      standardize = TRUE,
+      variance_method = "none"
+    )
   )
   expect_true(fit_auto$converged)
 
@@ -24,9 +29,14 @@ test_that("standardize vs manual scaling yields identical y_hat (df)", {
   aux_mean_scaled <- c(X = 0)
   if ("X" %in% names(recipe)) aux_mean_scaled["X"] <- (0 - recipe$X$mean) / recipe$X$sd
 
-  fit_manual <- NMAR:::el.data.frame(df_scaled, Y_miss ~ X,
-    auxiliary_means = aux_mean_scaled, standardize = FALSE,
-    variance_method = "none"
+  fit_manual <- nmar(
+    Y_miss ~ X,
+    df_scaled,
+    engine = el_engine(
+      auxiliary_means = aux_mean_scaled,
+      standardize = FALSE,
+      variance_method = "none"
+    )
   )
   expect_true(fit_manual$converged)
 # Unscale y_hat back to original Y_miss scale
@@ -44,9 +54,14 @@ test_that("multi-predictor scaling matches manual rescaling", {
   df <- data.frame(Y_miss = Y, X1 = X1, X2 = X2)
   df[!R, "Y_miss"] <- NA_real_
 
-  fit_auto <- NMAR:::el.data.frame(df, Y_miss ~ X1 + X2,
-    auxiliary_means = c(X1 = 0, X2 = 0), standardize = TRUE,
-    variance_method = "none"
+  fit_auto <- nmar(
+    Y_miss ~ X1 + X2,
+    df,
+    engine = el_engine(
+      auxiliary_means = c(X1 = 0, X2 = 0),
+      standardize = TRUE,
+      variance_method = "none"
+    )
   )
   expect_true(fit_auto$converged)
 
@@ -65,9 +80,14 @@ test_that("multi-predictor scaling matches manual rescaling", {
     X2 = (0 - recipe$X2$mean) / recipe$X2$sd
   )
 
-  fit_manual <- NMAR:::el.data.frame(df_scaled, Y_miss ~ X1 + X2,
-    auxiliary_means = aux_means_scaled, standardize = FALSE,
-    variance_method = "none"
+  fit_manual <- nmar(
+    Y_miss ~ X1 + X2,
+    df_scaled,
+    engine = el_engine(
+      auxiliary_means = aux_means_scaled,
+      standardize = FALSE,
+      variance_method = "none"
+    )
   )
   expect_true(fit_manual$converged)
   y_hat_manual <- fit_manual[["y_hat"]]

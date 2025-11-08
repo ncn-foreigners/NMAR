@@ -2,7 +2,7 @@
 new_nmar_result_exptilt <- function(estimate, se, coefficients, vcov, model,
                                     converged = TRUE, weights = NULL,
                                     variance_message = NA_character_) {
-  outcome_name <- model$col_y %||% NA_character_
+  outcome_name <- model$outcome_label %||% model$col_y %||% NA_character_
   n_total <- if (!is.null(model$x)) nrow(model$x) else NA_integer_
   n_resp <- if (!is.null(model$x) && !is.null(model$col_y) && model$col_y %in% colnames(model$x)) {
     sum(!is.na(model$x[, model$col_y]))

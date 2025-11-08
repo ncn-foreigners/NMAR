@@ -5,7 +5,7 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
                                nmar_scaling_recipe, fitted_values, call) {
   diagnostics <- diagnostics %||% list()
   if (is.null(data_info$method)) data_info$method <- "Empirical Likelihood (EL)"
-  outcome_name <- data_info$outcome_var %||% NA_character_
+  outcome_name <- data_info$outcome_label %||% data_info$outcome_var %||% NA_character_
   trim_fraction <- diagnostics$trimmed_fraction %||% NA_real_
 
   sample <- list(

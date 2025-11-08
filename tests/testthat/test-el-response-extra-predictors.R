@@ -3,14 +3,16 @@ test_that("response_predictors can include non-auxiliary variables", {
   df <- make_iid_nmar(n = 350, alpha = 0.6, include_z = TRUE, seed = 4242)
 
 # Outcome RHS contains only X (auxiliary). Include Z as response-only predictor via `|`.
-  res <- NMAR:::el.data.frame(
+  res <- nmar(
+    Y_miss ~ X | Z,
     data = df,
-    formula = Y_miss ~ X | Z,
-    auxiliary_means = c(X = 0),
-    standardize = FALSE,
-    trim_cap = Inf,
-    on_failure = "return",
-    variance_method = "delta"
+    engine = el_engine(
+      auxiliary_means = c(X = 0),
+      standardize = FALSE,
+      trim_cap = Inf,
+      on_failure = "return",
+      variance_method = "delta"
+    )
   )
 
   expect_s3_class(res, "nmar_result_el")

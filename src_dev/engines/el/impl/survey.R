@@ -30,7 +30,8 @@
 #' @keywords internal
 el.survey.design <- function(data, formula,
                              auxiliary_means = NULL, standardize = TRUE,
-                             design_matrices = NULL,
+                             design_matrices,
+                             outcome_label,
                              trim_cap = Inf, control = list(),
                              on_failure = c("return", "error"),
                              variance_method = c("delta", "bootstrap", "none"),
@@ -67,23 +68,8 @@ el.survey.design <- function(data, formula,
     stop("Respondents-only survey design detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total design weight or population total>).", call. = FALSE)
   }
 
-  design_payload <- design_matrices
-  if (is.null(design_payload)) {
-    spec <- parse_nmar_spec(formula, design, env = environment(formula) %||% parent.frame())
-    dummy_engine <- list(n_total = n_total)
-    class(dummy_engine) <- c("nmar_engine_el", "nmar_engine")
-    dummy_traits <- engine_traits(dummy_engine)
-    validate_nmar_args(spec, dummy_traits)
-    task <- new_nmar_task(spec, dummy_traits, trace_level = trace_level)
-    design_info <- prepare_nmar_design(
-      task,
-      standardize = standardize,
-      auxiliary_means = auxiliary_means,
-      include_response = TRUE,
-      include_auxiliary = TRUE
-    )
-    design_payload <- design_info$design_matrices
-    design$variables <- design_info$data
+  if (is.null(design_matrices)) {
+    stop("`design_matrices` must be supplied by run_engine().", call. = FALSE)
   }
 
   parsed_inputs <- prepare_el_inputs(formula, design$variables,
@@ -96,7 +82,7 @@ el.survey.design <- function(data, formula,
   resp_design <- subset(design, observed_mask)
   outcome_name <- all.vars(internal_formula$outcome)[1]
   precomputed_design <- el_build_precomputed_design(
-    design_matrices = design_payload,
+    design_matrices = design_matrices,
     estimation_data = design$variables,
     outcome_var = outcome_name,
     respondent_indices = observed_indices
@@ -184,6 +170,7 @@ el.survey.design <- function(data, formula,
 
   sample_info <- list(
     outcome_var = all.vars(internal_formula$outcome)[1],
+    outcome_label = outcome_label,
     response_var = response_var,
     formula = formula,
     nobs = nrow(design$variables),
