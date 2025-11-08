@@ -161,7 +161,8 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
           p() # Signal progress
           res
         },
-        future.seed = TRUE
+        future.seed = TRUE,
+        future.packages = "NMAR"
       )
     })
   } else {
@@ -169,7 +170,8 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
     lst <- future.apply::future_lapply(
       seq_len(bootstrap_reps),
       replicate_fn,
-      future.seed = TRUE
+      future.seed = TRUE,
+      future.packages = "NMAR"
     )
   }
 
@@ -443,7 +445,7 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
           est_fun = est_fun,
           p = p
         ),
-        future.packages = "survey"
+        future.packages = c("NMAR", "survey")
       )
     })
   } else {
@@ -461,7 +463,7 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
         estimator_args = estimator_args,
         est_fun = est_fun
       ),
-      future.packages = "survey"
+      future.packages = c("NMAR", "survey")
     )
   }
 
