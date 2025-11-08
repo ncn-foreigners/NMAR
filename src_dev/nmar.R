@@ -36,7 +36,7 @@
 #'   [el_engine()] or [exptilt_engine()]. This object defines the specific NMAR
 #'   estimation method and its parameters. It must inherit from class
 #'   `nmar_engine`.
-#' @param trace_level Integer 0-3; controls verbosity level during estimation (default: 1):
+#' @param trace_level Integer 0-3; controls verbosity level during estimation (default: 0):
 #'   \itemize{
 #'     \item 0: No output (silent mode)
 #'     \item 1: Major steps only (initialization, convergence, final results)
