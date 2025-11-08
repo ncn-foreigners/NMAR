@@ -366,7 +366,7 @@ el_compute_variance <- function(y_hat,
     est_closure <- function(data, formula, engine_args, ...) {
       engine_args$variance_method <- "none"
       eng <- do.call(el_engine, engine_args)
-      nmar(formula = formula, data = data, engine = eng)
+      nmar(formula = formula, data = data, engine = eng, trace_level = 0)
     }
     boot_args <- list(
       data = full_data,

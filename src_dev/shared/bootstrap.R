@@ -245,12 +245,21 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
 #'     \item \code{pps}: PPS sampling specification (incompatible with direct weights)
 #'   }
 #'
+#'   Designs that supplied any of the unsupported arguments will error explicitly
+#'   so users can rebuild the design with direct analysis weights; silently
+#'   dropping these settings would invalidate bootstrap variance estimates.
+#'
 #'   \strong{Rationale:} When reconstructing designs for each replicate, we replace
 #'   the original weights with bootstrap replicate weights. Specifying both
 #'   \code{weights} and \code{probs}/\code{pps} simultaneously is undefined behavior
 #'   in \code{survey::svydesign()}. The structural design parameters (ids, strata,
 #'   fpc, nest) define the sampling topology and are preserved; the weights define
 #'   the analysis weights and are replaced.
+#'
+#'   Replicates omitted under \code{survey_na_policy = "omit"} trigger an automatic
+#'   rescaling of the bootstrap \code{scale} factor so that \code{survey::svrVar()}
+#'   continues to use the effective number of replicates (see
+#'   \file{inst/svrep-vigniette.Rmd}).
 #'
 #' @param survey_na_policy Character string specifying how to handle replicates that
 #'   fail to produce estimates. Options:
@@ -520,7 +529,8 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
 # This is critical for mathematical correctness
       replicate_estimates <- replicate_estimates[keep_idx]
       rep_rscales <- rep_rscales[keep_idx]
-# rep_scale and rep_mse remain unchanged (scalars for bootstrap)
+      rep_scale <- nmar_adjust_bootstrap_scale(rep_scale, total_reps = J_actual, keep_idx = keep_idx)
+# rep_mse is a scalar flag for bootstrap designs and is left unchanged
     }
   }
 
@@ -560,8 +570,46 @@ nmar_extract_svydesign_call <- function(design) {
   if (!is_svydesign) {
     stop("bootstrap_variance() currently supports survey designs created directly with survey::svydesign().", call. = FALSE)
   }
+  nmar_validate_svydesign_call(design_call)
   design_call[[1]] <- quote(survey::svydesign)
   design_call
+}
+
+nmar_validate_svydesign_call <- function(design_call) {
+  args <- as.list(design_call)[-1]
+  unsupported <- c("probs", "pps")
+  bad <- vapply(unsupported, function(nm) !is.null(args[[nm]]), logical(1))
+  if (any(bad)) {
+    bad_args <- paste(paste0("`", unsupported[bad], "`"), collapse = ", ")
+    stop(
+      "Bootstrap variance cannot reconstruct survey designs specified with ",
+      bad_args, ". Provide a design that uses direct analysis weights instead ",
+      "of probabilities/PPS arguments.",
+      call. = FALSE
+    )
+  }
+  invisible(design_call)
+}
+
+nmar_adjust_bootstrap_scale <- function(rep_scale, total_reps, keep_idx) {
+  if (is.null(rep_scale) || length(rep_scale) == 0L) {
+    return(rep_scale)
+  }
+  kept <- length(keep_idx)
+  if (kept == 0L) {
+    stop("No successful replicates available to adjust survey bootstrap scale.", call. = FALSE)
+  }
+  if (length(rep_scale) == 1L) {
+    return(rep_scale * total_reps / kept)
+  }
+  if (length(rep_scale) == total_reps) {
+    return(rep_scale[keep_idx])
+  }
+  stop(
+    "Replicate scale length (", length(rep_scale),
+    ") does not match the total number of replicates (", total_reps, ").",
+    call. = FALSE
+  )
 }
 
 nmar_reconstruct_design <- function(template_call, data_subset, weight_var = "..replicate_weights..") {
@@ -582,6 +630,7 @@ nmar_reconstruct_design <- function(template_call, data_subset, weight_var = "..
   strata <- get_arg("strata")
   fpc <- get_arg("fpc")
   nest <- get_arg("nest")
+  check_strata <- get_arg("check.strata")
 # DO NOT extract probs/pps - they conflict with replicate weights
 # probs= and pps= are used to derive initial weights in svydesign()
 # We are replacing weights with replicate weights, so probs/pps must be excluded
@@ -594,6 +643,7 @@ nmar_reconstruct_design <- function(template_call, data_subset, weight_var = "..
   if (!is.null(strata)) call_list <- c(call_list, list(strata = strata))
   if (!is.null(fpc)) call_list <- c(call_list, list(fpc = fpc))
   if (!is.null(nest)) call_list <- c(call_list, list(nest = nest))
+  if (!is.null(check_strata)) call_list <- c(call_list, list(check.strata = check_strata))
 # DO NOT add probs or pps - they conflict with weights parameter
   call_list <- c(call_list,
     list(data = quote(data_subset), weights = as.formula(paste0("~", weight_var))))
