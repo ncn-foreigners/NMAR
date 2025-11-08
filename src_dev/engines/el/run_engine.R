@@ -23,6 +23,7 @@ run_engine.nmar_engine_el <- function(engine, task) {
   args <- list(
     data = design_info$survey_design %||% design_info$data,
     formula = f_use,
+    user_formula = design_info$user_formula,
     auxiliary_means = design_info$auxiliary_means,
     standardize = design_info$standardize,
     design_matrices = design_info$design_matrices,

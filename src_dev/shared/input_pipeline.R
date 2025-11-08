@@ -46,6 +46,9 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
     normalized_formula[[3L]] <- aux_expr
   }
 
+  aux_vars_raw <- unique(setdiff(all.vars(aux_expr), "."))
+  response_vars_raw <- unique(setdiff(all.vars(resp_expr), "."))
+
   blueprint <- nmar_build_formula_blueprint(
     outcome_vars = outcome_vars,
     aux_expr = aux_expr,
@@ -64,7 +67,9 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
       outcome_expr = outcome_expr,
       outcome_label = outcome_label,
       auxiliary_vars = auxiliary_vars,
+      auxiliary_vars_raw = aux_vars_raw,
       response_predictors = response_predictors,
+      response_predictors_raw = response_vars_raw,
       aux_rhs_lang = aux_expr,
       response_rhs_lang = resp_expr,
       data = data_df,
@@ -163,8 +168,8 @@ validate_nmar_args <- function(spec, traits = list()) {
 
   validate_predictor_relationships(
     outcomes = spec$outcome,
-    auxiliary_vars = spec$auxiliary_vars,
-    response_vars = spec$response_predictors,
+    auxiliary_vars = spec$auxiliary_vars_raw %||% spec$auxiliary_vars,
+    response_vars = spec$response_predictors_raw %||% spec$response_predictors,
     allow_outcome_in_missingness = traits$allow_outcome_in_missingness,
     allow_covariate_overlap = traits$allow_covariate_overlap
   )
@@ -206,7 +211,9 @@ new_nmar_task <- function(spec, traits, trace_level = 1) {
       outcome_expr = spec$outcome_expr,
       outcome_label = spec$outcome_label,
       auxiliary_vars = spec$auxiliary_vars,
+      auxiliary_vars_raw = spec$auxiliary_vars_raw,
       response_predictors = spec$response_predictors,
+      response_predictors_raw = spec$response_predictors_raw,
       aux_rhs_lang = spec$aux_rhs_lang,
       response_rhs_lang = spec$response_rhs_lang,
       data = spec$data,
@@ -278,6 +285,12 @@ prepare_nmar_design <- function(task,
   }
 
   engine_formula <- nmar_replace_formula_lhs(task$formula, outcome_column)
+  user_formula <- nmar_rebuild_partitioned_formula(
+    base_formula = task$formula,
+    response_rhs_lang = task$response_rhs_lang,
+    aux_rhs_lang = task$aux_rhs_lang,
+    env = task$environment
+  )
 
   design_matrices <- nmar_materialize_design_matrices(
     blueprint = task$blueprint,
@@ -294,6 +307,7 @@ prepare_nmar_design <- function(task,
     is_survey = isTRUE(task$is_survey),
     survey_design = if (isTRUE(task$is_survey)) task$original_data else NULL,
     formula = task$formula,
+    user_formula = user_formula,
     engine_formula = engine_formula,
     standardize = standardize,
     auxiliary_means = auxiliary_means,
@@ -558,6 +572,15 @@ nmar_prepare_outcome_column <- function(data, expr, env) {
     drop.unused.levels = FALSE
   )
   outcome_values <- outcome_frame[[1]]
+  if (is.data.frame(outcome_values) || (is.matrix(outcome_values) && NCOL(outcome_values) != 1L)) {
+    stop("Outcome transformation must return a single numeric vector.", call. = FALSE)
+  }
+  if (is.matrix(outcome_values)) {
+    outcome_values <- outcome_values[, 1, drop = TRUE]
+  }
+  if (!is.numeric(outcome_values)) {
+    stop("Outcome transformation must evaluate to a numeric vector.", call. = FALSE)
+  }
   input_missing <- Reduce(
     "|",
     lapply(all.vars(expr), function(var) if (var %in% names(data)) is.na(data[[var]]) else rep(FALSE, nrow(data))),
@@ -591,6 +614,8 @@ validate_predictor_relationships <- function(outcomes,
                                              response_vars,
                                              allow_outcome_in_missingness,
                                              allow_covariate_overlap) {
+  auxiliary_vars <- unique(auxiliary_vars %||% character())
+  response_vars <- unique(response_vars %||% character())
   if (!allow_outcome_in_missingness) {
     outcome_on_rhs <- intersect(outcomes, response_vars)
     if (length(outcome_on_rhs) > 0) {

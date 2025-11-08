@@ -30,6 +30,17 @@ test_that("validate_nmar_args can be relaxed for EL", {
   spec <- NMAR:::parse_nmar_spec(Y ~ X | Y, df)
   traits <- NMAR:::engine_traits(el_engine(auxiliary_means = c(X = 0)))
   expect_silent(NMAR:::validate_nmar_args(spec, traits))
+  expect_equal(spec$response_predictors_raw, "Y")
+})
+
+test_that("default traits block outcome on response model", {
+  df <- data.frame(Y = c(1, NA, 2), X = rnorm(3))
+  spec <- NMAR:::parse_nmar_spec(Y ~ 1 | Y, df)
+  expect_error(
+    NMAR:::validate_nmar_args(spec, list()),
+    "Outcome variable cannot appear",
+    fixed = FALSE
+  )
 })
 
 test_that("nonparam engine accepts multi-outcome formulas", {
@@ -61,6 +72,28 @@ test_that("parse_nmar_spec resolves dots and factors", {
   expect_silent(NMAR:::validate_nmar_args(spec, traits))
 })
 
+test_that("new_nmar_task preserves raw predictor metadata", {
+  df <- data.frame(Y = c(1, NA, 3), X = 1:3, Z = rnorm(3))
+  spec <- NMAR:::parse_nmar_spec(Y ~ X | Z + Y, df)
+  traits <- NMAR:::engine_traits(el_engine(auxiliary_means = c(X = 0)))
+  task <- NMAR:::new_nmar_task(spec, traits)
+  expect_equal(task$response_predictors_raw, c("Z", "Y"))
+  expect_equal(task$auxiliary_vars_raw, "X")
+})
+
+test_that("outcome transformations must be numeric vectors", {
+  df <- data.frame(Y = c(1, 2, NA, 4), X = rnorm(4))
+  spec <- NMAR:::parse_nmar_spec(I(as.character(Y)) ~ X, df)
+  traits <- NMAR:::engine_traits(el_engine(auxiliary_means = NULL))
+  NMAR:::validate_nmar_args(spec, traits)
+  task <- NMAR:::new_nmar_task(spec, traits)
+  expect_error(
+    NMAR:::prepare_nmar_design(task),
+    "numeric vector",
+    fixed = FALSE
+  )
+})
+
 test_that("multi-outcome validation enforces trait restrictions", {
   df <- data.frame(
     Y1 = c(1, 2, 3),
@@ -73,4 +106,13 @@ test_that("multi-outcome validation enforces trait restrictions", {
   expect_silent(NMAR:::validate_nmar_args(spec, traits_np))
   traits_block <- NMAR:::engine_traits(exptilt_engine())
   expect_error(NMAR:::validate_nmar_args(spec, traits_block))
+})
+
+test_that("respondents-only inputs require allow_respondents_only trait", {
+  df <- data.frame(Y = rnorm(5), X = rnorm(5))
+  spec <- NMAR:::parse_nmar_spec(Y ~ X, df)
+  traits_default <- NMAR:::engine_traits(exptilt_engine())
+  expect_error(NMAR:::validate_nmar_args(spec, traits_default), "must contain NA", fixed = FALSE)
+  traits_el <- NMAR:::engine_traits(el_engine(auxiliary_means = c(X = 0), n_total = 100))
+  expect_silent(NMAR:::validate_nmar_args(spec, traits_el))
 })

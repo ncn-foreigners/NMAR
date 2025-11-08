@@ -29,6 +29,7 @@
 #'
 #' @keywords internal
 el.survey.design <- function(data, formula,
+                             user_formula = formula,
                              auxiliary_means = NULL, standardize = TRUE,
                              design_matrices,
                              outcome_label,
@@ -172,7 +173,7 @@ el.survey.design <- function(data, formula,
     outcome_var = all.vars(internal_formula$outcome)[1],
     outcome_label = outcome_label,
     response_var = response_var,
-    formula = formula,
+    formula = user_formula,
     nobs = nrow(design$variables),
     nobs_resp = length(observed_indices),
     n_total = N_pop, # Store N_pop for weights() method
@@ -199,7 +200,7 @@ el.survey.design <- function(data, formula,
       sample = list(n_total = N_pop, n_respondents = sample_info$nobs_resp, is_survey = TRUE, design = design),
       inference = list(variance_method = variance_method, df = NA_real_, message = msg),
       diagnostics = diag_list,
-      meta = list(engine_name = "empirical_likelihood", call = cl, formula = formula),
+      meta = list(engine_name = "empirical_likelihood", call = cl, formula = user_formula),
       extra = list(nmar_scaling_recipe = core_results$nmar_scaling_recipe),
       class = "nmar_result_el"
     )

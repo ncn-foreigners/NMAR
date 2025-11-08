@@ -19,6 +19,7 @@ test_that("el engine accepts valid inputs", {
   )
   expect_s3_class(el_base, "nmar_result_el")
   expect_type(el_base$converged, "logical")
+  expect_equal(formula(el_base), Y_miss ~ X)
 
   el_resp_extra <- nmar(
     formula = Y_miss ~ X | Z,
@@ -27,6 +28,7 @@ test_that("el engine accepts valid inputs", {
   )
   expect_s3_class(el_resp_extra, "nmar_result_el")
   expect_type(el_resp_extra$converged, "logical")
+  expect_equal(formula(el_resp_extra), Y_miss ~ X | Z)
 
   skip_if_not_installed("survey")
   design <- survey::svydesign(ids = ~1, data = df, weights = ~1)

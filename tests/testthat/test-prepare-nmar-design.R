@@ -15,6 +15,12 @@ test_that("prepare_nmar_design materializes matrices with transforms", {
   expect_equal(design$outcome_label, "log(Y + 5)")
   expect_true(design$outcome_column %in% names(design$data))
   expect_true(all(is.na(df$Y) == is.na(design$data[[design$outcome_column]])))
+  expect_equal(design$user_formula, formula)
+  expect_match(
+    deparse(design$engine_formula),
+    "\\.\\.nmar_outcome\\.\\. ~ I\\(X\\^2\\)",
+    perl = TRUE
+  )
 
   aux_matrix <- design$design_matrices$auxiliary
   response_matrix <- design$design_matrices$response
@@ -58,4 +64,17 @@ test_that("nmar_materialize_design_matrices is method agnostic", {
   mats <- NMAR:::nmar_materialize_design_matrices(bp, df)
   expect_true(all(colnames(mats$response) %in% c("(Intercept)", "X", "Z")))
   expect_true(all(colnames(mats$auxiliary) %in% c("X", "Z")))
+})
+
+test_that("prepare_nmar_design honors include flags", {
+  df <- data.frame(Y = c(1, NA, 3), X = rnorm(3), Z = rnorm(3))
+  spec <- NMAR:::parse_nmar_spec(Y ~ X | Z, df)
+  traits <- NMAR:::engine_traits(el_engine(auxiliary_means = c(X = 0)))
+  task <- NMAR:::new_nmar_task(spec, traits)
+  design_aux_only <- NMAR:::prepare_nmar_design(task, include_response = FALSE)
+  expect_equal(design_aux_only$response_predictors, character())
+  expect_null(design_aux_only$design_matrices$response)
+  design_resp_only <- NMAR:::prepare_nmar_design(task, include_auxiliary = FALSE)
+  expect_equal(design_resp_only$auxiliary_vars, character())
+  expect_null(design_resp_only$design_matrices$auxiliary)
 })
