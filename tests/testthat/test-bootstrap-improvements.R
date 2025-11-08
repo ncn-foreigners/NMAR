@@ -16,14 +16,24 @@ test_that("IID bootstrap is reproducible across future backends", {
 
 # Multisession backend (2 workers)
   skip_on_cran() # Multisession can be unreliable on CRAN
-  future::plan(future::multisession, workers = 2)
+  ok2 <- TRUE
+  tryCatch(future::plan(future::multisession, workers = 2), error = function(e) ok2 <<- FALSE)
+  if (!ok2) {
+    future::plan(future::sequential)
+    skip("multisession backend (2 workers) not available in this environment")
+  }
   set.seed(424242)
   res_par2 <- NMAR:::bootstrap_variance(
     data, estimator, point_estimate = 0, bootstrap_reps = 50
   )
 
 # Multisession backend (4 workers)
-  future::plan(future::multisession, workers = 4)
+  ok4 <- TRUE
+  tryCatch(future::plan(future::multisession, workers = 4), error = function(e) ok4 <<- FALSE)
+  if (!ok4) {
+    future::plan(future::sequential)
+    skip("multisession backend (4 workers) not available in this environment")
+  }
   set.seed(424242)
   res_par4 <- NMAR:::bootstrap_variance(
     data, estimator, point_estimate = 0, bootstrap_reps = 50

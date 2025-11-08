@@ -8,7 +8,7 @@ Author: Maciej Beręsewicz [aut, cre],
     Mateusz Iwaniuk [aut]
 Authors@R: c(
     person("Maciej", "Beręsewicz", email = "Maciej.Beresewicz@ue.poznan.pl", role = c("aut", "cre")),
-    person("Igor", "Kołodziej", email = "igor.kolodziej@protonmail.com", role = "aut"),
+    person("Igor", "Kołodziej", email = "igor.kolodziej@proton.me", role = "aut"),
     person("Mateusz", "Iwaniuk", email = "mateusz.iwaniuk11@gmail.com", role = "aut"))
 Description: NMAR provides a set of functions to estimate the population mean of data subject to Not Missing At Random (NMAR) mechanisms using advanced statistical methods
 License: MIT + file LICENSE
@@ -19,7 +19,6 @@ Imports:
     stats,
     nleqslv,
     utils,
-    numDeriv,
     generics
 RoxygenNote: 7.3.3
 Suggests:
@@ -27,10 +26,8 @@ Suggests:
     rmarkdown,
     testthat (>= 3.0.0),
     survey,
-    MASS,
     svrep,
     broom,
-    ggplot2,
     progressr,
     future,
     future.apply

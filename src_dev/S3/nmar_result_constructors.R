@@ -21,6 +21,18 @@ new_nmar_result <- function(...) {
   if (!is.list(model)) model <- list()
   model$coefficients <- model$coefficients %||% NULL
   model$vcov <- model$vcov %||% NULL
+  if (!is.null(model$coefficients) && length(model$coefficients) == 0) {
+    model$coefficients <- NULL
+  }
+  if (!is.null(model$vcov) && (!is.matrix(model$vcov) || all(dim(model$vcov) == 0))) {
+    model$vcov <- NULL
+  }
+  if (!is.null(model$coefficients) && !is.null(model$vcov)) {
+    beta_len <- length(model$coefficients)
+    if (!is.matrix(model$vcov) || nrow(model$vcov) != beta_len || ncol(model$vcov) != beta_len) {
+      stop("`model$vcov` must be a square matrix aligned with `model$coefficients`.", call. = FALSE)
+    }
+  }
 
 # Weights component - ensure list with required sub-fields
   weights_info <- dots$weights_info %||% list()

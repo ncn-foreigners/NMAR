@@ -20,7 +20,7 @@ Key features:
 - Supports `data.frame` (IID) and `survey.design` objects via the same `nmar()` API.
 - Variance via bootstrap (IID resampling or survey replicate weights).
 - Optional standardization of predictors; weight trimming for robustness.
-- Rich S3 surface: `summary()`, `confint()`, `tidy()`, `glance()`, `plot()`/`autoplot()`.
+- Rich S3 surface: `summary()`, `confint()`, `tidy()`, `glance()`, and standard extractors (`coef`, `fitted`, `weights`).
 
 ## Quick start
 

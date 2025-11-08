@@ -18,16 +18,15 @@ test_that("nmar_result S3 generics are registered", {
   tidy_df <- generics::tidy(res)
   expect_s3_class(tidy_df, "data.frame")
   expect_true("estimand" %in% tidy_df$component)
+  expect_true(all(c("estimate", "std.error", "conf.low", "conf.high") %in% names(tidy_df)))
 
   glance_df <- generics::glance(res)
   expect_s3_class(glance_df, "data.frame")
-  expect_true(all(c("y_hat", "std.error") %in% names(glance_df)))
+  expect_true(all(c("estimate", "std.error") %in% names(glance_df)))
 
   sum_obj <- summary(res)
   expect_s3_class(sum_obj, "summary_nmar_result")
 
   capture.output(print(res))
   capture.output(print(sum_obj))
-
-# expect_true(utils::isS3stdGeneric("autoplot"))
 })

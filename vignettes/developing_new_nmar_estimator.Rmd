@@ -298,4 +298,4 @@ Use these shared modules in `src_dev/shared/`:
 
 - Do not call helpers from other engines’ `impl/` folders. Engines must depend only on `src_dev/shared/` and their own `src_dev/engines/<method>/impl/`.
 - Prefix engine‑specific helpers with `<method>_` (e.g., `el_...` for empirical likelihood) to signal ownership and avoid accidental reuse.
-- The parent S3 class `nmar_result` provides default methods (`estimate`, `vcov`, `confint`, `tidy`, `glance`, `plot`/`autoplot`, `coef`, `fitted`, `weights`, `formula`). Implement child print/summary only if you need extra presentation.
+- The parent S3 class `nmar_result` provides default methods (`estimate`, `vcov`, `confint`, `tidy`, `glance`, `coef`, `fitted`, `weights`, `formula`). Implement child print/summary only if you need extra presentation.

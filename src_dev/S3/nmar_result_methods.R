@@ -27,21 +27,37 @@ NULL
 
 
 
-#' Variance-covariance for base NMAR results
+#' Covariance of model coefficients
+#' @description Returns the covariance matrix corresponding to `coef(object)`,
+#'   i.e., the covariance of the model coefficients exposed by the engine in
+#'   `object$model$coefficients`. The variance of the primary estimand is
+#'   available via `se(object)`.
 #' @param object An object of class `nmar_result`.
 #' @param ... Ignored.
 #' @keywords result_param
 #' @export
 vcov.nmar_result <- function(object, ...) {
-  se <- nmar_result_get_se(object)
-  if (length(se) == 1 && is.finite(se)) {
-    mat <- matrix(as.numeric(se)^2, 1, 1)
-  } else {
-    mat <- matrix(NA_real_, 1, 1)
+  model <- nmar_result_get_model(object)
+  beta <- model$coefficients
+  vc <- model$vcov
+
+  if (is.null(beta) || length(beta) == 0) {
+    stop("No model coefficients for this result.", call. = FALSE)
   }
-  nm <- nmar_result_get_estimate_name(object)
-  dimnames(mat) <- list(nm, nm)
-  mat
+
+  p <- length(beta)
+  nm <- names(beta)
+  if (is.null(nm) || length(nm) != p || anyNA(nm)) {
+    nm <- paste0("coef", seq_len(p))
+  }
+
+  if (!is.null(vc) && is.matrix(vc) && nrow(vc) == p && ncol(vc) == p) {
+    return(vc)
+  }
+
+  out <- matrix(NA_real_, p, p)
+  dimnames(out) <- list(nm, nm)
+  out
 }
 
 
@@ -88,52 +104,67 @@ tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
   nm <- nmar_result_get_estimate_name(x)
   inference <- nmar_result_get_inference(x)
   sample <- nmar_result_get_sample(x)
-  if (isTRUE(sample$is_survey) && is.finite(inference$df)) {
-    crit <- stats::qt(1 - (1 - conf.level) / 2, df = inference$df)
+  crit <- if (isTRUE(sample$is_survey) && is.finite(inference$df)) {
+    stats::qt(1 - (1 - conf.level) / 2, df = inference$df)
   } else {
-    crit <- stats::qnorm(1 - (1 - conf.level) / 2)
+    stats::qnorm(1 - (1 - conf.level) / 2)
   }
-  ci <- c(NA_real_, NA_real_)
-  if (is.finite(se)) ci <- as.numeric(est + c(-1, 1) * crit * se)
-  rows <- list(data.frame(
+
+  rows <- list()
+  rows[[length(rows) + 1]] <- data.frame(
     term = nm,
-    y_hat = as.numeric(est),
+    estimate = as.numeric(est),
     std.error = se,
-    conf.low = ci[1],
-    conf.high = ci[2],
-    component = "estimand",
     statistic = NA_real_,
     p.value = NA_real_,
+    conf.low = NA_real_,
+    conf.high = NA_real_,
+    component = "estimand",
     check.names = FALSE
-  ))
+  )
+  if (is.finite(se)) {
+    rows[[1]]$conf.low <- as.numeric(est) - crit * se
+    rows[[1]]$conf.high <- as.numeric(est) + crit * se
+    stat <- as.numeric(est) / se
+    rows[[1]]$statistic <- stat
+    rows[[1]]$p.value <- if (isTRUE(sample$is_survey) && is.finite(inference$df)) {
+      2 * stats::pt(-abs(stat), df = inference$df)
+    } else {
+      2 * stats::pnorm(-abs(stat))
+    }
+  }
 
   model <- nmar_result_get_model(x)
   beta <- model$coefficients
+  vcov_beta <- model$vcov
   if (!is.null(beta) && length(beta) > 0) {
     beta_vec <- as.numeric(beta)
-    se_beta <- rep(NA_real_, length(beta_vec))
-    stat <- pval <- rep(NA_real_, length(beta_vec))
-    if (!is.null(model$vcov) && is.matrix(model$vcov)) {
-      se_beta <- sqrt(diag(model$vcov))
-      stat <- beta_vec / se_beta
-      if (isTRUE(sample$is_survey) && is.finite(inference$df)) {
-        pval <- 2 * stats::pt(-abs(stat), df = inference$df)
-      } else {
-        pval <- 2 * stats::pnorm(-abs(stat))
-      }
-    }
     beta_names <- names(beta)
     if (is.null(beta_names) || length(beta_names) != length(beta_vec) || anyNA(beta_names)) {
       beta_names <- paste0("coef", seq_along(beta_vec))
     }
-    rows[[2]] <- data.frame(
+    se_beta <- stat_beta <- pval_beta <- conf_lo <- conf_hi <- rep(NA_real_, length(beta_vec))
+    if (!is.null(vcov_beta) && is.matrix(vcov_beta) &&
+      nrow(vcov_beta) == length(beta_vec) && ncol(vcov_beta) == length(beta_vec)) {
+      se_beta <- sqrt(diag(vcov_beta))
+      valid <- is.finite(se_beta) & se_beta > 0
+      stat_beta[valid] <- beta_vec[valid] / se_beta[valid]
+      pval_beta[valid] <- if (isTRUE(sample$is_survey) && is.finite(inference$df)) {
+        2 * stats::pt(-abs(stat_beta[valid]), df = inference$df)
+      } else {
+        2 * stats::pnorm(-abs(stat_beta[valid]))
+      }
+      conf_lo[valid] <- beta_vec[valid] - crit * se_beta[valid]
+      conf_hi[valid] <- beta_vec[valid] + crit * se_beta[valid]
+    }
+    rows[[length(rows) + 1]] <- data.frame(
       term = beta_names,
-      y_hat = beta_vec,
+      estimate = beta_vec,
       std.error = se_beta,
-      statistic = stat,
-      p.value = pval,
-      conf.low = rep(NA_real_, length(beta_vec)),
-      conf.high = rep(NA_real_, length(beta_vec)),
+      statistic = stat_beta,
+      p.value = pval_beta,
+      conf.low = conf_lo,
+      conf.high = conf_hi,
       component = rep("response", length(beta_vec)),
       check.names = FALSE
     )
@@ -156,6 +187,7 @@ glance.nmar_result <- function(x, ...) {
   inference <- nmar_result_get_inference(x)
   sample <- nmar_result_get_sample(x)
   diagnostics <- nmar_result_get_diagnostics(x)
+  weights_info <- nmar_result_get_weights_info(x)
   if (isTRUE(sample$is_survey) && is.finite(inference$df)) {
     crit <- stats::qt(0.975, df = inference$df)
   } else {
@@ -164,126 +196,23 @@ glance.nmar_result <- function(x, ...) {
   ci <- c(NA_real_, NA_real_)
   if (is.finite(se)) ci <- as.numeric(est + c(-1, 1) * crit * se)
   data.frame(
-    y_hat = as.numeric(est),
+    estimate = as.numeric(est),
     std.error = se,
     conf.low = ci[1],
     conf.high = ci[2],
     converged = isTRUE(x$converged),
-    trimmed_fraction = diagnostics$trimmed_fraction %||% NA_real_,
+    trimmed_fraction = weights_info$trimmed_fraction %||% NA_real_,
     variance_method = inference$variance_method,
     jacobian_condition_number = diagnostics$jacobian_condition_number %||% NA_real_,
     max_equation_residual = diagnostics$max_equation_residual %||% NA_real_,
     min_denominator = diagnostics$min_denominator %||% NA_real_,
     fraction_small_denominators = diagnostics$fraction_small_denominators %||% NA_real_,
 
-    nobs = sample$n_total,
-    nobs_resp = sample$n_respondents,
+    nobs = sample$n_respondents,
+    N_pop = sample$n_total,
     is_survey = isTRUE(sample$is_survey),
     check.names = FALSE
   )
-}
-
-#' Base plotting for NMAR results
-#' @description Quick base plots for weights, fitted probabilities, constraints or diagnostics.
-#' @param x An object of class `nmar_result`.
-#' @param which Which plot: one of `"weights"`, `"fitted"`, `"constraints"`, `"diagnostics"`.
-#' @param ... Ignored.
-#' @keywords internal
-#' @method plot nmar_result
-#' @export
-plot.nmar_result <- function(x, which = c("weights", "fitted", "constraints", "diagnostics"), ...) {
-  which <- match.arg(which)
-  op <- graphics::par(no.readonly = TRUE)
-  on.exit(graphics::par(op), add = TRUE)
-  weights_info <- nmar_result_get_weights_info(x)
-  diagnostics <- nmar_result_get_diagnostics(x)
-  if (which == "weights") {
-    w <- as.numeric(weights_info$values)
-    w <- w[is.finite(w)]
-    if (length(w) < 2) {
-      message("No weights available to plot.")
-      return(invisible(x))
-    }
-    br <- max(2L, ceiling(sqrt(length(w))))
-    graphics::hist(w, breaks = br, main = "NMAR weights (respondents)", xlab = "weight", col = "gray")
-    graphics::abline(v = max(w), col = "firebrick", lty = 2)
-    tr <- weights_info$trimmed_fraction
-    if (length(tr) == 1 && is.finite(tr)) graphics::mtext(sprintf("trimmed_fraction = %.2f%%", 100 * tr), side = 3, cex = 0.8)
-  } else if (which == "fitted") {
-    fv <- as.numeric(fitted(x))
-    fv <- fv[is.finite(fv)]
-    if (length(fv) < 2) {
-      message("No fitted values available to plot.")
-      return(invisible(x))
-    }
-    br <- max(2L, ceiling(sqrt(length(fv))))
-    graphics::hist(fv, breaks = br, main = "Fitted response probabilities (respondents)", xlab = "p_hat", col = "gray")
-  } else if (which == "constraints") {
-    vals <- c(eqW = diagnostics$constraint_sum_W %||% NA_real_)
-    if (!is.null(diagnostics$constraint_sum_aux) && length(diagnostics$constraint_sum_aux) > 0) vals <- c(vals, diagnostics$constraint_sum_aux)
-    graphics::barplot(as.numeric(vals), names.arg = names(vals), main = "Constraint sums at solution", ylab = "sum", las = 2)
-    graphics::abline(h = 0, col = "darkgray")
-  } else if (which == "diagnostics") {
-    graphics::plot.new()
-    txt <- c(
-      sprintf("converged: %s", isTRUE(x$converged)),
-      sprintf("variance_method: %s", (nmar_result_get_inference(x)$variance_method)),
-      sprintf("Jacobian cond: %s", format(diagnostics$jacobian_condition_number %||% NA_real_, digits = 3)),
-      sprintf("Max eq residual: %s", format(diagnostics$max_equation_residual %||% NA_real_, digits = 3)),
-      sprintf("Min denominator: %s (frac<1e-6: %.2f%%)", format(diagnostics$min_denominator %||% NA_real_, digits = 3), 100 * (diagnostics$fraction_small_denominators %||% 0)),
-      sprintf("Trimmed fraction: %.2f%%", 100 * (weights_info$trimmed_fraction %||% 0)),
-      NULL
-    )
-    txt <- txt[!vapply(txt, is.null, logical(1))]
-    graphics::text(0.02, 0.95, adj = c(0, 1), labels = paste(unlist(txt), collapse = "\n"), cex = 0.9)
-  }
-  invisible(x)
-}
-
-#' Autoplot generic
-#'
-#' Generic function for creating ggplot2 plots. If ggplot2 is loaded, its
-#' generic will be used; otherwise, this minimal generic enables S3 dispatch.
-#' @param object An object
-#' @param ... Additional arguments passed to methods
-#' @export
-autoplot <- function(object, ...) {
-  UseMethod("autoplot")
-}
-
-#' ggplot2 autoplot method for NMAR results
-#' @description Quick ggplot2 visualizations for result objects.
-#' @param object An object of class `nmar_result` or a subclass.
-#' @param type One of "weights", "fitted", or "constraints".
-#' @param ... Ignored.
-#' @return A `ggplot` object.
-#' @export
-autoplot.nmar_result <- function(object, type = c("weights", "fitted", "constraints"), ...) {
-  type <- match.arg(type)
-  if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 is required for autoplot.nmar_result", call. = FALSE)
-  diagnostics <- nmar_result_get_diagnostics(object)
-  if (type == "weights") {
-    w <- stats::weights(object)
-    df <- data.frame(w = as.numeric(w))
-    ggplot2::ggplot(df, ggplot2::aes(x = w)) +
-      ggplot2::geom_histogram(color = "white", fill = "gray") +
-      ggplot2::labs(title = "NMAR weights", x = "weight")
-  } else if (type == "fitted") {
-    fv <- stats::fitted(object)
-    df <- data.frame(p = as.numeric(fv))
-    ggplot2::ggplot(df, ggplot2::aes(x = p)) +
-      ggplot2::geom_histogram(color = "white", fill = "gray") +
-      ggplot2::labs(title = "Fitted response probabilities", x = "p_hat")
-  } else {
-    vals <- c(eqW = diagnostics$constraint_sum_W %||% NA_real_)
-    if (!is.null(diagnostics$constraint_sum_aux) && length(diagnostics$constraint_sum_aux) > 0) vals <- c(vals, diagnostics$constraint_sum_aux)
-    df <- data.frame(term = names(vals), value = as.numeric(vals))
-    ggplot2::ggplot(df, ggplot2::aes(x = term, y = value)) +
-      ggplot2::geom_col(fill = "gray") +
-      ggplot2::geom_hline(yintercept = 0, color = "darkgray") +
-      ggplot2::labs(title = "Constraint sums", x = NULL, y = "sum") +
-      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
-  }
 }
 
 #' Default coefficients for NMAR results
@@ -513,7 +442,7 @@ coef.summary_nmar_result <- function(object, ...) {
   if (is.null(beta_names) || length(beta_names) != length(beta_vec) || anyNA(beta_names)) {
     beta_names <- paste0("coef", seq_along(beta_vec))
   }
-  tab <- data.frame(y_hat = beta_vec, `Std. Error` = se, check.names = FALSE)
+  tab <- data.frame(Estimate = beta_vec, `Std. Error` = se, check.names = FALSE)
   tab[[stat_label]] <- stat
   p_label <- if (is.finite(df)) "Pr(>|t|)" else "Pr(>|z|)"
   tab[[p_label]] <- pval
