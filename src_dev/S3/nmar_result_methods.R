@@ -393,6 +393,7 @@ formula.nmar_result <- function(x, ...) {
 #' @param ... Additional arguments passed to methods
 #' @return Numeric value or vector of standard errors
 #' @export
+#' @keywords result_param
 se <- function(object, ...) {
   UseMethod("se")
 }
