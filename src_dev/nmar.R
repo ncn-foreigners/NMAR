@@ -97,7 +97,7 @@
 #'   used in transforms must be visible in that environment.
 #' @keywords nmar
 #' @export
-nmar <- function(formula, data, engine, trace_level = 1) {
+nmar <- function(formula, data, engine, trace_level = 0) {
   stopifnot(inherits(engine, "nmar_engine"))
 
   validator$assert_choice(trace_level, choices = 0:3, name = "trace_level")

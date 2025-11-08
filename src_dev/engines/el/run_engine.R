@@ -36,7 +36,8 @@ run_engine.nmar_engine_el <- function(engine, task) {
     variance_method = engine$variance_method,
     bootstrap_reps = engine$bootstrap_reps,
     family = engine$family,
-    trace_level = task$trace_level
+    trace_level = task$trace_level,
+    design_info = design_info
   )
 
 # Dispatch to EL implementation (data.frame or survey.design)

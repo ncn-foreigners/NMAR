@@ -13,11 +13,16 @@ test_that("analytic Jacobian matches numeric Jacobian at solution (logit and pro
   )
   expect_type(fit$converged, "logical")
 
-  parsed <- NMAR:::prepare_el_inputs(Y_miss ~ X, df)
-  dat2 <- parsed$data
-  fmls <- parsed$formula_list
-  resp_var <- all.vars(fmls$response)[1]
-  obs_idx <- which(dat2[[resp_var]] == 1)
+  engine <- el_engine(
+    auxiliary_means = c(X = 0),
+    standardize = FALSE,
+    variance_method = "none"
+  )
+  runtime <- build_el_runtime(Y_miss ~ X, df, engine)
+  dat2 <- runtime$data
+  fmls <- runtime$internal_formula
+  resp_var <- runtime$response_var
+  obs_idx <- runtime$observed_indices
   resp_df <- dat2[obs_idx, ]
   Z_un <- model.matrix(update(fmls$response, NULL ~ .), data = resp_df)
   X_un <- model.matrix(fmls$auxiliary, data = resp_df)

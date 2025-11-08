@@ -10,12 +10,17 @@ test_that("constraint sums are near zero at solution (no trimming)", {
 # Jacobian quality reported
   diag <- fit$diagnostics
   expect_true(is.finite(diag$jacobian_condition_number) || is.na(diag$jacobian_condition_number))
-# Reconstruct components to compute raw constraint sums from stored diagnostics inputs
-  parsed <- NMAR:::prepare_el_inputs(Y_miss ~ X, df, NULL)
-  dat2 <- parsed$data
-  fmls <- parsed$formula_list
-  resp_var <- all.vars(fmls$response)[1]
-  obs_idx <- which(dat2[[resp_var]] == 1)
+  engine <- make_engine(
+    auxiliary_means = c(X = 0),
+    trim_cap = Inf,
+    variance_method = "none",
+    standardize = FALSE
+  )
+  runtime <- build_el_runtime(Y_miss ~ X, df, engine)
+  dat2 <- runtime$data
+  fmls <- runtime$internal_formula
+  resp_var <- runtime$response_var
+  obs_idx <- runtime$observed_indices
   resp_df <- dat2[obs_idx, ]
   Z_un <- model.matrix(update(fmls$response, NULL ~ .), data = resp_df)
   X_un <- model.matrix(fmls$auxiliary, data = resp_df)

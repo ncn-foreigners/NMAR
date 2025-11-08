@@ -349,7 +349,8 @@ prepare_nmar_design <- function(task,
     outcome_label = task$outcome_label,
     aux_terms = if (isTRUE(include_auxiliary)) task$blueprint$aux$terms else NULL,
     response_terms = if (isTRUE(include_response)) task$blueprint$response$terms else NULL,
-    design_matrices = design_matrices
+    design_matrices = design_matrices,
+    environment = task$environment
   )
 }
 

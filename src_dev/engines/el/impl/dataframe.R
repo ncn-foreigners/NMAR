@@ -35,7 +35,8 @@ el.data.frame <- function(data, formula,
                           on_failure = c("return", "error"),
                           variance_method = c("delta", "bootstrap", "none"),
                           bootstrap_reps = 500,
-                          n_total = NULL, start = NULL, trace_level = 0, ...) {
+                          n_total = NULL, start = NULL, trace_level = 0,
+                          design_info = NULL, ...) {
   cl <- match.call()
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
@@ -44,37 +45,26 @@ el.data.frame <- function(data, formula,
   if (identical(variance_method, "delta")) variance_method <- "none"
 
 
-# If respondents-only data is supplied (no NA in outcome), require n_total
-  outcome_var_check <- all.vars(formula[[2]])
-# Detect auxiliaries directly from the RHS (exclude response-only part if | present)
-  rhs <- formula[[3]]
-  aux_expr <- rhs
-  if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) aux_expr <- rhs[[2L]]
-  has_aux_rhs <- length(all.vars(aux_expr)) > 0
-  respondents_only_0 <- length(outcome_var_check) == 1 && !anyNA(data[[outcome_var_check]])
-  if (respondents_only_0 && has_aux_rhs && is.null(auxiliary_means)) {
-    stop(
-      paste0(
-        "Respondents-only data detected (no NAs in outcome) and auxiliary constraints were requested, ",
-        "but 'auxiliary_means' was not provided. Provide population auxiliary means via auxiliary_means=."
-      ),
-      call. = FALSE
-    )
-  }
-  if (respondents_only_0 && is.null(n_total)) {
-    stop("Respondents-only data detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total sample size>).", call. = FALSE)
-  }
-
   if (is.null(design_matrices)) {
     stop("`design_matrices` must be supplied by run_engine().", call. = FALSE)
   }
+  if (is.null(design_info)) {
+    stop("`design_info` must be supplied by run_engine().", call. = FALSE)
+  }
 
-  parsed_inputs <- prepare_el_inputs(formula, data, require_na = is.null(n_total))
-  estimation_data <- parsed_inputs$data
-  internal_formula <- parsed_inputs$formula_list
-  response_var <- all.vars(internal_formula$response)[1]
-  observed_indices <- which(estimation_data[[response_var]] == 1)
-  outcome_name <- all.vars(internal_formula$outcome)[1]
+  runtime_inputs <- el_build_runtime_inputs(
+    data = data,
+    design_info = design_info,
+    auxiliary_means = auxiliary_means,
+    n_total = n_total,
+    require_na = is.null(n_total),
+    context = "data.frame"
+  )
+  estimation_data <- runtime_inputs$data
+  internal_formula <- runtime_inputs$internal_formula
+  response_var <- runtime_inputs$response_var
+  observed_indices <- runtime_inputs$observed_indices
+  outcome_name <- runtime_inputs$outcome_name
   precomputed_design <- el_build_precomputed_design(
     design_matrices = design_matrices,
     estimation_data = estimation_data,
@@ -108,7 +98,7 @@ el.data.frame <- function(data, formula,
   )
 
   sample_info <- list(
-    outcome_var = all.vars(internal_formula$outcome)[1],
+    outcome_var = outcome_name,
     outcome_label = outcome_label,
     response_var = response_var,
     formula = user_formula,

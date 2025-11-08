@@ -136,7 +136,7 @@ method <- function(data, ...) UseMethod("method")
 ```{r eval=FALSE}
 #' @export
 method.data.frame <- function(data, formula, controls = list(), ...) {
-# Prepare inputs. You may adapt from EL’s prepare_el_inputs() pattern.
+# Prepare inputs. Reuse the shared `prepare_nmar_design()` outputs (see EL’s `el_build_runtime_inputs()` helper for a reference implementation).
   parsed <- build_method_inputs(data, formula, controls)
   estimation_data <- parsed$data
   internal_formula <- parsed$formula_list

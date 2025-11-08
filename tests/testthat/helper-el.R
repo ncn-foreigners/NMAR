@@ -30,3 +30,27 @@ make_engine <- function(variance_method = c("delta", "bootstrap", "none"),
     bootstrap_reps = bootstrap_reps
   )
 }
+
+build_el_runtime <- function(formula, data, engine) {
+  spec <- NMAR:::parse_nmar_spec(formula, data)
+  traits <- NMAR:::engine_traits(engine)
+  NMAR:::validate_nmar_args(spec, traits)
+  task <- NMAR:::new_nmar_task(spec, traits)
+  design <- NMAR:::prepare_nmar_design(
+    task,
+    standardize = engine$standardize,
+    auxiliary_means = engine$auxiliary_means,
+    include_response = TRUE,
+    include_auxiliary = TRUE
+  )
+  runtime <- NMAR:::el_build_runtime_inputs(
+    data = design$data,
+    design_info = design,
+    auxiliary_means = engine$auxiliary_means,
+    n_total = engine$n_total,
+    require_na = is.null(engine$n_total),
+    context = "data.frame"
+  )
+  runtime$design_info <- design
+  runtime
+}

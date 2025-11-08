@@ -12,11 +12,16 @@ test_that("analytic vs numeric Jacobian agree across links and scaling", {
 
 # Helper to check one configuration
   check_one <- function(fam, standardize) {
-    parsed <- NMAR:::prepare_el_inputs(Y_miss ~ X1 + X2 | Z, df)
-    dat2 <- parsed$data
-    fmls <- parsed$formula_list
-    resp_var <- all.vars(fmls$response)[1]
-    obs_idx <- which(dat2[[resp_var]] == 1)
+    engine <- make_engine(
+      variance_method = "none",
+      standardize = standardize,
+      auxiliary_means = c(X1 = 0, X2 = 0)
+    )
+    runtime <- build_el_runtime(Y_miss ~ X1 + X2 | Z, df, engine)
+    dat2 <- runtime$data
+    fmls <- runtime$internal_formula
+    resp_var <- runtime$response_var
+    obs_idx <- runtime$observed_indices
     resp_df <- dat2[obs_idx, ]
     Z_un <- model.matrix(update(fmls$response, NULL ~ .), data = resp_df)
     X_un <- model.matrix(fmls$auxiliary, data = resp_df)

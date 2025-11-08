@@ -70,54 +70,73 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
   result
 }
 
-#' Prepare inputs for EL estimation
-#' @details Validates the two-sided outcome formula and constructs three
-#'   internal formulas: outcome (~ outcome_var), response (for the missingness
-#'   model), and auxiliary (RHS only, no intercept). Response-only predictors
-#'   may include variables not on the outcome RHS; such variables enter only the
-#'   response model (no auxiliary moment constraint). Only variables on the
-#'   outcome RHS are treated as auxiliaries and, when provided, must match the
-#'   names in `auxiliary_means`. See Qin, Leung and Shao (2002) for the EL
-#'   formulation.
-#' @keywords internal
-prepare_el_inputs <- function(formula, data, require_na = TRUE) {
-  if (!inherits(formula, "formula") || length(formula) != 3 || length(all.vars(formula[[2]])) != 1) {
-    stop("`formula` must be a two-sided formula with a single variable on the LHS, e.g., y ~ x1 + x2.", call. = FALSE)
+el_build_runtime_inputs <- function(data,
+                                    design_info,
+                                    auxiliary_means = NULL,
+                                    n_total = NULL,
+                                    require_na = TRUE,
+                                    context = c("data.frame", "survey.design")) {
+  context <- match.arg(context)
+  if (!is.data.frame(data)) {
+    stop("`data` must be a data.frame containing the NMAR variables.", call. = FALSE)
   }
-  env <- environment(formula)
-  if (is.null(env)) env <- parent.frame()
-  outcome_var <- all.vars(formula[[2]])[[1L]]
-
-# Split RHS by `|` if present: auxiliaries on the left, response-only on the right
-  rhs <- formula[[3]]
-  aux_expr <- rhs
-  resp_expr <- NULL
-  if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) {
-    aux_expr <- rhs[[2L]]
-    resp_expr <- rhs[[3L]]
+  if (is.null(design_info$outcome_columns)) {
+    stop("`design_info` must include outcome metadata from `prepare_nmar_design()`.", call. = FALSE)
   }
-  rhs_vars <- all.vars(aux_expr)
-  response_predictors <- if (is.null(resp_expr)) character() else unique(all.vars(resp_expr))
-  if (!outcome_var %in% names(data)) stop(sprintf("Outcome variable '%s' not found in the data.", outcome_var), call. = FALSE)
-  if (isTRUE(require_na) && !anyNA(data[[outcome_var]])) stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_var), call. = FALSE)
-  missing_in_data <- setdiff(response_predictors, names(data))
-  if (length(missing_in_data) > 0) stop(sprintf("Variables in response part not found in data: %s", paste(missing_in_data, collapse = ", ")), call. = FALSE)
+  outcome_col <- design_info$outcome_column %||% design_info$outcome_columns[[1]]
+  if (!outcome_col %in% names(data)) {
+    stop("Outcome column '", outcome_col, "' not found in supplied data.", call. = FALSE)
+  }
+  outcome_label <- design_info$outcome_label %||% outcome_col
+  respondents_only <- !anyNA(data[[outcome_col]])
+  has_aux <- length(design_info$auxiliary_vars) > 0
 
-# Create unique delta and append to data
+  if (isTRUE(require_na) && respondents_only) {
+    stop(
+      "Outcome variable '", outcome_label, "' must contain NA values to indicate nonresponse.",
+      call. = FALSE
+    )
+  }
+  if (respondents_only && has_aux && is.null(auxiliary_means)) {
+    msg <- if (identical(context, "survey.design")) {
+      "Respondents-only survey design (no NAs in outcome) and auxiliary constraints were requested, but 'auxiliary_means' was not provided. Provide population auxiliary means via auxiliary_means=."
+    } else {
+      "Respondents-only data detected (no NAs in outcome) and auxiliary constraints were requested, but 'auxiliary_means' was not provided. Provide population auxiliary means via auxiliary_means=."
+    }
+    stop(msg, call. = FALSE)
+  }
+  if (respondents_only && is.null(n_total)) {
+    msg <- if (identical(context, "survey.design")) {
+      "Respondents-only survey design detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total design weight or population total>)."
+    } else {
+      "Respondents-only data detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total sample size>)."
+    }
+    stop(msg, call. = FALSE)
+  }
+
   delta_name <- nmar_make_unique_colname("..nmar_delta..", names(data))
-  data2 <- data
-  data2[[delta_name]] <- as.integer(!is.na(data2[[outcome_var]]))
+  data[[delta_name]] <- as.integer(!is.na(data[[outcome_col]]))
 
-# Build internal formulas using language objects
-# Only build auxiliary formula if there are actual variables on aux side
-  aux_lang_use <- if (length(rhs_vars) > 0) aux_expr else NULL
+  aux_lang_use <- if (has_aux) design_info$aux_rhs_lang else NULL
+  env <- design_info$environment %||% parent.frame()
   forms <- nmar_build_internal_formulas(
     delta_name = delta_name,
-    outcome_var = outcome_var,
+    outcome_var = outcome_col,
     aux_rhs_lang = aux_lang_use,
-    response_rhs_lang = resp_expr,
+    response_rhs_lang = design_info$response_rhs_lang,
     env = env
   )
 
-  list(data = data2, formula_list = forms)
+  response_var <- all.vars(forms$response)[1]
+  observed_mask <- data[[response_var]] == 1
+
+  list(
+    data = data,
+    internal_formula = forms,
+    response_var = response_var,
+    observed_indices = which(observed_mask),
+    observed_mask = observed_mask,
+    outcome_name = all.vars(forms$outcome)[1],
+    respondents_only = respondents_only
+  )
 }
