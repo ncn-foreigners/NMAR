@@ -3,51 +3,64 @@
 #' Builds a normalized `nmar_result` list using the modern schema.
 #' Engines must pass named fields; no legacy positional signature is supported.
 #'
+#' All fields are guaranteed to exist with proper defaults after construction,
+#' so downstream code can access fields without defensive NULL checks.
+#'
 #' @keywords internal
 new_nmar_result <- function(...) {
   dots <- list(...)
 
-  y_hat <- dots$estimate
-  se <- dots$se
+# Core scalars - all must have defaults
+  y_hat <- dots$estimate # Required, will be validated
+  se <- dots$se %||% NA_real_
   estimate_name <- dots$estimate_name %||% NA_character_
-  converged <- dots$converged
+  converged <- dots$converged %||% FALSE
+
+# Model component - ensure list with required sub-fields
   model <- dots$model %||% list()
-  weights_info <- dots$weights_info %||% list()
-  sample <- dots$sample %||% list()
-  inference <- dots$inference %||% list()
-  diagnostics <- dots$diagnostics %||% list()
-  meta <- dots$meta %||% list()
-  extra <- dots$extra %||% list()
-  class_name <- dots$class %||% "nmar_result"
-
-# Normalize components
   if (!is.list(model)) model <- list()
-  if (is.null(model$coefficients)) model$coefficients <- NULL
-  if (is.null(model$vcov)) model$vcov <- NULL
+  model$coefficients <- model$coefficients %||% NULL
+  model$vcov <- model$vcov %||% NULL
 
+# Weights component - ensure list with required sub-fields
+  weights_info <- dots$weights_info %||% list()
   if (!is.list(weights_info)) weights_info <- list()
-  if (is.null(weights_info$values)) weights_info$values <- NULL
-  if (is.null(weights_info$trimmed_fraction)) weights_info$trimmed_fraction <- NA_real_
+  weights_info$values <- weights_info$values %||% NULL
+  weights_info$trimmed_fraction <- weights_info$trimmed_fraction %||% NA_real_
 
-  sample_defaults <- list(n_total = NA_integer_, n_respondents = NA_integer_, is_survey = FALSE, design = NULL)
+# Sample metadata - ensure all required fields exist
+  sample <- dots$sample %||% list()
   if (!is.list(sample)) sample <- list()
-  for (nm in names(sample_defaults)) if (is.null(sample[[nm]])) sample[[nm]] <- sample_defaults[[nm]]
+  sample$n_total <- sample$n_total %||% NA_integer_
+  sample$n_respondents <- sample$n_respondents %||% NA_integer_
+  sample$is_survey <- sample$is_survey %||% FALSE
+  sample$design <- sample$design %||% NULL
 
-  inference_defaults <- list(
-    variance_method = NA_character_,
-    df = NA_real_,
-    message = NA_character_
-  )
+# Inference metadata - ensure all required fields exist
+  inference <- dots$inference %||% list()
   if (!is.list(inference)) inference <- list()
-  for (nm in names(inference_defaults)) if (is.null(inference[[nm]])) inference[[nm]] <- inference_defaults[[nm]]
+  inference$variance_method <- inference$variance_method %||% NA_character_
+  inference$df <- inference$df %||% NA_real_
+  inference$message <- inference$message %||% NA_character_
 
-  meta_defaults <- list(engine_name = NA_character_, call = NULL, formula = NULL)
+# Meta information - ensure all required fields exist
+  meta <- dots$meta %||% list()
   if (!is.list(meta)) meta <- list()
-  for (nm in names(meta_defaults)) if (is.null(meta[[nm]])) meta[[nm]] <- meta_defaults[[nm]]
+  meta$engine_name <- meta$engine_name %||% NA_character_
+  meta$call <- meta$call %||% NULL
+  meta$formula <- meta$formula %||% NULL
 
+# Diagnostics and extra - ensure lists exist (content is engine-specific)
+  diagnostics <- dots$diagnostics %||% list()
   if (!is.list(diagnostics)) diagnostics <- list()
+
+  extra <- dots$extra %||% list()
   if (!is.list(extra)) extra <- list()
 
+# Class name
+  class_name <- dots$class %||% "nmar_result"
+
+# Construct result object with all fields guaranteed to exist
   result <- list(
     y_hat = y_hat,
     estimate_name = estimate_name,

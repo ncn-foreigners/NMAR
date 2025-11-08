@@ -67,12 +67,30 @@
 #'   coefficients representing effects relative to North (the reference).
 #'
 #'   \strong{Formula transformations}: All standard R formula transformations work
-#'   correctly. Transformations such as `I(X^2)`, `log(Y)`, `poly(X, 2)` are
-#'   evaluated first, then the resulting transformed variables are standardized
-#'   (if `standardize = TRUE` in the engine). Coefficients are automatically
-#'   unscaled to the original parameter space after estimation. Note that
-#'   transformations of the outcome (e.g., `log(Y)`) estimate the mean of the
-#'   transformed outcome; users must back-transform results if needed.
+#'   correctly. Transformations such as `I(X^2)`, `log(X)`, `poly(X, 2)` on the
+#'   right-hand side are evaluated first, then the resulting transformed variables
+#'   are standardized (if `standardize = TRUE` in the engine). Coefficients are
+#'   automatically unscaled to the original parameter space after estimation.
+#'
+#'   \strong{Outcome transformations (IMPORTANT)}: Transformations applied to the
+#'   left-hand side outcome variable estimate the mean of the \emph{transformed}
+#'   outcome, NOT the mean of the original outcome. Formally, `nmar(g(Y) ~ X, ...)`
+#'   estimates E[g(Y)], not g(E[Y]).
+#'
+#'   \itemize{
+#'     \item `nmar(log(Y) ~ X, ...)` estimates E[log(Y)], the expected log-outcome
+#'     \item `nmar(sqrt(Y) ~ X, ...)` estimates E[sqrt(Y)], the expected square root
+#'     \item `nmar(I(Y^2) ~ X, ...)` estimates E[Y^2], the second moment
+#'   }
+#'
+#'   To obtain estimates on the original scale, you must back-transform the point
+#'   estimate. However, note that for nonlinear transformations, the naive
+#'   back-transform is \emph{biased} due to Jensen's inequality. For example, if
+#'   you estimate E[log(Y)] = 2.5 with SE = 0.3, then exp(2.5) does NOT equal
+#'   E[Y] (it underestimates the mean due to convexity). Bias-corrected
+#'   back-transformations for common cases (log-normal, Box-Cox) are beyond the
+#'   scope of this function; consult the literature or compute bootstrap estimates
+#'   on the original scale directly (by specifying `Y ~ X` rather than `log(Y) ~ X`).
 #'
 #'   \strong{Environment preservation}: The formula's original environment is
 #'   preserved throughout the estimation process. Any user-defined functions

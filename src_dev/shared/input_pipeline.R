@@ -7,6 +7,40 @@
 #' additional engines.
 #'
 #' @keywords internal
+
+#' Default engine trait values
+#'
+#' Canonical default values for engine validation traits. Engines can override
+#' these via their engine_traits methods. Defined as a constant to ensure
+#' consistency across the package.
+#'
+#' @keywords internal
+NMAR_DEFAULT_TRAITS <- list(
+  allow_outcome_in_missingness = FALSE,
+  allow_covariate_overlap = FALSE,
+  requires_single_outcome = TRUE,
+  allow_respondents_only = FALSE
+)
+
+#' Extract auxiliary and response expressions from partitioned RHS
+#'
+#' Splits a formula RHS containing `|` into auxiliary (left of |) and response
+#' (right of |) components. If no `|` is present, returns the entire RHS as
+#' auxiliary with NULL response.
+#'
+#' @param rhs_expr Right-hand side language object (may contain `|`)
+#' @return Named list with `aux_expr` and `response_expr` (NULL if no `|`)
+#' @keywords internal
+nmar_partition_rhs <- function(rhs_expr) {
+  aux_expr <- rhs_expr
+  response_expr <- NULL
+  if (is.call(rhs_expr) && identical(rhs_expr[[1L]], as.name("|"))) {
+    aux_expr <- rhs_expr[[2L]]
+    response_expr <- rhs_expr[[3L]]
+  }
+  list(aux_expr = aux_expr, response_expr = response_expr)
+}
+
 parse_nmar_spec <- function(formula, data, env = parent.frame()) {
   validator$assert_formula_two_sided(formula, name = "formula")
   if (!is.environment(env)) {
@@ -22,13 +56,9 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
   outcome_label <- paste(deparse(outcome_expr, width.cutoff = 500L), collapse = " ")
 
 # Support partitioned RHS using `|`: y ~ aux | response
-  rhs <- formula[[3]]
-  aux_expr <- rhs
-  resp_expr <- NULL
-  if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) {
-    aux_expr <- rhs[[2L]]
-    resp_expr <- rhs[[3L]]
-  }
+  rhs_parts <- nmar_partition_rhs(formula[[3L]])
+  aux_expr <- rhs_parts$aux_expr
+  resp_expr <- rhs_parts$response_expr
 
   validator$assert_data_frame_or_survey(data, name = "data")
 
@@ -105,12 +135,7 @@ engine_traits <- function(engine) {
 #' @keywords engine_view
 #' @export
 engine_traits.default <- function(engine) {
-  list(
-    allow_outcome_in_missingness = FALSE,
-    allow_covariate_overlap = FALSE,
-    requires_single_outcome = TRUE,
-    allow_respondents_only = FALSE
-  )
+  NMAR_DEFAULT_TRAITS
 }
 #' @keywords engine_view
 #' @export
@@ -159,8 +184,7 @@ validate_nmar_args <- function(spec, traits = list()) {
   if (!inherits(spec, "nmar_input_spec")) {
     stop("`spec` must be created by `parse_nmar_spec()`.", call. = FALSE)
   }
-  default_traits <- engine_traits(NULL)
-  traits <- utils::modifyList(default_traits, traits)
+  traits <- utils::modifyList(NMAR_DEFAULT_TRAITS, traits)
 
   if (traits$requires_single_outcome && length(spec$outcome) != 1L) {
     stop("The formula must have exactly one outcome variable on the left-hand side.", call. = FALSE)
@@ -368,14 +392,14 @@ nmar_split_partitioned_formula <- function(formula) {
   if (is.null(env)) env <- parent.frame()
   outcome_var <- all.vars(formula[[2L]])
   if (length(outcome_var) != 1L) stop("LHS must be a single outcome variable.", call. = FALSE)
-  rhs <- formula[[3L]]
-  aux_expr <- rhs
-  resp_expr <- NULL
-  if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) {
-    aux_expr <- rhs[[2L]]
-    resp_expr <- rhs[[3L]]
-  }
-  list(outcome_var = outcome_var[[1L]], aux_rhs_lang = aux_expr, response_rhs_lang = resp_expr, env = env)
+
+  rhs_parts <- nmar_partition_rhs(formula[[3L]])
+  list(
+    outcome_var = outcome_var[[1L]],
+    aux_rhs_lang = rhs_parts$aux_expr,
+    response_rhs_lang = rhs_parts$response_expr,
+    env = env
+  )
 }
 
 # Build internal EL formulas (outcome, response, auxiliary) using language objects
