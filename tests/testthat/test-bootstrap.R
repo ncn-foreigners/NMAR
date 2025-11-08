@@ -98,3 +98,35 @@ test_that("bootstrap_variance errors when design call not svydesign", {
     fixed = FALSE
   )
 })
+
+test_that("bootstrap_variance errors for svydesigns that use probs/pps", {
+  skip_if_not_installed("survey")
+  skip_if_not_installed("svrep")
+  df <- data.frame(y = c(1, 2, 3, 4), pi = c(0.2, 0.3, 0.25, 0.25))
+  design <- survey::svydesign(ids = ~1, probs = ~pi, data = df)
+  expect_error(
+    NMAR:::bootstrap_variance(design,
+      estimator_func = bootstrap_dummy_estimator,
+      point_estimate = 1,
+      bootstrap_reps = 3
+    ),
+    "probabilities/PPS arguments",
+    fixed = FALSE
+  )
+})
+
+test_that("nmar_adjust_bootstrap_scale rescales omit-policy replicates", {
+  scalar_scale <- 1 / 50
+  adj_scalar <- NMAR:::nmar_adjust_bootstrap_scale(scalar_scale, total_reps = 50, keep_idx = 1:10)
+  expect_equal(adj_scalar, scalar_scale * 5)
+
+  vector_scale <- rep(0.1, 4)
+  adj_vector <- NMAR:::nmar_adjust_bootstrap_scale(vector_scale, total_reps = 4, keep_idx = c(1, 3))
+  expect_equal(adj_vector, vector_scale[c(1, 3)])
+
+  expect_error(
+    NMAR:::nmar_adjust_bootstrap_scale(rep(0.1, 3), total_reps = 4, keep_idx = 1:2),
+    "Replicate scale length",
+    fixed = FALSE
+  )
+})
