@@ -56,3 +56,75 @@ test_that("el_post_solution returns sane weights and mean in trivial case", {
 })
 
 ## Removed: variance Jacobian selection; runtime is analytic-only
+
+test_that("el_build_start applies user-supplied beta/W/lambda on the correct scale", {
+  set.seed(1618)
+  n <- 25
+  df <- data.frame(y = rnorm(n), x = rnorm(n))
+  Z_un <- model.matrix(~ y + x, data = df)
+  X_un <- model.matrix(~ x - 1, data = df)
+  aux_means <- c(x = mean(df$x))
+  sc <- NMAR:::validate_and_apply_nmar_scaling(
+    standardize = TRUE,
+    has_aux = TRUE,
+    response_model_matrix_unscaled = Z_un,
+    auxiliary_matrix_unscaled = X_un,
+    mu_x_unscaled = aux_means,
+    weights = rep(1, n)
+  )
+  start <- list(
+    beta = c("(Intercept)" = 0.25, y = -0.15, x = 0.35),
+    W = 0.65,
+    lambda = c(x = 0.5)
+  )
+  res <- NMAR:::el_build_start(
+    response_model_matrix_scaled = sc$response_model_matrix_scaled,
+    auxiliary_matrix_scaled = sc$auxiliary_matrix_scaled,
+    nmar_scaling_recipe = sc$nmar_scaling_recipe,
+    start = start,
+    N_pop = 2 * n,
+    respondent_weights = rep(1, n)
+  )
+  expected_beta <- NMAR:::scale_coefficients(
+    start$beta,
+    sc$nmar_scaling_recipe,
+    colnames(sc$response_model_matrix_scaled)
+  )
+  expected_lambda <- NMAR:::scale_aux_multipliers(
+    start$lambda,
+    sc$nmar_scaling_recipe,
+    colnames(sc$auxiliary_matrix_scaled)
+  )
+  expect_equal(res$init_beta, expected_beta, tolerance = 1e-12)
+  expect_equal(res$init_lambda, expected_lambda, tolerance = 1e-12)
+  expect_equal(res$init_z, qlogis(start$W), tolerance = 1e-12)
+})
+
+test_that("el_build_start prefers start$z over start$W when both supplied", {
+  set.seed(2718)
+  n <- 10
+  df <- data.frame(y = rnorm(n), x = rnorm(n))
+  Z_un <- model.matrix(~ y + x, data = df)
+  sc <- NMAR:::validate_and_apply_nmar_scaling(
+    standardize = TRUE,
+    has_aux = FALSE,
+    response_model_matrix_unscaled = Z_un,
+    auxiliary_matrix_unscaled = matrix(nrow = n, ncol = 0),
+    mu_x_unscaled = NULL,
+    weights = rep(1, n)
+  )
+  start <- list(
+    beta = c("(Intercept)" = 0.1, y = 0.2, x = -0.3),
+    W = 0.8,
+    z = 0.25
+  )
+  res <- NMAR:::el_build_start(
+    response_model_matrix_scaled = sc$response_model_matrix_scaled,
+    auxiliary_matrix_scaled = sc$auxiliary_matrix_scaled,
+    nmar_scaling_recipe = sc$nmar_scaling_recipe,
+    start = start,
+    N_pop = 2 * n,
+    respondent_weights = rep(1, n)
+  )
+  expect_equal(res$init_z, 0.25, tolerance = 1e-12)
+})

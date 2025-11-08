@@ -53,3 +53,25 @@ test_that("Trimming caps EL masses and normalization still holds", {
   expect_true(abs(sum(wN) - N_pop) < 1e-8)
   expect_equal(unname(as.numeric(wN)), as.numeric(N_pop) * unname(as.numeric(wp)), tolerance = 1e-12, ignore_attr = TRUE)
 })
+
+test_that("respondents-only data frame honors user-supplied n_total", {
+  set.seed(12309)
+  n <- 60
+  df <- data.frame(Y_miss = rnorm(n), X = rnorm(n))
+# No NAs => respondents-only path; provide n_total explicitly
+  target_total <- 250
+  fit <- nmar(
+    Y_miss ~ 1,
+    data = df,
+    engine = el_engine(n_total = target_total, variance_method = "none", standardize = FALSE)
+  )
+  expect_true(fit$converged)
+  expect_equal(fit$sample$n_total, target_total)
+
+  wp <- weights(fit, scale = "probability")
+  expect_true(abs(sum(wp) - 1) < 1e-12)
+
+  wN <- weights(fit, scale = "population")
+  expect_true(abs(sum(wN) - target_total) < 1e-8)
+  expect_equal(unname(as.numeric(wN)), target_total * unname(as.numeric(wp)), tolerance = 1e-12, ignore_attr = TRUE)
+})
