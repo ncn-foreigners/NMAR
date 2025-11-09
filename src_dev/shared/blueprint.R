@@ -1,0 +1,73 @@
+#' Blueprint and terms builders
+#' @keywords internal
+
+nmar_build_terms_info <- function(formula, data, drop_response = FALSE) {
+  if (is.null(formula)) {
+    return(list(
+      formula = NULL,
+      terms = NULL,
+      column_names = character(),
+      source_variables = character(),
+      xlevels = NULL,
+      contrasts = NULL
+    ))
+  }
+  vars_needed <- unique(setdiff(all.vars(formula), "."))
+  missing_vars <- setdiff(vars_needed, names(data))
+  if (length(missing_vars) > 0) {
+    stop("Variables not found in data: ", paste(missing_vars, collapse = ", "), call. = FALSE)
+  }
+  mf <- stats::model.frame(formula, data = data, na.action = stats::na.pass, drop.unused.levels = FALSE)
+  tr <- attr(mf, "terms")
+  tr_use <- tr
+  if (isTRUE(drop_response) && attr(tr, "response") > 0) {
+    tr_use <- stats::delete.response(tr)
+  }
+  mm <- stats::model.matrix(tr_use, mf)
+# Derive RHS source variables from the response-less terms object.
+# Using stats::formula(tr_use) ensures we only capture RHS symbols and
+# not the LHS outcome. Dots are expanded by model.frame/model.matrix.
+  rhs_vars <- unique(setdiff(all.vars(stats::formula(tr_use)), "."))
+  list(
+    formula = formula,
+    terms = tr_use,
+    column_names = colnames(mm),
+    source_variables = rhs_vars,
+    xlevels = attr(mf, "xlevels"),
+    contrasts = attr(mm, "contrasts")
+  )
+}
+
+#' @keywords internal
+nmar_model_matrix_from_terms <- function(terms_info, data) {
+  if (is.null(terms_info$terms)) {
+    return(NULL)
+  }
+  mf <- stats::model.frame(
+    terms_info$terms,
+    data = data,
+    na.action = stats::na.pass,
+    drop.unused.levels = FALSE,
+    xlev = terms_info$xlevels
+  )
+  stats::model.matrix(terms_info$terms, mf, contrasts.arg = terms_info$contrasts)
+}
+
+#' @keywords internal
+nmar_build_formula_blueprint <- function(outcome_vars,
+                                         aux_expr,
+                                         response_expr,
+                                         data,
+                                         env) {
+  aux_formula <- nmar_make_aux_formula(outcome_vars, aux_expr, env)
+  aux_terms <- nmar_build_terms_info(aux_formula, data, drop_response = TRUE)
+
+  response_formula <- nmar_make_response_formula(outcome_vars, response_expr, env)
+  response_info <- nmar_build_terms_info(response_formula, data, drop_response = TRUE)
+
+  list(
+    aux = aux_terms,
+    response = response_info,
+    outcome = outcome_vars
+  )
+}

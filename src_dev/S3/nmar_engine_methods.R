@@ -191,3 +191,39 @@ engine_config.nmar_engine <- function(x) {
   attr(out, "class") <- NULL
   out
 }
+
+#' Engine trait methods for known engines
+#'
+#' These methods declare validation traits for specific engines.
+#' @keywords engine_view
+#' @rdname engine_traits
+#' @inheritParams engine_traits
+#' @export
+engine_traits.nmar_engine_el <- function(engine) {
+  allow_resp_only <- !is.null(engine$n_total)
+  utils::modifyList(
+    engine_traits.default(engine),
+    list(
+      allow_outcome_in_missingness = TRUE,
+      allow_covariate_overlap = TRUE,
+      allow_respondents_only = allow_resp_only
+    )
+  )
+}
+
+#' @rdname engine_traits
+#' @inheritParams engine_traits
+#' @export
+engine_traits.nmar_engine_exptilt <- function(engine) {
+  engine_traits.default(engine)
+}
+
+#' @rdname engine_traits
+#' @inheritParams engine_traits
+#' @export
+engine_traits.nmar_engine_exptilt_nonparam <- function(engine) {
+  utils::modifyList(
+    engine_traits.default(engine),
+    list(requires_single_outcome = FALSE)
+  )
+}

@@ -15,7 +15,7 @@
 #'   - The part right of `|` lists response-model predictors (used only in the
 #'     missingness model).
 #'
-#'   Both RHS partitions support standard R formula features — transforms
+#'   Both RHS partitions support standard R formula features: transforms
 #'   (e.g., `I(Z^2)`), interactions (e.g., `X1:X2`, `X1*X2`), and parentheses.
 #'   The original formula environment is preserved and evaluated via
 #'   `model.matrix()`, so transforms behave exactly as in base modeling.
@@ -68,8 +68,8 @@
 #'
 #'   \strong{Factor variables}: Categorical variables (factors or character
 #'   vectors) are automatically converted to dummy variables via `model.matrix()`.
-#'   The first level (alphabetically) is used as the reference category, and
-#'   coefficients represent differences from the reference. For example, if
+#'   The reference category is the first level of the factor, and coefficients
+#'   represent differences from that reference. For example, if
 #'   `region` is a factor with levels `c("North", "South", "West")`, the formula
 #'   `Y ~ region` creates dummy variables `regionSouth` and `regionWest`, with
 #'   coefficients representing effects relative to North (the reference).
@@ -103,6 +103,38 @@
 #'   \strong{Environment preservation}: The formula's original environment is
 #'   preserved throughout the estimation process. Any user-defined functions
 #'   used in transforms must be visible in that environment.
+#'
+#' @seealso [el_engine()], [exptilt_engine()], [engine_traits()],
+#'   [print.nmar_result()], [summary.nmar_result()], [coef.nmar_result()],
+#'   [weights.nmar_result()], [confint.nmar_result]
+#'
+#' @examples
+#' \dontrun{
+#' # Minimal IID example
+#' set.seed(1)
+#' n <- 100
+#' X <- rnorm(n)
+#' Y_true <- 2 + 0.5 * X + rnorm(n)
+#' R <- rbinom(n, 1, plogis(-0.7 + 0.4 * scale(Y_true)[, 1]))
+#' Y <- ifelse(R == 1, Y_true, NA_real_)
+#'
+#' df <- data.frame(Y = Y, X = X)
+#' fit <- nmar(Y ~ X, data = df, engine = el_engine(variance_method = "none"))
+#' print(fit)
+#'
+#' # Partitioned RHS: auxiliaries on the left of |, response-only predictors on the right
+#' Z <- rnorm(n)
+#' df2 <- data.frame(Y = Y, X = X, Z = Z)
+#' fit2 <- nmar(Y ~ X | Z, data = df2, engine = el_engine(variance_method = "none"))
+#' summary(fit2)
+#'
+#' # Survey design example (requires the survey package)
+#' if (requireNamespace("survey", quietly = TRUE)) {
+#'   des <- survey::svydesign(ids = ~1, weights = ~1, data = df)
+#'   fit3 <- nmar(Y ~ X, data = des, engine = el_engine(variance_method = "none"))
+#'   coef(fit3)
+#' }
+#' }
 #' @keywords nmar
 #' @export
 nmar <- function(formula, data, engine, trace_level = 0) {
