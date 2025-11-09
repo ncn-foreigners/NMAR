@@ -129,10 +129,10 @@ exptilt_engine <- function(
   family <- match.arg(family)
   y_dens <- match.arg(y_dens)
 
-  validator$assert_logical(standardize, name = "standardize")
+  validator$assert_scalar_logical(standardize, name = "standardize")
   validator$assert_choice(on_failure, choices = c("return", "error"), name = "on_failure")
   validator$assert_positive_integer(bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)
-  validator$assert_logical(supress_warnings, name = "supress_warnings")
+  validator$assert_scalar_logical(supress_warnings, name = "supress_warnings")
   validator$assert_choice(family, choices = c("logit", "probit"), name = "family")
   validator$assert_choice(y_dens, choices = c("auto", "normal", "lognormal", "exponential"), name = "y_dens")
   validator$assert_choice(variance_method, choices = c("delta", "bootstrap"), name = "variance_method")

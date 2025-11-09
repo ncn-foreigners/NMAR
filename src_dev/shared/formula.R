@@ -32,12 +32,12 @@ nmar_is_multi_outcome_expr <- function(lhs_expr) {
   FALSE
 }
 
-#' Normalize auxiliary RHS expression according to engine traits
+#' Normalize auxiliary RHS expression
 #'
-#' Removes the intercept (when requested) using the original data so that dot
-#' expansion matches `model.matrix()` behavior. Outcome variables are temporarily
-#' placed on the LHS to prevent them from reappearing on the auxiliary side when
-#' users rely on `.`.
+#' Builds a RHS expression for auxiliaries that (a) drops the intercept when
+#' requested and (b) evaluates dot expansion the same way as `model.matrix()`.
+#' To keep outcomes from leaking into auxiliaries via `.` expansion, outcome
+#' symbols are temporarily placed on the LHS while terms are computed.
 #'
 #' @keywords internal
 nmar_normalize_auxiliary_expr <- function(aux_expr,
@@ -85,9 +85,9 @@ nmar_normalize_auxiliary_expr <- function(aux_expr,
 #' Rebuild a partitioned formula y ~ aux | response
 #'
 #' Constructs a partitioned formula from a base formula whose RHS is auxiliaries
-#' only. Supplying `response_rhs_lang` inserts the `| response` partition. The
-#' formula environment is preserved. No string manipulation is used; everything
-#' is built with language objects. This keeps transforms/factors intact.
+#' only. If `response_rhs_lang` is supplied, the `| response` partition is added.
+#' The formula environment is preserved. No string manipulation is used; language
+#' objects are composed to keep transforms and factor handling intact.
 #' @keywords internal
 nmar_rebuild_partitioned_formula <- function(base_formula,
                                             response_rhs_lang = NULL,

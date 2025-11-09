@@ -20,9 +20,8 @@ validate_data <- function(data,
                           outcome_variables,
                           covariates_for_outcome,
                           covariates_for_missingness = character(),
-                          allow_outcome_in_missingness = FALSE,
-                          allow_covariate_overlap = FALSE,
-                          allow_respondents_only = FALSE) {
+                          allow_respondents_only = FALSE,
+                          response_exclude = character()) {
 # Validate data object type
   if (!inherits(data, c("data.frame", "survey.design"))) {
     stop("'data' must be a data.frame or survey.design object. Received: ", class(data)[1], call. = FALSE)
@@ -58,18 +57,6 @@ validate_data <- function(data,
     stop("Duplicate variables found in covariates_for_missingness: ", paste(dup, collapse = ", "), call. = FALSE)
   }
 
-  if (!allow_outcome_in_missingness && any(outcome_variables %in% covariates_for_missingness)) {
-    stop("Outcome variable cannot be reused as a response covariate unless explicitly allowed.", call. = FALSE)
-  }
-
-  overlap <- intersect(covariates_for_outcome, covariates_for_missingness)
-  if (length(overlap) > 0 && !allow_covariate_overlap) {
-    stop(
-      "Covariate sets must be mutually exclusive. Overlapping variables: ",
-      paste(overlap, collapse = ", ")
-    )
-  }
-
 # Combine all required variables
   all_vars <- unique(c(outcome_variables, covariates_for_outcome, covariates_for_missingness))
 
@@ -98,10 +85,10 @@ validate_data <- function(data,
 # Validate outcome variables
   for (outcome_var in outcome_variables) {
     if (!is.numeric(data[[outcome_var]])) {
-      bad_val <- data[[outcome_var]][which(!is.numeric(data[[outcome_var]]))[1]]
       stop(
         "Outcome variable '", outcome_var, "' must be numeric.\n",
-        "First invalid value: '", bad_val, "' at row ", which(!is.numeric(data[[outcome_var]]))[1]
+        "Detected type: ", paste(class(data[[outcome_var]]), collapse = "/"),
+        call. = FALSE
       )
     }
     if (all(is.na(data[[outcome_var]]))) {
@@ -121,14 +108,9 @@ validate_data <- function(data,
   }
 
 # Validate covariates
-  covariates_for_missingness_checked <- if (allow_outcome_in_missingness) {
-    setdiff(covariates_for_missingness, outcome_variables)
-  } else {
-    covariates_for_missingness
-  }
-
   nmar_validate_covariates(data, covariates_for_outcome, block_label = "auxiliary")
-  nmar_validate_covariates(data, covariates_for_missingness_checked, block_label = "response")
+  cov_resp_check <- setdiff(covariates_for_missingness, unique(response_exclude))
+  nmar_validate_covariates(data, cov_resp_check, block_label = "response")
 
   invisible(NULL)
 }

@@ -1,9 +1,9 @@
-#' Validation utilities for NMAR input
+#' Validation utilities (shared input pipeline)
 #'
-#' These functions enforce basic structural contracts between outcomes,
-#' auxiliary predictors, and explicit response-only predictors. Importantly,
-#' the outcome is always included implicitly in the response model for NMAR;
-#' validation only concerns explicit RHS variables supplied by the user.
+#' Enforces structural contracts between outcomes, auxiliary predictors, and
+#' explicit response-only predictors. The outcome is always included implicitly
+#' in the response model; validation only concerns explicit RHS variables
+#' supplied by the user.
 #'
 #' @keywords internal
 
@@ -22,9 +22,7 @@ validate_nmar_args <- function(spec, traits = list()) {
   if (traits$requires_single_outcome && (is.null(primary_outcome) || is.na(primary_outcome))) {
     stop("The formula must have exactly one outcome variable on the left-hand side.", call. = FALSE)
   }
-  if (traits$requires_single_outcome && outcome_is_multi) {
-    stop("The formula must have exactly one outcome variable on the left-hand side.", call. = FALSE)
-  }
+# Note: Multi-outcome validation moved to parse_nmar_spec() for fail-fast behavior
 
   aux_vars_data <- unique(spec$auxiliary_vars %||% character())
   aux_vars_env <- unique(spec$auxiliary_vars_env %||% character())
@@ -56,9 +54,8 @@ validate_nmar_args <- function(spec, traits = list()) {
       outcome_variables = outcome_vars_data,
       covariates_for_outcome = aux_vars_data,
       covariates_for_missingness = response_vars_data,
-      allow_outcome_in_missingness = traits$allow_outcome_in_missingness,
-      allow_covariate_overlap = traits$allow_covariate_overlap,
-      allow_respondents_only = allow_respondents_only
+      allow_respondents_only = allow_respondents_only,
+      response_exclude = if (isTRUE(traits$allow_outcome_in_missingness)) outcome_vars_data else character()
     )
   } else {
     validate_multi_outcome_data(
@@ -157,10 +154,10 @@ validate_multi_outcome_data <- function(data, outcome_vars, allow_respondents_on
   for (outcome_var in outcome_vars) {
     col <- data[[outcome_var]]
     if (!is.numeric(col)) {
-      bad_val <- col[which(!is.numeric(col))[1]]
       stop(
         "Outcome variable '", outcome_var, "' must be numeric.\n",
-        "First invalid value: '", bad_val, "' at row ", which(!is.numeric(col))[1]
+        "Detected type: ", paste(class(col), collapse = "/"),
+        call. = FALSE
       )
     }
     if (all(is.na(col))) {

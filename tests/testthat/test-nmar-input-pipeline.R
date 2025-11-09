@@ -44,6 +44,51 @@ test_that("validate_nmar_args can be relaxed for EL", {
   expect_equal(spec$response_predictors_raw, "Y")
 })
 
+test_that("EL validation allows NA outcome on response RHS but forbids NA in other response predictors", {
+  set.seed(101)
+  df <- data.frame(Y = c(1, NA, 3, 4), X = rnorm(4), W = rnorm(4))
+  traits_el <- NMAR:::engine_traits(el_engine(auxiliary_means = c(X = 0), variance_method = "none"))
+
+# Allowed: outcome Y on response side even with NA in Y
+  spec_ok <- NMAR:::parse_nmar_spec(Y ~ X | Y, df, traits = traits_el)
+  expect_silent(NMAR:::validate_nmar_args(spec_ok, traits_el))
+
+# Not allowed: NA in a non-outcome response predictor
+  df_bad <- df
+  df_bad$W[2] <- NA_real_
+  spec_bad <- NMAR:::parse_nmar_spec(Y ~ X | Y + W, df_bad, traits = traits_el)
+  expect_error(
+    NMAR:::validate_nmar_args(spec_bad, traits_el),
+    "contains NA values",
+    fixed = FALSE
+  )
+})
+
+test_that("formula_engine is aux-only, preserves env, and has no partition bar", {
+  local_fn <- function(x) x^2
+  env <- environment()
+  df <- data.frame(Y = c(1, NA, 2), X = rnorm(3), Z = rnorm(3))
+  fml <- Y ~ local_fn(X) | Z + I(Z^2)
+  environment(fml) <- env
+  spec <- NMAR:::parse_nmar_spec(fml, df)
+  eng_fml <- spec$formula_engine
+  expect_s3_class(eng_fml, "formula")
+  expect_identical(attr(eng_fml, ".Environment"), env)
+# RHS must not be a `|` call; should contain only auxiliaries
+  rhs <- eng_fml[[3]]
+  expect_false(is.call(rhs) && identical(rhs[[1L]], as.name("|")))
+  expect_true(grepl("local_fn", paste(deparse(eng_fml), collapse = " ")))
+  expect_false(grepl("|", paste(deparse(eng_fml), collapse = " "), fixed = TRUE)) # no '|'
+})
+
+test_that("formula_engine uses 1 on RHS when no auxiliaries", {
+  df <- data.frame(Y = c(1, NA, 2), Z = rnorm(3))
+  spec <- NMAR:::parse_nmar_spec(Y ~ 1 | Z, df)
+  eng_fml <- spec$formula_engine
+# RHS is exactly 1 when no auxiliaries
+  expect_true(identical(eng_fml[[3]], 1L) || identical(eng_fml[[3]], 1))
+})
+
 test_that("default traits block outcome on response model", {
   df <- data.frame(Y = c(1, NA, 2), X = rnorm(3))
   spec <- NMAR:::parse_nmar_spec(Y ~ 1 | Y, df)
@@ -75,10 +120,10 @@ test_that("single-outcome traits reject multi-outcome formulas", {
     Y2 = c(3, 4, NA),
     X = rnorm(3)
   )
-  spec <- NMAR:::parse_nmar_spec(cbind(Y1, Y2) ~ X, df, traits = NMAR:::NMAR_DEFAULT_TRAITS)
-  traits <- NMAR:::NMAR_DEFAULT_TRAITS
+# Multi-outcome check now happens in nmar() for fail-fast behavior
+  eng <- el_engine(variance_method = "none") # EL has requires_single_outcome = TRUE
   expect_error(
-    NMAR:::validate_nmar_args(spec, traits),
+    nmar(cbind(Y1, Y2) ~ X, df, engine = eng),
     "exactly one outcome",
     fixed = FALSE
   )
@@ -499,7 +544,7 @@ test_that("blueprint caches survive user-side data mutation", {
   task_broken <- NMAR:::new_nmar_task(spec, traits)
   expect_error(
     NMAR:::prepare_nmar_design(task_broken),
-    "not found",
+    "missing variables expected by formula blueprint",
     fixed = FALSE
   )
 })

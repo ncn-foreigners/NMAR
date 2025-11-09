@@ -106,16 +106,18 @@ validator$assert_positive_number <- function(x, name, allow_infinite = FALSE) {
 #' @rdname nmar_validator_helpers
 #' @noRd
 validator$assert_positive_integer <- function(x, name, is.finite = TRUE) {
-  if (!is.numeric(x) || x != as.integer(x)) {
-    stop(paste0("Argument '", name, "' must be an integer. Value is ", x, "."))
+# Enforce scalar numeric integer, positive, optionally finite
+  if (!is.numeric(x) || length(x) != 1L || is.na(x)) {
+    stop(paste0("Argument '", name, "' must be a single numeric value."), call. = FALSE)
   }
-
-  if (x <= 0) {
-    stop(paste0("Argument '", name, "' must be a positive integer. Value is ", x, "."))
-  }
-
   if (is.finite && !base::is.finite(x)) {
-    stop(paste0("Argument '", name, "' must be a finite integer. Value is ", x, "."))
+    stop(paste0("Argument '", name, "' must be a finite integer. Value is ", x, "."), call. = FALSE)
+  }
+  if (x != as.integer(x)) {
+    stop(paste0("Argument '", name, "' must be an integer. Value is ", x, "."), call. = FALSE)
+  }
+  if (x <= 0) {
+    stop(paste0("Argument '", name, "' must be a positive integer. Value is ", x, "."), call. = FALSE)
   }
 }
 

@@ -240,7 +240,7 @@ new_nmar_engine_el <- function(engine) {
 #' @keywords internal
 validate_nmar_engine_el <- function(engine) {
   validator$assert_list(engine, name = "engine")
-  validator$assert_logical(engine$standardize, name = "standardize")
+  validator$assert_scalar_logical(engine$standardize, name = "standardize")
 
   validator$assert_positive_number(engine$trim_cap, name = "trim_cap", allow_infinite = TRUE)
   validator$assert_positive_integer(engine$bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)

@@ -64,7 +64,7 @@
 #'   constraints (e.g., [el_engine()]), when supplying `auxiliary_means`, the
 #'   names must match the column names of the auxiliary model matrix generated
 #'   from the left-of-`|` RHS after removing the intercept. If transforms or
-#'   interactions are used, names should follow `model.matrix()` conventions —
+#'   interactions are used, names should follow `model.matrix()` conventions;
 #'   for example, `I(X^2)` for squared terms, and `X1:X2` for interaction terms.
 #'   Mismatched or missing names are dropped, and if no names match, auxiliary
 #'   constraints are disabled.
@@ -183,6 +183,15 @@ nmar <- function(formula, data, engine, trace_level = 0) {
 
   validator$assert_choice(trace_level, choices = 0:3, name = "trace_level")
   traits <- engine_traits(engine)
+
+# Fail fast if engine doesn't support multi-outcome (before expensive parsing/blueprint)
+  if (isTRUE(traits$requires_single_outcome)) {
+    outcome_expr <- formula[[2L]]
+    outcome_is_multi <- nmar_is_multi_outcome_expr(outcome_expr)
+    if (outcome_is_multi) {
+      stop("The formula must have exactly one outcome variable on the left-hand side.", call. = FALSE)
+    }
+  }
 
   spec <- parse_nmar_spec(
     formula = formula,

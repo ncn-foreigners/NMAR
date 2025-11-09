@@ -63,11 +63,11 @@ User workflow:
 Internally, `parse_nmar_spec()` is trait-aware: it drops auxiliary intercepts
 when `drop_auxiliary_intercept = TRUE`, records whether single- versus
 multi-outcome formulas are allowed, and rejects respondents-only inputs unless
-the engine opts in. Single-outcome engines now fail fast inside
-`validate_nmar_args()` using metadata recorded by the parser, so you do not need
-to duplicate that guard. Always construct specs via `nmar()` or pass
-`traits = engine_traits(<engine>)` when you call the parser directly so you
-observe the same contracts.
+the engine opts in. For engines that require a single outcome, `nmar()` performs
+an early (pre-parse) fail-fast check on the LHS to avoid unnecessary work;
+`validate_nmar_args()` then enforces consistency. Always construct specs via
+`nmar()` or pass `traits = engine_traits(<engine>)` when you call the parser
+directly so you observe the same contracts.
 
 ***
 
@@ -91,7 +91,7 @@ method_engine <- function(
     ...) {
   variance_method <- match.arg(variance_method)
 
-  validator$assert_logical(standardize, name = "standardize")
+  validator$assert_scalar_logical(standardize, name = "standardize")
   validator$assert_choice(variance_method, choices = c("delta", "bootstrap", "none"), name = "variance_method")
   validator$assert_named_numeric(auxiliary_means, name = "auxiliary_means", allow_null = TRUE)
   validator$assert_list(control, name = "control")

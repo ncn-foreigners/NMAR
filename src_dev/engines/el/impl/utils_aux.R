@@ -186,6 +186,23 @@ el_build_precomputed_design <- function(design_matrices,
     }
   }
 
+# Invariants for response design (defensive, method-agnostic assumption):
+# - Intercept column exists
+# - Outcome column exists and equals the provided outcome values (for respondent rows)
+  if (n_resp > 0) {
+    if (!"(Intercept)" %in% colnames(response_matrix)) {
+      stop("Response design matrix must include an '(Intercept)' column.", call. = FALSE)
+    }
+    if (!outcome_var %in% colnames(response_matrix)) {
+      stop("Response design matrix must include the outcome column '", outcome_var, "'.", call. = FALSE)
+    }
+# Check equality of outcome values
+    yy <- estimation_data[respondent_indices, outcome_var, drop = TRUE]
+    if (length(yy) != nrow(response_matrix) || any(!isTRUE(all.equal(as.numeric(response_matrix[, outcome_var]), as.numeric(yy))))) {
+      stop("Response design matrix outcome column is inconsistent with data.", call. = FALSE)
+    }
+  }
+
   list(
     response_matrix = response_matrix,
     auxiliary_resp = aux_resp,

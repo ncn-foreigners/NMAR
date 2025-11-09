@@ -1,11 +1,11 @@
 #' Blueprint and terms builders
 #'
-#' The blueprint pattern captures formula structure at parse time, including
-#' expansion of dot (.) operators, factor level mappings, and the provenance of
-#' each RHS symbol. This frozen snapshot ensures reproducible `model.matrix()`
-#' construction even if the data object changes later. Variable expansion happens
-#' once during blueprint creation and is reused for all subsequent design-matrix
-#' calls via cached terms, `xlevels`, contrasts, and data-vs-environment metadata.
+#' Captures formula structure at parse time, including dot expansion, factor
+#' level mappings, and the provenance of each RHS symbol. The frozen snapshot
+#' ensures reproducible `model.matrix()` construction even if the data object
+#' changes later. Variable expansion happens once and is reused for all
+#' subsequent design-matrix calls via cached terms, `xlevels`, contrasts, and
+#' data vs environment metadata.
 #'
 #' @keywords internal
 

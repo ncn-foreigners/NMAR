@@ -98,3 +98,28 @@ test_that("prepare_nmar_design supports multi-outcome expressions", {
   expect_match(deparse(design$engine_formula[[2]]), "cbind", fixed = TRUE)
   expect_equal(design$user_formula, formula)
 })
+
+test_that("prepare_nmar_design engine formula RHS mirrors aux-only base", {
+  df <- data.frame(Y = c(1, NA, 3, 4), X = rnorm(4), Z = rnorm(4))
+  fml <- Y ~ X | Z
+  spec <- NMAR:::parse_nmar_spec(fml, df)
+  traits <- NMAR:::engine_traits(el_engine())
+  NMAR:::validate_nmar_args(spec, traits)
+  task <- NMAR:::new_nmar_task(spec, traits)
+  design <- NMAR:::prepare_nmar_design(task)
+# engine_formula should carry the aux-only RHS from formula_engine
+  rhs_engine <- design$engine_formula[[3]]
+  rhs_base <- task$formula_engine[[3]]
+  expect_equal(paste(deparse(rhs_engine), collapse = " "), paste(deparse(rhs_base), collapse = " "))
+})
+
+test_that("prepare_nmar_design engine formula RHS is 1 when no auxiliaries", {
+  df <- data.frame(Y = c(1, NA, 3), Z = rnorm(3))
+  fml <- Y ~ 1 | Z
+  spec <- NMAR:::parse_nmar_spec(fml, df)
+  traits <- NMAR:::engine_traits(el_engine())
+  NMAR:::validate_nmar_args(spec, traits)
+  task <- NMAR:::new_nmar_task(spec, traits)
+  design <- NMAR:::prepare_nmar_design(task)
+  expect_true(identical(design$engine_formula[[3]], 1L) || identical(design$engine_formula[[3]], 1))
+})

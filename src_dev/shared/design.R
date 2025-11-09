@@ -1,23 +1,22 @@
 #' Input parsing and design preparation
 #'
-#' `parse_nmar_spec()` turns a user formula and data object into a normalized
+#' `parse_nmar_spec()` turns a user formula and data object into an
 #' `nmar_input_spec`. RHS partitions are separated, the original environments are
-#' preserved, and a blueprint of `terms` objects is cached so that
-#' `model.matrix()` can be re-run later without re-parsing the formula. Outcome
-#' symbols are tagged by provenance (data column vs environment helper), and
-#' single-outcome workflows pick the first outcome column that actually contains
-#' missingness so that helper-first expressions still resolve to the intended
-#' estimand.
+#' preserved, and a blueprint of `terms` is cached so that `model.matrix()` can
+#' be re-run later without re-parsing the formula. Outcome symbols are tagged by
+#' provenance (data column vs environment helper). In single-outcome workflows,
+#' the primary outcome is chosen as the first column with missingness, falling
+#' back to the first outcome symbol when none have missingness.
 #'
-#' `prepare_nmar_design()` uses the spec plus engine traits to produce a
-#' method-agnostic `design_info` bundle containing
-#' * Derived outcome columns (LHS transforms are evaluated once and stored)
-#'   with deterministic names so downstream formulas can refer to them safely
-#' * Consistent weights for data frames or survey designs
-#' * Design matrices for auxiliaries/response predictors with intercept handling
-#'   controlled by engine traits
+#' `prepare_nmar_design()` converts the spec plus engine traits into a
+#' method-agnostic `design_info` bundle:
+#' * Derived outcome columns (LHS transforms evaluated once and stored) with
+#'   deterministic names;
+#' * Consistent weights for data frames or survey designs;
+#' * Design matrices for auxiliaries and response-only predictors (intercept
+#'   handling controlled by engine traits);
 #' * User-facing and engine-ready formulas so diagnostics can report the input
-#'   verbatim while engines consume the normalized version
+#'   verbatim while engines consume the normalized version.
 #'
 #' Non-finite values produced by LHS transformations are allowed only on rows
 #' where the input variables are missing (nonrespondents); for observed rows we
@@ -72,9 +71,11 @@ parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_D
   } else {
     logical(0)
   }
-# Prefer the first outcome column that exhibits missingness so helper-first
-# expressions (e.g., I(helper - Y)) still treat Y as the estimand. When all
-# outcome columns are fully observed we fall back to the first data symbol.
+# Outcome selection (engines rely on this indirectly): when multiple symbols
+# appear on the LHS (e.g., helper(Y) + Y ~ X or Y1 + Y2 ~ X), select the first
+# outcome column with missingness; if none have missingness, select the first
+# outcome symbol. This choice flows through blueprint and design to engines.
+# See tests/testthat/test-outcome-prioritization.R.
   outcome_primary <- if (any(outcome_na_flags, na.rm = TRUE)) {
     outcome_vars_data[which(outcome_na_flags)[1L]]
   } else {
@@ -94,10 +95,12 @@ parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_D
     exclude = outcome_vars_all
   )
 
-  normalized_formula <- formula
-  if (!is.null(resp_expr)) {
-    normalized_formula[[3L]] <- aux_expr_user
-  }
+# Build a dedicated engine-base formula capturing auxiliaries only.
+# Do not mutate the user-facing formula; store separately.
+  engine_base_formula <- formula
+  engine_base_formula[[3L]] <- if (is.null(aux_expr_user)) 1L else aux_expr_user
+# Preserve original environment on the engine formula (important for helpers)
+  attr(engine_base_formula, ".Environment") <- environment(formula)
 
   aux_vars_raw <- unique(setdiff(all.vars(aux_expr_user), "."))
   response_vars_raw <- if (is.null(resp_expr)) {
@@ -129,8 +132,9 @@ parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_D
 
   structure(
     list(
-      formula = normalized_formula,
+      formula = formula,
       formula_original = formula,
+      formula_engine = engine_base_formula,
       outcome = outcome_vars,
       outcome_primary = outcome_primary,
       outcome_helpers = outcome_helpers,
@@ -148,7 +152,6 @@ parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_D
       aux_rhs_lang = aux_expr,
       aux_rhs_lang_user = aux_expr_user,
       response_rhs_lang = resp_expr,
-      response_rhs_lang_user = resp_expr,
       data = data_df,
       original_data = data,
       is_survey = is_survey,
@@ -169,6 +172,7 @@ new_nmar_task <- function(spec, traits, trace_level = 1) {
     list(
       formula = spec$formula,
       formula_original = spec$formula_original,
+      formula_engine = spec$formula_engine,
       outcome = spec$outcome,
       outcome_primary = spec$outcome_primary,
       outcome_helpers = spec$outcome_helpers,
@@ -186,7 +190,6 @@ new_nmar_task <- function(spec, traits, trace_level = 1) {
       aux_rhs_lang = spec$aux_rhs_lang,
       aux_rhs_lang_user = spec$aux_rhs_lang_user,
       response_rhs_lang = spec$response_rhs_lang,
-      response_rhs_lang_user = spec$response_rhs_lang_user,
       data = spec$data,
       original_data = spec$original_data,
       is_survey = spec$is_survey,
@@ -214,6 +217,25 @@ prepare_nmar_design <- function(task,
   data_df <- data
   if (!is.data.frame(data_df)) {
     stop("`data` must be a data.frame when preparing the NMAR design.", call. = FALSE)
+  }
+
+# Defensive check: ensure data matches blueprint expectations
+# Blueprint was created with specific variables; if data changed, model.matrix() will fail cryptically
+  expected_vars <- unique(c(
+    task$blueprint$aux$source_variables_data %||% character(),
+    task$blueprint$response$source_variables_data %||% character()
+  ))
+  if (length(expected_vars)) {
+    missing <- setdiff(expected_vars, names(data_df))
+    if (length(missing)) {
+      stop(
+        "Data is missing variables expected by formula blueprint: ",
+        paste(missing, collapse = ", "),
+        "\nBlueprint was created with different data. This usually means the data object ",
+        "was modified after parse_nmar_spec() was called.",
+        call. = FALSE
+      )
+    }
   }
 
   outcome_info <- nmar_prepare_outcome_column(
@@ -254,11 +276,11 @@ prepare_nmar_design <- function(task,
     stop("`design_weights` must have the same length as the supplied data.", call. = FALSE)
   }
 
-  engine_formula <- nmar_replace_formula_lhs(task$formula, outcome_columns)
+  engine_formula <- nmar_replace_formula_lhs(task$formula_engine %||% task$formula, outcome_columns)
   user_base_formula <- task$formula_original %||% task$formula
   user_formula <- nmar_rebuild_partitioned_formula(
     base_formula = user_base_formula,
-    response_rhs_lang = task$response_rhs_lang_user %||% task$response_rhs_lang,
+    response_rhs_lang = task$response_rhs_lang,
     aux_rhs_lang = task$aux_rhs_lang_user %||% task$aux_rhs_lang,
     env = task$environment
   )
