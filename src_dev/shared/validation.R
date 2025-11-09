@@ -21,9 +21,15 @@ validate_nmar_args <- function(spec, traits = list()) {
     stop("The formula must have exactly one outcome variable on the left-hand side.", call. = FALSE)
   }
 
-  aux_vars_check <- unique(c(spec$auxiliary_vars, spec$auxiliary_vars_raw))
-# Enforce engine policy using only the explicit response RHS variables.
-  response_vars_check <- unique(spec$response_predictors_raw)
+  aux_vars_canonical <- unique(spec$auxiliary_vars %||% character())
+  aux_vars_raw <- unique(spec$auxiliary_vars_raw %||% character())
+  response_vars_canonical <- unique(spec$response_predictors %||% character())
+  response_vars_raw <- unique(spec$response_predictors_raw %||% character())
+
+  aux_vars_check <- if (length(aux_vars_canonical)) aux_vars_canonical else aux_vars_raw
+# Enforce engine policy using the design-expanded response predictors; fall back to
+# raw symbols only if blueprint information is unavailable.
+  response_vars_check <- if (length(response_vars_canonical)) response_vars_canonical else response_vars_raw
 
   outcomes_for_relationships <- if (length(spec$outcome)) spec$outcome else primary_outcome
   validate_predictor_relationships(

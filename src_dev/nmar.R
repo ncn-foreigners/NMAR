@@ -39,7 +39,9 @@
 #'   overlap and the outcome on the RHS; the exponential-tilting engine does not.
 #' @param data A data frame or `survey.design` containing the variables the
 #'   formula references. For survey designs, the formula is evaluated against
-#'   `design$variables`.
+#'   `design$variables`, and derived outcome columns created during preprocessing
+#'   are copied back so that functions such as `survey::weights()` continue to
+#'   see the full variable set.
 #' @param engine An engine configuration object created by a constructor such as
 #'   [el_engine()] or [exptilt_engine()]. This object defines the specific NMAR
 #'   estimation method and its parameters. It must inherit from class
@@ -138,7 +140,10 @@
 #'   engines whose `engine_traits()` report `allow_respondents_only = TRUE`
 #'   (e.g., empirical likelihood with known `n_total` and `auxiliary_means`)
 #'   permit fully observed outcomes, and they must be given the extra metadata
-#'   those models require.
+#'   those models require. All structural checks (overlapping predictors, outcome
+#'   on the response RHS, respondents-only data) are enforced consistently via
+#'   [`engine_traits()`], so `nmar()` always reflects the capabilities declared
+#'   by the selected engine.
 #'
 #' @seealso [el_engine()], [exptilt_engine()], [engine_traits()],
 #'   [print.nmar_result()], [summary.nmar_result()], [coef.nmar_result()],

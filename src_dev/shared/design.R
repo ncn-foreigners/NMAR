@@ -50,6 +50,15 @@ parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_D
   if (!is.data.frame(data_df)) {
     stop("Unable to access variables from the supplied data object.", call. = FALSE)
   }
+  missing_outcomes <- setdiff(outcome_vars_all, names(data_df))
+  if (length(missing_outcomes) > 0) {
+    stop(
+      "Outcome variable", if (length(missing_outcomes) > 1) "s" else "",
+      " not found in data: ",
+      paste(missing_outcomes, collapse = ", "),
+      call. = FALSE
+    )
+  }
 
 # Normalize auxiliary RHS once traits are known: drop explicit intercepts if
 # requested and make sure outcome variables do not leak onto the auxiliary
@@ -143,8 +152,8 @@ new_nmar_task <- function(spec, traits, trace_level = 1) {
       original_data = spec$original_data,
       is_survey = spec$is_survey,
       environment = spec$environment,
-      traits = traits,
       blueprint = spec$blueprint,
+      requires_single_outcome = isTRUE(traits$requires_single_outcome),
       trace_level = trace_level
     ),
     class = "nmar_task"
@@ -156,9 +165,9 @@ new_nmar_task <- function(spec, traits, trace_level = 1) {
 prepare_nmar_design <- function(task,
                                 standardize = TRUE,
                                 auxiliary_means = NULL,
-                                include_response = TRUE,
-                                include_auxiliary = TRUE,
-                                data = task$data,
+    include_response = TRUE,
+    include_auxiliary = TRUE,
+    data = task$data,
                                 design_weights = NULL) {
   if (!inherits(task, "nmar_task")) {
     stop("`task` must be created by `new_nmar_task()`.", call. = FALSE)
@@ -176,6 +185,9 @@ prepare_nmar_design <- function(task,
   data_df <- outcome_info$data
   outcome_columns <- outcome_info$columns
   outcome_column <- outcome_columns[[1L]]
+  if (isTRUE(task$requires_single_outcome) && length(outcome_columns) != 1L) {
+    stop("The formula must have exactly one outcome variable on the left-hand side.", call. = FALSE)
+  }
 
 # Survey designs keep their own copy of the data inside design$variables. When
 # LHS transformations create derived columns we copy them back so that
@@ -237,8 +249,6 @@ prepare_nmar_design <- function(task,
     outcome_column = outcome_column,
     outcome_columns = outcome_columns,
     outcome_label = task$outcome_label,
-    aux_terms = if (isTRUE(include_auxiliary)) task$blueprint$aux$terms else NULL,
-    response_terms = if (isTRUE(include_response)) task$blueprint$response$terms else NULL,
     design_matrices = design_matrices,
     environment = task$environment
   )

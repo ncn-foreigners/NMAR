@@ -25,6 +25,16 @@ test_that("validate_nmar_args enforces defaults", {
   expect_error(NMAR:::validate_nmar_args(spec, list()), "mutually exclusive", fixed = FALSE)
 })
 
+test_that("response-side dot expansion enforces overlap rules", {
+  df <- data.frame(Y = c(1, NA, 2), X = rnorm(3), Z = rnorm(3))
+  spec <- NMAR:::parse_nmar_spec(Y ~ X + Z | ., df)
+  expect_error(
+    NMAR:::validate_nmar_args(spec, list()),
+    "mutually exclusive",
+    fixed = FALSE
+  )
+})
+
 test_that("validate_nmar_args can be relaxed for EL", {
   df <- data.frame(Y = c(1, NA, 3, 4), X = rnorm(4), Z = rnorm(4))
   eng_obj <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
@@ -59,6 +69,23 @@ test_that("nonparam engine accepts multi-outcome formulas", {
   expect_error(NMAR:::validate_nmar_args(spec, traits_default))
 })
 
+test_that("single-outcome traits reject multi-outcome formulas", {
+  df <- data.frame(
+    Y1 = c(1, NA, 2),
+    Y2 = c(3, 4, NA),
+    X = rnorm(3)
+  )
+  spec <- NMAR:::parse_nmar_spec(cbind(Y1, Y2) ~ X, df, traits = NMAR:::NMAR_DEFAULT_TRAITS)
+  traits <- NMAR:::NMAR_DEFAULT_TRAITS
+  NMAR:::validate_nmar_args(spec, traits)
+  task <- NMAR:::new_nmar_task(spec, traits)
+  expect_error(
+    NMAR:::prepare_nmar_design(task),
+    "exactly one outcome",
+    fixed = FALSE
+  )
+})
+
 test_that("parse_nmar_spec resolves dots and factors", {
   df <- data.frame(
     Y = c(1, NA, 3),
@@ -91,6 +118,15 @@ test_that("partition rebuild preserves formula environments", {
   expect_identical(attr(rebuilt, ".Environment"), env)
   mm <- stats::model.matrix(rebuilt, df)
   expect_true(any(grepl("local_fn", colnames(mm))))
+})
+
+test_that("parse_nmar_spec resolves scalars from the formula environment", {
+  df <- data.frame(Y = c(1, NA, 3), X = rnorm(3))
+  degree <- 2
+  fml <- Y ~ poly(X, degree)
+  environment(fml) <- environment()
+  spec <- NMAR:::parse_nmar_spec(fml, df)
+  expect_s3_class(spec, "nmar_input_spec")
 })
 
 test_that("new_nmar_task preserves raw predictor metadata", {
@@ -218,4 +254,30 @@ test_that("LHS helpers are allowed in outcome transformations", {
   expect_equal(spec$outcome_helpers, "denom")
   derived <- design$data[[design$outcome_column]]
   expect_true(anyNA(derived))
+})
+
+test_that("blueprint caches survive user-side data mutation", {
+  df <- data.frame(
+    Y = c(1, NA, 3, NA),
+    X = rnorm(4),
+    Z = rnorm(4)
+  )
+  spec <- NMAR:::parse_nmar_spec(Y ~ X + Z, df)
+  traits <- NMAR:::engine_traits(el_engine(auxiliary_means = c(X = 0)))
+  NMAR:::validate_nmar_args(spec, traits)
+
+# Mutate the original data frame after parsing; spec$data should retain the old snapshot
+  df$X <- NULL
+  task <- NMAR:::new_nmar_task(spec, traits)
+  design <- NMAR:::prepare_nmar_design(task)
+  expect_true("X" %in% colnames(design$design_matrices$auxiliary))
+
+# If spec$data itself is tampered with, the shared pipeline should fail loudly
+  spec$data$X <- NULL
+  task_broken <- NMAR:::new_nmar_task(spec, traits)
+  expect_error(
+    NMAR:::prepare_nmar_design(task_broken),
+    "not found",
+    fixed = FALSE
+  )
 })

@@ -61,10 +61,13 @@ User workflow:
    and supporting data for S3 methods.
 
 Internally, `parse_nmar_spec()` is trait-aware: it drops auxiliary intercepts
-when `drop_auxiliary_intercept = TRUE`, enforces single- versus multi-outcome
-formulas, and rejects respondents-only inputs unless the engine opts in. Always
-construct specs via `nmar()` or pass `traits = engine_traits(<engine>)` when you
-call the parser directly so you observe the same contracts.
+when `drop_auxiliary_intercept = TRUE`, tracks whether single- versus
+multi-outcome formulas are allowed, and rejects respondents-only inputs unless
+the engine opts in. The actual single-outcome guard fires inside
+`prepare_nmar_design()` (once the derived LHS columns are known), so engines do
+not need to duplicate that check. Always construct specs via `nmar()` or pass
+`traits = engine_traits(<engine>)` when you call the parser directly so you
+observe the same contracts.
 
 ***
 
@@ -246,6 +249,9 @@ Follow EL/ET survey patterns:
   `N_pop <- sum(stats::weights(design))` as the population total (unless your
   method uses a different scale).
 - Prefer the shared bootstrap helpers for variance in complex designs.
+- `prepare_nmar_design()` copies any derived LHS columns back into
+  `design$variables`, so you should treat the survey design as read-only beyond
+  that; never mutate it directly.
 - `prepare_nmar_design()` already copies derived outcome columns back into
   `design$variables`, so you can safely reference the transformed outcome inside
   survey-specific code without mutating the design yourself.

@@ -89,8 +89,8 @@ test_that("prepare_nmar_design supports multi-outcome expressions", {
     X = rnorm(4)
   )
   formula <- cbind(Y1, Y2) ~ X
-  spec <- NMAR:::parse_nmar_spec(formula, df)
   traits <- utils::modifyList(NMAR:::NMAR_DEFAULT_TRAITS, list(requires_single_outcome = FALSE))
+  spec <- NMAR:::parse_nmar_spec(formula, df, traits = traits)
   NMAR:::validate_nmar_args(spec, traits)
   task <- NMAR:::new_nmar_task(spec, traits)
   design <- NMAR:::prepare_nmar_design(task)

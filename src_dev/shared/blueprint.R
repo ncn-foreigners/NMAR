@@ -21,11 +21,26 @@ nmar_build_terms_info <- function(formula, data, drop_response = FALSE) {
     ))
   }
   vars_needed <- unique(setdiff(all.vars(formula), "."))
-  missing_vars <- setdiff(vars_needed, names(data))
-  if (length(missing_vars) > 0) {
-    stop("Variables not found in data: ", paste(missing_vars, collapse = ", "), call. = FALSE)
+  env <- environment(formula)
+  if (is.null(env)) env <- parent.frame()
+  vars_missing <- vars_needed[!vapply(vars_needed, function(var) {
+    (var %in% names(data)) || exists(var, envir = env, inherits = TRUE)
+  }, logical(1L))]
+  if (length(vars_missing) > 0) {
+    stop("Variables not found in data: ", paste(vars_missing, collapse = ", "), call. = FALSE)
   }
-  mf <- stats::model.frame(formula, data = data, na.action = stats::na.pass, drop.unused.levels = FALSE)
+  mf <- tryCatch(
+    stats::model.frame(formula, data = data, na.action = stats::na.pass, drop.unused.levels = FALSE),
+    error = function(e) {
+      stop(
+        "Failed to evaluate formula ",
+        paste(deparse(formula, width.cutoff = 500L), collapse = " "),
+        ": ",
+        conditionMessage(e),
+        call. = FALSE
+      )
+    }
+  )
   tr <- attr(mf, "terms")
   tr_use <- tr
   if (isTRUE(drop_response) && attr(tr, "response") > 0) {

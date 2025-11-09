@@ -45,3 +45,32 @@ test_that("Non-finite values from LHS transform on observed rows are rejected wi
     fixed = FALSE
   )
 })
+
+test_that("survey designs reuse blueprint matrices consistently", {
+  skip_if_not_installed("survey")
+  df <- data.frame(
+    Y = c(1, 2, NA, 4),
+    X = rnorm(4),
+    F = factor(c("a", "b", "a", "b")),
+    w = c(1, 2, 1, 2)
+  )
+  design_obj <- survey::svydesign(ids = ~1, data = df, weights = ~w)
+  spec <- NMAR:::parse_nmar_spec(Y ~ F | X + F, design_obj)
+  traits <- NMAR:::engine_traits(el_engine(auxiliary_means = NULL))
+  NMAR:::validate_nmar_args(spec, traits)
+  task <- NMAR:::new_nmar_task(spec, traits)
+  design <- NMAR:::prepare_nmar_design(task)
+
+  resp_mm <- design$design_matrices$response
+  aux_mm <- design$design_matrices$auxiliary
+  expect_equal(colnames(resp_mm), spec$blueprint$response$column_names)
+  expect_equal(colnames(aux_mm), spec$blueprint$aux$column_names)
+
+# Cached terms should materialize clean matrices on new but compatible data
+  new_data <- design$survey_design$variables
+  new_data$X <- new_data$X + 0.5
+  new_data$F <- factor(c("b", "a", "b", "a"), levels = levels(df$F))
+  expect_silent(
+    NMAR:::nmar_model_matrix_from_terms(spec$blueprint$response, new_data)
+  )
+})

@@ -51,7 +51,7 @@ test_that("el engine rejects faulty inputs", {
       data = base_df[, c("X", "Z")],
       formula = Y_miss ~ X,
       response_predictors = NULL,
-      message = "Variables not found"
+      message = "Outcome variable"
     ),
     list(
       name = "outcome without NA",
@@ -100,4 +100,41 @@ test_that("el engine rejects faulty inputs", {
       info = case$name
     )
   }
+})
+
+test_that("auxiliary means align with model-matrix columns", {
+  df <- make_el_test_data(40)
+  spec <- NMAR:::parse_nmar_spec(Y_miss ~ X, df)
+  traits <- NMAR:::engine_traits(el_engine(auxiliary_means = NULL))
+  NMAR:::validate_nmar_args(spec, traits)
+  task <- NMAR:::new_nmar_task(spec, traits)
+  design <- NMAR:::prepare_nmar_design(task)
+
+  runtime <- NMAR:::el_build_runtime_inputs(
+    data = design$data,
+    design_info = design,
+    auxiliary_means = NULL,
+    n_total = NULL,
+    require_na = TRUE,
+    context = "data.frame"
+  )
+  precomputed <- NMAR:::el_build_precomputed_design(
+    design_matrices = design$design_matrices,
+    estimation_data = design$data,
+    outcome_var = runtime$outcome_name,
+    respondent_indices = runtime$observed_indices
+  )
+
+  aux_res <- NMAR:::el_resolve_auxiliaries(
+    full_data = design$data,
+    respondent_data = design$data[runtime$observed_indices, , drop = FALSE],
+    aux_formula = runtime$internal_formula$auxiliary,
+    auxiliary_means = c(X = 0, bogus = 5),
+    precomputed_resp = precomputed$auxiliary_resp,
+    precomputed_full = precomputed$auxiliary_full
+  )
+
+  expect_equal(colnames(aux_res$matrix), "X")
+  expect_equal(names(aux_res$means), "X")
+  expect_true(aux_res$has_aux)
 })
