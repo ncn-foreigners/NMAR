@@ -4,9 +4,10 @@
 #' `nmar_input_spec`. RHS partitions are separated, the original environments are
 #' preserved, and a blueprint of `terms` objects is cached so that
 #' `model.matrix()` can be re-run later without re-parsing the formula. Outcome
-#' symbols are classified according to whether they originate in the supplied
-#' data or only in the formula environment, which lets validation enforce traits
-#' without flagging helper objects.
+#' symbols are tagged by provenance (data column vs environment helper), and
+#' single-outcome workflows pick the first outcome column that actually contains
+#' missingness so that helper-first expressions still resolve to the intended
+#' estimand.
 #'
 #' `prepare_nmar_design()` uses the spec plus engine traits to produce a
 #' method-agnostic `design_info` bundle containing
@@ -33,6 +34,7 @@ parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_D
 
   outcome_expr <- formula[[2L]]
   outcome_vars_all <- unique(all.vars(outcome_expr))
+  outcome_is_multi <- nmar_is_multi_outcome_expr(outcome_expr)
   if (length(outcome_vars_all) == 0L) {
     stop("The formula must specify at least one outcome variable on the left-hand side.", call. = FALSE)
   }
@@ -49,10 +51,11 @@ parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_D
   if (!is.data.frame(data_df)) {
     stop("Unable to access variables from the supplied data object.", call. = FALSE)
   }
-  outcome_vars_data <- intersect(outcome_vars_all, names(data_df))
+  outcome_vars_data <- outcome_vars_all[outcome_vars_all %in% names(data_df)]
+  outcome_vars_data <- unique(outcome_vars_data)
   outcome_vars_env <- setdiff(outcome_vars_all, outcome_vars_data)
-# Only data-backed symbols participate in validation; environment-only helpers
-# are tracked separately so we can allow constructs such as poly(X, degree).
+# Only data-backed outcome symbols participate in validation; environment-only
+# helpers are tracked so we can allow constructs such as poly(X, degree).
   if (!length(outcome_vars_data)) {
     stop(
       "Outcome variable",
@@ -63,9 +66,21 @@ parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_D
     )
   }
 
-  outcome_primary <- outcome_vars_data[[1L]]
+  outcome_na_flags <- if (length(outcome_vars_data)) {
+    vapply(outcome_vars_data, function(var) anyNA(data_df[[var]]), logical(1L))
+  } else {
+    logical(0)
+  }
+# Prefer the first outcome column that exhibits missingness so helper-first
+# expressions (e.g., I(helper - Y)) still treat Y as the estimand. When all
+# outcome columns are fully observed we fall back to the first data symbol.
+  outcome_primary <- if (any(outcome_na_flags, na.rm = TRUE)) {
+    outcome_vars_data[which(outcome_na_flags)[1L]]
+  } else {
+    outcome_vars_data[[1L]]
+  }
   outcome_helpers <- setdiff(outcome_vars_data, outcome_primary)
-  outcome_vars <- if (isTRUE(traits$requires_single_outcome)) outcome_primary else outcome_vars_data
+  outcome_vars <- if (isTRUE(outcome_is_multi)) outcome_vars_data else outcome_primary
 
 # Normalize auxiliary RHS once traits are known: drop explicit intercepts if
 # requested and make sure outcome variables do not leak onto the auxiliary
@@ -98,14 +113,18 @@ parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_D
     env = environment(formula)
   )
 
-  outcome_names_all <- unique(c(outcome_primary, outcome_helpers))
+  outcome_names_all <- outcome_vars_data
 # Blueprint source variables include whatever symbols model.matrix() kept
 # after dot expansion. Remove outcome variables so auxiliaries remain strictly
 # covariates.
   aux_source_data <- blueprint$aux$source_variables_data %||% blueprint$aux$source_variables %||% character()
+  aux_source_env <- blueprint$aux$source_variables_env %||% character()
   response_source_data <- blueprint$response$source_variables_data %||% blueprint$response$source_variables %||% character()
-  auxiliary_vars <- setdiff(aux_source_data, outcome_names_all)
-  response_predictors <- response_source_data
+  response_source_env <- blueprint$response$source_variables_env %||% character()
+  auxiliary_vars <- unique(setdiff(aux_source_data, outcome_names_all))
+  auxiliary_vars_env <- unique(setdiff(aux_source_env, outcome_names_all))
+  response_predictors <- unique(response_source_data)
+  response_predictors_env <- unique(response_source_env)
 
   structure(
     list(
@@ -118,9 +137,12 @@ parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_D
       outcome_vars_env = outcome_vars_env,
       outcome_expr = outcome_expr,
       outcome_label = outcome_label,
+      outcome_is_multi = outcome_is_multi,
       auxiliary_vars = auxiliary_vars,
+      auxiliary_vars_env = auxiliary_vars_env,
       auxiliary_vars_raw = aux_vars_raw,
       response_predictors = response_predictors,
+      response_predictors_env = response_predictors_env,
       response_predictors_raw = response_vars_raw,
       aux_rhs_lang = aux_expr,
       aux_rhs_lang_user = aux_expr_user,
@@ -153,9 +175,12 @@ new_nmar_task <- function(spec, traits, trace_level = 1) {
       outcome_vars_env = spec$outcome_vars_env,
       outcome_expr = spec$outcome_expr,
       outcome_label = spec$outcome_label,
+      outcome_is_multi = spec$outcome_is_multi,
       auxiliary_vars = spec$auxiliary_vars,
+      auxiliary_vars_env = spec$auxiliary_vars_env,
       auxiliary_vars_raw = spec$auxiliary_vars_raw,
       response_predictors = spec$response_predictors,
+      response_predictors_env = spec$response_predictors_env,
       response_predictors_raw = spec$response_predictors_raw,
       aux_rhs_lang = spec$aux_rhs_lang,
       aux_rhs_lang_user = spec$aux_rhs_lang_user,

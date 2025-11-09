@@ -1,133 +1,51 @@
-test_that("formula interactions work end-to-end", {
-  set.seed(123)
-  n <- 50
-  df <- data.frame(
-    Y_miss = c(rnorm(30), rep(NA, 20)),
+interaction_fixture <- function(seed = 123, n = 50) {
+  set.seed(seed)
+  data.frame(
+    Y_miss = c(rnorm(ceiling(n * 0.6)), rep(NA_real_, floor(n * 0.4))),
     X = rnorm(n),
     Z = rnorm(n)
   )
+}
 
-# Interaction with * (auxiliary side: X, Z, X:Z)
+test_that("auxiliary interactions and transforms propagate through nmar()", {
+  df <- interaction_fixture()
   eng <- el_engine(variance_method = "none")
-  fit_interaction <- nmar(Y_miss ~ X * Z, data = df, engine = eng)
 
-  expect_s3_class(fit_interaction, "nmar_result")
+  fit_interaction <- nmar(Y_miss ~ X * Z, data = df, engine = eng)
   expect_s3_class(fit_interaction, "nmar_result_el")
   expect_true(fit_interaction$converged)
+  expect_equal(length(coef(fit_interaction)), 2)
+  expect_true(all(c("X", "Z", "X:Z") %in% names(fit_interaction$diagnostics$constraint_sum_aux)))
 
-# coef() returns response model params (delta ~ Y_miss only)
-  beta <- coef(fit_interaction)
-  expect_equal(length(beta), 2) # Intercept + Y_miss
-
-# Check that interaction was used in auxiliaries
-  aux_constraints <- fit_interaction$diagnostics$constraint_sum_aux
-  expect_true("X:Z" %in% names(aux_constraints))
-  expect_true("X" %in% names(aux_constraints))
-  expect_true("Z" %in% names(aux_constraints))
-})
-
-test_that("polynomial formulas work via poly()", {
-  set.seed(124)
-  n <- 50
-  df <- data.frame(
-    Y_miss = c(rnorm(30), rep(NA, 20)),
-    X = rnorm(n)
-  )
-
-  eng <- el_engine(variance_method = "none")
-  fit_poly <- nmar(Y_miss ~ poly(X, 2), data = df, engine = eng)
-
-  expect_s3_class(fit_poly, "nmar_result")
-  expect_s3_class(fit_poly, "nmar_result_el")
-  expect_true(fit_poly$converged)
-
-# coef() returns response model params (delta ~ Y_miss only)
-  beta <- coef(fit_poly)
-  expect_equal(length(beta), 2) # Intercept + Y_miss
-
-# Check that poly() was used in auxiliaries
-  aux_constraints <- fit_poly$diagnostics$constraint_sum_aux
-  expect_equal(length(aux_constraints), 2) # poly(X, 2) creates 2 columns
-  expect_true(all(grepl("poly", names(aux_constraints))))
-})
-
-test_that("explicit interaction via : works", {
-  set.seed(125)
-  n <- 50
-  df <- data.frame(
-    Y_miss = c(rnorm(30), rep(NA, 20)),
-    X = rnorm(n),
-    Z = rnorm(n)
-  )
-
-  eng <- el_engine(variance_method = "none")
   fit_explicit <- nmar(Y_miss ~ X + Z + X:Z, data = df, engine = eng)
-
-  expect_s3_class(fit_explicit, "nmar_result")
   expect_true(fit_explicit$converged)
+  expect_equal(length(coef(fit_explicit)), 2)
+  expect_setequal(names(fit_explicit$diagnostics$constraint_sum_aux), c("X", "Z", "X:Z"))
 
-# coef() returns response model params (delta ~ Y_miss only)
-  beta <- coef(fit_explicit)
-  expect_equal(length(beta), 2) # Intercept + Y_miss
-
-# Check that explicit interaction was used in auxiliaries
-  aux_constraints <- fit_explicit$diagnostics$constraint_sum_aux
-  expect_true("X:Z" %in% names(aux_constraints))
-  expect_true("X" %in% names(aux_constraints))
-  expect_true("Z" %in% names(aux_constraints))
-  expect_equal(length(aux_constraints), 3) # X, Z, X:Z
-})
-
-test_that("interactions work with partitioned formula", {
-  set.seed(126)
-  n <- 50
-  df <- data.frame(
-    Y_miss = c(rnorm(30), rep(NA, 20)),
-    X1 = rnorm(n),
-    X2 = rnorm(n),
-    Z = rnorm(n)
-  )
-
-  eng <- el_engine(variance_method = "none")
-  fit_partition <- nmar(Y_miss ~ X1 * X2 | Z, data = df, engine = eng)
-
-  expect_s3_class(fit_partition, "nmar_result")
-  expect_true(fit_partition$converged)
-
-# Response model: delta ~ Y_miss + Z (with intercept)
-  beta <- coef(fit_partition)
-  expect_true("Z" %in% names(beta))
-  expect_true("Y_miss" %in% names(beta))
-  expect_equal(length(beta), 3) # Intercept + Y_miss + Z
-
-# Check that interaction was used in auxiliaries
-  aux_constraints <- fit_partition$diagnostics$constraint_sum_aux
-  expect_true("X1:X2" %in% names(aux_constraints))
-  expect_true("X1" %in% names(aux_constraints))
-  expect_true("X2" %in% names(aux_constraints))
-})
-
-test_that("I() identity wrapper works in formulas", {
-  set.seed(127)
-  n <- 50
-  df <- data.frame(
-    Y_miss = c(rnorm(30), rep(NA, 20)),
-    X = rnorm(n)
-  )
-
-  eng <- el_engine(variance_method = "none")
   fit_identity <- nmar(Y_miss ~ X + I(X^2), data = df, engine = eng)
-
-  expect_s3_class(fit_identity, "nmar_result")
   expect_true(fit_identity$converged)
+  expect_equal(length(coef(fit_identity)), 2)
+  expect_setequal(names(fit_identity$diagnostics$constraint_sum_aux), c("X", "I(X^2)"))
 
-# coef() returns response model params (delta ~ Y_miss only)
-  beta <- coef(fit_identity)
-  expect_equal(length(beta), 2) # Intercept + Y_miss
+  fit_poly <- nmar(Y_miss ~ poly(X, 2), data = df, engine = eng)
+  expect_true(fit_poly$converged)
+  expect_equal(length(coef(fit_poly)), 2)
+  poly_names <- names(fit_poly$diagnostics$constraint_sum_aux)
+  expect_equal(length(poly_names), 2)
+  expect_true(all(grepl("poly", poly_names)))
+})
 
-# Check that I(X^2) was used in auxiliaries
-  aux_constraints <- fit_identity$diagnostics$constraint_sum_aux
-  expect_true("I(X^2)" %in% names(aux_constraints))
-  expect_true("X" %in% names(aux_constraints))
-  expect_equal(length(aux_constraints), 2) # X and I(X^2)
+test_that("partitioned formulas propagate interactions to auxiliaries and response predictors", {
+  df <- interaction_fixture(seed = 126)
+  df$X1 <- df$X
+  df$X2 <- rnorm(nrow(df))
+  df$Z2 <- rnorm(nrow(df))
+  eng <- el_engine(variance_method = "none")
+
+  fit_partition <- nmar(Y_miss ~ X1 * X2 | Z2, data = df, engine = eng)
+  expect_true(fit_partition$converged)
+  beta <- coef(fit_partition)
+  expect_true(all(c("Y_miss", "Z2") %in% names(beta)))
+  expect_equal(length(beta), 3)
+  expect_true(all(c("X1", "X2", "X1:X2") %in% names(fit_partition$diagnostics$constraint_sum_aux)))
 })

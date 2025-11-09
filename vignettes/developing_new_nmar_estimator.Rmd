@@ -61,11 +61,11 @@ User workflow:
    and supporting data for S3 methods.
 
 Internally, `parse_nmar_spec()` is trait-aware: it drops auxiliary intercepts
-when `drop_auxiliary_intercept = TRUE`, tracks whether single- versus
+when `drop_auxiliary_intercept = TRUE`, records whether single- versus
 multi-outcome formulas are allowed, and rejects respondents-only inputs unless
-the engine opts in. The actual single-outcome guard fires inside
-`prepare_nmar_design()` (once the derived LHS columns are known), so engines do
-not need to duplicate that check. Always construct specs via `nmar()` or pass
+the engine opts in. Single-outcome engines now fail fast inside
+`validate_nmar_args()` using metadata recorded by the parser, so you do not need
+to duplicate that guard. Always construct specs via `nmar()` or pass
 `traits = engine_traits(<engine>)` when you call the parser directly so you
 observe the same contracts.
 
@@ -250,11 +250,9 @@ Follow EL/ET survey patterns:
   method uses a different scale).
 - Prefer the shared bootstrap helpers for variance in complex designs.
 - `prepare_nmar_design()` copies any derived LHS columns back into
-  `design$variables`, so you should treat the survey design as read-only beyond
-  that; never mutate it directly.
-- `prepare_nmar_design()` already copies derived outcome columns back into
-  `design$variables`, so you can safely reference the transformed outcome inside
-  survey-specific code without mutating the design yourself.
+  `design$variables`, so you can reference transformed outcomes directly.
+  Treat the survey design as read-only; never mutate it beyond what the shared
+  pipeline has already inserted.
 
 ### 6) `impl/<method>_equations.R` / `impl/<method>_jacobian.R` (optional)
 
@@ -402,17 +400,24 @@ Use these shared modules in `src_dev/shared/`:
 - If your traits set `allow_respondents_only = TRUE`, add tests covering the
   respondents-only workflow (supplying `n_total`, population auxiliary means,
   etc.) so validation passes and diagnostics remain informative.
+- Add parse/validate regression tests under `tests/testthat/` for any new trait
+  combinations or formula requirements introduced by your engine so the shared
+  input pipeline stays locked down.
 
 ### Notes on partitioned formulas
 
 - The package supports `y ~ aux | response` partitioning. The explicit response
-  RHS contains only the response-only predictors specified by the user; the
-  outcome is always included implicitly in the response model for NMAR.
+  RHS contains only user-specified response-only predictors (from the data or
+  the formula environment); the outcome is always included implicitly in the
+  NMAR response model.
 - `design_matrices$response` includes only explicit RHS predictors (no
   intercept, no outcome). Add intercept/outcome in your estimator’s internal
   builders as needed.
-- The auxiliary design uses `~ 0 + aux` (no intercept) to match the population
+- The auxiliary design uses `~ 0 + aux` (no intercept) to match population
   moment constraints.
+- `prepare_nmar_design()` exposes `design$outcome_column`, respondent weights,
+  and `design_matrices`, so you can reuse those directly instead of rebuilding
+  masks or model matrices.
 
 Run before committing:
 

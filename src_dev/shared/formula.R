@@ -11,6 +11,27 @@ nmar_partition_rhs <- function(rhs_expr) {
   list(aux_expr = aux_expr, response_expr = response_expr)
 }
 
+#' Detect whether the LHS encodes multiple distinct outcome columns
+#' @keywords internal
+nmar_is_multi_outcome_expr <- function(lhs_expr) {
+  simplify_expr <- lhs_expr
+  while (is.call(simplify_expr) && identical(simplify_expr[[1L]], as.name("("))) {
+    simplify_expr <- simplify_expr[[2L]]
+  }
+  if (!is.call(simplify_expr)) {
+    return(FALSE)
+  }
+  fun <- simplify_expr[[1L]]
+  if (identical(fun, as.name("cbind"))) {
+    return(TRUE)
+  }
+  if (identical(fun, as.name("+"))) {
+    vars <- unique(all.vars(simplify_expr))
+    return(length(vars) > 1L)
+  }
+  FALSE
+}
+
 #' Normalize auxiliary RHS expression according to engine traits
 #'
 #' Removes the intercept (when requested) using the original data so that dot

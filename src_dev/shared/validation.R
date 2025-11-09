@@ -13,44 +13,49 @@ validate_nmar_args <- function(spec, traits = list()) {
   }
   traits <- utils::modifyList(NMAR_DEFAULT_TRAITS, traits)
 
-  outcome_vars <- spec$outcome %||% character()
-  if (!length(outcome_vars)) {
+  outcome_vars_data <- spec$outcome_vars_data %||% character()
+  outcome_is_multi <- isTRUE(spec$outcome_is_multi)
+  if (!length(outcome_vars_data)) {
     stop("Parsed specification does not contain outcome variables.", call. = FALSE)
   }
-  primary_outcome <- spec$outcome_primary %||% outcome_vars[[1]]
+  primary_outcome <- spec$outcome_primary %||% outcome_vars_data[[1]]
   if (traits$requires_single_outcome && (is.null(primary_outcome) || is.na(primary_outcome))) {
     stop("The formula must have exactly one outcome variable on the left-hand side.", call. = FALSE)
   }
-  if (traits$requires_single_outcome && length(outcome_vars) != 1L) {
+  if (traits$requires_single_outcome && outcome_is_multi) {
     stop("The formula must have exactly one outcome variable on the left-hand side.", call. = FALSE)
   }
 
-  aux_vars_canonical <- unique(spec$auxiliary_vars %||% character())
-  aux_vars_raw <- unique(spec$auxiliary_vars_raw %||% character())
-  response_vars_canonical <- unique(spec$response_predictors %||% character())
-  response_vars_raw <- unique(spec$response_predictors_raw %||% character())
+  aux_vars_data <- unique(spec$auxiliary_vars %||% character())
+  aux_vars_env <- unique(spec$auxiliary_vars_env %||% character())
+  aux_vars_traits <- unique(c(aux_vars_data, aux_vars_env))
+  if (!length(aux_vars_traits)) {
+    aux_vars_traits <- unique(spec$auxiliary_vars_raw %||% character())
+  }
 
-  aux_vars_check <- if (length(aux_vars_canonical)) aux_vars_canonical else aux_vars_raw
-# Enforce engine policy using the design-expanded response predictors; fall back to
-# raw symbols only if blueprint information is unavailable.
-  response_vars_check <- if (length(response_vars_canonical)) response_vars_canonical else response_vars_raw
+  response_vars_data <- unique(spec$response_predictors %||% character())
+  response_vars_env <- unique(spec$response_predictors_env %||% character())
+  response_vars_traits <- unique(c(response_vars_data, response_vars_env))
+  if (!length(response_vars_traits)) {
+    response_vars_traits <- unique(spec$response_predictors_raw %||% character())
+  }
 
-  outcomes_for_relationships <- outcome_vars
+  outcomes_for_relationships <- outcome_vars_data
   validate_predictor_relationships(
     outcomes = outcomes_for_relationships,
-    auxiliary_vars = aux_vars_check,
-    response_vars = response_vars_check,
+    auxiliary_vars = aux_vars_traits,
+    response_vars = response_vars_traits,
     allow_outcome_in_missingness = traits$allow_outcome_in_missingness,
     allow_covariate_overlap = traits$allow_covariate_overlap
   )
 
   allow_respondents_only <- isTRUE(traits$allow_respondents_only)
-  if (length(outcome_vars) == 1L) {
+  if (!outcome_is_multi) {
     validate_data(
       data = spec$original_data,
-      outcome_variables = spec$outcome_vars_data %||% outcome_vars,
-      covariates_for_outcome = aux_vars_check,
-      covariates_for_missingness = response_vars_check,
+      outcome_variables = outcome_vars_data,
+      covariates_for_outcome = aux_vars_data,
+      covariates_for_missingness = response_vars_data,
       allow_outcome_in_missingness = traits$allow_outcome_in_missingness,
       allow_covariate_overlap = traits$allow_covariate_overlap,
       allow_respondents_only = allow_respondents_only
@@ -58,11 +63,11 @@ validate_nmar_args <- function(spec, traits = list()) {
   } else {
     validate_multi_outcome_data(
       data = spec$data,
-      outcome_vars = outcome_vars,
+      outcome_vars = outcome_vars_data,
       allow_respondents_only = allow_respondents_only
     )
-    nmar_validate_covariates(spec$data, aux_vars_check, block_label = "auxiliary")
-    nmar_validate_covariates(spec$data, response_vars_check, block_label = "response")
+    nmar_validate_covariates(spec$data, aux_vars_data, block_label = "auxiliary")
+    nmar_validate_covariates(spec$data, response_vars_data, block_label = "response")
   }
 
   invisible(spec)

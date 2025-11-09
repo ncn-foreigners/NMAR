@@ -77,10 +77,8 @@ test_that("single-outcome traits reject multi-outcome formulas", {
   )
   spec <- NMAR:::parse_nmar_spec(cbind(Y1, Y2) ~ X, df, traits = NMAR:::NMAR_DEFAULT_TRAITS)
   traits <- NMAR:::NMAR_DEFAULT_TRAITS
-  NMAR:::validate_nmar_args(spec, traits)
-  task <- NMAR:::new_nmar_task(spec, traits)
   expect_error(
-    NMAR:::prepare_nmar_design(task),
+    NMAR:::validate_nmar_args(spec, traits),
     "exactly one outcome",
     fixed = FALSE
   )
@@ -280,6 +278,90 @@ test_that("respondents-only inputs require allow_respondents_only trait", {
   expect_error(NMAR:::validate_nmar_args(spec, traits_default), "must contain NA", fixed = FALSE)
   traits_el <- NMAR:::engine_traits(el_engine(auxiliary_means = c(X = 0), n_total = 100, variance_method = "none"))
   expect_silent(NMAR:::validate_nmar_args(spec, traits_el))
+})
+
+test_that("environment-only auxiliary predictors are accepted", {
+  df <- data.frame(Y = c(1, NA, 3))
+  offset_vec <- rnorm(3)
+  env <- environment()
+  fml <- Y ~ offset_vec
+  environment(fml) <- env
+  spec <- NMAR:::parse_nmar_spec(fml, df)
+  traits <- NMAR:::engine_traits(el_engine(variance_method = "none"))
+  expect_silent(NMAR:::validate_nmar_args(spec, traits))
+  task <- NMAR:::new_nmar_task(spec, traits)
+  design <- NMAR:::prepare_nmar_design(task)
+  expect_true("offset_vec" %in% colnames(design$design_matrices$auxiliary))
+})
+
+test_that("environment-only response predictors are accepted", {
+  df <- data.frame(Y = c(1, NA, 3), X = rnorm(3))
+  offset_resp <- rnorm(3)
+  env <- environment()
+  fml <- Y ~ X | offset_resp
+  environment(fml) <- env
+  spec <- NMAR:::parse_nmar_spec(fml, df)
+  traits <- NMAR:::engine_traits(el_engine(variance_method = "none"))
+  expect_silent(NMAR:::validate_nmar_args(spec, traits))
+  task <- NMAR:::new_nmar_task(spec, traits)
+  design <- NMAR:::prepare_nmar_design(task)
+  resp_mm <- design$design_matrices$response
+  expect_true(is.matrix(resp_mm))
+  expect_true("offset_resp" %in% colnames(resp_mm))
+})
+
+test_that("outcome selection favors columns with missingness", {
+  df <- data.frame(
+    Y_obs = c(1, NA, 3),
+    helper = 5:7,
+    X = rnorm(3)
+  )
+  fml <- I(helper - Y_obs) ~ X
+  spec <- NMAR:::parse_nmar_spec(fml, df)
+  traits <- NMAR:::engine_traits(el_engine(variance_method = "none"))
+  expect_silent(NMAR:::validate_nmar_args(spec, traits))
+  expect_identical(spec$outcome_primary, "Y_obs")
+  expect_identical(spec$outcome_helpers, "helper")
+})
+
+test_that("survey designs keep environment-only auxiliaries", {
+  skip_if_not_installed("survey")
+  df <- data.frame(
+    Y = c(1, 2, NA, 4),
+    w = c(1, 2, 1, 2)
+  )
+  offset_vec <- rnorm(nrow(df))
+  env <- environment()
+  fml <- Y ~ offset_vec
+  environment(fml) <- env
+  design <- survey::svydesign(ids = ~1, data = df, weights = ~w)
+  spec <- NMAR:::parse_nmar_spec(fml, design)
+  traits <- NMAR:::engine_traits(el_engine(variance_method = "none"))
+  expect_silent(NMAR:::validate_nmar_args(spec, traits))
+  task <- NMAR:::new_nmar_task(spec, traits)
+  info <- NMAR:::prepare_nmar_design(task)
+  aux_mm <- info$design_matrices$auxiliary
+  expect_true("offset_vec" %in% colnames(aux_mm))
+  expect_equal(
+    info$survey_design$variables[[info$outcome_column]],
+    info$data[[info$outcome_column]]
+  )
+})
+
+test_that("outcome cannot enter response RHS via helper-first transforms", {
+  df <- data.frame(
+    Y = c(1, NA, 3),
+    denom = c(2, 2, 2),
+    X = rnorm(3)
+  )
+  fml <- I(denom - Y) ~ X | Y
+  traits <- NMAR:::engine_traits(exptilt_engine())
+  spec <- NMAR:::parse_nmar_spec(fml, df, traits = traits)
+  expect_error(
+    NMAR:::validate_nmar_args(spec, traits),
+    "Outcome variable cannot appear",
+    fixed = FALSE
+  )
 })
 
 test_that("Y ~ 1 | X implies no auxiliaries and response includes outcome", {
