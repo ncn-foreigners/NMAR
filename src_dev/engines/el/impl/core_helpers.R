@@ -358,7 +358,7 @@ el_compute_variance <- function(y_hat,
       on_failure = on_failure,
       auxiliary_means = auxiliary_means,
       control = control,
-      n_total = NULL,
+      n_total = user_args$n_total %||% NULL,
       start = start,
       family = family
     )

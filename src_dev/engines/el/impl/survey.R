@@ -143,7 +143,8 @@ el.survey.design <- function(data, formula,
   user_args <- list(
     formula = formula,
     auxiliary_means = auxiliary_means, standardize = standardize,
-    trim_cap = trim_cap, control = control, ...
+    trim_cap = trim_cap, control = control, ...,
+    n_total = n_total
   )
 
   core_results <- el_estimator_core(
