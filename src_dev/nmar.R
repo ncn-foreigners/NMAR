@@ -52,9 +52,10 @@
 #'     \item 3: Full detail (all diagnostics, intermediate values)
 #'   }
 #'
-#' @return An object containing the estimation results, whose structure will be
-#'   specific to the `engine` used. This might include estimated parameters,
-#'   convergence information, and other relevant output from the chosen NMAR method.
+#' @return An object inheriting from `nmar_result`. The concrete subclass is
+#'   engine-specific (e.g., `nmar_result_el`, `nmar_result_exptilt`) and exposes
+#'   the standard NMAR S3 interface (`print()`, `summary()`, `coef()`,
+#'   `weights()`, `confint()`, etc.).
 #'
 #' @details
 #'   \strong{Auxiliary means naming}: For engines that use auxiliary moment
@@ -104,6 +105,41 @@
 #'   preserved throughout the estimation process. Any user-defined functions
 #'   used in transforms must be visible in that environment.
 #'
+#'   \strong{Dot expansion and formula processing}: When using the dot operator
+#'   (e.g., `Y ~ . | X`), variables are expanded at formula parsing time based
+#'   on the data columns available at the time of the `nmar()` call. The expansion
+#'   is frozen in the formula blueprint and remains stable even if the data object
+#'   is subsequently modified. This ensures reproducible behavior and follows
+#'   standard R formula conventions.
+#'
+#'   \strong{Edge case - No auxiliary constraints}: Writing `Y ~ 1` or `Y ~ 1 | X`
+#'   creates a formula with no auxiliary moment constraints. The literal `1` on
+#'   the auxiliary side (left of `|`, or entire RHS if no `|`) is interpreted as
+#'   "no auxiliaries", producing an empty auxiliary design matrix. This is distinct
+#'   from including a constant column - auxiliary matrices are always built with
+#'   intercepts suppressed. For example:
+#'   \itemize{
+#'     \item `Y ~ 1` - No auxiliaries, response model is `delta ~ Y` (outcome only)
+#'     \item `Y ~ 1 | X` - No auxiliaries, response model is `delta ~ Y + X`
+#'     \item `Y ~ X` - Auxiliary includes `X`, response model is `delta ~ Y`
+#'     \item `Y ~ X | Z` - Auxiliary includes `X`, response model is `delta ~ Y + Z`
+#'   }
+#'
+#'   \strong{Non-finite values from transformations}: If a left-hand side
+#'   transformation produces non-finite values (Inf, -Inf, NaN) for rows where
+#'   the input variables were observed (non-missing), an error is raised. However,
+#'   non-finite results are permitted when they arise solely from missing inputs.
+#'   For example, `log(Y)` where `Y` contains NA will produce NA without error,
+#'   but `log(-5)` producing NaN from an observed value will cause immediate
+#'   failure with a clear diagnostic message indicating the problematic row.
+#'
+#'   \strong{Outcome missingness and engine traits}: Engines typically require
+#'   the outcome column to contain `NA` indicators for nonrespondents. Only
+#'   engines whose `engine_traits()` report `allow_respondents_only = TRUE`
+#'   (e.g., empirical likelihood with known `n_total` and `auxiliary_means`)
+#'   permit fully observed outcomes, and they must be given the extra metadata
+#'   those models require.
+#'
 #' @seealso [el_engine()], [exptilt_engine()], [engine_traits()],
 #'   [print.nmar_result()], [summary.nmar_result()], [coef.nmar_result()],
 #'   [weights.nmar_result()], [confint.nmar_result]
@@ -141,14 +177,14 @@ nmar <- function(formula, data, engine, trace_level = 0) {
   stopifnot(inherits(engine, "nmar_engine"))
 
   validator$assert_choice(trace_level, choices = 0:3, name = "trace_level")
+  traits <- engine_traits(engine)
 
   spec <- parse_nmar_spec(
     formula = formula,
     data = data,
-    env = parent.frame()
+    env = parent.frame(),
+    traits = traits
   )
-
-  traits <- engine_traits(engine)
   validate_nmar_args(spec, traits)
 
 # Wrap the validated spec and engine traits into a task object so every

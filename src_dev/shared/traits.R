@@ -15,7 +15,8 @@ NMAR_DEFAULT_TRAITS <- list(
   allow_outcome_in_missingness = FALSE,
   allow_covariate_overlap = FALSE,
   requires_single_outcome = TRUE,
-  allow_respondents_only = FALSE
+  allow_respondents_only = FALSE,
+  drop_auxiliary_intercept = TRUE
 )
 
 #' Engine trait S3 generic

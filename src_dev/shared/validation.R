@@ -13,6 +13,10 @@ validate_nmar_args <- function(spec, traits = list()) {
   }
   traits <- utils::modifyList(NMAR_DEFAULT_TRAITS, traits)
 
+  primary_outcome <- spec$outcome_primary %||% spec$outcome[[1]]
+  if (traits$requires_single_outcome && (is.null(primary_outcome) || is.na(primary_outcome))) {
+    stop("The formula must have exactly one outcome variable on the left-hand side.", call. = FALSE)
+  }
   if (traits$requires_single_outcome && length(spec$outcome) != 1L) {
     stop("The formula must have exactly one outcome variable on the left-hand side.", call. = FALSE)
   }
@@ -21,8 +25,9 @@ validate_nmar_args <- function(spec, traits = list()) {
 # Enforce engine policy using only the explicit response RHS variables.
   response_vars_check <- unique(spec$response_predictors_raw)
 
+  outcomes_for_relationships <- if (length(spec$outcome)) spec$outcome else primary_outcome
   validate_predictor_relationships(
-    outcomes = spec$outcome,
+    outcomes = outcomes_for_relationships,
     auxiliary_vars = aux_vars_check,
     response_vars = response_vars_check,
     allow_outcome_in_missingness = traits$allow_outcome_in_missingness,

@@ -1,4 +1,12 @@
 #' Blueprint and terms builders
+#'
+#' The blueprint pattern captures formula structure at parse time, including
+#' expansion of dot (.) operators and factor level mappings. This frozen snapshot
+#' ensures reproducible model.matrix construction even if the data object changes
+#' later. Variable expansion happens once during blueprint creation and is reused
+#' for all subsequent model.matrix calls via cached terms objects, xlevels, and
+#' contrasts.
+#'
 #' @keywords internal
 
 nmar_build_terms_info <- function(formula, data, drop_response = FALSE) {
@@ -26,7 +34,10 @@ nmar_build_terms_info <- function(formula, data, drop_response = FALSE) {
   mm <- stats::model.matrix(tr_use, mf)
 # Derive RHS source variables from the response-less terms object.
 # Using stats::formula(tr_use) ensures we only capture RHS symbols and
-# not the LHS outcome. Dots are expanded by model.frame/model.matrix.
+# not the LHS outcome. IMPORTANT: Dots (.) are expanded by model.frame at
+# this point based on the data supplied, and the expansion is frozen in the
+# terms object. This ensures stable, reproducible formula interpretation even
+# if the data changes later in the pipeline.
   rhs_vars <- unique(setdiff(all.vars(stats::formula(tr_use)), "."))
   list(
     formula = formula,

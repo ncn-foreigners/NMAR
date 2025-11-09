@@ -1,38 +1,46 @@
 #' Input parsing and design preparation
 #'
-#' parse_nmar_spec() turns a user formula and data into a normalized
-#' nmar_input_spec with resolved RHS partitions, preserved environments,
-#' and a blueprint of terms for fast model.matrix materialization.
+#' `parse_nmar_spec()` turns a user formula and data object into a normalized
+#' `nmar_input_spec`. RHS partitions are separated, the original environments are
+#' preserved, and a blueprint of `terms` objects is cached so that
+#' `model.matrix()` can be re-run later without re-parsing the formula.
 #'
-#' prepare_nmar_design() uses the spec and traits to construct a
-#' method-agnostic design_info bundle with:
-#' - data with derived outcome column(s) (LHS transforms are allowed)
-#' - consistent weights (from survey.design or ones for data.frames)
-#' - design matrices for auxiliaries and explicit response RHS (no intercepts)
-#' - user and engine formulas (partitioned and LHS-rewritten)
+#' `prepare_nmar_design()` uses the spec plus engine traits to produce a
+#' method-agnostic `design_info` bundle containing
+#' * Derived outcome columns (LHS transforms are evaluated once and stored)
+#' * Consistent weights for data frames or survey designs
+#' * Design matrices for auxiliaries/response predictors with intercept handling
+#'   controlled by engine traits
+#' * User-facing and engine-ready formulas so diagnostics can report the input
+#'   verbatim while engines consume the normalized version
 #'
 #' Non-finite values produced by LHS transformations are allowed only on rows
 #' where the input variables are missing (nonrespondents); for observed rows we
-#' error early with a clear message. This prevents subtle NA/Inf propagation.
+#' fail fast to avoid silent NA propagation.
 #'
 #' @keywords internal
 
-parse_nmar_spec <- function(formula, data, env = parent.frame()) {
+parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_DEFAULT_TRAITS) {
   validator$assert_formula_two_sided(formula, name = "formula")
   if (!is.environment(env)) {
     stop("`env` must be an environment for formula evaluation.", call. = FALSE)
   }
   if (is.null(environment(formula))) environment(formula) <- env
+  traits <- utils::modifyList(NMAR_DEFAULT_TRAITS, traits %||% list())
 
   outcome_expr <- formula[[2L]]
-  outcome_vars <- unique(all.vars(outcome_expr))
-  if (length(outcome_vars) == 0L) {
+  outcome_vars_all <- unique(all.vars(outcome_expr))
+  if (length(outcome_vars_all) == 0L) {
     stop("The formula must specify at least one outcome variable on the left-hand side.", call. = FALSE)
   }
   outcome_label <- paste(deparse(outcome_expr, width.cutoff = 500L), collapse = " ")
 
+  outcome_primary <- outcome_vars_all[[1L]]
+  outcome_helpers <- setdiff(outcome_vars_all, outcome_primary)
+  outcome_vars <- if (isTRUE(traits$requires_single_outcome)) outcome_primary else outcome_vars_all
+
   rhs_parts <- nmar_partition_rhs(formula[[3L]])
-  aux_expr <- rhs_parts$aux_expr
+  aux_expr_user <- rhs_parts$aux_expr
   resp_expr <- rhs_parts$response_expr
 
   validator$assert_data_frame_or_survey(data, name = "data")
@@ -43,12 +51,23 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
     stop("Unable to access variables from the supplied data object.", call. = FALSE)
   }
 
+# Normalize auxiliary RHS once traits are known: drop explicit intercepts if
+# requested and make sure outcome variables do not leak onto the auxiliary
+# side when the user relied on '.' expansion.
+  aux_expr <- nmar_normalize_auxiliary_expr(
+    aux_expr = aux_expr_user,
+    drop_intercept = isTRUE(traits$drop_auxiliary_intercept),
+    data = data_df,
+    env = environment(formula),
+    exclude = outcome_vars_all
+  )
+
   normalized_formula <- formula
   if (!is.null(resp_expr)) {
-    normalized_formula[[3L]] <- aux_expr
+    normalized_formula[[3L]] <- aux_expr_user
   }
 
-  aux_vars_raw <- unique(setdiff(all.vars(aux_expr), "."))
+  aux_vars_raw <- unique(setdiff(all.vars(aux_expr_user), "."))
   response_vars_raw <- if (is.null(resp_expr)) {
     character()
   } else {
@@ -63,13 +82,20 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
     env = environment(formula)
   )
 
-  auxiliary_vars <- blueprint$aux$source_variables
+  outcome_names_all <- unique(c(outcome_primary, outcome_helpers))
+# Blueprint source variables include whatever symbols model.matrix() kept
+# after dot expansion. Remove outcome variables so auxiliaries remain strictly
+# covariates.
+  auxiliary_vars <- setdiff(blueprint$aux$source_variables, outcome_names_all)
   response_predictors <- blueprint$response$source_variables
 
   structure(
     list(
       formula = normalized_formula,
+      formula_original = formula,
       outcome = outcome_vars,
+      outcome_primary = outcome_primary,
+      outcome_helpers = outcome_helpers,
       outcome_expr = outcome_expr,
       outcome_label = outcome_label,
       auxiliary_vars = auxiliary_vars,
@@ -77,7 +103,9 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
       response_predictors = response_predictors,
       response_predictors_raw = response_vars_raw,
       aux_rhs_lang = aux_expr,
+      aux_rhs_lang_user = aux_expr_user,
       response_rhs_lang = resp_expr,
+      response_rhs_lang_user = resp_expr,
       data = data_df,
       original_data = data,
       is_survey = is_survey,
@@ -97,7 +125,10 @@ new_nmar_task <- function(spec, traits, trace_level = 1) {
   structure(
     list(
       formula = spec$formula,
+      formula_original = spec$formula_original,
       outcome = spec$outcome,
+      outcome_primary = spec$outcome_primary,
+      outcome_helpers = spec$outcome_helpers,
       outcome_expr = spec$outcome_expr,
       outcome_label = spec$outcome_label,
       auxiliary_vars = spec$auxiliary_vars,
@@ -105,7 +136,9 @@ new_nmar_task <- function(spec, traits, trace_level = 1) {
       response_predictors = spec$response_predictors,
       response_predictors_raw = spec$response_predictors_raw,
       aux_rhs_lang = spec$aux_rhs_lang,
+      aux_rhs_lang_user = spec$aux_rhs_lang_user,
       response_rhs_lang = spec$response_rhs_lang,
+      response_rhs_lang_user = spec$response_rhs_lang_user,
       data = spec$data,
       original_data = spec$original_data,
       is_survey = spec$is_survey,
@@ -143,6 +176,11 @@ prepare_nmar_design <- function(task,
   data_df <- outcome_info$data
   outcome_columns <- outcome_info$columns
   outcome_column <- outcome_columns[[1L]]
+
+# Survey designs keep their own copy of the data inside design$variables. When
+# LHS transformations create derived columns we copy them back so that
+# survey::weights() and friends can find the variables referenced in the
+# formula. Only the new columns are inserted; user data is left untouched.
   if (isTRUE(task$is_survey) && !is.null(task$original_data) && length(outcome_info$added_columns)) {
     for (col in outcome_info$added_columns) {
       task$original_data$variables[[col]] <- data_df[[col]]
@@ -166,10 +204,11 @@ prepare_nmar_design <- function(task,
   }
 
   engine_formula <- nmar_replace_formula_lhs(task$formula, outcome_columns)
+  user_base_formula <- task$formula_original %||% task$formula
   user_formula <- nmar_rebuild_partitioned_formula(
-    base_formula = task$formula,
-    response_rhs_lang = task$response_rhs_lang,
-    aux_rhs_lang = task$aux_rhs_lang,
+    base_formula = user_base_formula,
+    response_rhs_lang = task$response_rhs_lang_user %||% task$response_rhs_lang,
+    aux_rhs_lang = task$aux_rhs_lang_user %||% task$aux_rhs_lang,
     env = task$environment
   )
 

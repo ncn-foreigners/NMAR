@@ -27,8 +27,10 @@ emphasizes a clean separation of concerns and reuse of shared infrastructure:
 >   `R -q -e "devtools::document()"` and confirm `git status` is clean; this keeps
 >   S3 registrations and Rd files in sync.
 > - Use testthat v3 under `tests/testthat/` for tests and run
->   `R -q -e "devtools::test()"` before opening a PR.
+>   `R -q -e "devtools::test()"` (and, before release, `R -q -e "devtools::check()"`).
 > - Use roxygen2 for documentation; do not edit `NAMESPACE` directly.
+> - Commit-ready checklist: `Rscript build_r_folder.R`, `devtools::document()`,
+>   `devtools::test()`, then review `git status`.
 
 ***
 ## 0) General guidelines
@@ -57,6 +59,12 @@ User workflow:
 5. The method computes the estimator and returns a result object of class
    `c("nmar_result_<method>", "nmar_result")` containing the primary estimand
    and supporting data for S3 methods.
+
+Internally, `parse_nmar_spec()` is trait-aware: it drops auxiliary intercepts
+when `drop_auxiliary_intercept = TRUE`, enforces single- versus multi-outcome
+formulas, and rejects respondents-only inputs unless the engine opts in. Always
+construct specs via `nmar()` or pass `traits = engine_traits(<engine>)` when you
+call the parser directly so you observe the same contracts.
 
 ***
 
@@ -107,15 +115,28 @@ engine_traits.nmar_engine_method <- function(engine) {
     engine_traits.default(engine),
     list(
       allow_outcome_in_missingness = FALSE, # customize as needed
-      allow_covariate_overlap      = FALSE, # customize as needed
-      requires_single_outcome      = TRUE,
+      allow_covariate_overlap = FALSE, # customize as needed
+      requires_single_outcome = TRUE,
 # If your method supports respondents-only inputs when N is known,
 # set allow_respondents_only accordingly.
-      allow_respondents_only       = FALSE
+      allow_respondents_only = FALSE,
+# Set to FALSE only if your estimator genuinely needs an auxiliary intercept
+      drop_auxiliary_intercept = TRUE
     )
   )
 }
 ```
+Whenever you invoke `parse_nmar_spec()` outside of `nmar()`, capture the engine
+traits first and pass them through so auxiliary-intercept handling,
+multi-outcome allowances, and respondents-only settings mirror the behavior of
+`nmar()`:
+
+```r
+eng <- method_engine()
+traits <- NMAR:::engine_traits(eng)
+spec <- NMAR:::parse_nmar_spec(formula, data, traits = traits)
+```
+
 ### 2) `run_engine.R` — run_engine method
 
 ```{r eval=FALSE}
@@ -225,6 +246,9 @@ Follow EL/ET survey patterns:
   `N_pop <- sum(stats::weights(design))` as the population total (unless your
   method uses a different scale).
 - Prefer the shared bootstrap helpers for variance in complex designs.
+- `prepare_nmar_design()` already copies derived outcome columns back into
+  `design$variables`, so you can safely reference the transformed outcome inside
+  survey-specific code without mutating the design yourself.
 
 ### 6) `impl/<method>_equations.R` / `impl/<method>_jacobian.R` (optional)
 
@@ -263,8 +287,13 @@ new_nmar_result_method <- function(estimate, se,
                                    diagnostics = list(),
                                    meta = list(engine_name = "method", call = NULL, formula = NULL),
                                    extra = list()) {
-  sample_defaults <- list(n_total = NA_integer_, n_respondents = NA_integer_,
-                          is_survey = FALSE, design = NULL, outcome_var = NA_character_)
+  sample_defaults <- list(
+    n_total = NA_integer_,
+    n_respondents = NA_integer_,
+    is_survey = FALSE,
+    design = NULL,
+    outcome_var = NA_character_
+  )
   sample <- utils::modifyList(sample_defaults, sample)
   result <- new_nmar_result(
     estimate = estimate,
@@ -273,10 +302,12 @@ new_nmar_result_method <- function(estimate, se,
     converged = TRUE,
     model = list(coefficients = coefficients, vcov = vcov),
     weights_info = list(values = weights, trimmed_fraction = NA_real_),
-    sample = list(n_total = sample$n_total,
-                  n_respondents = sample$n_respondents,
-                  is_survey = sample$is_survey,
-                  design = sample$design),
+    sample = list(
+      n_total = sample$n_total,
+      n_respondents = sample$n_respondents,
+      is_survey = sample$is_survey,
+      design = sample$design
+    ),
     inference = inference,
     diagnostics = diagnostics,
     meta = meta,
@@ -362,6 +393,9 @@ Use these shared modules in `src_dev/shared/`:
   object with `converged = FALSE`.
 - If using an analytic Jacobian, compare against `numDeriv::jacobian()` on small
   cases.
+- If your traits set `allow_respondents_only = TRUE`, add tests covering the
+  respondents-only workflow (supplying `n_total`, population auxiliary means,
+  etc.) so validation passes and diagnostics remain informative.
 
 ### Notes on partitioned formulas
 
@@ -378,5 +412,7 @@ Run before committing:
 
 ```r
 Rscript build_r_folder.R
-devtools::document(); devtools::test(); devtools::check()
+devtools::document()
+devtools::test()
+devtools::check()  # before release/CRAN submissions
 ```

@@ -11,6 +11,56 @@ nmar_partition_rhs <- function(rhs_expr) {
   list(aux_expr = aux_expr, response_expr = response_expr)
 }
 
+#' Normalize auxiliary RHS expression according to engine traits
+#'
+#' Removes the intercept (when requested) using the original data so that dot
+#' expansion matches `model.matrix()` behavior. Outcome variables are temporarily
+#' placed on the LHS to prevent them from reappearing on the auxiliary side when
+#' users rely on `.`.
+#'
+#' @keywords internal
+nmar_normalize_auxiliary_expr <- function(aux_expr,
+                                          drop_intercept = TRUE,
+                                          data = NULL,
+                                          env = parent.frame(),
+                                          exclude = character()) {
+  if (is.null(aux_expr)) {
+    return(NULL)
+  }
+  if (!isTRUE(drop_intercept)) {
+    return(aux_expr)
+  }
+  build_lhs <- function(vars) {
+    if (!length(vars)) return(NULL)
+    lhs <- as.name(vars[[1L]])
+    if (length(vars) == 1L) return(lhs)
+    for (nm in vars[-1L]) {
+      lhs <- call("+", lhs, as.name(nm))
+    }
+    lhs
+  }
+  lhs_expr <- build_lhs(exclude)
+  formula_call <- if (is.null(lhs_expr)) call("~", aux_expr) else call("~", lhs_expr, aux_expr)
+  aux_formula <- stats::as.formula(formula_call)
+  attr(aux_formula, ".Environment") <- env
+# Prefer evaluating terms() with the original data so dot expansion follows
+# the same rules as model.frame(); fall back to a data-free parse when needed
+# (e.g., during early validation) to keep the workflow robust.
+  terms_obj <- tryCatch(
+    stats::terms(aux_formula, data = data, simplify = TRUE),
+    error = function(e) stats::terms(aux_formula, simplify = TRUE)
+  )
+  attr(terms_obj, "intercept") <- 0L
+  aux_formula_clean <- stats::formula(terms_obj)
+  attr(aux_formula_clean, ".Environment") <- env
+  rhs_index <- if (length(aux_formula_clean) >= 3L) 3L else 2L
+  rhs_lang <- if (length(aux_formula_clean) >= rhs_index) aux_formula_clean[[rhs_index]] else NULL
+  if (is.null(rhs_lang) || identical(rhs_lang, 0) || identical(rhs_lang, 0L)) {
+    return(NULL)
+  }
+  rhs_lang
+}
+
 #' Rebuild a partitioned formula y ~ aux | response
 #'
 #' Constructs a partitioned formula from a base formula whose RHS is auxiliaries

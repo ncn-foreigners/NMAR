@@ -1,23 +1,20 @@
 test_that("convergence errors provide helpful, actionable messages", {
   skip_on_cran()
 
-# Create a scenario likely to fail convergence due to low iteration limit
-  set.seed(12345)
   df <- data.frame(
-    Y = rnorm(50, mean = 10),
-    X = rnorm(50, mean = 0)
+    Y = c(1, rep(NA, 9)),
+    X = seq_len(10)
   )
-  df$Y[1:25] <- NA # 50% missing
 
   eng <- el_engine(
     family = "logit",
     variance_method = "none",
-    control = list(maxit = 2), # Very low iterations to force failure
+    control = list(maxit = 2),
     on_failure = "error"
   )
 
   err <- tryCatch(
-    nmar(Y ~ X | X, data = df, engine = eng, trace_level = 0),
+    suppressWarnings(nmar(Y ~ X | X, data = df, engine = eng, trace_level = 0)),
     error = function(e) e
   )
 
@@ -30,12 +27,10 @@ test_that("convergence errors provide helpful, actionable messages", {
 test_that("convergence error is a standard error, not custom class", {
   skip_on_cran()
 
-  set.seed(123)
   df <- data.frame(
-    Y = rnorm(30),
-    X = rnorm(30)
+    Y = c(1, rep(NA, 19)),
+    X = seq_len(20)
   )
-  df$Y[1:15] <- NA
 
   eng <- el_engine(
     family = "logit",
@@ -45,7 +40,7 @@ test_that("convergence error is a standard error, not custom class", {
   )
 
   err <- tryCatch(
-    nmar(Y ~ X | X, data = df, engine = eng, trace_level = 0),
+    suppressWarnings(nmar(Y ~ X | X, data = df, engine = eng, trace_level = 0)),
     error = function(e) e
   )
 
@@ -95,12 +90,10 @@ test_that("negative weights error is clear and informative", {
 test_that("on_failure = 'return' provides diagnostics without error", {
   skip_on_cran()
 
-  set.seed(456)
   df <- data.frame(
-    Y = rnorm(40),
-    X = rnorm(40)
+    Y = c(1, rep(NA, 14)),
+    X = seq_len(15)
   )
-  df$Y[1:20] <- NA
 
   eng <- el_engine(
     family = "logit",
@@ -109,7 +102,7 @@ test_that("on_failure = 'return' provides diagnostics without error", {
     on_failure = "return" # Should return gracefully, not error
   )
 
-  result <- nmar(Y ~ X | X, data = df, engine = eng, trace_level = 0)
+  result <- suppressWarnings(nmar(Y ~ X | X, data = df, engine = eng, trace_level = 0))
 
 # Should return a list with converged = FALSE
   expect_type(result, "list")
