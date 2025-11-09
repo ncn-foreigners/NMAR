@@ -28,7 +28,8 @@ print.nmar_result <- function(x, ...) {
     cat("Variance method:", inference$variance_method, "\n")
   }
   if (!is.null(meta$engine_name)) {
-    cat("Estimator:", meta$engine_name, "\n")
+# Map canonical engine name to a friendly label for readability
+    cat("Estimator:", s3_engine_label(meta$engine_name), "\n")
   }
   if (is.finite(sample$n_total)) {
     cat("Sample size:", sample$n_total)

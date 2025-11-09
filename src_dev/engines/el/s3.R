@@ -21,7 +21,8 @@ print.nmar_result_el <- function(x, ...) {
   NextMethod()
 
   diagnostics <- nmar_result_get_diagnostics(x)
-  method_label <- meta$engine_name %||% "Empirical Likelihood (EL)"
+# Prefer a friendly, human-readable label for the method
+  method_label <- s3_engine_label(meta$engine_name %||% "empirical_likelihood")
   cat("\nMethod: ", method_label, "\n", sep = "")
   if (!isTRUE(x$converged)) {
     msg <- diagnostics$message %||% NA_character_

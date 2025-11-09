@@ -154,3 +154,34 @@ test_that("respondents-only inputs require allow_respondents_only trait", {
   traits_el <- NMAR:::engine_traits(el_engine(auxiliary_means = c(X = 0), n_total = 100))
   expect_silent(NMAR:::validate_nmar_args(spec, traits_el))
 })
+
+test_that("Y ~ 1 | X implies no auxiliaries and response includes outcome", {
+  df <- data.frame(Y = c(1, NA, 3), X = rnorm(3))
+  spec <- NMAR:::parse_nmar_spec(Y ~ 1 | X, df)
+# No auxiliaries when RHS aux is `1`
+  expect_length(spec$auxiliary_vars, 0)
+  expect_equal(spec$response_predictors, "X")
+# Internal response formula includes outcome implicitly
+  split <- NMAR:::nmar_split_partitioned_formula(NMAR:::nmar_rebuild_partitioned_formula(spec$formula, spec$response_rhs_lang, spec$aux_rhs_lang, env = spec$environment))
+  forms <- NMAR:::nmar_build_internal_formulas(delta_name = "..d..", outcome_var = split$outcome_var, aux_rhs_lang = split$aux_rhs_lang, response_rhs_lang = split$response_rhs_lang, env = split$env)
+  resp_str <- paste(deparse(forms$response), collapse = " ")
+  expect_true(grepl("..d.. ~ Y + X", resp_str, fixed = TRUE))
+})
+
+test_that("No bar: Y ~ X has empty explicit response predictors; response is delta ~ Y", {
+  df <- data.frame(Y = c(1, NA, 3), X = rnorm(3))
+  spec <- NMAR:::parse_nmar_spec(Y ~ X, df)
+  expect_length(spec$response_predictors_raw, 0)
+  split <- NMAR:::nmar_split_partitioned_formula(spec$formula)
+  forms <- NMAR:::nmar_build_internal_formulas(delta_name = "..d..", outcome_var = split$outcome_var, aux_rhs_lang = split$aux_rhs_lang, response_rhs_lang = split$response_rhs_lang, env = split$env)
+  resp_str <- paste(deparse(forms$response), collapse = " ")
+  expect_equal(resp_str, "..d.. ~ Y")
+})
+
+test_that("Blueprint source_variables reflect RHS only", {
+  df <- data.frame(Y = c(1, NA, 3), X = rnorm(3), Z = rnorm(3))
+  bp <- NMAR:::nmar_build_formula_blueprint(outcome_vars = "Y", aux_expr = quote(X), response_expr = quote(Y + Z), data = df, env = parent.frame())
+  expect_equal(bp$aux$source_variables, "X")
+# Explicit RHS may include Y; ensure only RHS names appear
+  expect_setequal(bp$response$source_variables, c("Y", "Z"))
+})

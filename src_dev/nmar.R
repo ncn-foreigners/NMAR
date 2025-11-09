@@ -25,6 +25,14 @@
 #'   predictors). The outcome variable is always included implicitly in the
 #'   response model.
 #'
+#'   Clarifications:
+#'   - The auxiliary block is built without an intercept. Writing `1` on the
+#'     auxiliary side (e.g., `Y ~ 1 | X`) is interpreted as having no auxiliary
+#'     constraints (i.e., an empty auxiliary matrix), not a constant column.
+#'   - The response (missingness) model always includes the outcome on the RHS
+#'     implicitly. For example, `Y ~ 1 | X` fits a response model equivalent to
+#'     `delta ~ Y + X` (with an intercept), and uses no auxiliary constraints.
+#'
 #'   Engine-specific rules (e.g., whether the outcome may appear on the response
 #'   side, or whether auxiliary and response sets may overlap) are enforced via
 #'   [`engine_traits()`]. For example, the empirical likelihood engine permits

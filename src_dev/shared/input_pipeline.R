@@ -77,7 +77,11 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
   }
 
   aux_vars_raw <- unique(setdiff(all.vars(aux_expr), "."))
-  response_vars_raw <- unique(setdiff(all.vars(resp_expr), "."))
+  response_vars_raw <- if (is.null(resp_expr)) {
+    character()
+  } else {
+    unique(setdiff(all.vars(resp_expr), "."))
+  }
 
   blueprint <- nmar_build_formula_blueprint(
     outcome_vars = outcome_vars,
@@ -117,8 +121,12 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
 #' Public S3 generic returning a small list of declarative flags that describe
 #' how an engine expects input validation to behave. This function is also used
 #' internally by the input pipeline. Users can call it on an engine object to
-#' introspect behaviour such as whether outcome variables may appear in the
-#' missingness model or whether multiple outcomes are supported.
+#' introspect behaviour such as whether outcome variables may appear on the
+#' response RHS explicitly or whether multiple outcomes are supported.
+#'
+#' Important: The NMAR response model always includes the outcome implicitly by
+#' design. The `allow_outcome_in_missingness` trait governs whether the outcome
+#' may be specified explicitly on the response RHS (e.g., `Y ~ aux | Y + Z`).
 #'
 #' @param engine An object inheriting from class `nmar_engine`.
 #' @return A named list of trait flags. The current fields are:
@@ -191,7 +199,10 @@ validate_nmar_args <- function(spec, traits = list()) {
   }
 
   aux_vars_check <- unique(c(spec$auxiliary_vars, spec$auxiliary_vars_raw))
-  response_vars_check <- unique(c(spec$response_predictors, spec$response_predictors_raw))
+# Enforce engine policy using only the explicit response RHS variables.
+# The outcome is always included implicitly in the response model by design;
+# the allow_outcome_in_missingness trait governs explicit usage only.
+  response_vars_check <- unique(spec$response_predictors_raw)
 
   validate_predictor_relationships(
     outcomes = spec$outcome,
@@ -515,11 +526,14 @@ nmar_build_terms_info <- function(formula, data, drop_response = FALSE) {
     tr_use <- stats::delete.response(tr)
   }
   mm <- stats::model.matrix(tr_use, mf)
+# Derive source variable names from the RHS terms only (exclude response)
+# by converting the terms object back to a response-less formula.
+  rhs_vars <- unique(setdiff(all.vars(stats::formula(tr_use)), "."))
   list(
     formula = formula,
     terms = tr_use,
     column_names = colnames(mm),
-    source_variables = unique(all.vars(attr(tr_use, "variables"))),
+    source_variables = rhs_vars,
     xlevels = attr(mf, "xlevels"),
     contrasts = attr(mm, "contrasts")
   )
