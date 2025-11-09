@@ -1,11 +1,11 @@
 #' Blueprint and terms builders
 #'
 #' The blueprint pattern captures formula structure at parse time, including
-#' expansion of dot (.) operators and factor level mappings. This frozen snapshot
-#' ensures reproducible model.matrix construction even if the data object changes
-#' later. Variable expansion happens once during blueprint creation and is reused
-#' for all subsequent model.matrix calls via cached terms objects, xlevels, and
-#' contrasts.
+#' expansion of dot (.) operators, factor level mappings, and the provenance of
+#' each RHS symbol. This frozen snapshot ensures reproducible `model.matrix()`
+#' construction even if the data object changes later. Variable expansion happens
+#' once during blueprint creation and is reused for all subsequent design-matrix
+#' calls via cached terms, `xlevels`, contrasts, and data-vs-environment metadata.
 #'
 #' @keywords internal
 
@@ -16,6 +16,8 @@ nmar_build_terms_info <- function(formula, data, drop_response = FALSE) {
       terms = NULL,
       column_names = character(),
       source_variables = character(),
+      source_variables_data = character(),
+      source_variables_env = character(),
       xlevels = NULL,
       contrasts = NULL
     ))
@@ -51,14 +53,18 @@ nmar_build_terms_info <- function(formula, data, drop_response = FALSE) {
 # Using stats::formula(tr_use) ensures we only capture RHS symbols and
 # not the LHS outcome. IMPORTANT: Dots (.) are expanded by model.frame at
 # this point based on the data supplied, and the expansion is frozen in the
-# terms object. This ensures stable, reproducible formula interpretation even
-# if the data changes later in the pipeline.
+# terms object. We also record which symbols existed in the data so that
+# validation can ignore helpers that live solely in the formula environment.
   rhs_vars <- unique(setdiff(all.vars(stats::formula(tr_use)), "."))
+  rhs_vars_data <- rhs_vars[rhs_vars %in% names(data)]
+  rhs_vars_env <- setdiff(rhs_vars, rhs_vars_data)
   list(
     formula = formula,
     terms = tr_use,
     column_names = colnames(mm),
     source_variables = rhs_vars,
+    source_variables_data = rhs_vars_data,
+    source_variables_env = rhs_vars_env,
     xlevels = attr(mf, "xlevels"),
     contrasts = attr(mm, "contrasts")
   )

@@ -13,11 +13,15 @@ validate_nmar_args <- function(spec, traits = list()) {
   }
   traits <- utils::modifyList(NMAR_DEFAULT_TRAITS, traits)
 
-  primary_outcome <- spec$outcome_primary %||% spec$outcome[[1]]
+  outcome_vars <- spec$outcome %||% character()
+  if (!length(outcome_vars)) {
+    stop("Parsed specification does not contain outcome variables.", call. = FALSE)
+  }
+  primary_outcome <- spec$outcome_primary %||% outcome_vars[[1]]
   if (traits$requires_single_outcome && (is.null(primary_outcome) || is.na(primary_outcome))) {
     stop("The formula must have exactly one outcome variable on the left-hand side.", call. = FALSE)
   }
-  if (traits$requires_single_outcome && length(spec$outcome) != 1L) {
+  if (traits$requires_single_outcome && length(outcome_vars) != 1L) {
     stop("The formula must have exactly one outcome variable on the left-hand side.", call. = FALSE)
   }
 
@@ -31,7 +35,7 @@ validate_nmar_args <- function(spec, traits = list()) {
 # raw symbols only if blueprint information is unavailable.
   response_vars_check <- if (length(response_vars_canonical)) response_vars_canonical else response_vars_raw
 
-  outcomes_for_relationships <- if (length(spec$outcome)) spec$outcome else primary_outcome
+  outcomes_for_relationships <- outcome_vars
   validate_predictor_relationships(
     outcomes = outcomes_for_relationships,
     auxiliary_vars = aux_vars_check,
@@ -40,18 +44,23 @@ validate_nmar_args <- function(spec, traits = list()) {
     allow_covariate_overlap = traits$allow_covariate_overlap
   )
 
-  if (length(spec$outcome) == 1L) {
+  allow_respondents_only <- isTRUE(traits$allow_respondents_only)
+  if (length(outcome_vars) == 1L) {
     validate_data(
       data = spec$original_data,
-      outcome_variable = spec$outcome[[1]],
+      outcome_variables = spec$outcome_vars_data %||% outcome_vars,
       covariates_for_outcome = aux_vars_check,
       covariates_for_missingness = response_vars_check,
       allow_outcome_in_missingness = traits$allow_outcome_in_missingness,
       allow_covariate_overlap = traits$allow_covariate_overlap,
-      allow_respondents_only = isTRUE(traits$allow_respondents_only)
+      allow_respondents_only = allow_respondents_only
     )
   } else {
-    validate_multi_outcome_data(spec$data, spec$outcome)
+    validate_multi_outcome_data(
+      data = spec$data,
+      outcome_vars = outcome_vars,
+      allow_respondents_only = allow_respondents_only
+    )
     nmar_validate_covariates(spec$data, aux_vars_check, block_label = "auxiliary")
     nmar_validate_covariates(spec$data, response_vars_check, block_label = "response")
   }
@@ -135,7 +144,7 @@ nmar_validate_covariates <- function(data, vars, block_label) {
 }
 
 #' @keywords internal
-validate_multi_outcome_data <- function(data, outcome_vars) {
+validate_multi_outcome_data <- function(data, outcome_vars, allow_respondents_only = FALSE) {
   missing_outcomes <- setdiff(outcome_vars, names(data))
   if (length(missing_outcomes) > 0) {
     stop("Outcome variables not found in data: ", paste(missing_outcomes, collapse = ", "))
@@ -152,6 +161,15 @@ validate_multi_outcome_data <- function(data, outcome_vars) {
     if (all(is.na(col))) {
       stop(
         "Outcome variable '", outcome_var, "' cannot be entirely NA.",
+        call. = FALSE
+      )
+    }
+  }
+  if (!isTRUE(allow_respondents_only)) {
+    has_missing <- vapply(outcome_vars, function(var) anyNA(data[[var]]), logical(1))
+    if (!any(has_missing)) {
+      stop(
+        "Outcome variables must contain NA values to indicate nonresponse.",
         call. = FALSE
       )
     }

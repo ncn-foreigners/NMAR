@@ -224,6 +224,9 @@ engine_traits.nmar_engine_exptilt <- function(engine) {
 engine_traits.nmar_engine_exptilt_nonparam <- function(engine) {
   utils::modifyList(
     engine_traits.default(engine),
-    list(requires_single_outcome = FALSE)
+    list(
+      requires_single_outcome = FALSE,
+      allow_respondents_only = TRUE
+    )
   )
 }

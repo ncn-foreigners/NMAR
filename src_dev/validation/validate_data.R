@@ -4,7 +4,7 @@
 #' and inappropriate variable overlaps. It provides detailed, actionable error messages to facilitate debugging.
 #'
 #' @param data A data frame or a survey object.
-#' @param outcome_variable A string specifying the outcome variable, which is expected to contain NA values.
+#' @param outcome_variables Character vector listing outcome variables, expected to contain NA values unless respondents-only is allowed.
 #' @param covariates_for_outcome A character vector of covariates explaining the outcome.
 #' @param covariates_for_missingness A character vector of covariates explaining missingness.
 #' @param allow_outcome_in_missingness Logical; allow the outcome to also appear in the
@@ -17,7 +17,7 @@
 #' @return Returns `invisible(NULL)` on success, stopping with a descriptive error on failure.
 #' @keywords internal
 validate_data <- function(data,
-                          outcome_variable,
+                          outcome_variables,
                           covariates_for_outcome,
                           covariates_for_missingness = character(),
                           allow_outcome_in_missingness = FALSE,
@@ -38,8 +38,9 @@ validate_data <- function(data,
     stop("Input dataset is empty (0 rows).", call. = FALSE)
   }
 
-  if (!is.character(outcome_variable) || length(outcome_variable) != 1) {
-    stop("`outcome_variable` must be a single character string.", call. = FALSE)
+  outcome_variables <- unique(outcome_variables)
+  if (!is.character(outcome_variables) || !length(outcome_variables)) {
+    stop("`outcome_variable` must be a character vector with at least one entry.", call. = FALSE)
   }
   if (!is.character(covariates_for_outcome)) {
     stop("`covariates_for_outcome` must be a character vector.", call. = FALSE)
@@ -57,7 +58,7 @@ validate_data <- function(data,
     stop("Duplicate variables found in covariates_for_missingness: ", paste(dup, collapse = ", "), call. = FALSE)
   }
 
-  if (!allow_outcome_in_missingness && outcome_variable %in% covariates_for_missingness) {
+  if (!allow_outcome_in_missingness && any(outcome_variables %in% covariates_for_missingness)) {
     stop("Outcome variable cannot be reused as a response covariate unless explicitly allowed.", call. = FALSE)
   }
 
@@ -70,7 +71,7 @@ validate_data <- function(data,
   }
 
 # Combine all required variables
-  all_vars <- unique(c(outcome_variable, covariates_for_outcome, covariates_for_missingness))
+  all_vars <- unique(c(outcome_variables, covariates_for_outcome, covariates_for_missingness))
 
 # Check variable existence in data
   missing_vars <- setdiff(all_vars, names(data))
@@ -85,7 +86,7 @@ validate_data <- function(data,
       if (length(bad_indices) > 0) {
         first_bad_idx <- bad_indices[1]
         bad_val <- data[[var]][first_bad_idx]
-        var_type <- if (var == outcome_variable) "Outcome variable" else "Covariate"
+        var_type <- if (var %in% outcome_variables) "Outcome variable" else "Covariate"
         stop(
           var_type, " '", var, "' contains non-finite values (Inf, -Inf, or NaN).\n",
           "First non-finite value: ", bad_val, " at row ", first_bad_idx
@@ -94,30 +95,34 @@ validate_data <- function(data,
     }
   }
 
-# Validate outcome variable
-  if (!is.numeric(data[[outcome_variable]])) {
-    bad_val <- data[[outcome_variable]][which(!is.numeric(data[[outcome_variable]]))[1]]
-    stop(
-      "Outcome variable '", outcome_variable, "' must be numeric.\n",
-      "First invalid value: '", bad_val, "' at row ", which(!is.numeric(data[[outcome_variable]]))[1]
-    )
-  }
-
-# Check for required NAs in outcome unless respondents-only is allowed
-  if (!anyNA(data[[outcome_variable]])) {
-    if (!isTRUE(allow_respondents_only)) {
-      stop("Outcome variable '", outcome_variable, "' must contain NA values.", call. = FALSE)
+# Validate outcome variables
+  for (outcome_var in outcome_variables) {
+    if (!is.numeric(data[[outcome_var]])) {
+      bad_val <- data[[outcome_var]][which(!is.numeric(data[[outcome_var]]))[1]]
+      stop(
+        "Outcome variable '", outcome_var, "' must be numeric.\n",
+        "First invalid value: '", bad_val, "' at row ", which(!is.numeric(data[[outcome_var]]))[1]
+      )
+    }
+    if (all(is.na(data[[outcome_var]]))) {
+      stop(
+        "Outcome variable '", outcome_var, "' cannot be entirely NA.",
+        call. = FALSE
+      )
     }
   }
 
-# Check for at least one non-NA value in outcome
-  if (all(is.na(data[[outcome_variable]]))) {
-    stop("Outcome variable '", outcome_variable, "' cannot be entirely NA.", call. = FALSE)
+# Check for required NAs unless respondents-only is allowed
+  if (!isTRUE(allow_respondents_only)) {
+    has_missing <- vapply(outcome_variables, function(var) anyNA(data[[var]]), logical(1))
+    if (!any(has_missing)) {
+      stop("At least one outcome variable must contain NA values.", call. = FALSE)
+    }
   }
 
 # Validate covariates
   covariates_for_missingness_checked <- if (allow_outcome_in_missingness) {
-    setdiff(covariates_for_missingness, outcome_variable)
+    setdiff(covariates_for_missingness, outcome_variables)
   } else {
     covariates_for_missingness
   }

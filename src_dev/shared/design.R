@@ -3,7 +3,10 @@
 #' `parse_nmar_spec()` turns a user formula and data object into a normalized
 #' `nmar_input_spec`. RHS partitions are separated, the original environments are
 #' preserved, and a blueprint of `terms` objects is cached so that
-#' `model.matrix()` can be re-run later without re-parsing the formula.
+#' `model.matrix()` can be re-run later without re-parsing the formula. Outcome
+#' symbols are classified according to whether they originate in the supplied
+#' data or only in the formula environment, which lets validation enforce traits
+#' without flagging helper objects.
 #'
 #' `prepare_nmar_design()` uses the spec plus engine traits to produce a
 #' method-agnostic `design_info` bundle containing
@@ -35,10 +38,6 @@ parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_D
   }
   outcome_label <- paste(deparse(outcome_expr, width.cutoff = 500L), collapse = " ")
 
-  outcome_primary <- outcome_vars_all[[1L]]
-  outcome_helpers <- setdiff(outcome_vars_all, outcome_primary)
-  outcome_vars <- if (isTRUE(traits$requires_single_outcome)) outcome_primary else outcome_vars_all
-
   rhs_parts <- nmar_partition_rhs(formula[[3L]])
   aux_expr_user <- rhs_parts$aux_expr
   resp_expr <- rhs_parts$response_expr
@@ -50,15 +49,23 @@ parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_D
   if (!is.data.frame(data_df)) {
     stop("Unable to access variables from the supplied data object.", call. = FALSE)
   }
-  missing_outcomes <- setdiff(outcome_vars_all, names(data_df))
-  if (length(missing_outcomes) > 0) {
+  outcome_vars_data <- intersect(outcome_vars_all, names(data_df))
+  outcome_vars_env <- setdiff(outcome_vars_all, outcome_vars_data)
+# Only data-backed symbols participate in validation; environment-only helpers
+# are tracked separately so we can allow constructs such as poly(X, degree).
+  if (!length(outcome_vars_data)) {
     stop(
-      "Outcome variable", if (length(missing_outcomes) > 1) "s" else "",
+      "Outcome variable",
+      if (length(outcome_vars_all) > 1) "s" else "",
       " not found in data: ",
-      paste(missing_outcomes, collapse = ", "),
+      paste(outcome_vars_all, collapse = ", "),
       call. = FALSE
     )
   }
+
+  outcome_primary <- outcome_vars_data[[1L]]
+  outcome_helpers <- setdiff(outcome_vars_data, outcome_primary)
+  outcome_vars <- if (isTRUE(traits$requires_single_outcome)) outcome_primary else outcome_vars_data
 
 # Normalize auxiliary RHS once traits are known: drop explicit intercepts if
 # requested and make sure outcome variables do not leak onto the auxiliary
@@ -95,8 +102,10 @@ parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_D
 # Blueprint source variables include whatever symbols model.matrix() kept
 # after dot expansion. Remove outcome variables so auxiliaries remain strictly
 # covariates.
-  auxiliary_vars <- setdiff(blueprint$aux$source_variables, outcome_names_all)
-  response_predictors <- blueprint$response$source_variables
+  aux_source_data <- blueprint$aux$source_variables_data %||% blueprint$aux$source_variables %||% character()
+  response_source_data <- blueprint$response$source_variables_data %||% blueprint$response$source_variables %||% character()
+  auxiliary_vars <- setdiff(aux_source_data, outcome_names_all)
+  response_predictors <- response_source_data
 
   structure(
     list(
@@ -105,6 +114,8 @@ parse_nmar_spec <- function(formula, data, env = parent.frame(), traits = NMAR_D
       outcome = outcome_vars,
       outcome_primary = outcome_primary,
       outcome_helpers = outcome_helpers,
+      outcome_vars_data = outcome_vars_data,
+      outcome_vars_env = outcome_vars_env,
       outcome_expr = outcome_expr,
       outcome_label = outcome_label,
       auxiliary_vars = auxiliary_vars,
@@ -138,6 +149,8 @@ new_nmar_task <- function(spec, traits, trace_level = 1) {
       outcome = spec$outcome,
       outcome_primary = spec$outcome_primary,
       outcome_helpers = spec$outcome_helpers,
+      outcome_vars_data = spec$outcome_vars_data,
+      outcome_vars_env = spec$outcome_vars_env,
       outcome_expr = spec$outcome_expr,
       outcome_label = spec$outcome_label,
       auxiliary_vars = spec$auxiliary_vars,
