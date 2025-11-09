@@ -184,6 +184,57 @@ test_that("multi-column outcome transformations handle helper variables", {
   expect_true(all(design$outcome_columns %in% names(design$data)))
 })
 
+test_that("multi-column outcomes receive deterministic, valid column names", {
+  helper_matrix <- function(v) {
+    mat <- cbind(v, v * 2)
+    colnames(mat) <- c("", NA_character_)
+    mat
+  }
+  env <- environment()
+  df <- data.frame(
+    Y = c(1, NA, 3),
+    X = rnorm(3)
+  )
+  fml <- cbind(Y, helper_matrix(Y)) ~ X
+  environment(fml) <- env
+  traits_multi <- utils::modifyList(
+    NMAR:::NMAR_DEFAULT_TRAITS,
+    list(requires_single_outcome = FALSE)
+  )
+  spec <- NMAR:::parse_nmar_spec(fml, df, traits = traits_multi)
+  NMAR:::validate_nmar_args(spec, traits_multi)
+  task <- NMAR:::new_nmar_task(spec, traits_multi)
+  design <- NMAR:::prepare_nmar_design(task)
+  expect_true(all(nchar(design$outcome_columns) > 0))
+  expect_equal(anyDuplicated(design$outcome_columns), 0L)
+  expect_true(any(grepl("helper_matrix", design$outcome_columns, fixed = TRUE)))
+  expect_true(all(design$outcome_columns %in% names(design$data)))
+})
+
+test_that("engine formulas reference the sanitized outcome column names", {
+  helper_tbl <- function(v) {
+    cbind(named_helper = v + 1)
+  }
+  env <- environment()
+  df <- data.frame(
+    Y_main = c(1, NA, 4, NA),
+    X = rnorm(4)
+  )
+  fml <- cbind(Y_main, helper_tbl(Y_main), Y_main * 0 + 3) ~ X
+  environment(fml) <- env
+  traits_multi <- utils::modifyList(
+    NMAR:::NMAR_DEFAULT_TRAITS,
+    list(requires_single_outcome = FALSE)
+  )
+  spec <- NMAR:::parse_nmar_spec(fml, df, traits = traits_multi)
+  NMAR:::validate_nmar_args(spec, traits_multi)
+  task <- NMAR:::new_nmar_task(spec, traits_multi)
+  design <- NMAR:::prepare_nmar_design(task)
+  lhs_vars <- all.vars(design$engine_formula[[2]])
+  expect_setequal(lhs_vars, design$outcome_columns)
+  expect_true(length(lhs_vars) == length(design$outcome_columns))
+})
+
 test_that("survey designs pick up derived outcome columns", {
   skip_if_not_installed("survey")
   df <- data.frame(

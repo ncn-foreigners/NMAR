@@ -12,6 +12,7 @@
 #' `prepare_nmar_design()` uses the spec plus engine traits to produce a
 #' method-agnostic `design_info` bundle containing
 #' * Derived outcome columns (LHS transforms are evaluated once and stored)
+#'   with deterministic names so downstream formulas can refer to them safely
 #' * Consistent weights for data frames or survey designs
 #' * Design matrices for auxiliaries/response predictors with intercept handling
 #'   controlled by engine traits
@@ -330,7 +331,7 @@ nmar_prepare_outcome_column <- function(data, expr, env) {
     na.action = stats::na.pass,
     drop.unused.levels = FALSE
   )
-  outcome_values <- outcome_frame[[1]]
+
 # Track rows where any input variable in the LHS expression is missing; we
 # do not penalize non-finite results that arise solely from missing inputs.
   input_missing <- Reduce(
@@ -357,7 +358,23 @@ nmar_prepare_outcome_column <- function(data, expr, env) {
     values
   }
 
+  label_counter <- 0L
+# Naming derived columns deterministically avoids surprises when the LHS
+# produces helper-generated frames/matrices without explicit column names.
+  resolve_label <- function(label_hint) {
+    label_str <- ""
+    if (!is.null(label_hint)) {
+      label_str <- paste(as.character(label_hint), collapse = " ")
+    }
+    if (nzchar(label_str)) {
+      return(label_str)
+    }
+    label_counter <<- label_counter + 1L
+    paste0("..nmar_outcome..", label_counter)
+  }
+
   append_column <- function(col_values, base_name, data_env) {
+    base_name <- resolve_label(base_name)
     if (!is.null(base_name) &&
         base_name %in% names(data_env) &&
         identical(col_values, data_env[[base_name]])) {
@@ -371,39 +388,70 @@ nmar_prepare_outcome_column <- function(data, expr, env) {
     list(name = new_name, data = data_env, added = TRUE)
   }
 
-  if (!is.data.frame(outcome_values) && !(is.matrix(outcome_values) && ncol(outcome_values) > 1L)) {
-    if (is.matrix(outcome_values)) {
-      outcome_values <- outcome_values[, 1L, drop = TRUE]
+  register_outcome_column <- function(values, label_hint, data_env) {
+    label <- resolve_label(label_hint %||% deparse(expr, width.cutoff = 60))
+    col_values <- coerce_numeric_column(values, label)
+    append_column(col_values, label, data_env)
+  }
+
+  process_component <- function(component, label_hint, data_env) {
+    if (is.data.frame(component)) {
+      if (!ncol(component)) {
+        stop("Outcome transformation must produce at least one column.", call. = FALSE)
+      }
+      collected_names <- character()
+      collected_added <- logical()
+# Recursively consume nested data frames so helper code can return tibbles or
+# cbind() results without losing any columns.
+      for (j in seq_len(ncol(component))) {
+        col_nm <- colnames(component)[j]
+        sub_label <- if (is.null(col_nm) || !nzchar(col_nm)) label_hint else col_nm
+        res <- process_component(component[[j]], sub_label, data_env)
+        data_env <- res$data
+        collected_names <- c(collected_names, res$names)
+        collected_added <- c(collected_added, res$added)
+      }
+      return(list(names = collected_names, added = collected_added, data = data_env))
     }
-    outcome_values <- coerce_numeric_column(outcome_values, deparse(expr, width.cutoff = 60))
-    new_column <- nmar_make_unique_colname("..nmar_outcome..", names(data))
-    data[[new_column]] <- outcome_values
-    return(list(
-      data = data,
-      columns = new_column,
-      added_columns = new_column
-    ))
+
+    if (is.matrix(component) && ncol(component) == 0L) {
+      stop("Outcome transformation must produce at least one column.", call. = FALSE)
+    }
+
+    if (is.matrix(component) && ncol(component) > 1L) {
+      collected_names <- character()
+      collected_added <- logical()
+      for (j in seq_len(ncol(component))) {
+        col_nm <- colnames(component)[j]
+        sub_label <- if (is.null(col_nm) || !nzchar(col_nm)) label_hint else col_nm
+        res <- register_outcome_column(component[, j, drop = TRUE], sub_label, data_env)
+        data_env <- res$data
+        collected_names <- c(collected_names, res$name)
+        collected_added <- c(collected_added, isTRUE(res$added))
+      }
+      return(list(names = collected_names, added = collected_added, data = data_env))
+    }
+
+    if (is.matrix(component) && ncol(component) == 1L) {
+      component <- component[, 1L, drop = TRUE]
+    }
+
+    res <- register_outcome_column(component, label_hint, data_env)
+    return(list(names = res$name, added = isTRUE(res$added), data = res$data))
   }
 
-  if (is.matrix(outcome_values)) {
-    outcome_df <- as.data.frame(outcome_values, stringsAsFactors = FALSE)
-  } else {
-    outcome_df <- outcome_values
-  }
-
-  if (!ncol(outcome_df)) {
+  if (!ncol(outcome_frame)) {
     stop("Outcome transformation must produce at least one column.", call. = FALSE)
   }
 
-  new_columns <- character(ncol(outcome_df))
-  added_columns <- logical(ncol(outcome_df))
-  for (idx in seq_len(ncol(outcome_df))) {
-    col_label <- colnames(outcome_df)[idx] %||% paste0("..nmar_outcome..", idx)
-    col_values <- coerce_numeric_column(outcome_df[[idx]], col_label)
-    insertion <- append_column(col_values, col_label, data)
-    data <- insertion$data
-    new_columns[[idx]] <- insertion$name
-    added_columns[[idx]] <- isTRUE(insertion$added)
+  new_columns <- character()
+  added_columns <- logical()
+  for (idx in seq_len(ncol(outcome_frame))) {
+    col_label <- colnames(outcome_frame)[idx] %||% paste0("..nmar_outcome..", idx)
+    res <- process_component(outcome_frame[[idx]], col_label, data)
+    data <- res$data
+    new_columns <- c(new_columns, res$names)
+    added_columns <- c(added_columns, res$added)
   }
 
   list(

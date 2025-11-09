@@ -17,10 +17,9 @@ test_that("prepare_nmar_design materializes matrices with transforms", {
   expect_true(all(is.na(df$Y) == is.na(design$data[[design$outcome_column]])))
   expect_identical(design$outcome_column, design$outcome_columns[[1]])
   expect_equal(design$user_formula, formula)
-  expect_match(
-    deparse(design$engine_formula),
-    "\\.\\.nmar_outcome\\.\\. ~ I\\(X\\^2\\)",
-    perl = TRUE
+  expect_identical(
+    design$engine_formula[[2]],
+    as.name(design$outcome_column)
   )
 
   aux_matrix <- design$design_matrices$auxiliary
