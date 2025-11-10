@@ -66,7 +66,7 @@ el.data.frame <- function(data, formula,
     stop("Respondents-only data detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total sample size>).", call. = FALSE)
   }
 
-  parsed_inputs <- prepare_el_inputs(formula, data, require_na = is.null(n_total))
+  parsed_inputs <- el_prepare_inputs(formula, data, require_na = is.null(n_total))
   estimation_data <- parsed_inputs$data
   internal_formula <- parsed_inputs$formula_list
   response_var <- all.vars(internal_formula$response)[1]

@@ -70,7 +70,7 @@ el.survey.design <- function(data, formula,
     stop("Respondents-only survey design detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total design weight or population total>).", call. = FALSE)
   }
 
-  parsed_inputs <- prepare_el_inputs(formula, design$variables,
+  parsed_inputs <- el_prepare_inputs(formula, design$variables,
                                      require_na = is.null(n_total))
   design$variables <- parsed_inputs$data
   internal_formula <- parsed_inputs$formula_list

@@ -80,7 +80,9 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
 #'   names in `auxiliary_means`. See Qin, Leung and Shao (2002) for the EL
 #'   formulation.
 #' @keywords internal
-prepare_el_inputs <- function(formula, data, require_na = TRUE) {
+#' Build internal EL formulas and data
+#' @keywords internal
+el_prepare_inputs <- function(formula, data, require_na = TRUE) {
   if (!inherits(formula, "formula") || length(formula) != 3 || length(all.vars(formula[[2]])) != 1) {
     stop("`formula` must be a two-sided formula with a single variable on the LHS, e.g., y ~ x1 + x2.", call. = FALSE)
   }
@@ -142,4 +144,9 @@ prepare_el_inputs <- function(formula, data, require_na = TRUE) {
   }
 
   list(data = data2, formula_list = list(outcome = outcome_fml, response = response_fml, auxiliary = auxiliary_fml))
+}
+
+# Backward-compatible alias (kept silent to avoid test warnings). Prefer el_prepare_inputs().
+prepare_el_inputs <- function(formula, data, require_na = TRUE) {
+  el_prepare_inputs(formula = formula, data = data, require_na = require_na)
 }
