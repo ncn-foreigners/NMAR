@@ -12,12 +12,9 @@ run_engine.nmar_engine_el <- function(engine, task) {
     include_auxiliary = TRUE
   )
 
-# Reconstruct a formula carrying response-only predictors to the right of `|`
-  f_use <- nmar_rebuild_partitioned_formula(
-    base_formula = task$formula,
-    response_predictors = design_info$response_predictors,
-    env = task$environment
-  )
+# Use the original user formula (possibly partitioned with `|`) so that
+# factors and transformations are honored by model.matrix().
+  f_use <- task$formula_original
 
   args <- list(
     data = design_info$survey_design %||% design_info$data,
@@ -41,6 +38,17 @@ run_engine.nmar_engine_el <- function(engine, task) {
 # Ensure class includes the NMAR parent for downstream compatibility
   if (!inherits(res, "nmar_result_el")) {
     stop("EL engine did not return an 'nmar_result_el' object.")
+  }
+# Patch result metadata: expose outer nmar() call as meta$call and engine call as meta$engine_call
+  if (is.list(res$meta)) {
+    engine_call <- res$meta$call %||% NULL
+    res$meta$engine_call <- engine_call
+# Use outer nmar() call, but ensure the formula component is the actual formula object
+    outer_call <- task$nmar_call %||% res$meta$call
+    if (!is.null(outer_call)) {
+      outer_call$formula <- task$formula_original %||% outer_call$formula
+    }
+    res$meta$call <- outer_call
   }
   res
 }

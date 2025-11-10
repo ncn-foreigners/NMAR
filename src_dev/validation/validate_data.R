@@ -125,20 +125,24 @@ validate_data <- function(data,
   covariate_vars <- unique(c(covariates_for_outcome, covariates_for_missingness_checked))
 
   for (var in covariate_vars) {
-# Check type
-    if (!is.numeric(data[[var]]) && !is.logical(data[[var]])) {
-      bad_val <- data[[var]][which(!is.numeric(data[[var]]) & !is.logical(data[[var]]))[1]]
+# Check type: allow numeric, logical, or factor. Character is disallowed (ask user to factorize explicitly).
+    col <- data[[var]]
+    is_ok <- is.numeric(col) || is.logical(col) || is.factor(col)
+    if (!is_ok) {
+      bad_idx <- which(!(is.numeric(col) | is.logical(col) | is.factor(col)))[1]
+      bad_val <- col[bad_idx]
       stop(
-        "Covariate '", var, "' must be numeric or logical.\n",
-        "First invalid value: '", bad_val, "' at row ", which(!is.numeric(data[[var]]) & !is.logical(data[[var]]))[1]
+        "Covariate '", var, "' must be numeric, logical, or factor.\n",
+        "First invalid (e.g., character) value: '", bad_val, "' at row ", bad_idx, "\n",
+        "Convert character predictors to factor explicitly to control levels."
       )
     }
 
 # Check for NAs
-    if (anyNA(data[[var]])) {
+    if (anyNA(col)) {
       stop(
         "Covariate '", var, "' contains NA values.\n",
-        "First NA at row ", which(is.na(data[[var]]))[1]
+        "First NA at row ", which(is.na(col))[1]
       )
     }
   }

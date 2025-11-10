@@ -86,42 +86,60 @@ prepare_el_inputs <- function(formula, data, require_na = TRUE) {
   }
   env <- environment(formula)
   if (is.null(env)) env <- parent.frame()
-  outcome_var <- all.vars(formula[[2]])
 
-# Split RHS by `|` if present: auxiliaries on the left, response-only on the right
-  rhs <- formula[[3]]
+# LHS outcome
+  outcome_sym <- formula[[2L]]
+  outcome_var <- all.vars(outcome_sym)[1]
+
+# Split RHS by `|` (preserve language objects)
+  rhs <- formula[[3L]]
   aux_expr <- rhs
   resp_expr <- NULL
   if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) {
     aux_expr <- rhs[[2L]]
     resp_expr <- rhs[[3L]]
   }
-  rhs_vars <- all.vars(aux_expr)
-  response_predictors <- if (is.null(resp_expr)) character() else unique(all.vars(resp_expr))
+
+# Validation of referenced variables (use symbol sets)
+  aux_vars <- unique(all.vars(aux_expr))
+  resp_vars <- if (is.null(resp_expr)) character() else unique(all.vars(resp_expr))
   if (!outcome_var %in% names(data)) stop(sprintf("Outcome variable '%s' not found in the data.", outcome_var), call. = FALSE)
   if (isTRUE(require_na) && !anyNA(data[[outcome_var]])) stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_var), call. = FALSE)
-  response_predictors_full <- c(outcome_var, response_predictors)
-  missing_in_data <- setdiff(response_predictors, names(data))
-  if (length(missing_in_data) > 0) stop(sprintf("Variables in response part not found in data: %s", paste(missing_in_data, collapse = ", ")), call. = FALSE)
+  missing_in_resp <- setdiff(resp_vars, names(data))
+  if (length(missing_in_resp) > 0) stop(sprintf("Variables in response part not found in data: %s", paste(missing_in_resp, collapse = ", ")), call. = FALSE)
+
+# Create response indicator column name (avoid collision)
   delta_name <- "..nmar_delta.."
   if (delta_name %in% names(data)) {
     i <- 1L
     while (paste0(delta_name, i) %in% names(data)) i <- i + 1L
     delta_name <- paste0(delta_name, i)
   }
+
+# Build internal outcome and response formulas from language objects
   data2 <- data
   data2[[delta_name]] <- as.integer(!is.na(data2[[outcome_var]]))
-  outcome_fml <- stats::as.formula(paste(outcome_var, "~ 1"))
+
+# outcome: y ~ 1
+  outcome_fml <- as.formula(call("~", outcome_sym, 1L))
   environment(outcome_fml) <- env
-  response_rhs <- if (length(response_predictors_full) > 0) paste(response_predictors_full, collapse = " + ") else "1"
-  response_fml <- stats::as.formula(paste(delta_name, "~", response_rhs))
-  environment(response_fml) <- env
-  auxiliary_fml <- if (length(rhs_vars) > 0) {
-    f <- stats::as.formula(paste("~", paste(rhs_vars, collapse = " + "), "- 1"))
-    environment(f) <- env
-    f
+
+# response: delta ~ (outcome + resp_expr?)
+  rhs_resp <- if (is.null(resp_expr)) {
+    outcome_sym
   } else {
-    NULL
+    call("+", outcome_sym, resp_expr)
   }
+  response_fml <- as.formula(call("~", as.name(delta_name), rhs_resp))
+  environment(response_fml) <- env
+
+# auxiliary: ~ 0 + aux_expr (no intercept) without using update(. ~ . - 1)
+  auxiliary_fml <- NULL
+  if (!is.null(aux_expr) && length(all.vars(aux_expr)) > 0) {
+    rhs <- call("+", 0, aux_expr)
+    auxiliary_fml <- as.formula(call("~", rhs))
+    environment(auxiliary_fml) <- env
+  }
+
   list(data = data2, formula_list = list(outcome = outcome_fml, response = response_fml, auxiliary = auxiliary_fml))
 }

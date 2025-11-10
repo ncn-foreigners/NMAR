@@ -12,12 +12,14 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
   if (!is.environment(env)) env <- parent.frame()
   if (is.null(environment(formula))) environment(formula) <- env
 
+# Keep the full, original formula (possibly with `|`) for faithful evaluation
+  formula_original <- formula
+
+# Split RHS by `|`: y ~ aux | response
   outcome_vars <- unique(all.vars(formula[[2]]))
   if (length(outcome_vars) == 0L) {
     stop("The formula must specify at least one outcome variable on the left-hand side.", call. = FALSE)
   }
-
-# Support partitioned RHS using `|`: y ~ aux | response
   rhs <- formula[[3]]
   aux_expr <- rhs
   resp_expr <- NULL
@@ -26,20 +28,18 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
     resp_expr <- rhs[[3L]]
   }
 
+# Variable name sets (for validation and traits)
   auxiliary_vars <- unique(all.vars(aux_expr))
   response_predictors <- if (is.null(resp_expr)) character() else unique(all.vars(resp_expr))
 
   validator$assert_data_frame_or_survey(data, name = "data")
-
   is_survey <- inherits(data, "survey.design")
   data_df <- if (is_survey) data$variables else data
   if (!is.data.frame(data_df)) {
     stop("Unable to access variables from the supplied data object.", call. = FALSE)
   }
 
-# Rebuild a normalized formula whose RHS is just auxiliaries (the response side is
-# tracked separately as `response_predictors`). This ensures downstream code that
-# prints or stores the user formula keeps the original environment.
+# Normalized formula for light-weight surfaces (aux-only on RHS). Kept for display, not evaluation.
   normalized_formula <- formula
   if (!is.null(resp_expr)) {
     normalized_formula[[3L]] <- aux_expr
@@ -48,6 +48,11 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
   structure(
     list(
       formula = normalized_formula,
+      formula_original = formula_original,
+      aux_expr = aux_expr,
+      resp_expr = resp_expr,
+      aux_rhs_lang = aux_expr,
+      resp_rhs_lang = resp_expr,
       outcome = outcome_vars,
       auxiliary_vars = auxiliary_vars,
       response_predictors = response_predictors,
@@ -190,6 +195,9 @@ new_nmar_task <- function(spec, traits) {
   structure(
     list(
       formula = spec$formula,
+      formula_original = spec$formula_original,
+      aux_expr = spec$aux_expr,
+      resp_expr = spec$resp_expr,
       outcome = spec$outcome,
       auxiliary_vars = spec$auxiliary_vars,
       response_predictors = spec$response_predictors,

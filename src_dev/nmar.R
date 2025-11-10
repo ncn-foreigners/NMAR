@@ -32,7 +32,7 @@
 #'   convergence information, and other relevant output from the chosen NMAR method.
 #' @keywords nmar
 #' @export
-nmar <- function(formula, data, engine, trace_level = 1) {
+nmar <- function(formula, data, engine, trace_level = 0) {
   stopifnot(inherits(engine, "nmar_engine"))
 
   validator$assert_choice(trace_level, choices = 0:3, name = "trace_level")
@@ -58,6 +58,8 @@ nmar <- function(formula, data, engine, trace_level = 1) {
 
 # Pass trace_level to the engine
   task$trace_level <- trace_level
+# Preserve the outer nmar() call for result metadata
+  task$nmar_call <- match.call()
 
   run_engine(engine, task)
 }

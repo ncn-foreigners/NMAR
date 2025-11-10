@@ -254,7 +254,7 @@ validate_and_apply_nmar_scaling <- function(standardize, has_aux, response_model
     )
     response_model_matrix_scaled <- apply_nmar_scaling(response_model_matrix_unscaled, nmar_scaling_recipe)
     auxiliary_matrix_scaled <- apply_nmar_scaling(auxiliary_matrix_unscaled, nmar_scaling_recipe)
-    mu_x_scaled <- if (has_aux) {
+    mu_x_scaled <- if (has_aux && !is.null(mu_x_unscaled) && length(mu_x_unscaled) > 0) {
       vapply(names(mu_x_unscaled), function(n) (mu_x_unscaled[n] - nmar_scaling_recipe[[n]]$mean) / nmar_scaling_recipe[[n]]$sd, numeric(1))
     } else {
       numeric(0)

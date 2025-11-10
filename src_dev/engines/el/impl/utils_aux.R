@@ -82,7 +82,18 @@ el_resolve_auxiliaries <- function(full_data,
 
 # User-supplied population means take precedence
   if (!is.null(auxiliary_means)) {
-    keep <- intersect(colnames(aux_resp), names(auxiliary_means))
+    provided_names <- names(auxiliary_means)
+    keep <- intersect(colnames(aux_resp), provided_names)
+    dropped <- setdiff(provided_names, keep)
+    if (length(dropped) > 0) {
+      warning(
+        sprintf(
+          "Dropping unmatched names in 'auxiliary_means': %s",
+          paste(dropped, collapse = ", ")
+        ),
+        call. = FALSE
+      )
+    }
     if (length(keep) == 0L) {
       return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
                   means = NULL,
