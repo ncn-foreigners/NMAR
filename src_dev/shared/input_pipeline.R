@@ -45,6 +45,10 @@ parse_nmar_spec <- function(formula, data, env = parent.frame()) {
     normalized_formula[[3L]] <- aux_expr
   }
 
+# NOTE: `formula` (aux-only RHS) is kept for legacy compatibility with
+# existing engines (exptilt). New engines should use `formula_original`
+# directly and build model matrices from language expressions, not from
+# flattened names.
   structure(
     list(
       formula = normalized_formula,
@@ -279,6 +283,10 @@ prepare_nmar_design <- function(task,
 nmar_rebuild_partitioned_formula <- function(base_formula,
                                             response_predictors,
                                             env = NULL) {
+# LEGACY: This helper rebuilds a partitioned formula from character names.
+# It is lossy for transforms/interactions and should NOT be used by new
+# engines to drive modeling. Engines should instead consume
+# `task$formula_original` and build model frames/matrices from language.
   if (!inherits(base_formula, "formula") || length(base_formula) != 3L) {
     stop("`base_formula` must be a two-sided formula.", call. = FALSE)
   }
