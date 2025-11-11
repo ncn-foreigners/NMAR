@@ -80,20 +80,20 @@ el_resolve_auxiliaries <- function(full_data,
                 has_aux = FALSE))
   }
 
-# Enforce no-intercept policy for auxiliary constraints
+# Enforce no-intercept policy for auxiliary constraints: warn and drop
   if ("(Intercept)" %in% colnames(aux_resp)) {
-    stop(
-      "Auxiliary RHS must not include an intercept (+1). Remove '+ 1'; ",
-      "auxiliary constraints are imposed on centered moments and have no intercept.",
-      call. = FALSE
-    )
+    warning("Auxiliary RHS included an intercept; removing it for constraints.", call. = FALSE)
+    aux_resp <- aux_resp[, setdiff(colnames(aux_resp), "(Intercept)"), drop = FALSE]
+    if (ncol(aux_resp) == 0) {
+      return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
+                  means = NULL,
+                  has_aux = FALSE))
+    }
   }
 
   if (!is.null(auxiliary_means) && "(Intercept)" %in% names(auxiliary_means)) {
-    stop(
-      "auxiliary_means must not include '(Intercept)'. Provide means only for actual auxiliary columns.",
-      call. = FALSE
-    )
+    warning("Ignoring '(Intercept)' in auxiliary_means; auxiliary constraints do not include an intercept.", call. = FALSE)
+    auxiliary_means <- auxiliary_means[setdiff(names(auxiliary_means), "(Intercept)")]
   }
 
 # User-supplied population means take precedence
@@ -131,11 +131,13 @@ el_resolve_auxiliaries <- function(full_data,
                   has_aux = FALSE))
     }
     if ("(Intercept)" %in% colnames(mm_full)) {
-      stop(
-        "Auxiliary RHS must not include an intercept (+1). Remove '+ 1'; ",
-        "auxiliary constraints are imposed on centered moments and have no intercept.",
-        call. = FALSE
-      )
+      warning("Auxiliary RHS included an intercept in full data; removing it for constraints.", call. = FALSE)
+      mm_full <- mm_full[, setdiff(colnames(mm_full), "(Intercept)"), drop = FALSE]
+      if (ncol(mm_full) == 0) {
+        return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
+                    means = NULL,
+                    has_aux = FALSE))
+      }
     }
     common_cols <- intersect(colnames(aux_resp), colnames(mm_full))
     if (length(common_cols) == 0L) {
@@ -159,11 +161,13 @@ el_resolve_auxiliaries <- function(full_data,
                   has_aux = FALSE))
     }
     if ("(Intercept)" %in% colnames(mm_full)) {
-      stop(
-        "Auxiliary RHS must not include an intercept (+1). Remove '+ 1'; ",
-        "auxiliary constraints are imposed on centered moments and have no intercept.",
-        call. = FALSE
-      )
+      warning("Auxiliary RHS included an intercept in full data; removing it for constraints.", call. = FALSE)
+      mm_full <- mm_full[, setdiff(colnames(mm_full), "(Intercept)"), drop = FALSE]
+      if (ncol(mm_full) == 0) {
+        return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
+                    means = NULL,
+                    has_aux = FALSE))
+      }
     }
     common_cols <- intersect(colnames(aux_resp), colnames(mm_full))
     if (length(common_cols) == 0L) {

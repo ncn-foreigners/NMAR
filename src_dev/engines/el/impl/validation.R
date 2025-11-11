@@ -50,14 +50,13 @@ el_validate_vars_present <- function(data, aux_vars, resp_vars) {
 }
 
 #' @keywords internal
-el_validate_aux_no_na <- function(data, aux_expr, respondent_mask, auxiliary_means) {
+el_validate_aux_no_na <- function(data, aux_expr, respondent_mask, auxiliary_means, env = parent.frame()) {
   if (is.null(aux_expr) || length(all.vars(aux_expr)) == 0) return(invisible(NULL))
+# Build one-sided, no-intercept formula (~ 0 + aux_expr) and set environment
+  aux_check_fml <- as.formula(call("~", call("+", 0, aux_expr)))
+  environment(aux_check_fml) <- env
   aux_mf <- tryCatch(
-    model.frame(
-      as.formula(call("~", call("+", 0, aux_expr))),
-      data = data,
-      na.action = stats::na.pass
-    ),
+    model.frame(aux_check_fml, data = data, na.action = stats::na.pass),
     error = function(e) NULL
   )
   if (!is.null(aux_mf) && ncol(aux_mf) > 0) {
@@ -141,13 +140,21 @@ el_prepare_inputs <- function(formula, data, require_na = TRUE, auxiliary_means 
   el_validate_outcome(data, outcome_var, require_na)
   el_validate_vars_present(data, aux_vars, resp_vars)
   respondent_mask <- !is.na(data[[outcome_var]])
-  el_validate_aux_no_na(data, parts$aux_expr, respondent_mask = respondent_mask, auxiliary_means = auxiliary_means)
+# Normalize auxiliary RHS to no-intercept and run NA validation with the same environment
+  norm <- el_aux_formula_normalize(parts$aux_expr, env)
+  if (isTRUE(norm$removed_intercept)) {
+    warning("Auxiliary constraints do not include an intercept; the requested intercept was removed.", call. = FALSE)
+  }
+  el_validate_aux_no_na(data, parts$aux_expr, respondent_mask = respondent_mask, auxiliary_means = auxiliary_means, env = env)
 
 # Response-model predictors must not contain NA among respondents
 # Build model.frame for ~ 0 + (outcome + resp_expr)
   resp_rhs <- if (is.null(parts$resp_expr)) outcome_sym else call("+", outcome_sym, parts$resp_expr)
+# Build one-sided, no-intercept temporary formula for response predictors (~ 0 + (Y + resp_rhs))
+  resp_check_fml <- as.formula(call("~", call("+", 0, resp_rhs)))
+  environment(resp_check_fml) <- env
   resp_mf <- tryCatch(
-    model.frame(as.formula(call("~", call("+", 0, resp_rhs))), data = data, na.action = stats::na.pass),
+    model.frame(resp_check_fml, data = data, na.action = stats::na.pass),
     error = function(e) NULL
   )
   if (!is.null(resp_mf) && ncol(resp_mf) > 0) {
@@ -165,6 +172,42 @@ el_prepare_inputs <- function(formula, data, require_na = TRUE, auxiliary_means 
   }
 
   d <- el_make_delta_column(data, outcome_var)
-  forms <- el_build_internal_formulas(outcome_sym, parts$resp_expr, parts$aux_expr, d$delta_name, env)
-  list(data = d$data, formula_list = forms)
+# Build outcome/response formulas; use normalized auxiliary formula directly
+  outcome_fml <- as.formula(call("~", outcome_sym, 1L))
+  environment(outcome_fml) <- env
+  rhs_resp <- if (is.null(parts$resp_expr)) outcome_sym else call("+", outcome_sym, parts$resp_expr)
+  response_fml <- as.formula(call("~", as.name(d$delta_name), rhs_resp))
+  environment(response_fml) <- env
+  auxiliary_fml <- norm$formula_no_int
+  list(data = d$data, formula_list = list(outcome = outcome_fml, response = response_fml, auxiliary = auxiliary_fml))
+}
+#' Normalize auxiliary RHS to a one-sided, no-intercept formula
+#' @keywords internal
+el_aux_formula_normalize <- function(aux_expr, env) {
+  stopifnot(!is.null(env))
+  if (is.null(aux_expr) || length(all.vars(aux_expr)) == 0) {
+    return(list(formula_no_int = NULL, removed_intercept = FALSE))
+  }
+# Detect explicit '+ 1' in the language (default intercept alone should not trigger a warning)
+  contains_explicit_one <- (function(node) {
+    if (is.null(node)) return(FALSE)
+    if (is.numeric(node) && length(node) == 1L && isTRUE(all.equal(node, 1))) return(TRUE)
+    if (is.call(node)) {
+      op <- as.character(node[[1L]])
+      if (op %in% c("+", "-")) {
+        for (i in 2L:length(node)) if (Recall(node[[i]])) return(TRUE)
+      }
+    }
+    FALSE
+  })(aux_expr)
+
+# Build ~ aux_expr and normalize with intercept=0 using '-1' (robust for model.matrix)
+  aux_fml0 <- as.formula(call("~", aux_expr))
+  environment(aux_fml0) <- env
+  trm <- terms.formula(aux_fml0)
+  had_intercept <- isTRUE(attr(trm, "intercept") == 1)
+  aux_rhs_str <- paste(deparse(aux_expr, width.cutoff = 500L), collapse = " ")
+  aux_fml_no_int <- as.formula(paste("~ -1 +", aux_rhs_str))
+  environment(aux_fml_no_int) <- env
+  list(formula_no_int = aux_fml_no_int, removed_intercept = (had_intercept && contains_explicit_one))
 }
