@@ -201,13 +201,13 @@ el_aux_formula_normalize <- function(aux_expr, env) {
     FALSE
   })(aux_expr)
 
-# Build ~ aux_expr and normalize with intercept=0 using '-1' (robust for model.matrix)
+# Build ~ aux_expr and normalize with intercept=0 without string assembly
   aux_fml0 <- as.formula(call("~", aux_expr))
   environment(aux_fml0) <- env
   trm <- terms.formula(aux_fml0)
   had_intercept <- isTRUE(attr(trm, "intercept") == 1)
-  aux_rhs_str <- paste(deparse(aux_expr, width.cutoff = 500L), collapse = " ")
-  aux_fml_no_int <- as.formula(paste("~ -1 +", aux_rhs_str))
+# Construct one-sided, no-intercept formula: ~ 0 + aux_expr
+  aux_fml_no_int <- as.formula(call("~", call("+", 0, aux_expr)))
   environment(aux_fml_no_int) <- env
   list(formula_no_int = aux_fml_no_int, removed_intercept = (had_intercept && contains_explicit_one))
 }
