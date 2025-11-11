@@ -24,9 +24,8 @@ test_that("misnamed auxiliary_means are dropped (EL resolves to no auxiliaries)"
   df <- data.frame(Y_miss = Y_true, X = X)
   df$Y_miss[R == 0] <- NA_real_
 
-# Build aux-only formula for EL internal utilities
-  spec <- NMAR:::parse_nmar_spec(Y_miss ~ I(X^2), df)
-  aux_fml <- NMAR:::nmar_make_aux_formula(spec$outcome, spec$aux_rhs_lang, spec$environment)
+# Build aux-only formula for EL internal utilities (no input pipeline)
+  aux_fml <- stats::as.formula("~ 0 + I(X^2)")
   resp_df <- df[!is.na(df$Y_miss), , drop = FALSE]
 
 # Misnamed means (no match) -> auxiliaries disabled

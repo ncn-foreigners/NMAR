@@ -62,9 +62,8 @@ el.data.frame <- function(data, formula,
       call. = FALSE
     )
   }
-  if (respondents_only_0 && is.null(n_total)) {
-    stop("Respondents-only data detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total sample size>).", call. = FALSE)
-  }
+# Do not error on respondents-only here; el_prepare_inputs(require_na = is.null(n_total))
+# will produce a clear 'must contain NA' message when applicable.
 
   parsed_inputs <- el_prepare_inputs(formula, data, require_na = is.null(n_total))
   estimation_data <- parsed_inputs$data

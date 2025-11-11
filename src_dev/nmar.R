@@ -38,8 +38,15 @@ nmar <- function(formula, data, engine, trace_level = 0) {
   validator$assert_choice(trace_level, choices = 0:3, name = "trace_level")
   validate_data(data)
 
+# Dispatch to engine
+  res <- run_engine(engine, formula, data, trace_level)
 
-  run_engine(engine, formula, data, trace_level)
+# Ensure meta$call records the outer nmar() call with the actual formula object
+  nmar_call <- match.call()
+  nmar_call$formula <- formula
+  if (is.null(res$meta) || !is.list(res$meta)) res$meta <- list()
+  res$meta$call <- nmar_call
+  res
 }
 
 run_engine <- function(engine, formula, data, trace_level) {

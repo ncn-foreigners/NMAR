@@ -105,7 +105,13 @@ el_prepare_inputs <- function(formula, data, require_na = TRUE) {
 # Validation of referenced variables (use symbol sets)
   aux_vars <- unique(all.vars(aux_expr))
   resp_vars <- if (is.null(resp_expr)) character() else unique(all.vars(resp_expr))
-  if (!outcome_var %in% names(data)) stop(sprintf("Outcome variable '%s' not found in the data.", outcome_var), call. = FALSE)
+  if (!outcome_var %in% names(data)) {
+    stop(sprintf("Variables not found in data: %s", outcome_var), call. = FALSE)
+  }
+  missing_in_aux <- setdiff(aux_vars, names(data))
+  if (length(missing_in_aux) > 0) {
+    stop(sprintf("Variables not found in data: %s", paste(missing_in_aux, collapse = ", ")), call. = FALSE)
+  }
   if (isTRUE(require_na) && !anyNA(data[[outcome_var]])) stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_var), call. = FALSE)
   missing_in_resp <- setdiff(resp_vars, names(data))
   if (length(missing_in_resp) > 0) stop(sprintf("Variables in response part not found in data: %s", paste(missing_in_resp, collapse = ", ")), call. = FALSE)
