@@ -72,7 +72,7 @@ el_resolve_auxiliaries <- function(full_data,
                 has_aux = FALSE))
   }
 
-  aux_resp <- tryCatch(model.matrix(aux_formula, data = respondent_data),
+  aux_resp <- tryCatch(model.matrix(aux_formula, data = respondent_data, na.action = stats::na.pass),
                        error = function(e) NULL)
   if (is.null(aux_resp) || ncol(aux_resp) == 0) {
     return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
@@ -123,7 +123,7 @@ el_resolve_auxiliaries <- function(full_data,
 
 # Otherwise compute from the full data (design-weighted if survey)
   if (inherits(full_data, "survey.design")) {
-    mm_full <- tryCatch(model.matrix(aux_formula, data = full_data$variables),
+    mm_full <- tryCatch(model.matrix(aux_formula, data = full_data$variables, na.action = stats::na.pass),
                         error = function(e) NULL)
     if (is.null(mm_full) || ncol(mm_full) == 0) {
       return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
@@ -151,7 +151,7 @@ el_resolve_auxiliaries <- function(full_data,
     mu <- mu[colnames(aux_resp)]
     return(list(matrix = aux_resp, means = mu, has_aux = TRUE))
   } else {
-    mm_full <- tryCatch(model.matrix(aux_formula, data = full_data),
+    mm_full <- tryCatch(model.matrix(aux_formula, data = full_data, na.action = stats::na.pass),
                         error = function(e) NULL)
     if (is.null(mm_full) || ncol(mm_full) == 0) {
       return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),

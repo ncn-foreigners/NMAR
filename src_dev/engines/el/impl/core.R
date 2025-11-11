@@ -56,7 +56,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   has_aux <- !is.null(internal_formula$auxiliary)
 
   response_model_formula <- update(internal_formula$response, NULL ~ .)
-  response_model_matrix_unscaled <- model.matrix(response_model_formula, data = respondent_data)
+  response_model_matrix_unscaled <- model.matrix(response_model_formula, data = respondent_data, na.action = stats::na.pass)
 
 # Resolve auxiliaries and their population means in a single place
   aux_res <- el_resolve_auxiliaries(

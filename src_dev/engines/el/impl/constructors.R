@@ -108,13 +108,42 @@ el_prepare_inputs <- function(formula, data, require_na = TRUE) {
   if (!outcome_var %in% names(data)) {
     stop(sprintf("Variables not found in data: %s", outcome_var), call. = FALSE)
   }
+# Outcome must be numeric (estimation targets a numeric mean)
+  if (!is.numeric(data[[outcome_var]])) {
+    stop(sprintf("Outcome variable '%s' must be numeric.", outcome_var), call. = FALSE)
+  }
   missing_in_aux <- setdiff(aux_vars, names(data))
   if (length(missing_in_aux) > 0) {
     stop(sprintf("Variables not found in data: %s", paste(missing_in_aux, collapse = ", ")), call. = FALSE)
   }
   if (isTRUE(require_na) && !anyNA(data[[outcome_var]])) stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_var), call. = FALSE)
   missing_in_resp <- setdiff(resp_vars, names(data))
-  if (length(missing_in_resp) > 0) stop(sprintf("Variables in response part not found in data: %s", paste(missing_in_resp, collapse = ", ")), call. = FALSE)
+  if (length(missing_in_resp) > 0) {
+# Unify wording with other missing-variable errors so tests match consistently
+    stop(sprintf("Variables not found in data: %s", paste(missing_in_resp, collapse = ", ")), call. = FALSE)
+  }
+
+# If auxiliaries are present, ensure no NA values in those columns across the full data
+  if (!is.null(aux_expr) && length(all.vars(aux_expr)) > 0) {
+    aux_mf <- tryCatch(
+      model.frame(
+        as.formula(call("~", call("+", 0, aux_expr))),
+        data = data,
+        na.action = stats::na.pass
+      ),
+      error = function(e) NULL
+    )
+    if (!is.null(aux_mf) && ncol(aux_mf) > 0 && anyNA(aux_mf)) {
+# Identify first offending column and row for a clearer message
+      na_by_col <- vapply(seq_len(ncol(aux_mf)), function(j) anyNA(aux_mf[[j]]), logical(1))
+      bad_col <- colnames(aux_mf)[which(na_by_col)[1]]
+      bad_row <- which(is.na(aux_mf[[bad_col]]))[1]
+      msg <- sprintf("Covariate '%s' contains NA values.%s",
+                     bad_col,
+                     if (is.finite(bad_row)) sprintf("\nFirst NA at row %d", bad_row) else "")
+      stop(msg, call. = FALSE)
+    }
+  }
 
 # Create response indicator column name (avoid collision)
   delta_name <- "..nmar_delta.."
