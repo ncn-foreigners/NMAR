@@ -20,7 +20,8 @@ Imports:
     nleqslv,
     utils,
     numDeriv,
-    generics
+    generics,
+    Formula
 RoxygenNote: 7.3.3
 Suggests:
     knitr,

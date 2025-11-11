@@ -1,28 +1,11 @@
 #' @title Validate Data for NMAR Analysis
-#' @description A robust function to validate a data frame or survey object before performing NMAR analysis.
-#' The function checks for common errors like missing variables, data type inconsistencies,
-#' and inappropriate variable overlaps. It provides detailed, actionable error messages to facilitate debugging.
+#' @description Little sanity-check for data
 #'
 #' @param data A data frame or a survey object.
-#' @param outcome_variable A string specifying the outcome variable, which is expected to contain NA values.
-#' @param covariates_for_outcome A character vector of covariates explaining the outcome.
-#' @param covariates_for_missingness A character vector of covariates explaining missingness.
-#' @param allow_outcome_in_missingness Logical; allow the outcome to also appear in the
-#'   response-model covariates (default `FALSE`).
-#' @param allow_covariate_overlap Logical; allow overlap between outcome and response
-#'   covariate sets (default `FALSE`).
-#' @param allow_respondents_only Logical; allow datasets with no missing outcome
-#'   values (respondents-only). When TRUE, the caller is expected to provide any
-#'   additional information required by the engine (e.g., total sample size).
+
 #' @return Returns `invisible(NULL)` on success, stopping with a descriptive error on failure.
 #' @keywords internal
-validate_data <- function(data,
-                          outcome_variable,
-                          covariates_for_outcome,
-                          covariates_for_missingness = character(),
-                          allow_outcome_in_missingness = FALSE,
-                          allow_covariate_overlap = FALSE,
-                          allow_respondents_only = FALSE) {
+validate_data <- function(data) {
 # Validate data object type
   if (!inherits(data, c("data.frame", "survey.design"))) {
     stop("'data' must be a data.frame or survey.design object. Received: ", class(data)[1], call. = FALSE)
@@ -38,114 +21,6 @@ validate_data <- function(data,
     stop("Input dataset is empty (0 rows).", call. = FALSE)
   }
 
-  if (!is.character(outcome_variable) || length(outcome_variable) != 1) {
-    stop("`outcome_variable` must be a single character string.", call. = FALSE)
-  }
-  if (!is.character(covariates_for_outcome)) {
-    stop("`covariates_for_outcome` must be a character vector.", call. = FALSE)
-  }
-  if (!is.character(covariates_for_missingness)) {
-    stop("`covariates_for_missingness` must be a character vector.", call. = FALSE)
-  }
-
-  if (anyDuplicated(covariates_for_outcome)) {
-    dup <- unique(covariates_for_outcome[duplicated(covariates_for_outcome)])
-    stop("Duplicate variables found in covariates_for_outcome: ", paste(dup, collapse = ", "), call. = FALSE)
-  }
-  if (anyDuplicated(covariates_for_missingness)) {
-    dup <- unique(covariates_for_missingness[duplicated(covariates_for_missingness)])
-    stop("Duplicate variables found in covariates_for_missingness: ", paste(dup, collapse = ", "), call. = FALSE)
-  }
-
-  if (!allow_outcome_in_missingness && outcome_variable %in% covariates_for_missingness) {
-    stop("Outcome variable cannot be reused as a response covariate unless explicitly allowed.", call. = FALSE)
-  }
-
-  overlap <- intersect(covariates_for_outcome, covariates_for_missingness)
-  if (length(overlap) > 0 && !allow_covariate_overlap) {
-    stop(
-      "Covariate sets must be mutually exclusive. Overlapping variables: ",
-      paste(overlap, collapse = ", ")
-    )
-  }
-
-# Combine all required variables
-  all_vars <- unique(c(outcome_variable, covariates_for_outcome, covariates_for_missingness))
-
-# Check variable existence in data
-  missing_vars <- setdiff(all_vars, names(data))
-  if (length(missing_vars) > 0) {
-    stop("Variables not found in data: ", paste(missing_vars, collapse = ", "), call. = FALSE)
-  }
-
-# Check for non-finite values (Inf, -Inf, NaN) in all variables
-  for (var in all_vars) {
-    if (is.numeric(data[[var]])) {
-      bad_indices <- which(!is.na(data[[var]]) & !is.finite(data[[var]]))
-      if (length(bad_indices) > 0) {
-        first_bad_idx <- bad_indices[1]
-        bad_val <- data[[var]][first_bad_idx]
-        var_type <- if (var == outcome_variable) "Outcome variable" else "Covariate"
-        stop(
-          var_type, " '", var, "' contains non-finite values (Inf, -Inf, or NaN).\n",
-          "First non-finite value: ", bad_val, " at row ", first_bad_idx
-        )
-      }
-    }
-  }
-
-# Validate outcome variable
-  if (!is.numeric(data[[outcome_variable]])) {
-    bad_val <- data[[outcome_variable]][which(!is.numeric(data[[outcome_variable]]))[1]]
-    stop(
-      "Outcome variable '", outcome_variable, "' must be numeric.\n",
-      "First invalid value: '", bad_val, "' at row ", which(!is.numeric(data[[outcome_variable]]))[1]
-    )
-  }
-
-# Check for required NAs in outcome unless respondents-only is allowed
-  if (!anyNA(data[[outcome_variable]])) {
-    if (!isTRUE(allow_respondents_only)) {
-      stop("Outcome variable '", outcome_variable, "' must contain NA values.", call. = FALSE)
-    }
-  }
-
-# Check for at least one non-NA value in outcome
-  if (all(is.na(data[[outcome_variable]]))) {
-    stop("Outcome variable '", outcome_variable, "' cannot be entirely NA.", call. = FALSE)
-  }
-
-# Validate covariates
-  covariates_for_missingness_checked <- if (allow_outcome_in_missingness) {
-    setdiff(covariates_for_missingness, outcome_variable)
-  } else {
-    covariates_for_missingness
-  }
-
-  covariate_vars <- unique(c(covariates_for_outcome, covariates_for_missingness_checked))
-
-  for (var in covariate_vars) {
-# Check type: allow numeric, logical, or factor. Character is disallowed (ask user to factorize explicitly).
-    col <- data[[var]]
-    is_ok <- is.numeric(col) || is.logical(col) || is.factor(col)
-    if (!is_ok) {
-      bad_idx <- which(!(is.numeric(col) | is.logical(col) | is.factor(col)))[1]
-      bad_val <- col[bad_idx]
-      stop(
-        "Covariate '", var, "' must be numeric, logical, or factor.\n",
-        "First invalid (e.g., character) value: '", bad_val, "' at row ", bad_idx, "\n",
-        "Convert character predictors to factor explicitly to control levels."
-      )
-    }
-
-# Check for NAs
-    if (anyNA(col)) {
-      stop(
-        "Covariate '", var, "' contains NA values.\n",
-        "First NA at row ", which(is.na(col))[1]
-      )
-    }
-  }
 
   invisible(NULL)
 }
