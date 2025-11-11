@@ -136,7 +136,7 @@ method <- function(data, ...) UseMethod("method")
 ```{r eval=FALSE}
 #' @export
 method.data.frame <- function(data, formula, controls = list(), ...) {
-# Prepare inputs. You may adapt from EL’s prepare_el_inputs() pattern.
+# Prepare inputs. You may adapt from EL’s el_prepare_inputs() pattern.
   parsed <- build_method_inputs(data, formula, controls)
   estimation_data <- parsed$data
   internal_formula <- parsed$formula_list
