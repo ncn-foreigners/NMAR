@@ -9,8 +9,9 @@ test_that("EL errors early when auxiliaries contain NA (before solver)", {
   R <- runif(n) < p
   df <- data.frame(Y_miss = Y, X = X, Z = Z)
   df$Y_miss[!R] <- NA_real_
-# Inject a single NA in the auxiliary variable
-  df$X[1] <- NA_real_
+# Inject a single NA in the auxiliary variable among respondents
+  idx <- which(!is.na(df$Y_miss))[1]
+  df$X[idx] <- NA_real_
 
   eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
 

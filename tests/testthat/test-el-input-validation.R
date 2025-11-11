@@ -80,7 +80,12 @@ test_that("el engine rejects faulty inputs", {
     ),
     list(
       name = "NA in covariate",
-      data = transform(base_df, X = replace(X, 1, NA_real_)),
+      data = {
+        df2 <- base_df
+        idx <- which(!is.na(df2$Y_miss))[1]
+        df2$X[idx] <- NA_real_
+        df2
+      },
       formula = Y_miss ~ X,
       response_predictors = NULL,
       message = "contains NA values"

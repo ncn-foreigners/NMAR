@@ -70,8 +70,35 @@ el.survey.design <- function(data, formula,
     stop("Respondents-only survey design detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total design weight or population total>).", call. = FALSE)
   }
 
-  parsed_inputs <- el_prepare_inputs(formula, design$variables,
-                                     require_na = is.null(n_total))
+# Prepare inputs, appending survey design context to any validation error
+  el_get_design_context <- function(design) {
+    ctx <- list(ids = "<unspecified>", strata = "<unspecified>")
+    dc <- try(getCall(design), silent = TRUE)
+    if (!inherits(dc, "try-error") && !is.null(dc)) {
+      args <- as.list(dc)[-1]
+      get_arg <- function(nm) if (!is.null(args[[nm]])) args[[nm]] else NULL
+      ids_val <- get_arg("ids"); id_val <- get_arg("id")
+      ids_obj <- if (!is.null(ids_val)) ids_val else id_val
+      strata_obj <- get_arg("strata")
+      deparse1 <- function(x) paste(deparse(x, width.cutoff = 200L), collapse = " ")
+      if (!is.null(ids_obj)) ctx$ids <- deparse1(ids_obj)
+      if (!is.null(strata_obj)) ctx$strata <- deparse1(strata_obj)
+    }
+    ctx
+  }
+
+  survey_ctx <- el_get_design_context(design)
+
+  parsed_inputs <- tryCatch(
+    el_prepare_inputs(formula, design$variables,
+                      require_na = is.null(n_total),
+                      auxiliary_means = auxiliary_means),
+    error = function(e) {
+      msg <- conditionMessage(e)
+      msg2 <- paste0(msg, sprintf("\nSurvey design info: ids = %s, strata = %s", survey_ctx$ids, survey_ctx$strata))
+      stop(msg2, call. = FALSE)
+    }
+  )
   design$variables <- parsed_inputs$data
   internal_formula <- parsed_inputs$formula_list
   response_var <- all.vars(internal_formula$response)[1]

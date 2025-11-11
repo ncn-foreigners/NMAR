@@ -65,7 +65,7 @@ el.data.frame <- function(data, formula,
 # Do not error on respondents-only here; el_prepare_inputs(require_na = is.null(n_total))
 # will produce a clear 'must contain NA' message when applicable.
 
-  parsed_inputs <- el_prepare_inputs(formula, data, require_na = is.null(n_total))
+  parsed_inputs <- el_prepare_inputs(formula, data, require_na = is.null(n_total), auxiliary_means = auxiliary_means)
   estimation_data <- parsed_inputs$data
   internal_formula <- parsed_inputs$formula_list
   response_var <- all.vars(internal_formula$response)[1]
