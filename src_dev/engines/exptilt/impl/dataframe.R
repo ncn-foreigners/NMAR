@@ -21,13 +21,17 @@ exptilt.data.frame <- function(data, formula,
   variance_method <- match.arg(variance_method)
   on_failure <- match.arg(on_failure)
 
-  f <- as.list(Formula::Formula(formula))
-  Y = Formula::model.part(f, data = data, lhs = NULL)
-  X = model.matrix(f, data = data, rhs = 1, na.action = na.pass)
-  Z = model.matrix(f, data = data, rhs = 2, na.action = na.pass)
+  # f <- as.list(Formula::Formula(formula))
+  # Y = Formula::model.part(f, data = data, lhs = NULL)
+  # X = model.matrix(f, data = data, rhs = 1, na.action = na.pass)
+  # Z = model.matrix(f, data = data, rhs = 2, na.action = na.pass)
+  res= et_extract_formula(format(formula), data)
+  Y= res$Y
+  X= res$X
+  Z= res$Z
   outcome_var <- as.vector(colnames(Y)[1])
 
-  browser()
+  # browser()
 
   if (length(colnames(Y)) > 1) {
     stop("Exptilt supports only single outcome variable.")

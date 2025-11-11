@@ -82,7 +82,7 @@ exptilt_config <- exptilt_engine(
 )
 
 
-formula = Y ~x1 | Y
+formula = Y ~x1
 res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 3)
 ```
 
