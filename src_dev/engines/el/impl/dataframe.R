@@ -58,60 +58,33 @@ el.data.frame <- function(data, formula,
   if (respondents_only && outcome_name %in% names(data) && is.null(n_total)) {
     stop("Respondents-only data detected (no NAs in outcome), but 'n_total' was not provided. Supply n_total = total sampled units.", call. = FALSE)
   }
-  design <- el_construct_design(
+  design <- el_parse_design(
     formula = formula,
     data = data,
     require_na = is.null(n_total)
   )
 
-  prep <- el_prepare_analysis_inputs(
-    data = data,
-    outcome_var = design$outcome_var,
-    mask = design$respondent_mask,
+  extra_args <- list(...)
+
+  el_run_core_analysis(
+    call = cl,
+    formula = formula,
+    raw_data = data,
+    design_inputs = design,
     weights_full = NULL,
-    N_pop = n_total,
+    n_total = n_total,
     variance_method = variance_method,
     is_survey = FALSE,
-    design = NULL
-  )
-  data_aug <- prep$data_aug
-
-  aux_summary <- el_resolve_auxiliaries(
-    design$aux_mm_full[design$respondent_mask, , drop = FALSE],
-    design$aux_mm_full,
-    auxiliary_means,
-    weights_full = NULL
-  )
-
-  core_results <- el_estimator_core(
-    response_matrix = design$missingness_model_matrix,
-    response_outcome = design$y_obs,
-    auxiliary_matrix = aux_summary$matrix,
-    mu_x = aux_summary$means,
-    respondent_weights = prep$respondent_weights,
-    full_data = data_aug,
-    outcome_var = design$outcome_var,
-    N_pop = prep$N_pop,
+    design_object = NULL,
+    auxiliary_means = auxiliary_means,
     standardize = standardize,
     trim_cap = trim_cap,
     control = control,
     on_failure = on_failure,
     family = family,
-    variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,
-    user_args = list(
-      formula = formula,
-      auxiliary_means = auxiliary_means,
-      standardize = standardize,
-      trim_cap = trim_cap,
-      control = control,
-      n_total = n_total,
-      ...
-    ),
     start = start,
     trace_level = trace_level,
-    auxiliary_means = auxiliary_means
+    extra_user_args = extra_args
   )
-
-  el_build_result(core_results, prep$data_info, cl, formula)
 }

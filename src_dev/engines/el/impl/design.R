@@ -2,22 +2,23 @@
 #'
 #' Centralizes Formula parsing and design-matrix construction for the EL engine.
 #' Builds a single model.frame from a Formula object and materializes:
-#'  - missingness_model_matrix: (Intercept) + outcome + RHS2 predictors (RHS2 intercept dropped)
+#'  - response_matrix: (Intercept) + outcome + RHS2 predictors (RHS2 intercept dropped)
 #'  - y_obs: outcome values on respondent rows (non-missing)
-#'  - aux_mm_full: RHS1 auxiliary design on full data (no intercept; outcome dropped)
+#'  - aux_full: RHS1 auxiliary design on full data (no intercept; outcome dropped)
 #'  - respondent_mask: logical mask for respondents (non-missing outcomes)
 #'  - outcome_var: outcome column name
 #'
-#' Also provides narrowly-scoped helpers used only by this workflow.
-#'
 #' @keywords internal
-el_construct_design <- function(formula, data, require_na = TRUE) {
-  if (missing(formula)) {
-    stop("`formula` must be supplied.", call. = FALSE)
-  }
+el_parse_design <- function(formula, data, require_na = TRUE) {
+  if (missing(formula)) stop("`formula` must be supplied.", call. = FALSE)
 
   base_formula <- stats::as.formula(formula)
-  if (!inherits(base_formula, "formula") || length(base_formula) != 3L) {
+  if (!inherits(base_formula, "formula")) {
+    stop("`formula` must be a two-sided formula, e.g., y ~ x1 + x2.", call. = FALSE)
+  }
+  lhs_part <- tryCatch(base_formula[[2L]], error = function(e) NULL)
+  rhs_part <- tryCatch(base_formula[[3L]], error = function(e) NULL)
+  if (is.null(lhs_part) || is.null(rhs_part)) {
     stop("`formula` must be a two-sided formula, e.g., y ~ x1 + x2.", call. = FALSE)
   }
 
@@ -55,47 +56,26 @@ el_construct_design <- function(formula, data, require_na = TRUE) {
   mask <- !is.na(response_vector)
   respondent_indices <- which(mask)
 
-# Detect intercept presence on RHS2 (missingness-model predictors) via terms();
-# the missingness-model intercept is enforced even if suppressed in the formula.
-  rhs2_has_intercept <- if (n_rhs_parts >= 2L) {
-    rhs_formula <- stats::formula(fml, lhs = 0, rhs = 2L)
-    terms_rhs <- tryCatch(stats::terms(rhs_formula, data = model_frame), error = function(e) NULL)
-    if (is.null(terms_rhs)) TRUE else isTRUE(attr(terms_rhs, "intercept") == 1)
-  } else TRUE
+  aux_full <- el_build_aux_matrix(fml, model_frame, n_rhs_parts, outcome_var)
+  if (ncol(aux_full) > 0) {
+    el_abort_if_na(aux_full[mask, , drop = FALSE], respondent_indices, "Auxiliary covariate")
+  }
 
-  missingness_model_matrix <- el_build_missingness_matrix(
+  response_matrix <- el_build_response_matrix(
+    fml = fml,
+    model_frame = model_frame,
     response_vector = response_vector,
     mask = mask,
-    fml = fml,
-    model_frame = model_frame,
     n_rhs_parts = n_rhs_parts,
     outcome_var = outcome_var
   )
-  el_validate_missingness_predictors(missingness_model_matrix, respondent_indices)
-
-  if (n_rhs_parts >= 2L && !rhs2_has_intercept) {
-    warning("Missingness-model intercept is required; '-1' or '+0' has no effect.", call. = FALSE)
-  }
-
-  aux_design <- el_build_aux_matrix_full(
-    fml = fml,
-    model_frame = model_frame,
-    mask = mask,
-    n_rhs_parts = n_rhs_parts,
-    outcome_var = outcome_var
-  )
-# Early NA check among respondents for auxiliaries (if any)
-  el_validate_aux_respondent_matrix(aux_design$full[mask, , drop = FALSE], respondent_indices)
-
-  if (aux_design$intercept_requested) {
-    warning("Auxiliary intercepts are ignored; + 1 has no effect.", call. = FALSE)
-  }
+  el_abort_if_na(response_matrix, respondent_indices, "Missingness-model predictor")
 
   structure(
     list(
-      missingness_model_matrix = missingness_model_matrix,
+      response_matrix = response_matrix,
       y_obs = response_vector[mask],
-      aux_mm_full = aux_design$full,
+      aux_full = aux_full,
       respondent_mask = mask,
       outcome_var = outcome_var
     ),
@@ -104,8 +84,8 @@ el_construct_design <- function(formula, data, require_na = TRUE) {
 }
 
 el_as_formula <- function(base_formula) {
-# Prefer as.Formula() for idiomatic conversion; keep as.list() wrapper
-# to sidestep upstream parsing edge cases when passing plain formula.
+# Wrap in as.list() before as.Formula() to avoid edge cases when the caller
+# supplies language objects instead of plain formula literals.
   tryCatch(
     Formula::as.Formula(as.list(base_formula)),
     error = function(err) {
@@ -114,12 +94,7 @@ el_as_formula <- function(base_formula) {
   )
 }
 
-el_build_missingness_matrix <- function(response_vector,
-                                        mask,
-                                        fml,
-                                        model_frame,
-                                        n_rhs_parts,
-                                        outcome_var) {
+el_build_response_matrix <- function(fml, model_frame, response_vector, mask, n_rhs_parts, outcome_var) {
   n_resp <- sum(mask)
   if (n_resp == 0) {
     return(matrix(nrow = 0, ncol = 0))
@@ -127,17 +102,17 @@ el_build_missingness_matrix <- function(response_vector,
 
   intercept_col <- matrix(1, nrow = n_resp, ncol = 1)
   colnames(intercept_col) <- "(Intercept)"
-
   outcome_col <- matrix(response_vector[mask], ncol = 1)
   colnames(outcome_col) <- outcome_var
 
   rhs_terms <- if (n_rhs_parts >= 2L) {
-    mm <- tryCatch(
-      stats::model.matrix(fml, data = model_frame, rhs = 2L),
-      error = el_rethrow_data_error
-    )
-    mm_resp <- mm[mask, , drop = FALSE]
-    el_drop_intercept(mm_resp)
+    rhs_formula <- stats::formula(fml, lhs = 0, rhs = 2L)
+    rhs_terms_obj <- tryCatch(stats::terms(rhs_formula, data = model_frame), error = el_rethrow_data_error)
+    if (isTRUE(attr(rhs_terms_obj, "intercept") == 0)) {
+      warning("Missingness-model intercept is required; '-1' or '+0' has no effect.", call. = FALSE)
+    }
+    rhs_mm <- tryCatch(stats::model.matrix(fml, data = model_frame, rhs = 2L), error = el_rethrow_data_error)
+    el_remove_intercept(rhs_mm)[mask, , drop = FALSE]
   } else {
     matrix(nrow = n_resp, ncol = 0)
   }
@@ -145,15 +120,9 @@ el_build_missingness_matrix <- function(response_vector,
   cbind(intercept_col, outcome_col, rhs_terms)
 }
 
-el_build_aux_matrix_full <- function(fml,
-                                     model_frame,
-                                     mask,
-                                     n_rhs_parts,
-                                     outcome_var) {
-  n_total <- nrow(model_frame)
-  if (n_total == 0 || n_rhs_parts < 1L) {
-    empty <- matrix(nrow = n_total, ncol = 0)
-    return(list(full = empty, intercept_requested = FALSE))
+el_build_aux_matrix <- function(fml, model_frame, n_rhs_parts, outcome_var) {
+  if (nrow(model_frame) == 0 || n_rhs_parts < 1L) {
+    return(matrix(nrow = nrow(model_frame), ncol = 0))
   }
 
   aux_formula <- stats::formula(fml, lhs = 0, rhs = 1L)
@@ -162,29 +131,22 @@ el_build_aux_matrix_full <- function(fml,
     stop("The outcome cannot appear in auxiliary constraints.", call. = FALSE)
   }
 
-  aux_terms <- tryCatch(
-    stats::terms(aux_formula, data = model_frame),
-    error = el_rethrow_data_error
-  )
+  aux_terms <- tryCatch(stats::terms(aux_formula, data = model_frame), error = el_rethrow_data_error)
   rhs_expr <- if (length(aux_formula) >= 3L) aux_formula[[3L]] else aux_formula[[2L]]
-  intercept_requested <- attr(aux_terms, "intercept") == 1 &&
-    el_has_explicit_intercept(rhs_expr)
+  intercept_requested <- isTRUE(attr(aux_terms, "intercept") == 1) && el_has_explicit_intercept(rhs_expr)
+  if (intercept_requested) {
+    warning("Auxiliary intercepts are ignored; + 1 has no effect.", call. = FALSE)
+  }
 
-  aux_full <- tryCatch(
-    stats::model.matrix(fml, data = model_frame, rhs = 1L),
-    error = el_rethrow_data_error
-  )
-  aux_full <- el_drop_intercept(aux_full)
-
+  aux_full <- tryCatch(stats::model.matrix(fml, data = model_frame, rhs = 1L), error = el_rethrow_data_error)
+  aux_full <- el_remove_intercept(aux_full)
   if (ncol(aux_full) > 0 && outcome_var %in% colnames(aux_full)) {
     aux_full <- aux_full[, colnames(aux_full) != outcome_var, drop = FALSE]
   }
-
-  list(full = aux_full, intercept_requested = intercept_requested)
+  aux_full
 }
 
-# Helpers used only in the EL Formula/design workflow
-el_drop_intercept <- function(mm) {
+el_remove_intercept <- function(mm) {
   if (is.null(mm) || !is.matrix(mm) || ncol(mm) == 0) return(mm)
   if ("(Intercept)" %in% colnames(mm)) {
     mm <- mm[, colnames(mm) != "(Intercept)", drop = FALSE]
@@ -206,39 +168,19 @@ el_has_explicit_intercept <- function(node) {
   FALSE
 }
 
-el_validate_missingness_predictors <- function(response_matrix, respondent_indices) {
-  if (!is.matrix(response_matrix) || ncol(response_matrix) == 0 || nrow(response_matrix) == 0) {
-    return(invisible(NULL))
-  }
-  if (!anyNA(response_matrix)) return(invisible(NULL))
-
-  na_loc <- which(is.na(response_matrix), arr.ind = TRUE)[1, , drop = TRUE]
-  bad_col <- colnames(response_matrix)[na_loc[2]]
+el_abort_if_na <- function(mat, respondent_indices, label) {
+  if (is.null(mat) || !is.matrix(mat) || ncol(mat) == 0 || nrow(mat) == 0) return(invisible(NULL))
+  if (!anyNA(mat)) return(invisible(NULL))
+  na_loc <- which(is.na(mat), arr.ind = TRUE)[1, , drop = TRUE]
+  bad_col <- colnames(mat)[na_loc[2]]
   bad_row <- if (length(respondent_indices) >= na_loc[1]) respondent_indices[na_loc[1]] else NA_integer_
-
   msg <- sprintf(
-    "Missingness-model predictor '%s' contains NA values among respondents.%s",
+    "%s '%s' contains NA values among respondents.%s",
+    label,
     bad_col,
     if (is.finite(bad_row)) sprintf("\nFirst NA at row %d", bad_row) else ""
   )
   stop(msg, call. = FALSE)
-}
-
-el_validate_aux_respondent_matrix <- function(aux_resp, respondent_indices) {
-  if (is.null(aux_resp) || !is.matrix(aux_resp) || ncol(aux_resp) == 0) return(invisible(NULL))
-
-  if (anyNA(aux_resp)) {
-    na_loc <- which(is.na(aux_resp), arr.ind = TRUE)[1, , drop = TRUE]
-    bad_col <- colnames(aux_resp)[na_loc[2]]
-    bad_row <- if (length(respondent_indices) >= na_loc[1]) respondent_indices[na_loc[1]] else NA_integer_
-    msg <- sprintf(
-      "Covariate '%s' contains NA values among respondents.%s",
-      bad_col,
-      if (is.finite(bad_row)) sprintf("\nFirst NA at row %d", bad_row) else ""
-    )
-    stop(msg, call. = FALSE)
-  }
-  invisible(NULL)
 }
 
 el_rethrow_data_error <- function(err) {

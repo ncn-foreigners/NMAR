@@ -23,14 +23,14 @@ test_that("response intercept is retained even when formula uses +0", {
     Z = rnorm(4)
   )
   expect_warning(
-    design <- NMAR:::el_construct_design(Y_miss ~ 1 | Z + 0, df, require_na = FALSE),
+    design <- NMAR:::el_parse_design(Y_miss ~ 1 | Z + 0, df, require_na = FALSE),
     "Missingness-model intercept is required",
     fixed = FALSE
   )
-  expect_identical(colnames(design$missingness_model_matrix)[1], "(Intercept)")
-  expect_true(all(design$missingness_model_matrix[, "(Intercept)"] == 1))
-  expect_true("Z" %in% colnames(design$missingness_model_matrix))
-  expect_equal(ncol(design$missingness_model_matrix), 3)
+  expect_identical(colnames(design$response_matrix)[1], "(Intercept)")
+  expect_true(all(design$response_matrix[, "(Intercept)"] == 1))
+  expect_true("Z" %in% colnames(design$response_matrix))
+  expect_equal(ncol(design$response_matrix), 3)
 })
 
 test_that("respondents-only data frame requires n_total", {
@@ -102,4 +102,29 @@ test_that("explicit intercept plus auxiliaries triggers a warning", {
     fixed = FALSE
   )
   expect_equal(colnames(res$auxiliary_matrix), "X")
+})
+
+test_that("el_parse_design rejects formulas with more than two RHS partitions", {
+  df <- data.frame(
+    Y_miss = c(1, NA, 2, NA),
+    X1 = rnorm(4),
+    X2 = rnorm(4),
+    X3 = rnorm(4)
+  )
+  expect_error(
+    NMAR:::el_parse_design(Formula::Formula(Y_miss ~ X1 | X2 | X3), df, require_na = FALSE),
+    "at most two RHS partitions",
+    fixed = FALSE
+  )
+})
+
+test_that("el_parse_design handles language objects coerced to formula", {
+  df <- data.frame(
+    Y_miss = c(1, NA, 2, NA),
+    X = rnorm(4)
+  )
+  lang_formula <- as.call(list(as.name("~"), quote(Y_miss), quote(X)))
+  parsed <- NMAR:::el_parse_design(lang_formula, df, require_na = FALSE)
+  expect_identical(parsed$outcome_var, "Y_miss")
+  expect_true("(Intercept)" %in% colnames(parsed$response_matrix))
 })

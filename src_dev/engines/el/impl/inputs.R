@@ -107,3 +107,86 @@ el_make_delta_column <- function(data, outcome_var, respondent_mask = NULL) {
   data[[delta_name]] <- as.integer(respondent_mask)
   list(data = data, delta_name = delta_name)
 }
+
+#' Shared launcher for EL estimation once design matrices are parsed
+#' @keywords internal
+el_run_core_analysis <- function(call,
+                                 formula,
+                                 raw_data,
+                                 design_inputs,
+                                 weights_full,
+                                 n_total,
+                                 variance_method,
+                                 is_survey,
+                                 design_object,
+                                 auxiliary_means,
+                                 standardize,
+                                 trim_cap,
+                                 control,
+                                 on_failure,
+                                 family,
+                                 bootstrap_reps,
+                                 start,
+                                 trace_level,
+                                 extra_user_args = list()) {
+  prep <- el_prepare_analysis_inputs(
+    data = raw_data,
+    outcome_var = design_inputs$outcome_var,
+    mask = design_inputs$respondent_mask,
+    weights_full = weights_full,
+    N_pop = n_total,
+    variance_method = variance_method,
+    is_survey = is_survey,
+    design = if (is_survey) design_object else NULL
+  )
+
+  analysis_object <- if (is_survey) {
+    design_object$variables <- prep$data_aug
+    design_object
+  } else {
+    prep$data_aug
+  }
+
+  aux_summary <- el_resolve_auxiliaries(
+    design_inputs$aux_full[design_inputs$respondent_mask, , drop = FALSE],
+    design_inputs$aux_full,
+    auxiliary_means,
+    weights_full = weights_full
+  )
+
+  user_args <- c(
+    list(
+      formula = formula,
+      auxiliary_means = auxiliary_means,
+      standardize = standardize,
+      trim_cap = trim_cap,
+      control = control,
+      n_total = n_total
+    ),
+    extra_user_args
+  )
+
+  core_results <- el_estimator_core(
+    response_matrix = design_inputs$response_matrix,
+    response_outcome = design_inputs$y_obs,
+    auxiliary_matrix = aux_summary$matrix,
+    mu_x = aux_summary$means,
+    respondent_weights = prep$respondent_weights,
+    full_data = analysis_object,
+    outcome_var = design_inputs$outcome_var,
+    N_pop = prep$N_pop,
+    standardize = standardize,
+    trim_cap = trim_cap,
+    control = control,
+    on_failure = on_failure,
+    family = family,
+    variance_method = variance_method,
+    bootstrap_reps = bootstrap_reps,
+    user_args = user_args,
+    start = start,
+    trace_level = trace_level,
+    auxiliary_means = auxiliary_means
+  )
+
+  el_build_result(core_results, prep$data_info, call, formula)
+}

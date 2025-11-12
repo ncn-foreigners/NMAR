@@ -95,7 +95,7 @@ el.survey.design <- function(data, formula,
   survey_ctx <- el_get_design_context(design)
 
   design_inputs <- tryCatch(
-    el_construct_design(
+    el_parse_design(
       formula = formula,
       data = design$variables,
       require_na = is.null(n_total)
@@ -160,67 +160,38 @@ el.survey.design <- function(data, formula,
     if (!isTRUE(all.equal(scale_factor, 1))) {
       design <- el_rescale_survey_design_weights(design, scale_factor)
     }
-    weights_all <- as.numeric(weights(design))
-    respondent_weights_full <- weights_all
+    respondent_weights_full <- as.numeric(weights(design))
 
   } else {
 # No n_total supplied: use design total as population size
     N_pop <- design_weight_sum
-    weights_all <- weights_initial
-    respondent_weights_full <- weights_all
+    respondent_weights_full <- weights_initial
     scale_factor <- 1.0
     scale_mismatch_detected <- FALSE
     scale_mismatch_pct <- 0
   }
 
-  prep <- el_prepare_analysis_inputs(
-    data = design$variables,
-    outcome_var = design_inputs$outcome_var,
-    mask = design_inputs$respondent_mask,
+  extra_args <- list(...)
+
+  el_run_core_analysis(
+    call = cl,
+    formula = formula,
+    raw_data = design$variables,
+    design_inputs = design_inputs,
     weights_full = respondent_weights_full,
-    N_pop = N_pop,
+    n_total = N_pop,
     variance_method = variance_method,
     is_survey = TRUE,
-    design = design
-  )
-  design$variables <- prep$data_aug
-
-  aux_summary <- el_resolve_auxiliaries(
-    design_inputs$aux_mm_full[design_inputs$respondent_mask, , drop = FALSE],
-    design_inputs$aux_mm_full,
-    auxiliary_means,
-    weights_full = weights_all
-  )
-
-  core_results <- el_estimator_core(
-    response_matrix = design_inputs$missingness_model_matrix,
-    response_outcome = design_inputs$y_obs,
-    auxiliary_matrix = aux_summary$matrix,
-    mu_x = aux_summary$means,
-    respondent_weights = prep$respondent_weights,
-    full_data = design,
-    outcome_var = design_inputs$outcome_var,
-    N_pop = prep$N_pop,
+    design_object = design,
+    auxiliary_means = auxiliary_means,
     standardize = standardize,
     trim_cap = trim_cap,
     control = control,
     on_failure = on_failure,
     family = family,
-    variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,
-    user_args = list(
-      formula = formula,
-      auxiliary_means = auxiliary_means,
-      standardize = standardize,
-      trim_cap = trim_cap,
-      control = control,
-      n_total = n_total,
-      ...
-    ),
     start = start,
     trace_level = trace_level,
-    auxiliary_means = auxiliary_means
+    extra_user_args = extra_args
   )
-
-  el_build_result(core_results, prep$data_info, cl, formula)
 }
