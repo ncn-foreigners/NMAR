@@ -4,7 +4,7 @@
 #' under nonignorable nonresponse, including parameter solving, variance calculation,
 #' and diagnostic computation.
 #'
-#' @param response_matrix Respondent-side response-model design matrix (intercept + predictors).
+#' @param response_matrix Respondent-side missingness (response) model design matrix (intercept + predictors).
 #' @param response_outcome Numeric vector of respondent outcomes (used for point estimate).
 #' @param auxiliary_matrix Auxiliary design matrix on respondents (may have zero columns).
 #' @param mu_x Named numeric vector of auxiliary population means (aligned to columns of `auxiliary_matrix`).
@@ -71,14 +71,14 @@ el_estimator_core <- function(response_matrix,
   el_log_trace(verboser, trace_level)
 
 # 1. Data Preparation
-  response_model_matrix_unscaled <- response_matrix
+  missingness_model_matrix_unscaled <- response_matrix
   auxiliary_matrix_unscaled <- auxiliary_matrix
   mu_x_unscaled <- mu_x
   K_aux <- if (has_aux) ncol(auxiliary_matrix_unscaled) else 0
 
 # Data summary
   n_resp_weighted <- sum(respondent_weights)
-  K_beta <- ncol(response_model_matrix_unscaled)
+  K_beta <- ncol(missingness_model_matrix_unscaled)
   el_log_data_prep(
     verboser = verboser,
     outcome_var = outcome_var,
@@ -96,13 +96,13 @@ el_estimator_core <- function(response_matrix,
   scaling_result <- validate_and_apply_nmar_scaling(
     standardize = standardize,
     has_aux = has_aux,
-    response_model_matrix_unscaled = response_model_matrix_unscaled,
+    response_model_matrix_unscaled = missingness_model_matrix_unscaled,
     auxiliary_matrix_unscaled = auxiliary_matrix_unscaled,
     mu_x_unscaled = mu_x_unscaled,
     weights = respondent_weights
   )
   nmar_scaling_recipe <- scaling_result$nmar_scaling_recipe
-  response_model_matrix_scaled <- scaling_result$response_model_matrix_scaled
+  missingness_model_matrix_scaled <- scaling_result$response_model_matrix_scaled
   auxiliary_matrix_scaled <- scaling_result$auxiliary_matrix_scaled
   mu_x_scaled <- scaling_result$mu_x_scaled
 
@@ -127,20 +127,20 @@ el_estimator_core <- function(response_matrix,
   }
 # Build full stacked builders
   equation_system_func <- el_build_equation_system(
-    family = family, response_model_matrix = response_model_matrix_scaled, auxiliary_matrix = auxiliary_matrix_scaled,
+    family = family, missingness_model_matrix = missingness_model_matrix_scaled, auxiliary_matrix = auxiliary_matrix_scaled,
     respondent_weights = respondent_weights, N_pop = N_pop, n_resp_weighted = n_resp_weighted, mu_x_scaled = mu_x_scaled
   )
   analytical_jac_func <- el_build_jacobian(
-    family = family, response_model_matrix = response_model_matrix_scaled, auxiliary_matrix = auxiliary_matrix_scaled,
+    family = family, missingness_model_matrix = missingness_model_matrix_scaled, auxiliary_matrix = auxiliary_matrix_scaled,
     respondent_weights = respondent_weights, N_pop = N_pop, n_resp_weighted = n_resp_weighted, mu_x_scaled = mu_x_scaled
   )
 # 4. Solve for Parameters with a safeguarded Newton method
-  K_beta <- ncol(response_model_matrix_scaled)
+  K_beta <- ncol(missingness_model_matrix_scaled)
   K_aux <- ncol(auxiliary_matrix_scaled)
 
 # Build starts using a single helper
   st <- el_build_start(
-    response_model_matrix_scaled = response_model_matrix_scaled,
+    missingness_model_matrix_scaled = missingness_model_matrix_scaled,
     auxiliary_matrix_scaled = auxiliary_matrix_scaled,
     nmar_scaling_recipe = nmar_scaling_recipe,
     start = start,
@@ -227,8 +227,8 @@ el_estimator_core <- function(response_matrix,
 
   post <- el_post_solution(
     estimates = estimates,
-    response_model_matrix_scaled = response_model_matrix_scaled,
-    response_model_matrix_unscaled = response_model_matrix_unscaled,
+    missingness_model_matrix_scaled = missingness_model_matrix_scaled,
+    missingness_model_matrix_unscaled = missingness_model_matrix_unscaled,
     auxiliary_matrix_scaled = auxiliary_matrix_scaled,
     mu_x_scaled = mu_x_scaled,
     response_outcome = response_outcome,
@@ -346,7 +346,7 @@ el_estimator_core <- function(response_matrix,
   vcov_message <- var_out$message
   se_y_hat <- var_out$se
   if (identical(variance_method, "none")) {
-    vcov_unscaled <- matrix(NA_real_, K_beta, K_beta, dimnames = list(colnames(response_model_matrix_unscaled), colnames(response_model_matrix_unscaled)))
+    vcov_unscaled <- matrix(NA_real_, K_beta, K_beta, dimnames = list(colnames(missingness_model_matrix_unscaled), colnames(missingness_model_matrix_unscaled)))
   }
   variance_time <- proc.time()[[3]] - t_var_start
   el_log_variance_result(verboser, se_y_hat, variance_time)

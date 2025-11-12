@@ -43,7 +43,7 @@ print.nmar_result_el <- function(x, ...) {
 }
 
 #' Summary method for EL results
-#' @description Summarize estimation, standard error and response-model coefficients.
+#' @description Summarize estimation, standard error and missingness-model coefficients.
 #' @param object An object of class `nmar_result_el`.
 #' @param ... Ignored.
 #' @keywords result_view
@@ -69,7 +69,7 @@ print.summary_nmar_result_el <- function(x, ...) {
     cat(x$call_line, "\n", sep = "")
   }
   if (!is.null(x$response_model)) {
-    cat("\nResponse-model coefficients:\n")
+    cat("\nMissingness-model coefficients:\n")
     beta <- x$response_model
     if (!is.null(x$response_vcov) && is.matrix(x$response_vcov)) {
       se <- sqrt(diag(x$response_vcov))

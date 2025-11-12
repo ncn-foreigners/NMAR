@@ -14,7 +14,7 @@
 #' @param n_total Optional population size used to rescale design weights; required for respondents-only designs.
 #' @param start Optional list of starting values passed to solver helpers.
 #' @param trace_level Integer 0-3 controlling estimator logging detail.
-#' @param family Response-model family specification (defaults to logit).
+#' @param family Missingness (response) model family specification (defaults to logit).
 #' @param ... Passed to solver.
 #' @details Implements the empirical likelihood estimator with design weights.
 #'   If \code{n_total} is supplied, design weights are rescaled internally to
@@ -90,7 +90,7 @@ el.survey.design <- function(data, formula,
       stop(msg2, call. = FALSE)
     }
   )
-  design$variables <- el_make_delta_column(design$variables, design_inputs$outcome, design_inputs$mask)$data
+  design$variables <- el_make_delta_column(design$variables, design_inputs$outcome_var, design_inputs$respondent_mask)$data
 
 # Scale coherence: ensure N_pop and design weights are on the same scale
   weights_all <- as.numeric(weights(design))
@@ -154,8 +154,8 @@ el.survey.design <- function(data, formula,
 
   prep <- el_prepare_analysis_inputs(
     data = design$variables,
-    outcome_var = design_inputs$outcome,
-    mask = design_inputs$mask,
+    outcome_var = design_inputs$outcome_var,
+    mask = design_inputs$respondent_mask,
     weights_full = respondent_weights_full,
     N_pop = N_pop,
     variance_method = variance_method,
@@ -165,20 +165,20 @@ el.survey.design <- function(data, formula,
   design$variables <- prep$data_aug
 
   aux_summary <- el_resolve_auxiliaries(
-    design_inputs$aux_resp,
-    design_inputs$aux_full,
+    design_inputs$aux_mm_full[design_inputs$respondent_mask, , drop = FALSE],
+    design_inputs$aux_mm_full,
     auxiliary_means,
     weights_full = weights_all
   )
 
   core_results <- el_estimator_core(
-    response_matrix = design_inputs$response_design,
-    response_outcome = design_inputs$response_outcome,
+    response_matrix = design_inputs$missingness_model_matrix,
+    response_outcome = design_inputs$y_obs,
     auxiliary_matrix = aux_summary$matrix,
     mu_x = aux_summary$means,
     respondent_weights = prep$respondent_weights,
     full_data = design,
-    outcome_var = design_inputs$outcome,
+    outcome_var = design_inputs$outcome_var,
     N_pop = prep$N_pop,
     standardize = standardize,
     trim_cap = trim_cap,

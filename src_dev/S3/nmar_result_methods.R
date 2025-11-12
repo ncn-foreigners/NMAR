@@ -75,7 +75,7 @@ confint.nmar_result <- function(object, parm, level = 0.95, ...) {
 }
 
 #' Tidy summary for NMAR results
-#' @description Return a data frame with the primary estimate and (if available) response-model coefficients.
+#' @description Return a data frame with the primary estimate and (if available) missingness-model coefficients.
 #' @param x An object of class `nmar_result`.
 #' @param conf.level Confidence level for the primary estimate.
 #' @param ... Ignored.
@@ -281,7 +281,7 @@ autoplot.nmar_result <- function(object, type = c("weights", "fitted", "constrai
 }
 
 #' Default coefficients for NMAR results
-#' @description Returns response-model coefficients if available.
+#' @description Returns missingness-model coefficients if available.
 #' @param object An `nmar_result` object.
 #' @param ... Ignored.
 #' @return A named numeric vector or `NULL`.
@@ -472,8 +472,8 @@ se <- function(...) {
 #' Coefficient table for summary objects
 #'
 #' Returns a coefficients table (Estimate, Std. Error, statistic, p-value)
-#' from a `summary_nmar_result*` object when response-model coefficients and a
-#' variance matrix are available. If the summary does not carry response-model
+#' from a `summary_nmar_result*` object when missingness-model coefficients and a
+#' variance matrix are available. If the summary does not carry missingness-model
 #' coefficients, returns `NULL`.
 #'
 #' The statistic column is labelled "t value" when finite degrees of freedom
@@ -510,7 +510,7 @@ coef.summary_nmar_result <- function(object, ...) {
 
 #' Confidence intervals for coefficient table (summary objects)
 #'
-#' Returns Wald-style confidence intervals for response-model coefficients from
+#' Returns Wald-style confidence intervals for missingness-model coefficients from
 #' a `summary_nmar_result*` object. Uses t-quantiles when finite degrees of
 #' freedom are available, otherwise normal quantiles.
 #'

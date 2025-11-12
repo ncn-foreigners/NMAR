@@ -16,10 +16,10 @@
 #'   data are supplied (no `NA` in the outcome), `n_total` must be provided.
 #' @param start Optional list of starting values passed to the solver helpers.
 #' @param trace_level Integer 0-3 controlling estimator logging detail.
-#' @param family Response-model family specification (defaults to the logit bundle).
+#' @param family Missingness (response) model family specification (defaults to the logit bundle).
 #' @param ... Additional arguments passed to the solver.
 #' @details Implements the empirical likelihood estimator for IID data with
-#'   optional auxiliary moment constraints. The response-model score is the
+#'   optional auxiliary moment constraints. The missingness-model score is the
 #'   Bernoulli derivative with respect to the linear predictor, supporting logit
 #'   and probit links. When respondents-only data are supplied (no `NA` in the
 #'   outcome), `n_total` is required so the response-rate equation targets the
@@ -66,8 +66,8 @@ el.data.frame <- function(data, formula,
 
   prep <- el_prepare_analysis_inputs(
     data = data,
-    outcome_var = design$outcome,
-    mask = design$mask,
+    outcome_var = design$outcome_var,
+    mask = design$respondent_mask,
     weights_full = NULL,
     N_pop = n_total,
     variance_method = variance_method,
@@ -77,20 +77,20 @@ el.data.frame <- function(data, formula,
   data_aug <- prep$data_aug
 
   aux_summary <- el_resolve_auxiliaries(
-    design$aux_resp,
-    design$aux_full,
+    design$aux_mm_full[design$respondent_mask, , drop = FALSE],
+    design$aux_mm_full,
     auxiliary_means,
     weights_full = NULL
   )
 
   core_results <- el_estimator_core(
-    response_matrix = design$response_design,
-    response_outcome = design$response_outcome,
+    response_matrix = design$missingness_model_matrix,
+    response_outcome = design$y_obs,
     auxiliary_matrix = aux_summary$matrix,
     mu_x = aux_summary$means,
     respondent_weights = prep$respondent_weights,
     full_data = data_aug,
-    outcome_var = design$outcome,
+    outcome_var = design$outcome_var,
     N_pop = prep$N_pop,
     standardize = standardize,
     trim_cap = trim_cap,

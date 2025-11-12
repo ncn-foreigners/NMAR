@@ -24,13 +24,13 @@ test_that("response intercept is retained even when formula uses +0", {
   )
   expect_warning(
     design <- NMAR:::el_construct_design(Y_miss ~ 1 | Z + 0, df, require_na = FALSE),
-    "Response-model intercept is required",
+    "Missingness-model intercept is required",
     fixed = FALSE
   )
-  expect_identical(colnames(design$response_design)[1], "(Intercept)")
-  expect_true(all(design$response_design[, "(Intercept)"] == 1))
-  expect_true("Z" %in% colnames(design$response_design))
-  expect_equal(ncol(design$response_design), 3)
+  expect_identical(colnames(design$missingness_model_matrix)[1], "(Intercept)")
+  expect_true(all(design$missingness_model_matrix[, "(Intercept)"] == 1))
+  expect_true("Z" %in% colnames(design$missingness_model_matrix))
+  expect_equal(ncol(design$missingness_model_matrix), 3)
 })
 
 test_that("respondents-only data frame requires n_total", {

@@ -15,7 +15,7 @@ test_that("EL errors early when response-model predictors have NA among responde
   eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
   expect_error(
     nmar(Y_miss ~ X | I(Z^2), data = df, engine = eng),
-    regexp = "Response-model predictor",
+    regexp = "Missingness-model predictor",
     info = "NA in transformed response predictor should be trapped early"
   )
 })

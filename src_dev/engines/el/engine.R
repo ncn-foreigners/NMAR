@@ -9,7 +9,7 @@
 #' stable linear algebra) improve robustness. Pass the engine to \link{nmar}
 #' together with a formula and data.
 #'
-#' @param family character; response model family, either \code{"logit"} or \code{"probit"},
+#' @param family character; missingness (response) model family, either \code{"logit"} or \code{"probit"},
 #'   or a family object created by \code{logit_family()} / \code{probit_family()}.
 #' @param standardize logical; standardize predictors. Default \code{TRUE}.
 #' @param trim_cap numeric; cap for EL weights (\code{Inf} = no trimming).
@@ -38,7 +38,7 @@
 #'   the estimator errors, requesting \code{n_total}.
 #' @param start list; optional starting point for the solver. Fields:
 #'   \itemize{
-#'     \item \code{beta}: named numeric vector of response-model coefficients on the
+#'     \item \code{beta}: named numeric vector of missingness-model coefficients on the
 #'       original (unscaled) scale, including \code{(Intercept)}.
 #'     \item \code{W} or \code{z}: starting value for population response rate (\code{0 < W < 1})
 #'       or its logit (\code{z}). If both are provided, \code{z} takes precedence.
@@ -69,7 +69,7 @@
 #' \eqn{\sum_i m_i\,s_i(\beta) = 0} with \eqn{s_i(\beta) = \partial \log w_i / \partial \eta_i},
 #' and, when present, \eqn{\sum_i m_i X_{i\cdot}^{(c)} = 0}.
 #'
-#' The response-model score used in both equations and Jacobian is the derivative
+#' The missingness-model score used in both equations and Jacobian is the derivative
 #' of the Bernoulli log-likelihood with respect to the linear predictor, i.e.
 #' \code{mu.eta(eta) / linkinv(eta)} (logit: \code{1 - w}; probit: Mills ratio \code{phi/Phi}).
 #' We apply a consistent guarding policy (cap \eqn{\eta}, clip \eqn{w}, floor denominators
@@ -88,7 +88,7 @@
 #'
 #' \strong{Formula syntax}: \code{nmar()} supports a partitioned right-hand side
 #' \code{y_miss ~ aux1 + aux2 | z1 + z2}. Variables left of \code{|} are auxiliaries
-#' (used in EL moment constraints); variables right of \code{|} are response-model
+#' (used in EL moment constraints); variables right of \code{|} are missingness-model
 #' predictors only. The outcome appears on the left-hand side and is included as a
 #' response predictor by default.
 #'

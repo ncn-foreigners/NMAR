@@ -2,7 +2,7 @@
 #' @details Builds the block Jacobian \eqn{A = \partial F/\partial \theta} for the
 #'   EL system with \eqn{\theta = (\beta, z, \lambda_x)} and \eqn{z = \operatorname{logit}(W)}.
 #'   Blocks follow Qin, Leung, and Shao (2002, Eqs. 7-10). The derivative with
-#'   respect to the linear predictor uses the Bernoulli score form
+#'   respect to the linear predictor for the missingness (response) model uses the Bernoulli score form
 #'   \eqn{\partial/\partial\eta\, \log w(\eta) = \mu.\eta(\eta)/w(\eta)} with
 #'   link-inverse clipping. Denominator guards are applied consistently when
 #'   forming terms depending on \eqn{D_i(\theta)}.
@@ -20,10 +20,10 @@
 #' auxiliary information from survey data. Journal of the American Statistical Association,
 #' 96(453), 185-193.
 #' @keywords internal
-el_build_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
+el_build_jacobian <- function(family, missingness_model_matrix, auxiliary_matrix,
                               respondent_weights, N_pop, n_resp_weighted, mu_x_scaled) {
   force(family)
-  force(response_model_matrix)
+  force(missingness_model_matrix)
   force(auxiliary_matrix)
   force(respondent_weights)
   force(N_pop)
@@ -32,11 +32,11 @@ el_build_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
   if (is.null(family) || is.null(family$d2mu.deta2)) {
     return(NULL)
   }
-  if (is.null(response_model_matrix) || !is.matrix(response_model_matrix)) stop("response_model_matrix must be a matrix.")
-  n_resp <- nrow(response_model_matrix)
-  K_beta <- ncol(response_model_matrix)
+  if (is.null(missingness_model_matrix) || !is.matrix(missingness_model_matrix)) stop("missingness_model_matrix must be a matrix.")
+  n_resp <- nrow(missingness_model_matrix)
+  K_beta <- ncol(missingness_model_matrix)
   K_aux <- if (is.null(auxiliary_matrix) || ncol(auxiliary_matrix) == 0) 0 else ncol(auxiliary_matrix)
-  if (length(respondent_weights) != n_resp) stop("Length of respondent_weights must equal nrow(response_model_matrix).")
+  if (length(respondent_weights) != n_resp) stop("Length of respondent_weights must equal nrow(missingness_model_matrix).")
   if (K_aux == 0) {
     auxiliary_matrix_mat <- matrix(nrow = n_resp, ncol = 0)
     mu_x_scaled_vec <- numeric(0)
@@ -64,7 +64,7 @@ el_build_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     lambda_W <- C_const / (1 - W_bounded)
     d_lambda_W_dWb <- C_const / (1 - W_bounded)^2
     d_lambda_W_dTheta <- d_lambda_W_dWb * dWb_dTheta
-    eta_raw <- as.vector(response_model_matrix %*% beta_vec)
+    eta_raw <- as.vector(missingness_model_matrix %*% beta_vec)
     eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
     w_i <- family$linkinv(eta_i)
     mu_eta_i <- family$mu.eta(eta_i)
@@ -134,19 +134,19 @@ el_build_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
 
 # J11: d beta eqs / d beta
     w_eff_11 <- as.numeric(respondent_weights * d_betaeq_deta)
-    full_mat[idx_beta, idx_beta] <- shared_weighted_gram(response_model_matrix, w_eff_11)
+    full_mat[idx_beta, idx_beta] <- shared_weighted_gram(missingness_model_matrix, w_eff_11)
 # J12: d beta eqs / d W
-    j12_vec <- shared_weighted_Xty(response_model_matrix, respondent_weights, d_betaeq_dTheta)
+    j12_vec <- shared_weighted_Xty(missingness_model_matrix, respondent_weights, d_betaeq_dTheta)
     full_mat[idx_beta, idx_W] <- as.numeric(j12_vec)
 # J13: d beta eqs / d lambda
     if (K_aux > 0) {
 # Respect denominator floor via 'active' mask
       d_betaeq_dlambda_mat <- active * lambda_W * mu_eta_i * inv_denom_sq * X_centered
-      full_mat[idx_beta, idx_lambda] <- shared_weighted_XtY(response_model_matrix, respondent_weights, as.matrix(d_betaeq_dlambda_mat))
+      full_mat[idx_beta, idx_lambda] <- shared_weighted_XtY(missingness_model_matrix, respondent_weights, as.matrix(d_betaeq_dlambda_mat))
     }
 # J21: d W eq / d beta
     term21 <- mu_eta_i * inv_denom - (w_i - W_bounded) * inv_denom_sq * (lambda_W * mu_eta_i) * active
-    full_mat[idx_W, idx_beta] <- as.numeric(t(shared_weighted_Xty(response_model_matrix, respondent_weights, term21)))
+    full_mat[idx_W, idx_beta] <- as.numeric(t(shared_weighted_Xty(missingness_model_matrix, respondent_weights, term21)))
 # J22: d W eq / d W
     term22 <- -dWb_dTheta * inv_denom - (w_i - W_bounded) * inv_denom_sq * dden_dTheta
     full_mat[idx_W, idx_W] <- as.numeric(crossprod(respondent_weights, term22))
@@ -158,7 +158,7 @@ el_build_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
     if (K_aux > 0) {
 # J31: d aux eq / d beta
       term31 <- -dden_deta * inv_denom_sq
-      full_mat[idx_lambda, idx_beta] <- shared_weighted_XtY(X_centered, as.numeric(respondent_weights * term31), response_model_matrix)
+      full_mat[idx_lambda, idx_beta] <- shared_weighted_XtY(X_centered, as.numeric(respondent_weights * term31), missingness_model_matrix)
 # J32: d aux eq / d W
       term32 <- -dden_dTheta * inv_denom_sq
       full_mat[idx_lambda, idx_W] <- as.numeric(shared_weighted_Xty(X_centered, respondent_weights, term32))
@@ -166,7 +166,7 @@ el_build_jacobian <- function(family, response_model_matrix, auxiliary_matrix,
       full_mat[idx_lambda, idx_lambda] <- -shared_weighted_gram(X_centered, as.numeric(respondent_weights * (inv_denom_sq * active)))
     }
 # Optional names (kept minimal to reduce overhead)
-    param_names <- c(colnames(response_model_matrix), "(W) (logit)", if (K_aux > 0) paste0("lambda_", colnames(auxiliary_matrix_mat)) else NULL)
+    param_names <- c(colnames(missingness_model_matrix), "(W) (logit)", if (K_aux > 0) paste0("lambda_", colnames(auxiliary_matrix_mat)) else NULL)
     if (!is.null(param_names) && length(param_names) == ncol(full_mat)) {
       colnames(full_mat) <- rownames(full_mat) <- param_names
     }

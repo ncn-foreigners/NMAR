@@ -1,7 +1,7 @@
 #' Empirical likelihood estimating equations
 #' @details Returns a function that evaluates the stacked EL system for
 #'   \eqn{\theta = (\beta, z, \lambda_x)} with \eqn{z = \operatorname{logit}(W)}.
-#'   Blocks correspond to: (i) response-model score equations in \eqn{\beta},
+#'   Blocks correspond to: (i) missingness (response) model score equations in \eqn{\beta},
 #'   (ii) the response-rate equation in \eqn{W}, and (iii) auxiliary moment
 #'   constraints in \eqn{\lambda_x}. When no auxiliaries are present the last
 #'   block is omitted. The system matches Qin, Leung, and Shao (2002, Eqs. 7-10)
@@ -28,19 +28,19 @@
 #' auxiliary information from survey data. Journal of the American Statistical Association,
 #' 96(453), 185-193.
 #' @keywords internal
-el_build_equation_system <- function(family, response_model_matrix, auxiliary_matrix,
+el_build_equation_system <- function(family, missingness_model_matrix, auxiliary_matrix,
                                      respondent_weights, N_pop, n_resp_weighted, mu_x_scaled) {
   force(family)
-  force(response_model_matrix)
+  force(missingness_model_matrix)
   force(auxiliary_matrix)
   force(respondent_weights)
   force(N_pop)
   force(n_resp_weighted)
   force(mu_x_scaled)
-  K_beta <- ncol(response_model_matrix)
+  K_beta <- ncol(missingness_model_matrix)
   K_aux <- if (is.null(auxiliary_matrix) || ncol(auxiliary_matrix) == 0) 0 else ncol(auxiliary_matrix)
 # Hoist centered auxiliaries and constants outside parameter closure
-  X_centered <- if (K_aux > 0) sweep(auxiliary_matrix, 2, mu_x_scaled, "-") else matrix(nrow = nrow(response_model_matrix), ncol = 0)
+  X_centered <- if (K_aux > 0) sweep(auxiliary_matrix, 2, mu_x_scaled, "-") else matrix(nrow = nrow(missingness_model_matrix), ncol = 0)
   C_const <- (N_pop / n_resp_weighted) - 1
   ETA_CAP <- get_eta_cap()
   function(params) {
@@ -52,7 +52,7 @@ el_build_equation_system <- function(family, response_model_matrix, auxiliary_ma
     W_bounded <- W
 # QLS Eq. (10): lambda_W = (N/n - 1) / (1 - W)
     lambda_W <- el_lambda_W(C_const, W_bounded)
-    eta_raw <- as.vector(response_model_matrix %*% beta_vec)
+    eta_raw <- as.vector(missingness_model_matrix %*% beta_vec)
     eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
     w_i <- family$linkinv(eta_i)
     mu_eta_i <- family$mu.eta(eta_i)
@@ -77,7 +77,7 @@ el_build_equation_system <- function(family, response_model_matrix, auxiliary_ma
     inv_denominator <- dpack$inv
 # beta block (QLS Eq. 9): s_eta(eta) - lambda_W * mu.eta(eta) / Di
     beta_eq_term <- s_eta_i - lambda_W * mu_eta_i * inv_denominator
-    eq_betas <- shared_weighted_Xty(response_model_matrix, respondent_weights, beta_eq_term)
+    eq_betas <- shared_weighted_Xty(missingness_model_matrix, respondent_weights, beta_eq_term)
 # W equation (QLS Eq. 8)
     eq_W <- as.numeric(crossprod(respondent_weights * inv_denominator, (w_i - W_bounded)))
 # Auxiliary constraints (QLS Eq. 7)

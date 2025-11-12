@@ -16,7 +16,7 @@ test_that("EL probit equations/Jacobian are stable in extreme tails", {
 
   eq <- NMAR:::el_build_equation_system(
     family = fam,
-    response_model_matrix = X,
+    missingness_model_matrix = X,
     auxiliary_matrix = aux,
     respondent_weights = wts,
     N_pop = N_pop,
@@ -25,7 +25,7 @@ test_that("EL probit equations/Jacobian are stable in extreme tails", {
   )
   jac <- NMAR:::el_build_jacobian(
     family = fam,
-    response_model_matrix = X,
+    missingness_model_matrix = X,
     auxiliary_matrix = aux,
     respondent_weights = wts,
     N_pop = N_pop,

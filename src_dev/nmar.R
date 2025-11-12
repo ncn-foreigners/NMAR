@@ -10,7 +10,7 @@
 #'   The left-hand side is the outcome (with `NA` values indicating nonresponse).
 #'   The right-hand side is split by `|` into two parts:
 #'   - left of `|`: auxiliary variables (enter moment constraints);
-#'   - right of `|`: response-model predictors (enter the missingness model only).
+#'   - right of `|`: missingness (response) model predictors (enter the missingness model only).
 #'   If `|` is omitted, only auxiliary variables are used for both parsing and printing.
 #'   The outcome variable is implicitly included in the response model.
 #' @param data A data frame or `survey.design` containing the variables referenced by the
