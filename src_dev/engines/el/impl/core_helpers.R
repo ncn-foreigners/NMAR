@@ -142,8 +142,7 @@ el_run_solver <- function(equation_system_func,
 #' @param response_model_matrix_unscaled Unscaled design matrix for the response model.
 #' @param auxiliary_matrix_scaled Scaled auxiliary matrix (or empty matrix).
 #' @param mu_x_scaled Vector of population means for scaled auxiliaries (or NULL).
-#' @param respondent_data Data frame of respondents.
-#' @param outcome_var Character; outcome column name in respondent_data.
+#' @param response_outcome Numeric vector of respondent outcomes.
 #' @param family Family object with linkinv and mu.eta.
 #' @param N_pop Numeric; population total on the analysis scale.
 #' @param respondent_weights Base weights for respondents.
@@ -158,8 +157,7 @@ el_post_solution <- function(estimates,
                              response_model_matrix_unscaled,
                              auxiliary_matrix_scaled,
                              mu_x_scaled,
-                             respondent_data,
-                             outcome_var,
+                             response_outcome,
                              family,
                              N_pop,
                              respondent_weights,
@@ -193,7 +191,7 @@ el_post_solution <- function(estimates,
   dpack <- el_denominator(lambda_W_hat, W_hat, Xc_lambda, w_i_hat, denom_floor)
   masses <- el_masses(respondent_weights, dpack$denom, denom_floor, trim_cap)
   prob_mass <- masses$prob_mass
-  y_hat <- el_mean(prob_mass, respondent_data[[outcome_var]])
+  y_hat <- el_mean(prob_mass, response_outcome)
   beta_hat_unscaled <- if (standardize) unscale_coefficients(beta_hat_scaled, matrix(0, K_beta, K_beta), nmar_scaling_recipe)$coefficients else beta_hat_scaled
   names(beta_hat_unscaled) <- colnames(response_model_matrix_unscaled)
   list(

@@ -4,13 +4,15 @@
 #' under nonignorable nonresponse, including parameter solving, variance calculation,
 #' and diagnostic computation.
 #'
-#' @param design el_design object containing response/auxiliary matrices and mask.
-#' @param context el_context object (respondent data, weights, metadata).
+#' @param response_matrix Respondent-side response-model design matrix (intercept + predictors).
+#' @param response_outcome Numeric vector of respondent outcomes (used for point estimate).
 #' @param auxiliary_matrix Auxiliary design matrix on respondents (may have zero columns).
 #' @param mu_x Named numeric vector of auxiliary population means (aligned to columns of `auxiliary_matrix`).
 #' @param auxiliary_means Named numeric vector of known population means supplied by the user (optional; used for diagnostics).
+#' @param respondent_weights Numeric vector of respondent weights aligned with `response_matrix` rows.
+#' @param full_data Data object used for logging (survey designs supply the design object).
 #' @param outcome_var Character string identifying the outcome variable.
-#' @param has_aux Logical; whether auxiliary constraints are active.
+#' @param N_pop Population size on the analysis scale.
 #' @param standardize Logical. Whether to standardize predictors during estimation.
 #' @param trim_cap Numeric. Upper bound for empirical likelihood weight trimming.
 #' @param control List of control parameters for the nonlinear equation solver.
@@ -36,8 +38,13 @@
 #' implemented.
 #'
 #' @keywords internal
-el_estimator_core <- function(design, context,
+el_estimator_core <- function(response_matrix,
+                              response_outcome,
                               auxiliary_matrix, mu_x,
+                              respondent_weights,
+                              full_data,
+                              outcome_var,
+                              N_pop,
                               standardize, trim_cap, control,
                               on_failure, family = logit_family(),
                               variance_method, bootstrap_reps,
@@ -46,7 +53,6 @@ el_estimator_core <- function(design, context,
 
 # 0. Setup
   force(family)
-  response_matrix <- design$response
   if (!is.matrix(response_matrix)) {
     stop("Internal error: response_matrix must be a matrix.", call. = FALSE)
   }
@@ -57,11 +63,6 @@ el_estimator_core <- function(design, context,
     mu_x <- numeric(0)
   }
   has_aux <- ncol(auxiliary_matrix) > 0
-  respondent_weights <- context$respondent_weights
-  respondent_data <- context$respondent_data
-  full_data <- context$full_data
-  N_pop <- context$N_pop
-  outcome_var <- context$outcome_var
 
 # Create verboser for verbose output
   verboser <- create_verboser(trace_level)
@@ -230,8 +231,7 @@ el_estimator_core <- function(design, context,
     response_model_matrix_unscaled = response_model_matrix_unscaled,
     auxiliary_matrix_scaled = auxiliary_matrix_scaled,
     mu_x_scaled = mu_x_scaled,
-    respondent_data = respondent_data,
-    outcome_var = outcome_var,
+    response_outcome = response_outcome,
     family = family,
     N_pop = N_pop,
     respondent_weights = respondent_weights,

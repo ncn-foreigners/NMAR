@@ -79,7 +79,7 @@ el.survey.design <- function(data, formula,
   survey_ctx <- el_get_design_context(design)
 
   design_inputs <- tryCatch(
-    el_prepare_design(
+    el_construct_design(
       formula = formula,
       data = design$variables,
       require_na = is.null(n_total)
@@ -152,18 +152,17 @@ el.survey.design <- function(data, formula,
     scale_mismatch_pct <- 0
   }
 
-  context <- el_build_context(
-    data_aug = design$variables,
-    respondent_mask = design_inputs$mask,
+  prep <- el_prepare_analysis_inputs(
+    data = design$variables,
     outcome_var = design_inputs$outcome,
-    formula = formula,
-    full_data = design,
-    respondent_weights_full = respondent_weights_full,
+    mask = design_inputs$mask,
+    weights_full = respondent_weights_full,
     N_pop = N_pop,
+    variance_method = variance_method,
     is_survey = TRUE,
-    design = design,
-    variance_method = variance_method
+    design = design
   )
+  design$variables <- prep$data_aug
 
   aux_summary <- el_resolve_auxiliaries(
     design_inputs$aux_resp,
@@ -173,10 +172,14 @@ el.survey.design <- function(data, formula,
   )
 
   core_results <- el_estimator_core(
-    design = design_inputs,
-    context = context,
+    response_matrix = design_inputs$response_design,
+    response_outcome = design_inputs$response_outcome,
     auxiliary_matrix = aux_summary$matrix,
     mu_x = aux_summary$means,
+    respondent_weights = prep$respondent_weights,
+    full_data = design,
+    outcome_var = design_inputs$outcome,
+    N_pop = prep$N_pop,
     standardize = standardize,
     trim_cap = trim_cap,
     control = control,
@@ -197,5 +200,5 @@ el.survey.design <- function(data, formula,
     auxiliary_means = auxiliary_means
   )
 
-  el_build_result(core_results, context, cl, formula)
+  el_build_result(core_results, prep$data_info, cl, formula)
 }

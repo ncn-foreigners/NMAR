@@ -11,7 +11,9 @@
 #' @param on_failure Character; one of `"return"` or `"error"` on solver failure.
 #' @param variance_method Character; one of `"delta"`, `"bootstrap"`, or `"none"`.
 #' @param bootstrap_reps Integer; number of bootstrap reps if `variance_method = "bootstrap"`.
-#' @param n_total Optional integer population size; defaults to `nrow(data)` when `NULL`.
+#' @param n_total Optional integer population size. When the outcome contains
+#'   at least one `NA`, `n_total` defaults to `nrow(data)`; when respondents-only
+#'   data are supplied (no `NA` in the outcome), `n_total` must be provided.
 #' @param start Optional list of starting values passed to the solver helpers.
 #' @param trace_level Integer 0-3 controlling estimator logging detail.
 #' @param family Response-model family specification (defaults to the logit bundle).
@@ -19,11 +21,12 @@
 #' @details Implements the empirical likelihood estimator for IID data with
 #'   optional auxiliary moment constraints. The response-model score is the
 #'   Bernoulli derivative with respect to the linear predictor, supporting logit
-#'   and probit links. When respondents-only data is supplied (no NA in the
-#'   outcome), set \code{n_total} to the total number of sampled units; otherwise
-#'   the total is taken as \code{nrow(data)}. If respondents-only data is used
-#'   and auxiliaries are requested, you must also provide population auxiliary
-#'   means via \code{auxiliary_means}. Result weights are the unnormalized EL
+#'   and probit links. When respondents-only data are supplied (no `NA` in the
+#'   outcome), `n_total` is required so the response-rate equation targets the
+#'   full sample size. When missingness is observed (`NA` present), the default
+#'   population total is `nrow(data)`. If respondents-only data are used and
+#'   auxiliaries are requested, you must also provide population auxiliary
+#'   means via `auxiliary_means`. Result weights are the unnormalized EL
 #'   masses \code{d_i/D_i(theta)} on this analysis scale.
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
@@ -46,31 +49,32 @@ el.data.frame <- function(data, formula,
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
   variance_method <- match.arg(variance_method)
-# Coerce unsupported mode to 'none' locally (engine-level warning already issued)
   if (identical(variance_method, "delta")) variance_method <- "none"
 
 
+  lhs_vars <- all.vars(formula[[2L]])
+  outcome_name <- lhs_vars[1]
   respondents_only <- el_validate_respondents_only(formula, data, auxiliary_means, context_label = "data frame")
-  design <- el_prepare_design(
+  if (respondents_only && outcome_name %in% names(data) && is.null(n_total)) {
+    stop("Respondents-only data detected (no NAs in outcome), but 'n_total' was not provided. Supply n_total = total sampled units.", call. = FALSE)
+  }
+  design <- el_construct_design(
     formula = formula,
     data = data,
     require_na = is.null(n_total)
   )
 
-  data_aug <- el_make_delta_column(data, design$outcome, design$mask)$data
-
-  context <- el_build_context(
-    data_aug = data_aug,
-    respondent_mask = design$mask,
+  prep <- el_prepare_analysis_inputs(
+    data = data,
     outcome_var = design$outcome,
-    formula = formula,
-    full_data = data_aug,
-    respondent_weights_full = NULL,
+    mask = design$mask,
+    weights_full = NULL,
     N_pop = n_total,
+    variance_method = variance_method,
     is_survey = FALSE,
-    design = NULL,
-    variance_method = variance_method
+    design = NULL
   )
+  data_aug <- prep$data_aug
 
   aux_summary <- el_resolve_auxiliaries(
     design$aux_resp,
@@ -80,10 +84,14 @@ el.data.frame <- function(data, formula,
   )
 
   core_results <- el_estimator_core(
-    design = design,
-    context = context,
+    response_matrix = design$response_design,
+    response_outcome = design$response_outcome,
     auxiliary_matrix = aux_summary$matrix,
     mu_x = aux_summary$means,
+    respondent_weights = prep$respondent_weights,
+    full_data = data_aug,
+    outcome_var = design$outcome,
+    N_pop = prep$N_pop,
     standardize = standardize,
     trim_cap = trim_cap,
     control = control,
@@ -104,5 +112,5 @@ el.data.frame <- function(data, formula,
     auxiliary_means = auxiliary_means
   )
 
-  el_build_result(core_results, context, cl, formula)
+  el_build_result(core_results, prep$data_info, cl, formula)
 }
