@@ -17,6 +17,18 @@ test_that("el_prepare_inputs expands dot notation via Formula", {
   expect_true(all(c("(Intercept)", "Y_miss", "X1", "X2", "Z") %in% colnames(res$response_matrix)))
 })
 
+test_that("response intercept is retained even when formula uses +0", {
+  df <- data.frame(
+    Y_miss = c(1, NA, 2, NA),
+    Z = rnorm(4)
+  )
+  design <- NMAR:::el_prepare_design(Y_miss ~ 1 | Z + 0, df, require_na = FALSE)
+  expect_identical(colnames(design$response)[1], "(Intercept)")
+  expect_true(all(design$response[, "(Intercept)"] == 1))
+  expect_true("Z" %in% colnames(design$response))
+  expect_equal(ncol(design$response), 3)
+})
+
 test_that("dot expansion drops outcome-derived auxiliary terms", {
   set.seed(99)
   df <- data.frame(
@@ -49,7 +61,8 @@ test_that("intercept-only auxiliaries are ignored without warnings", {
   )
   expect_warning(
     res <- prepare_el_inputs(Y_miss ~ 1 | Z, df),
-    NA
+    "intercept",
+    fixed = FALSE
   )
   expect_false(res$has_aux)
   expect_equal(ncol(res$auxiliary_matrix), 0)
@@ -62,7 +75,7 @@ test_that("explicit intercept plus auxiliaries triggers a warning", {
   )
   expect_warning(
     res <- prepare_el_inputs(Y_miss ~ 1 + X, df),
-    "dropping the requested intercept",
+    "\\+ 1 has no effect",
     fixed = FALSE
   )
   expect_equal(colnames(res$auxiliary_matrix), "X")

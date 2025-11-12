@@ -1,7 +1,14 @@
 #' Build EL result object (success or failure)
 #' @keywords internal
 el_build_result <- function(core_results, context, call, formula, engine_name = "empirical_likelihood") {
-  meta <- context$meta
+  meta <- list(
+    outcome_var = context$outcome_var,
+    n_total = context$N_pop,
+    nobs_resp = length(context$respondent_indices),
+    is_survey = context$is_survey,
+    design = context$design,
+    variance_method = context$variance_method
+  )
   diag_list <- core_results$diagnostics %||% list()
 
   if (!core_results$converged) {

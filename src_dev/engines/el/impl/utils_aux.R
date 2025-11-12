@@ -6,9 +6,8 @@ NULL
 
 #' Check auxiliary means consistency against respondents' sample support
 #'
-#' @param respondent_df data.frame of respondents (no NAs in outcome indicator)
-#' @param aux_formula RHS-only formula for auxiliaries (no intercept)
-#' @param provided_means optional named numeric vector of auxiliary means on the same columns as the matrix
+#' @param aux_matrix_resp Respondent-side auxiliary design matrix.
+#' @param provided_means Optional named numeric vector of auxiliary means aligned to the matrix columns.
 #' @param threshold numeric, z-score threshold for flagging
 #' @return list(max_z = numeric(1) or NA, cols = character())
 #' @keywords internal
@@ -17,7 +16,7 @@ el_check_aux_inconsistency_matrix <- function(aux_matrix_resp, provided_means = 
   if (is.null(aux_matrix_resp) || !is.matrix(aux_matrix_resp) || ncol(aux_matrix_resp) == 0) return(out)
 
   mm <- aux_matrix_resp
-# Drop near-constant columns
+# Remove nearly constant columns to avoid undefined z-scores
   sds <- apply(mm, 2, stats::sd)
   keep <- which(is.finite(sds) & sds >= 1e-8)
   if (length(keep) == 0) return(out)
@@ -68,7 +67,6 @@ el_resolve_auxiliaries <- function(auxiliary_matrix_resp,
                                    weights_full = NULL) {
   n_resp <- if (!is.null(auxiliary_matrix_resp) && is.matrix(auxiliary_matrix_resp)) nrow(auxiliary_matrix_resp) else 0
 
-# No auxiliaries requested
   if (is.null(auxiliary_matrix_resp) || !is.matrix(auxiliary_matrix_resp) || ncol(auxiliary_matrix_resp) == 0) {
     return(list(
       matrix = matrix(nrow = n_resp, ncol = 0),
@@ -78,20 +76,6 @@ el_resolve_auxiliaries <- function(auxiliary_matrix_resp,
 
   aux_resp <- auxiliary_matrix_resp
   aux_full <- auxiliary_matrix_full
-
-  if ("(Intercept)" %in% colnames(aux_resp)) {
-    aux_resp <- aux_resp[, colnames(aux_resp) != "(Intercept)", drop = FALSE]
-  }
-  if (!is.null(aux_full) && "(Intercept)" %in% colnames(aux_full)) {
-    aux_full <- aux_full[, colnames(aux_full) != "(Intercept)", drop = FALSE]
-  }
-
-  if (ncol(aux_resp) == 0) {
-    return(list(
-      matrix = matrix(nrow = n_resp, ncol = 0),
-      means = NULL
-    ))
-  }
 
   if (!is.null(auxiliary_means)) {
     provided_names <- names(auxiliary_means)
@@ -122,23 +106,12 @@ el_resolve_auxiliaries <- function(auxiliary_matrix_resp,
   }
 
   if (is.null(aux_full) || ncol(aux_full) == 0) {
-    return(list(
-      matrix = matrix(nrow = nrow(aux_resp), ncol = 0),
-      means = NULL
-    ))
+    stop(
+      "Internal error: auxiliary full matrix is missing while auxiliaries are requested.",
+      call. = FALSE
+    )
   }
-
-  if (!identical(colnames(aux_resp), colnames(aux_full))) {
-    common_cols <- intersect(colnames(aux_resp), colnames(aux_full))
-    if (length(common_cols) == 0L) {
-      return(list(
-        matrix = matrix(nrow = nrow(aux_resp), ncol = 0),
-        means = NULL
-      ))
-    }
-    aux_resp <- aux_resp[, common_cols, drop = FALSE]
-    aux_full <- aux_full[, common_cols, drop = FALSE]
-  }
+  el_validate_auxiliary_full(aux_full)
 
   if (!is.null(weights_full)) {
     mu <- as.numeric(colSums(aux_full * weights_full) / sum(weights_full))

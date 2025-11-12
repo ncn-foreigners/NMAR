@@ -11,6 +11,10 @@
 #' @param on_failure Character; one of `"return"` or `"error"` on solver failure.
 #' @param variance_method Character; one of `"delta"`, `"bootstrap"`, or `"none"`.
 #' @param bootstrap_reps Integer; number of bootstrap reps if `variance_method = "bootstrap"`.
+#' @param n_total Optional integer population size; defaults to `nrow(data)` when `NULL`.
+#' @param start Optional list of starting values passed to the solver helpers.
+#' @param trace_level Integer 0-3 controlling estimator logging detail.
+#' @param family Response-model family specification (defaults to the logit bundle).
 #' @param ... Additional arguments passed to the solver.
 #' @details Implements the empirical likelihood estimator for IID data with
 #'   optional auxiliary moment constraints. The response-model score is the
@@ -47,22 +51,18 @@ el.data.frame <- function(data, formula,
 
 
   respondents_only <- el_validate_respondents_only(formula, data, auxiliary_means, context_label = "data frame")
-# el_prepare_inputs(require_na = is.null(n_total)) still enforces the NA requirement.
-
-  parsed <- el_parse_formula(
+  design <- el_prepare_design(
     formula = formula,
     data = data,
     require_na = is.null(n_total)
   )
 
-  design <- el_build_design(parsed_spec = parsed, auxiliary_means = auxiliary_means)
-
-  data_aug <- el_make_delta_column(data, parsed$outcome_var, parsed$respondent_mask)$data
+  data_aug <- el_make_delta_column(data, design$outcome, design$mask)$data
 
   context <- el_build_context(
     data_aug = data_aug,
-    respondent_mask = parsed$respondent_mask,
-    outcome_var = parsed$outcome_var,
+    respondent_mask = design$mask,
+    outcome_var = design$outcome,
     formula = formula,
     full_data = data_aug,
     respondent_weights_full = NULL,

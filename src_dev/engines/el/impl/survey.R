@@ -11,6 +11,10 @@
 #' @param on_failure Character; "return" or "error" on solver failure.
 #' @param variance_method Character; "delta" or "bootstrap".
 #' @param bootstrap_reps Integer; reps when `variance_method = "bootstrap"`.
+#' @param n_total Optional population size used to rescale design weights; required for respondents-only designs.
+#' @param start Optional list of starting values passed to solver helpers.
+#' @param trace_level Integer 0-3 controlling estimator logging detail.
+#' @param family Response-model family specification (defaults to logit).
 #' @param ... Passed to solver.
 #' @details Implements the empirical likelihood estimator with design weights.
 #'   If \code{n_total} is supplied, design weights are rescaled internally to
@@ -74,8 +78,8 @@ el.survey.design <- function(data, formula,
 
   survey_ctx <- el_get_design_context(design)
 
-  parsed <- tryCatch(
-    el_parse_formula(
+  design_inputs <- tryCatch(
+    el_prepare_design(
       formula = formula,
       data = design$variables,
       require_na = is.null(n_total)
@@ -86,8 +90,7 @@ el.survey.design <- function(data, formula,
       stop(msg2, call. = FALSE)
     }
   )
-  design_inputs <- el_build_design(parsed_spec = parsed, auxiliary_means = auxiliary_means)
-  design$variables <- el_make_delta_column(design$variables, parsed$outcome_var, parsed$respondent_mask)$data
+  design$variables <- el_make_delta_column(design$variables, design_inputs$outcome, design_inputs$mask)$data
 
 # Scale coherence: ensure N_pop and design weights are on the same scale
   weights_all <- as.numeric(weights(design))
@@ -151,8 +154,8 @@ el.survey.design <- function(data, formula,
 
   context <- el_build_context(
     data_aug = design$variables,
-    respondent_mask = parsed$respondent_mask,
-    outcome_var = parsed$outcome_var,
+    respondent_mask = design_inputs$mask,
+    outcome_var = design_inputs$outcome,
     formula = formula,
     full_data = design,
     respondent_weights_full = respondent_weights_full,

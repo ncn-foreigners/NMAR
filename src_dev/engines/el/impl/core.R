@@ -61,7 +61,7 @@ el_estimator_core <- function(design, context,
   respondent_data <- context$respondent_data
   full_data <- context$full_data
   N_pop <- context$N_pop
-  outcome_var <- context$meta$outcome_var
+  outcome_var <- context$outcome_var
 
 # Create verboser for verbose output
   verboser <- create_verboser(trace_level)
