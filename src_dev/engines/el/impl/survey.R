@@ -1,3 +1,19 @@
+#' Rescale survey design weights in place
+#' @keywords internal
+el_rescale_survey_design_weights <- function(design, scale_factor) {
+  if (!inherits(design, "survey.design")) {
+    stop("Internal error: expected a survey.design object for weight rescaling.", call. = FALSE)
+  }
+  if (!is.finite(scale_factor) || scale_factor <= 0) {
+    stop("scale_factor must be a positive, finite numeric value.", call. = FALSE)
+  }
+  design[["prob"]] <- design[["prob"]] / scale_factor
+  if (!is.null(design[["allprob"]])) {
+    design[["allprob"]] <- design[["allprob"]] / scale_factor
+  }
+  design
+}
+
 #' Empirical likelihood for survey designs (NMAR)
 #' @description Internal method dispatched by `el()` when `data` is a `survey.design`.
 #'   Variance via bootstrap is supported. Analytical delta variance for EL is
@@ -93,8 +109,8 @@ el.survey.design <- function(data, formula,
   design$variables <- el_make_delta_column(design$variables, design_inputs$outcome_var, design_inputs$respondent_mask)$data
 
 # Scale coherence: ensure N_pop and design weights are on the same scale
-  weights_all <- as.numeric(weights(design))
-  design_weight_sum <- sum(weights_all)
+  weights_initial <- as.numeric(weights(design))
+  design_weight_sum <- sum(weights_initial)
 
   if (!is.null(n_total)) {
     N_pop <- n_total
@@ -141,11 +157,16 @@ el.survey.design <- function(data, formula,
       scale_mismatch_detected <- FALSE
     }
 
-    respondent_weights_full <- weights_all * scale_factor
+    if (!isTRUE(all.equal(scale_factor, 1))) {
+      design <- el_rescale_survey_design_weights(design, scale_factor)
+    }
+    weights_all <- as.numeric(weights(design))
+    respondent_weights_full <- weights_all
 
   } else {
 # No n_total supplied: use design total as population size
     N_pop <- design_weight_sum
+    weights_all <- weights_initial
     respondent_weights_full <- weights_all
     scale_factor <- 1.0
     scale_mismatch_detected <- FALSE
@@ -193,6 +214,7 @@ el.survey.design <- function(data, formula,
       standardize = standardize,
       trim_cap = trim_cap,
       control = control,
+      n_total = n_total,
       ...
     ),
     start = start,

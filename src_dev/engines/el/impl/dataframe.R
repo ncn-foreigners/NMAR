@@ -105,6 +105,7 @@ el.data.frame <- function(data, formula,
       standardize = standardize,
       trim_cap = trim_cap,
       control = control,
+      n_total = n_total,
       ...
     ),
     start = start,
