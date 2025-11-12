@@ -15,7 +15,7 @@ test_that("auxiliary_means names match transformed columns (I(X^2))", {
   expect_s3_class(fit, "nmar_result_el")
 })
 
-test_that("misnamed auxiliary_means are dropped (EL resolves to no auxiliaries)", {
+test_that("misnamed auxiliary_means trigger an error", {
   set.seed(124)
   n <- 50
   X <- rnorm(n)
@@ -28,16 +28,17 @@ test_that("misnamed auxiliary_means are dropped (EL resolves to no auxiliaries)"
   aux_fml <- stats::as.formula("~ 0 + I(X^2)")
   resp_df <- df[!is.na(df$Y_miss), , drop = FALSE]
 
-# Misnamed means (no match) -> auxiliaries disabled
-  res <- NMAR:::el_resolve_auxiliaries(
-    full_data = df,
-    respondent_data = resp_df,
-    aux_formula = aux_fml,
-    auxiliary_means = c(X2 = 0) # misnamed
+# Misnamed means (no match) -> informative error
+  expect_error(
+    NMAR:::el_resolve_auxiliaries(
+      full_data = df,
+      respondent_data = resp_df,
+      aux_formula = aux_fml,
+      auxiliary_means = c(X2 = 0) # misnamed
+    ),
+    "auxiliary_means must supply entries",
+    fixed = FALSE
   )
-  expect_false(res$has_aux)
-  expect_equal(ncol(res$matrix), 0)
-  expect_null(res$means)
 })
 
 test_that("partially mismatched auxiliary_means warn and use only matched names", {
@@ -52,9 +53,26 @@ test_that("partially mismatched auxiliary_means warn and use only matched names"
   eng <- el_engine(auxiliary_means = c(X = 0, foo = 10), variance_method = "none")
   expect_warning(
     fit <- nmar(Y_miss ~ X, data = df, engine = eng),
-    "Dropping unmatched names in 'auxiliary_means'",
+    "Ignoring unused names in 'auxiliary_means'",
     fixed = FALSE
   )
   expect_s3_class(fit, "nmar_result_el")
   expect_true(isTRUE(fit$converged))
+})
+
+test_that("nmar errors when auxiliary_means omit required columns", {
+  set.seed(101)
+  n <- 80
+  X1 <- rnorm(n)
+  X2 <- rnorm(n)
+  Y <- 1 + 0.5 * X1 - 0.2 * X2 + rnorm(n)
+  R <- rbinom(n, 1, plogis(-0.3 + 0.4 * scale(Y)[, 1]))
+  df <- data.frame(Y_miss = Y, X1 = X1, X2 = X2)
+  df$Y_miss[R == 0] <- NA_real_
+  eng <- el_engine(auxiliary_means = c(X1 = 0), variance_method = "none")
+  expect_error(
+    nmar(Y_miss ~ X1 + X2, data = df, engine = eng),
+    "auxiliary_means must supply entries",
+    fixed = FALSE
+  )
 })

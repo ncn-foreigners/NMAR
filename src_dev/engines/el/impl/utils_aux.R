@@ -43,9 +43,8 @@ el_check_aux_inconsistency <- function(respondent_df, aux_formula, provided_mean
 #' Rules:
 #' - If \code{aux_formula} is NULL or results in zero columns, auxiliaries are
 #'   disabled (returns an empty matrix and NULL means).
-#' - If \code{auxiliary_means} is provided, it is matched/reordered to the
-#'   respondent design columns; unmatched names are dropped. If nothing matches,
-#'   auxiliaries are disabled.
+#' - If \code{auxiliary_means} is provided, it must supply entries for every
+#'   auxiliary design column (extras are ignored with a warning).
 #' - Else, compute means from the full data:
 #'     * survey.design: design-weighted column means using \code{weights(full_data)}
 #'     * data.frame: simple column means
@@ -72,72 +71,55 @@ el_resolve_auxiliaries <- function(full_data,
                 has_aux = FALSE))
   }
 
-  aux_resp <- tryCatch(model.matrix(aux_formula, data = respondent_data, na.action = stats::na.pass),
-                       error = function(e) NULL)
-  if (is.null(aux_resp) || ncol(aux_resp) == 0) {
+  aux_resp <- model.matrix(aux_formula, data = respondent_data, na.action = stats::na.pass)
+  if (ncol(aux_resp) == 0) {
     return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
                 means = NULL,
                 has_aux = FALSE))
   }
 
-# Enforce no-intercept policy for auxiliary constraints: warn and drop
   if ("(Intercept)" %in% colnames(aux_resp)) {
-    warning("Auxiliary RHS included an intercept; removing it for constraints.", call. = FALSE)
-    aux_resp <- aux_resp[, setdiff(colnames(aux_resp), "(Intercept)"), drop = FALSE]
-    if (ncol(aux_resp) == 0) {
-      return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
-                  means = NULL,
-                  has_aux = FALSE))
-    }
+    stop("Internal error: auxiliary design should not contain an intercept.", call. = FALSE)
   }
 
-  if (!is.null(auxiliary_means) && "(Intercept)" %in% names(auxiliary_means)) {
-    warning("Ignoring '(Intercept)' in auxiliary_means; auxiliary constraints do not include an intercept.", call. = FALSE)
-    auxiliary_means <- auxiliary_means[setdiff(names(auxiliary_means), "(Intercept)")]
-  }
-
-# User-supplied population means take precedence
   if (!is.null(auxiliary_means)) {
     provided_names <- names(auxiliary_means)
-    keep <- intersect(colnames(aux_resp), provided_names)
-    dropped <- setdiff(provided_names, keep)
-    if (length(dropped) > 0) {
-      warning(
+    missing_names <- setdiff(colnames(aux_resp), provided_names)
+    if (length(missing_names) > 0) {
+      stop(
         sprintf(
-          "Dropping unmatched names in 'auxiliary_means': %s",
-          paste(dropped, collapse = ", ")
+          "auxiliary_means must supply entries for: %s",
+          paste(missing_names, collapse = ", ")
         ),
         call. = FALSE
       )
     }
-    if (length(keep) == 0L) {
-      return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
-                  means = NULL,
-                  has_aux = FALSE))
+    extra <- setdiff(provided_names, colnames(aux_resp))
+    if (length(extra) > 0) {
+      warning(
+        sprintf(
+          "Ignoring unused names in 'auxiliary_means': %s",
+          paste(extra, collapse = ", ")
+        ),
+        call. = FALSE
+      )
     }
-    aux_resp <- aux_resp[, keep, drop = FALSE]
-    mu <- as.numeric(auxiliary_means[keep])
-    names(mu) <- keep
+    ordered_means <- auxiliary_means[colnames(aux_resp)]
+    mu <- as.numeric(ordered_means)
+    names(mu) <- colnames(aux_resp)
     return(list(matrix = aux_resp, means = mu, has_aux = TRUE))
   }
 
 # Otherwise compute from the full data (design-weighted if survey)
   if (inherits(full_data, "survey.design")) {
-    mm_full <- tryCatch(model.matrix(aux_formula, data = full_data$variables, na.action = stats::na.pass),
-                        error = function(e) NULL)
-    if (is.null(mm_full) || ncol(mm_full) == 0) {
+    mm_full <- model.matrix(aux_formula, data = full_data$variables, na.action = stats::na.pass)
+    if (ncol(mm_full) == 0) {
       return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
                   means = NULL,
                   has_aux = FALSE))
     }
     if ("(Intercept)" %in% colnames(mm_full)) {
-      warning("Auxiliary RHS included an intercept in full data; removing it for constraints.", call. = FALSE)
-      mm_full <- mm_full[, setdiff(colnames(mm_full), "(Intercept)"), drop = FALSE]
-      if (ncol(mm_full) == 0) {
-        return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
-                    means = NULL,
-                    has_aux = FALSE))
-      }
+      stop("Internal error: auxiliary design should not contain an intercept.", call. = FALSE)
     }
     common_cols <- intersect(colnames(aux_resp), colnames(mm_full))
     if (length(common_cols) == 0L) {
@@ -145,29 +127,21 @@ el_resolve_auxiliaries <- function(full_data,
                   means = NULL,
                   has_aux = FALSE))
     }
+    aux_resp <- aux_resp[, common_cols, drop = FALSE]
     mm_full <- mm_full[, common_cols, drop = FALSE]
     w_full <- as.numeric(weights(full_data))
     mu <- as.numeric(colSums(mm_full * w_full) / sum(w_full))
-    names(mu) <- colnames(mm_full)
-    aux_resp <- aux_resp[, common_cols, drop = FALSE]
-    mu <- mu[colnames(aux_resp)]
+    names(mu) <- colnames(aux_resp)
     return(list(matrix = aux_resp, means = mu, has_aux = TRUE))
   } else {
-    mm_full <- tryCatch(model.matrix(aux_formula, data = full_data, na.action = stats::na.pass),
-                        error = function(e) NULL)
-    if (is.null(mm_full) || ncol(mm_full) == 0) {
+    mm_full <- model.matrix(aux_formula, data = full_data, na.action = stats::na.pass)
+    if (ncol(mm_full) == 0) {
       return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
                   means = NULL,
                   has_aux = FALSE))
     }
     if ("(Intercept)" %in% colnames(mm_full)) {
-      warning("Auxiliary RHS included an intercept in full data; removing it for constraints.", call. = FALSE)
-      mm_full <- mm_full[, setdiff(colnames(mm_full), "(Intercept)"), drop = FALSE]
-      if (ncol(mm_full) == 0) {
-        return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
-                    means = NULL,
-                    has_aux = FALSE))
-      }
+      stop("Internal error: auxiliary design should not contain an intercept.", call. = FALSE)
     }
     common_cols <- intersect(colnames(aux_resp), colnames(mm_full))
     if (length(common_cols) == 0L) {
@@ -175,12 +149,10 @@ el_resolve_auxiliaries <- function(full_data,
                   means = NULL,
                   has_aux = FALSE))
     }
-    mm_full <- mm_full[, common_cols, drop = FALSE]
-    mu <- colMeans(mm_full)
-    mu <- as.numeric(mu[common_cols])
-    names(mu) <- common_cols
     aux_resp <- aux_resp[, common_cols, drop = FALSE]
-    mu <- mu[colnames(aux_resp)]
+    mm_full <- mm_full[, common_cols, drop = FALSE]
+    mu <- as.numeric(colMeans(mm_full))
+    names(mu) <- colnames(aux_resp)
     return(list(matrix = aux_resp, means = mu, has_aux = TRUE))
   }
 }

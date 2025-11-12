@@ -14,9 +14,8 @@ test_that("EL handles factor auxiliaries and response predictors; intercept poli
   df2 <- df
   nonresp <- which(is.na(df2$Y_miss))[1]
   df2$G[nonresp] <- NA
-  eng <- el_engine(auxiliary_means = c(X = 0, Gb = 0, Gc = 0), variance_method = "none")
+  eng <- el_engine(auxiliary_means = c(X = 0, Ga = 0, Gb = 0, Gc = 0), variance_method = "none")
 # Use a model where RHS expands factor(G) in auxiliaries
-# Note: names in auxiliary_means won't match automatically; this test ensures no crash and user would supply correct names
   expect_s3_class(nmar(Y_miss ~ X + G | Z, data = df2, engine = eng), "nmar_result_el")
 
 # Case 2: no auxiliary_means -> NA anywhere in aux should error
