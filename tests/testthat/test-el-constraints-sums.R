@@ -11,7 +11,7 @@ test_that("constraint sums are near zero at solution (no trimming)", {
   diag <- fit$diagnostics
   expect_true(is.finite(diag$jacobian_condition_number) || is.na(diag$jacobian_condition_number))
 # Reconstruct components to compute raw constraint sums from stored diagnostics inputs
-  parsed <- NMAR:::el_prepare_inputs(Y_miss ~ X, df, NULL)
+  parsed <- prepare_el_inputs(Y_miss ~ X, df, NULL)
   dat2 <- parsed$data
   resp_var <- parsed$delta_name
   obs_idx <- which(dat2[[resp_var]] == 1)

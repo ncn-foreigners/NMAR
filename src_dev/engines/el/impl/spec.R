@@ -1,14 +1,4 @@
-#' Build EL specification via Formula workflows
-#'
-#' @description
-#'   Parses the user formula with `Formula::as.Formula()`, builds the canonical
-#'   model frame, constructs response and auxiliary design matrices, guards
-#'   against unsupported terms (e.g., outcome on the auxiliary side), and
-#'   augments the original data with the delta indicator used throughout the
-#'   engine.
-#'
-#' @keywords internal
-el_prepare_inputs <- function(formula, data, require_na = TRUE, auxiliary_means = NULL) {
+el_parse_formula <- function(formula, data, require_na = TRUE) {
   if (!inherits(formula, "formula") || length(formula) != 3L) {
     stop("`formula` must be a two-sided formula, e.g., y ~ x1 + x2.", call. = FALSE)
   }
@@ -25,8 +15,9 @@ el_prepare_inputs <- function(formula, data, require_na = TRUE, auxiliary_means 
 
   el_validate_outcome(data, outcome_var, require_na)
 
-  formula_obj <- Formula::as.Formula(formula)
-  rhs_parts <- length(attr(formula_obj, "rhs"))
+  formula_obj <- Formula::as.Formula(as.list(formula))
+  rhs_attr <- attr(formula_obj, "rhs")
+  rhs_parts <- if (is.null(rhs_attr)) 1L else length(rhs_attr)
   if (rhs_parts > 2L) {
     stop("EL formulas support at most two RHS partitions (auxiliaries | response predictors).", call. = FALSE)
   }
@@ -36,88 +27,117 @@ el_prepare_inputs <- function(formula, data, require_na = TRUE, auxiliary_means 
     error = el_rethrow_data_error
   )
 
-  respondent_mask <- !is.na(model_frame[[outcome_var]])
+  response_vector <- tryCatch(stats::model.response(model_frame), error = el_rethrow_data_error)
+  if (is.null(response_vector)) {
+    stop("Unable to extract a response vector from the supplied formula.", call. = FALSE)
+  }
+  if (is.matrix(response_vector)) {
+    response_vector <- as.numeric(response_vector)
+  }
+  if (!is.numeric(response_vector)) {
+    stop("Outcome variable must evaluate to a numeric vector.", call. = FALSE)
+  }
+
+  respondent_mask <- !is.na(response_vector)
   respondent_indices <- which(respondent_mask)
 
-  delta_info <- el_make_delta_column(data, outcome_var, respondent_mask)
-  data_aug <- delta_info$data
-  delta_name <- delta_info$delta_name
-
-  response_matrix <- el_build_response_matrix(
+  list(
+    formula = formula,
     formula_obj = formula_obj,
-    rhs_parts = rhs_parts,
-    model_frame = model_frame,
-    respondent_mask = respondent_mask,
+    env = env,
     outcome_var = outcome_var,
-    env = env
+    model_frame = model_frame,
+    response_vector = response_vector,
+    respondent_mask = respondent_mask,
+    respondent_indices = respondent_indices,
+    rhs_parts = rhs_parts
   )
-  el_validate_response_matrix(response_matrix, respondent_indices)
+}
 
-  aux_design <- el_build_auxiliary_matrices(
-    formula_obj = formula_obj,
-    rhs_parts = rhs_parts,
-    model_frame = model_frame,
-    respondent_mask = respondent_mask,
-    outcome_var = outcome_var,
-    env = env
+#' Build EL specification via Formula workflows
+#'
+#' @description
+#'   Parses the user formula with `Formula::as.Formula()`, builds the canonical
+#'   model frame, constructs response and auxiliary design matrices, guards
+#'   against unsupported terms (e.g., outcome on the auxiliary side), and
+#'   augments the original data with the delta indicator used throughout the
+#'   engine.
+#'
+#' @keywords internal
+el_build_design <- function(parsed_spec, auxiliary_means = NULL) {
+  response_matrix <- el_construct_response_matrix(
+    response_vector = parsed_spec$response_vector,
+    respondent_mask = parsed_spec$respondent_mask,
+    formula_obj = parsed_spec$formula_obj,
+    rhs_parts = parsed_spec$rhs_parts,
+    model_frame = parsed_spec$model_frame,
+    outcome_var = parsed_spec$outcome_var
+  )
+  el_validate_response_matrix(response_matrix, parsed_spec$respondent_indices)
+
+  aux_design <- el_extract_auxiliary_design(
+    formula_obj = parsed_spec$formula_obj,
+    rhs_parts = parsed_spec$rhs_parts,
+    model_frame = parsed_spec$model_frame,
+    respondent_mask = parsed_spec$respondent_mask,
+    outcome_var = parsed_spec$outcome_var,
+    env = parsed_spec$env
   )
 
   el_validate_auxiliary_matrices(
     aux_resp = aux_design$respondent,
     aux_full = aux_design$full,
-    respondent_indices = respondent_indices,
+    respondent_indices = parsed_spec$respondent_indices,
     need_full_means = is.null(auxiliary_means)
   )
 
-  if (isTRUE(aux_design$removed_intercept)) {
-    warning(
-      "Auxiliary constraints do not include an intercept; dropping the requested intercept (use '~ 0 + ...').",
-      call. = FALSE
-    )
-  }
-
-  list(
-    data = data_aug,
-    outcome_var = outcome_var,
-    delta_name = delta_name,
-    respondent_mask = respondent_mask,
-    response_matrix = response_matrix,
-    auxiliary_matrix = aux_design$respondent,
-    auxiliary_matrix_full = aux_design$full,
-    has_aux = aux_design$has_aux
+  structure(
+    list(
+      response = response_matrix,
+      aux_resp = aux_design$respondent,
+      aux_full = aux_design$full,
+      mask = parsed_spec$respondent_mask,
+      outcome = parsed_spec$outcome_var
+    ),
+    class = "el_design"
   )
 }
 
-el_build_response_matrix <- function(formula_obj,
-                                     rhs_parts,
-                                     model_frame,
-                                     respondent_mask,
-                                     outcome_var,
-                                     env) {
-  mf_resp <- model_frame[respondent_mask, , drop = FALSE]
-  if (nrow(mf_resp) == 0) {
+el_construct_response_matrix <- function(response_vector,
+                                         respondent_mask,
+                                         formula_obj,
+                                         rhs_parts,
+                                         model_frame,
+                                         outcome_var) {
+  n_resp <- sum(respondent_mask)
+  if (n_resp == 0) {
     return(matrix(nrow = 0, ncol = 0))
   }
 
-  rhs_expr <- as.name(outcome_var)
-  if (rhs_parts >= 2L) {
-    resp_rhs_formula <- stats::formula(formula_obj, lhs = 0, rhs = 2L)
-    resp_terms <- tryCatch(
-      stats::terms(resp_rhs_formula, data = model_frame),
+  intercept_col <- matrix(1, nrow = n_resp, ncol = 1)
+  colnames(intercept_col) <- "(Intercept)"
+
+  outcome_col <- matrix(response_vector[respondent_mask], ncol = 1)
+  colnames(outcome_col) <- outcome_var
+
+  resp_terms <- if (rhs_parts >= 2L) {
+    mm <- tryCatch(
+      stats::model.matrix(formula_obj, data = model_frame, rhs = 2L),
       error = el_rethrow_data_error
     )
-    resp_rhs_expanded <- stats::formula(resp_terms)
-    rhs_expr <- call("+", rhs_expr, resp_rhs_expanded[[2L]])
+    mm_resp <- mm[respondent_mask, , drop = FALSE]
+    if ("(Intercept)" %in% colnames(mm_resp)) {
+      mm_resp <- mm_resp[, colnames(mm_resp) != "(Intercept)", drop = FALSE]
+    }
+    mm_resp
+  } else {
+    matrix(nrow = n_resp, ncol = 0)
   }
 
-  response_formula <- stats::as.formula(call("~", rhs_expr), env = env)
-  tryCatch(
-    stats::model.matrix(response_formula, data = mf_resp, na.action = stats::na.pass),
-    error = el_rethrow_data_error
-  )
+  cbind(intercept_col, outcome_col, resp_terms)
 }
 
-el_build_auxiliary_matrices <- function(formula_obj,
+el_extract_auxiliary_design <- function(formula_obj,
                                         rhs_parts,
                                         model_frame,
                                         respondent_mask,
@@ -125,12 +145,12 @@ el_build_auxiliary_matrices <- function(formula_obj,
                                         env) {
   n_total <- nrow(model_frame)
   n_resp <- sum(respondent_mask)
+
   if (n_total == 0) {
     return(list(
       full = matrix(nrow = 0, ncol = 0),
       respondent = matrix(nrow = 0, ncol = 0),
-      has_aux = FALSE,
-      removed_intercept = FALSE
+      has_aux = FALSE
     ))
   }
 
@@ -145,8 +165,7 @@ el_build_auxiliary_matrices <- function(formula_obj,
     error = el_rethrow_data_error
   )
   term_labels <- attr(aux_terms, "term.labels")
-  expr_vars <- all.vars(aux_formula)
-  explicit_outcome <- outcome_var %in% expr_vars
+  outcome_explicit <- el_expr_contains_var(aux_formula[[2L]], outcome_var)
   term_has_outcome <- if (length(term_labels) > 0) {
     vapply(
       term_labels,
@@ -160,7 +179,7 @@ el_build_auxiliary_matrices <- function(formula_obj,
     logical(0)
   }
 
-  if (explicit_outcome && any(term_has_outcome)) {
+  if (outcome_explicit && any(term_has_outcome)) {
     bad_terms <- term_labels[term_has_outcome]
     stop(
       sprintf(
@@ -172,46 +191,40 @@ el_build_auxiliary_matrices <- function(formula_obj,
   }
 
   aux_full <- tryCatch(
-    stats::model.matrix(aux_formula, data = model_frame, na.action = stats::na.pass),
+    stats::model.matrix(formula_obj, data = model_frame, rhs = 1L),
     error = el_rethrow_data_error
   )
-
-  if (any(term_has_outcome)) {
-    assign_vec <- attr(aux_full, "assign")
-    if (!is.null(assign_vec)) {
-      drop_cols <- which(assign_vec %in% which(term_has_outcome))
-      if (length(drop_cols) > 0) {
-        aux_full <- aux_full[, -drop_cols, drop = FALSE]
-      }
-    }
-  }
-
-  explicit_intercept <- el_formula_has_explicit_intercept(aux_formula[[2L]])
-  has_intercept <- attr(aux_terms, "intercept") == 1
-  removed_intercept <- FALSE
-  if (has_intercept && "(Intercept)" %in% colnames(aux_full)) {
-    aux_full <- aux_full[, setdiff(colnames(aux_full), "(Intercept)"), drop = FALSE]
-    removed_intercept <- explicit_intercept && ncol(aux_full) > 0
-  }
 
   if (ncol(aux_full) > 0 && outcome_var %in% colnames(aux_full)) {
     aux_full <- aux_full[, colnames(aux_full) != outcome_var, drop = FALSE]
   }
 
-  if (ncol(aux_full) == 0) {
-    aux_full <- matrix(nrow = n_total, ncol = 0)
-    aux_resp <- matrix(nrow = n_resp, ncol = 0)
-    has_aux <- FALSE
-  } else {
-    aux_resp <- aux_full[respondent_mask, , drop = FALSE]
-    has_aux <- TRUE
+  intercept_present <- "(Intercept)" %in% colnames(aux_full)
+  if (intercept_present) {
+    aux_full <- aux_full[, colnames(aux_full) != "(Intercept)", drop = FALSE]
   }
 
+  explicit_intercept <- el_formula_has_explicit_intercept(aux_formula[[2L]])
+  if (intercept_present && explicit_intercept && ncol(aux_full) > 0) {
+    warning(
+      "Auxiliary constraints do not include an intercept; dropping the requested intercept (use '~ 0 + ...').",
+      call. = FALSE
+    )
+  }
+
+  has_aux <- ncol(aux_full) > 0
+
+  if (ncol(aux_full) == 0) {
+    return(list(
+      full = matrix(nrow = n_total, ncol = 0),
+      respondent = matrix(nrow = n_resp, ncol = 0)
+    ))
+  }
+
+  aux_resp <- aux_full[respondent_mask, , drop = FALSE]
   list(
     full = aux_full,
-    respondent = aux_resp,
-    has_aux = has_aux,
-    removed_intercept = removed_intercept
+    respondent = aux_resp
   )
 }
 
@@ -224,6 +237,19 @@ el_formula_has_explicit_intercept <- function(node) {
       for (i in 2L:length(node)) {
         if (Recall(node[[i]])) return(TRUE)
       }
+    }
+  }
+  FALSE
+}
+
+el_expr_contains_var <- function(node, target_var) {
+  if (is.null(node)) return(FALSE)
+  if (is.symbol(node)) return(identical(as.character(node), target_var))
+  if (is.call(node)) {
+    op <- as.character(node[[1L]])
+    if (op == ".") return(FALSE)
+    for (i in seq_along(node)[-1]) {
+      if (el_expr_contains_var(node[[i]], target_var)) return(TRUE)
     }
   }
   FALSE

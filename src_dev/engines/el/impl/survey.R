@@ -74,12 +74,11 @@ el.survey.design <- function(data, formula,
 
   survey_ctx <- el_get_design_context(design)
 
-  spec <- tryCatch(
-    el_prepare_inputs(
+  parsed <- tryCatch(
+    el_parse_formula(
       formula = formula,
       data = design$variables,
-      require_na = is.null(n_total),
-      auxiliary_means = auxiliary_means
+      require_na = is.null(n_total)
     ),
     error = function(e) {
       msg <- conditionMessage(e)
@@ -87,7 +86,8 @@ el.survey.design <- function(data, formula,
       stop(msg2, call. = FALSE)
     }
   )
-  design$variables <- spec$data
+  design_inputs <- el_build_design(parsed_spec = parsed, auxiliary_means = auxiliary_means)
+  design$variables <- el_make_delta_column(design$variables, parsed$outcome_var, parsed$respondent_mask)$data
 
 # Scale coherence: ensure N_pop and design weights are on the same scale
   weights_all <- as.numeric(weights(design))
@@ -150,9 +150,11 @@ el.survey.design <- function(data, formula,
   }
 
   context <- el_build_context(
-    prepared_inputs = spec,
-    full_data = design,
+    data_aug = design$variables,
+    respondent_mask = parsed$respondent_mask,
+    outcome_var = parsed$outcome_var,
     formula = formula,
+    full_data = design,
     respondent_weights_full = respondent_weights_full,
     N_pop = N_pop,
     is_survey = TRUE,
@@ -161,18 +163,15 @@ el.survey.design <- function(data, formula,
   )
 
   aux_summary <- el_resolve_auxiliaries(
-    spec$auxiliary_matrix,
-    spec$auxiliary_matrix_full,
+    design_inputs$aux_resp,
+    design_inputs$aux_full,
     auxiliary_means,
     weights_full = weights_all
   )
 
   core_results <- el_estimator_core(
-    full_data = context$full_data,
-    respondent_data = context$respondent_data,
-    respondent_weights = context$respondent_weights,
-    N_pop = context$N_pop,
-    response_matrix = spec$response_matrix,
+    design = design_inputs,
+    context = context,
     auxiliary_matrix = aux_summary$matrix,
     mu_x = aux_summary$means,
     standardize = standardize,
@@ -192,10 +191,8 @@ el.survey.design <- function(data, formula,
     ),
     start = start,
     trace_level = trace_level,
-    outcome_var = spec$outcome_var,
-    has_aux = aux_summary$has_aux,
     auxiliary_means = auxiliary_means
   )
 
-  el_build_result(core_results, context$analysis_info, cl, formula)
+  el_build_result(core_results, context, cl, formula)
 }

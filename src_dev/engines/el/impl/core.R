@@ -4,11 +4,8 @@
 #' under nonignorable nonresponse, including parameter solving, variance calculation,
 #' and diagnostic computation.
 #'
-#' @param full_data Data frame or survey design object containing all units.
-#' @param respondent_data Data frame containing only responding units.
-#' @param respondent_weights Numeric vector of base sampling weights for respondents.
-#' @param N_pop Numeric. Total population size (weighted if survey design).
-#' @param response_matrix Design matrix for the response model on respondents.
+#' @param design el_design object containing response/auxiliary matrices and mask.
+#' @param context el_context object (respondent data, weights, metadata).
 #' @param auxiliary_matrix Auxiliary design matrix on respondents (may have zero columns).
 #' @param mu_x Named numeric vector of auxiliary population means (aligned to columns of `auxiliary_matrix`).
 #' @param auxiliary_means Named numeric vector of known population means supplied by the user (optional; used for diagnostics).
@@ -39,16 +36,17 @@
 #' implemented.
 #'
 #' @keywords internal
-el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_pop,
-                              response_matrix, auxiliary_matrix, mu_x,
+el_estimator_core <- function(design, context,
+                              auxiliary_matrix, mu_x,
                               standardize, trim_cap, control,
                               on_failure, family = logit_family(),
                               variance_method, bootstrap_reps,
                               user_args, start = NULL, trace_level = 0,
-                              outcome_var, has_aux, auxiliary_means = NULL) {
+                              auxiliary_means = NULL) {
 
 # 0. Setup
   force(family)
+  response_matrix <- design$response
   if (!is.matrix(response_matrix)) {
     stop("Internal error: response_matrix must be a matrix.", call. = FALSE)
   }
@@ -58,7 +56,12 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   if (is.null(mu_x)) {
     mu_x <- numeric(0)
   }
-  has_aux <- isTRUE(has_aux) && ncol(auxiliary_matrix) > 0
+  has_aux <- ncol(auxiliary_matrix) > 0
+  respondent_weights <- context$respondent_weights
+  respondent_data <- context$respondent_data
+  full_data <- context$full_data
+  N_pop <- context$N_pop
+  outcome_var <- context$meta$outcome_var
 
 # Create verboser for verbose output
   verboser <- create_verboser(trace_level)

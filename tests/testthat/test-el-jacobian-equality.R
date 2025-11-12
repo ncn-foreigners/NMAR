@@ -8,7 +8,7 @@ test_that("analytic Jacobian matches numeric Jacobian at solution (logit and pro
   )
   expect_type(fit$converged, "logical")
 
-  parsed <- NMAR:::el_prepare_inputs(Y_miss ~ X, df)
+  parsed <- prepare_el_inputs(Y_miss ~ X, df)
   dat2 <- parsed$data
   resp_var <- parsed$delta_name
   obs_idx <- which(dat2[[resp_var]] == 1)

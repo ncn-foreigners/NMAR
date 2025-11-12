@@ -58,29 +58,39 @@ el_check_aux_inconsistency_matrix <- function(aux_matrix_resp, provided_means = 
 #'   the auxiliary model-matrix columns.
 #' @param weights_full Optional vector of design weights aligned with rows of
 #'   `auxiliary_matrix_full`.
-#' @return list(matrix, means, has_aux) where `matrix` is the respondent-side
-#'   auxiliary design on the unscaled space, `means` is a named numeric vector
-#'   aligned to its columns (or NULL), and `has_aux` is a logical flag.
+#' @return list(matrix, means) where `matrix` is the respondent-side
+#'   auxiliary design on the unscaled space and `means` is a named numeric vector
+#'   aligned to its columns (or NULL).
 #' @keywords internal
 el_resolve_auxiliaries <- function(auxiliary_matrix_resp,
                                    auxiliary_matrix_full,
                                    auxiliary_means,
                                    weights_full = NULL) {
+  n_resp <- if (!is.null(auxiliary_matrix_resp) && is.matrix(auxiliary_matrix_resp)) nrow(auxiliary_matrix_resp) else 0
+
 # No auxiliaries requested
   if (is.null(auxiliary_matrix_resp) || !is.matrix(auxiliary_matrix_resp) || ncol(auxiliary_matrix_resp) == 0) {
-    n_resp <- if (!is.null(auxiliary_matrix_resp) && is.matrix(auxiliary_matrix_resp)) nrow(auxiliary_matrix_resp) else 0
-    return(list(matrix = matrix(nrow = n_resp, ncol = 0),
-                means = NULL,
-                has_aux = FALSE))
+    return(list(
+      matrix = matrix(nrow = n_resp, ncol = 0),
+      means = NULL
+    ))
   }
 
   aux_resp <- auxiliary_matrix_resp
   aux_full <- auxiliary_matrix_full
+
   if ("(Intercept)" %in% colnames(aux_resp)) {
-    aux_resp <- aux_resp[, setdiff(colnames(aux_resp), "(Intercept)"), drop = FALSE]
+    aux_resp <- aux_resp[, colnames(aux_resp) != "(Intercept)", drop = FALSE]
   }
   if (!is.null(aux_full) && "(Intercept)" %in% colnames(aux_full)) {
-    aux_full <- aux_full[, setdiff(colnames(aux_full), "(Intercept)"), drop = FALSE]
+    aux_full <- aux_full[, colnames(aux_full) != "(Intercept)", drop = FALSE]
+  }
+
+  if (ncol(aux_resp) == 0) {
+    return(list(
+      matrix = matrix(nrow = n_resp, ncol = 0),
+      means = NULL
+    ))
   }
 
   if (!is.null(auxiliary_means)) {
@@ -108,21 +118,23 @@ el_resolve_auxiliaries <- function(auxiliary_matrix_resp,
     ordered_means <- auxiliary_means[colnames(aux_resp)]
     mu <- as.numeric(ordered_means)
     names(mu) <- colnames(aux_resp)
-    return(list(matrix = aux_resp, means = mu, has_aux = TRUE))
+    return(list(matrix = aux_resp, means = mu))
   }
 
   if (is.null(aux_full) || ncol(aux_full) == 0) {
-    return(list(matrix = matrix(nrow = nrow(aux_resp), ncol = 0),
-                means = NULL,
-                has_aux = FALSE))
+    return(list(
+      matrix = matrix(nrow = nrow(aux_resp), ncol = 0),
+      means = NULL
+    ))
   }
 
   if (!identical(colnames(aux_resp), colnames(aux_full))) {
     common_cols <- intersect(colnames(aux_resp), colnames(aux_full))
     if (length(common_cols) == 0L) {
-      return(list(matrix = matrix(nrow = nrow(aux_resp), ncol = 0),
-                  means = NULL,
-                  has_aux = FALSE))
+      return(list(
+        matrix = matrix(nrow = nrow(aux_resp), ncol = 0),
+        means = NULL
+      ))
     }
     aux_resp <- aux_resp[, common_cols, drop = FALSE]
     aux_full <- aux_full[, common_cols, drop = FALSE]
@@ -134,5 +146,5 @@ el_resolve_auxiliaries <- function(auxiliary_matrix_resp,
     mu <- as.numeric(colMeans(aux_full))
   }
   names(mu) <- colnames(aux_resp)
-  list(matrix = aux_resp, means = mu, has_aux = TRUE)
+  list(matrix = aux_resp, means = mu)
 }

@@ -1,15 +1,16 @@
-#' Build EL analysis context (weights, population size, metadata)
+#' Build EL analysis context (respondent data, weights, metadata)
 #' @keywords internal
-el_build_context <- function(prepared_inputs,
-                             full_data,
+el_build_context <- function(data_aug,
+                             respondent_mask,
+                             outcome_var,
                              formula,
+                             full_data = NULL,
                              respondent_weights_full = NULL,
                              N_pop = NULL,
                              is_survey = FALSE,
                              design = NULL,
                              variance_method) {
-  data_aug <- prepared_inputs$data
-  respondent_indices <- which(prepared_inputs$respondent_mask)
+  respondent_indices <- which(respondent_mask)
   if (length(respondent_indices) == 0) {
     stop("No respondents detected in data after preprocessing.", call. = FALSE)
   }
@@ -25,24 +26,25 @@ el_build_context <- function(prepared_inputs,
 
   N_pop_val <- N_pop %||% nrow(data_aug)
 
-  analysis_info <- list(
-    outcome_var = prepared_inputs$outcome_var,
-    nobs_resp = length(respondent_indices),
-    n_total = N_pop_val,
-    is_survey = is_survey,
-    design = if (is_survey) design else NULL,
-    variance_method = variance_method
-  )
-
-  list(
-    full_data = full_data,
+  context <- list(
+    data = data_aug,
+    full_data = full_data %||% design %||% data_aug,
     respondent_data = data_aug[respondent_indices, , drop = FALSE],
     respondent_weights = respondent_weights,
     N_pop = N_pop_val,
-    analysis_info = analysis_info,
-    respondent_indices = respondent_indices,
-    formula = formula
+    meta = list(
+      outcome_var = outcome_var,
+      nobs_resp = length(respondent_indices),
+      n_total = N_pop_val,
+      is_survey = is_survey,
+      design = if (is_survey) design else NULL,
+      variance_method = variance_method,
+      call = NULL,
+      formula = formula
+    )
   )
+  class(context) <- "el_context"
+  context
 }
 el_validate_respondents_only <- function(formula, data, auxiliary_means, context_label = "data") {
   outcome_var <- all.vars(formula[[2L]])

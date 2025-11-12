@@ -49,17 +49,22 @@ el.data.frame <- function(data, formula,
   respondents_only <- el_validate_respondents_only(formula, data, auxiliary_means, context_label = "data frame")
 # el_prepare_inputs(require_na = is.null(n_total)) still enforces the NA requirement.
 
-  spec <- el_prepare_inputs(
+  parsed <- el_parse_formula(
     formula = formula,
     data = data,
-    require_na = is.null(n_total),
-    auxiliary_means = auxiliary_means
+    require_na = is.null(n_total)
   )
 
+  design <- el_build_design(parsed_spec = parsed, auxiliary_means = auxiliary_means)
+
+  data_aug <- el_make_delta_column(data, parsed$outcome_var, parsed$respondent_mask)$data
+
   context <- el_build_context(
-    prepared_inputs = spec,
-    full_data = spec$data,
+    data_aug = data_aug,
+    respondent_mask = parsed$respondent_mask,
+    outcome_var = parsed$outcome_var,
     formula = formula,
+    full_data = data_aug,
     respondent_weights_full = NULL,
     N_pop = n_total,
     is_survey = FALSE,
@@ -68,18 +73,15 @@ el.data.frame <- function(data, formula,
   )
 
   aux_summary <- el_resolve_auxiliaries(
-    spec$auxiliary_matrix,
-    spec$auxiliary_matrix_full,
+    design$aux_resp,
+    design$aux_full,
     auxiliary_means,
     weights_full = NULL
   )
 
   core_results <- el_estimator_core(
-    full_data = context$full_data,
-    respondent_data = context$respondent_data,
-    respondent_weights = context$respondent_weights,
-    N_pop = context$N_pop,
-    response_matrix = spec$response_matrix,
+    design = design,
+    context = context,
     auxiliary_matrix = aux_summary$matrix,
     mu_x = aux_summary$means,
     standardize = standardize,
@@ -99,10 +101,8 @@ el.data.frame <- function(data, formula,
     ),
     start = start,
     trace_level = trace_level,
-    outcome_var = spec$outcome_var,
-    has_aux = aux_summary$has_aux,
     auxiliary_means = auxiliary_means
   )
 
-  el_build_result(core_results, context$analysis_info, cl, formula)
+  el_build_result(core_results, context, cl, formula)
 }

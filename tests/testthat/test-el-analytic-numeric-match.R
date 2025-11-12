@@ -12,7 +12,7 @@ test_that("analytic vs numeric Jacobian agree across links and scaling", {
 
 # Helper to check one configuration
   check_one <- function(fam, standardize) {
-    parsed <- NMAR:::el_prepare_inputs(Y_miss ~ X1 + X2 | Z, df)
+    parsed <- prepare_el_inputs(Y_miss ~ X1 + X2 | Z, df)
     dat2 <- parsed$data
     resp_var <- parsed$delta_name
     obs_idx <- which(dat2[[resp_var]] == 1)
