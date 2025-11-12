@@ -8,8 +8,12 @@
 #' @param respondent_data Data frame containing only responding units.
 #' @param respondent_weights Numeric vector of base sampling weights for respondents.
 #' @param N_pop Numeric. Total population size (weighted if survey design).
-#' @param internal_formula List of internal formulas for outcome, response, and auxiliary models.
-#' @param auxiliary_means Named numeric vector of known population means.
+#' @param response_matrix Design matrix for the response model on respondents.
+#' @param auxiliary_matrix Auxiliary design matrix on respondents (may have zero columns).
+#' @param mu_x Named numeric vector of auxiliary population means (aligned to columns of `auxiliary_matrix`).
+#' @param auxiliary_means Named numeric vector of known population means supplied by the user (optional; used for diagnostics).
+#' @param outcome_var Character string identifying the outcome variable.
+#' @param has_aux Logical; whether auxiliary constraints are active.
 #' @param standardize Logical. Whether to standardize predictors during estimation.
 #' @param trim_cap Numeric. Upper bound for empirical likelihood weight trimming.
 #' @param control List of control parameters for the nonlinear equation solver.
@@ -36,15 +40,25 @@
 #'
 #' @keywords internal
 el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_pop,
-                              internal_formula, auxiliary_means, standardize,
-                              trim_cap, control,
+                              response_matrix, auxiliary_matrix, mu_x,
+                              standardize, trim_cap, control,
                               on_failure, family = logit_family(),
                               variance_method, bootstrap_reps,
-                              user_args, start = NULL, trace_level = 0, ...) {
+                              user_args, start = NULL, trace_level = 0,
+                              outcome_var, has_aux, auxiliary_means = NULL) {
 
 # 0. Setup
   force(family)
-  outcome_var <- all.vars(internal_formula$outcome)[1]
+  if (!is.matrix(response_matrix)) {
+    stop("Internal error: response_matrix must be a matrix.", call. = FALSE)
+  }
+  if (is.null(auxiliary_matrix)) {
+    auxiliary_matrix <- matrix(nrow = nrow(response_matrix), ncol = 0)
+  }
+  if (is.null(mu_x)) {
+    mu_x <- numeric(0)
+  }
+  has_aux <- isTRUE(has_aux) && ncol(auxiliary_matrix) > 0
 
 # Create verboser for verbose output
   verboser <- create_verboser(trace_level)
@@ -53,26 +67,14 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   el_log_trace(verboser, trace_level)
 
 # 1. Data Preparation
-  has_aux <- !is.null(internal_formula$auxiliary)
-
-  response_model_formula <- update(internal_formula$response, NULL ~ .)
-  response_model_matrix_unscaled <- model.matrix(response_model_formula, data = respondent_data, na.action = stats::na.pass)
-
-# Resolve auxiliaries and their population means in a single place
-  aux_res <- el_resolve_auxiliaries(
-    full_data = full_data,
-    respondent_data = respondent_data,
-    aux_formula = internal_formula$auxiliary,
-    auxiliary_means = auxiliary_means
-  )
-  auxiliary_matrix_unscaled <- aux_res$matrix
-  mu_x_unscaled <- aux_res$means
-  has_aux <- isTRUE(aux_res$has_aux)
+  response_model_matrix_unscaled <- response_matrix
+  auxiliary_matrix_unscaled <- auxiliary_matrix
+  mu_x_unscaled <- mu_x
+  K_aux <- if (has_aux) ncol(auxiliary_matrix_unscaled) else 0
 
 # Data summary
   n_resp_weighted <- sum(respondent_weights)
   K_beta <- ncol(response_model_matrix_unscaled)
-  K_aux <- if (has_aux) ncol(auxiliary_matrix_unscaled) else 0
   el_log_data_prep(
     verboser = verboser,
     outcome_var = outcome_var,
@@ -109,7 +111,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   if (has_aux && !is.null(auxiliary_means)) {
     thr <- getOption("nmar.el_aux_z_threshold", 8)
     if (!is.numeric(thr) || length(thr) != 1L || !is.finite(thr) || thr <= 0) thr <- 8
-    chk <- el_check_aux_inconsistency(respondent_data, internal_formula$auxiliary, provided_means = auxiliary_means, threshold = thr)
+    chk <- el_check_aux_inconsistency_matrix(auxiliary_matrix_unscaled, provided_means = auxiliary_means, threshold = thr)
     aux_inconsistency_max_z <- chk$max_z
     aux_inconsistency_cols <- chk$cols
     if (is.finite(aux_inconsistency_max_z) && aux_inconsistency_max_z > thr) {
@@ -326,7 +328,7 @@ el_estimator_core <- function(full_data, respondent_data, respondent_weights, N_
   var_out <- el_compute_variance(
     y_hat = y_hat,
     full_data = full_data,
-    internal_formula = internal_formula,
+    formula = user_args$formula,
     user_args = user_args,
     variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,

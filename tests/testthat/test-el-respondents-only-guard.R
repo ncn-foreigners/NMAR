@@ -9,7 +9,7 @@ test_that("respondents-only data.frame with auxiliaries requires auxiliary_means
       n_total = nrow(df),
       variance_method = "none"
     ),
-    "Respondents-only data detected.*auxiliary_means",
+    "Respondents-only data frame detected.*auxiliary_means",
     fixed = FALSE
   )
 # Provide auxiliary means -> should run

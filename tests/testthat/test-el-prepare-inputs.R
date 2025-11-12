@@ -1,10 +1,8 @@
 test_that("el_prepare_inputs creates unique delta var name when colliding", {
   df <- data.frame(`..nmar_delta..` = 1:5, Y = c(1, 2, NA, 4, 5), X = rnorm(5))
   res <- NMAR:::el_prepare_inputs(Y ~ X, df, NULL)
-  fml <- res$formula_list$response
-  lhs <- all.vars(fml)[1]
-  expect_true(lhs != "..nmar_delta..")
-  expect_true(lhs %in% names(res$data))
+  expect_true(res$delta_name != "..nmar_delta..")
+  expect_true(res$delta_name %in% names(res$data))
 })
 
 test_that("el_prepare_inputs expands dot notation via Formula", {
@@ -15,10 +13,20 @@ test_that("el_prepare_inputs expands dot notation via Formula", {
     Z = rnorm(4)
   )
   res <- NMAR:::el_prepare_inputs(Y_miss ~ . | ., df, require_na = FALSE)
-  aux_terms <- res$formula_list$auxiliary
-  expect_setequal(attr(stats::terms(aux_terms), "term.labels"), c("X1", "X2", "Z"))
-  mm <- model.matrix(update(res$formula_list$response, NULL ~ .), data = res$data, na.action = stats::na.pass)
-  expect_true(all(c("Y_miss", "X1", "X2", "Z") %in% colnames(mm)))
+  expect_setequal(colnames(res$auxiliary_matrix_full), c("X1", "X2", "Z"))
+  expect_true(all(c("(Intercept)", "Y_miss", "X1", "X2", "Z") %in% colnames(res$response_matrix)))
+})
+
+test_that("dot expansion drops outcome-derived auxiliary terms", {
+  set.seed(99)
+  df <- data.frame(
+    Y_miss = c(rnorm(3), NA),
+    X = rnorm(4),
+    F = factor(c("a", "b", "a", "b"))
+  )
+  res <- NMAR:::el_prepare_inputs(Y_miss ~ . | ., df, require_na = FALSE)
+  expect_false("Y_miss" %in% colnames(res$auxiliary_matrix_full))
+  expect_false(anyNA(res$auxiliary_matrix_full))
 })
 
 test_that("el_prepare_inputs forbids outcome in auxiliary constraints", {
@@ -43,7 +51,8 @@ test_that("intercept-only auxiliaries are ignored without warnings", {
     res <- NMAR:::el_prepare_inputs(Y_miss ~ 1 | Z, df),
     NA
   )
-  expect_null(res$formula_list$auxiliary)
+  expect_false(res$has_aux)
+  expect_equal(ncol(res$auxiliary_matrix), 0)
 })
 
 test_that("explicit intercept plus auxiliaries triggers a warning", {
@@ -56,6 +65,5 @@ test_that("explicit intercept plus auxiliaries triggers a warning", {
     "dropping the requested intercept",
     fixed = FALSE
   )
-  aux_terms <- attr(stats::terms(res$formula_list$auxiliary), "term.labels")
-  expect_equal(aux_terms, "X")
+  expect_equal(colnames(res$auxiliary_matrix), "X")
 })

@@ -55,6 +55,7 @@ test_that("Engines accept parentheses and transforms in RHS partitions", {
   R <- rbinom(n, 1, p)
   df <- data.frame(Y_miss = Y, X1 = X1, X2 = X2, Z1 = Z1)
   df$Y_miss[R == 0] <- NA_real_
+  if (!anyNA(df$Y_miss)) df$Y_miss[1] <- NA_real_
 # EL with grouped aux and transformed response predictor
   eng_el <- el_engine(auxiliary_means = c(X1 = 0, X2 = 0), variance_method = "none")
   expect_error(

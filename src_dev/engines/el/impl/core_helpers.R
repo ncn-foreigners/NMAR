@@ -337,7 +337,7 @@ el_compute_diagnostics <- function(estimates,
 #' @keywords internal
 el_compute_variance <- function(y_hat,
                                 full_data,
-                                internal_formula,
+                                formula,
                                 user_args,
                                 variance_method,
                                 bootstrap_reps,
@@ -373,7 +373,7 @@ el_compute_variance <- function(y_hat,
       estimator_func = est_closure,
       point_estimate = y_hat,
       bootstrap_reps = bootstrap_reps,
-      formula = user_args$formula %||% internal_formula$outcome,
+      formula = user_args$formula %||% formula,
       engine_args = engine_args
     )
     boot_try <- tryCatch(

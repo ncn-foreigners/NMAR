@@ -8,15 +8,15 @@ NULL
 #'
 #' @param respondent_df data.frame of respondents (no NAs in outcome indicator)
 #' @param aux_formula RHS-only formula for auxiliaries (no intercept)
-#' @param provided_means optional named numeric vector of auxiliary means on the same columns as model matrix
+#' @param provided_means optional named numeric vector of auxiliary means on the same columns as the matrix
 #' @param threshold numeric, z-score threshold for flagging
 #' @return list(max_z = numeric(1) or NA, cols = character())
 #' @keywords internal
-el_check_aux_inconsistency <- function(respondent_df, aux_formula, provided_means = NULL, threshold = 8) {
+el_check_aux_inconsistency_matrix <- function(aux_matrix_resp, provided_means = NULL, threshold = 8) {
   out <- list(max_z = NA_real_, cols = character(0))
-  if (is.null(aux_formula)) return(out)
-  mm <- tryCatch(model.matrix(aux_formula, data = respondent_df), error = function(e) NULL)
-  if (is.null(mm) || ncol(mm) == 0) return(out)
+  if (is.null(aux_matrix_resp) || !is.matrix(aux_matrix_resp) || ncol(aux_matrix_resp) == 0) return(out)
+
+  mm <- aux_matrix_resp
 # Drop near-constant columns
   sds <- apply(mm, 2, stats::sd)
   keep <- which(is.finite(sds) & sds >= 1e-8)
@@ -37,49 +37,50 @@ el_check_aux_inconsistency <- function(respondent_df, aux_formula, provided_mean
 
 #' Resolve auxiliary design and population means
 #'
-#' Centralizes the construction of the auxiliary model matrix on respondents
-#' and the corresponding population means used for centering (X - mu_x).
+#' Centralizes auxiliary matrix handling once the canonical Formula pipeline has
+#' produced respondent/full model matrices. Computes the mean vector used for
+#' centering (X - mu_x) and validates any user-provided population means.
 #'
 #' Rules:
-#' - If \code{aux_formula} is NULL or results in zero columns, auxiliaries are
-#'   disabled (returns an empty matrix and NULL means).
+#' - If \code{auxiliary_matrix_resp} has zero columns, auxiliaries are disabled.
 #' - If \code{auxiliary_means} is provided, it must supply entries for every
 #'   auxiliary design column (extras are ignored with a warning).
-#' - Else, compute means from the full data:
-#'     * survey.design: design-weighted column means using \code{weights(full_data)}
-#'     * data.frame: simple column means
-#'   Factor levels absent among respondents are dropped via intersection of
-#'   model-matrix column names between full and respondent data.
+#' - Else, compute means from \code{auxiliary_matrix_full}; if \code{weights_full}
+#'   is supplied (survey designs), use the weighted column means, otherwise use
+#'   simple averages. Factor levels absent among respondents are automatically
+#'   dropped by the shared Formula pipeline, so callers must pass aligned
+#'   matrices.
 #'
-#' @param full_data data.frame or survey.design with all sampled units.
-#' @param respondent_data data.frame of respondents only.
-#' @param aux_formula RHS-only formula for auxiliaries (no intercept) or NULL.
+#' @param auxiliary_matrix_resp Respondent-side auxiliary design matrix.
+#' @param auxiliary_matrix_full Full-sample auxiliary design matrix used for
+#'   computing population means.
 #' @param auxiliary_means optional named numeric vector of population means in
 #'   the auxiliary model-matrix columns.
+#' @param weights_full Optional vector of design weights aligned with rows of
+#'   `auxiliary_matrix_full`.
 #' @return list(matrix, means, has_aux) where `matrix` is the respondent-side
 #'   auxiliary design on the unscaled space, `means` is a named numeric vector
 #'   aligned to its columns (or NULL), and `has_aux` is a logical flag.
 #' @keywords internal
-el_resolve_auxiliaries <- function(full_data,
-                                   respondent_data,
-                                   aux_formula,
-                                   auxiliary_means) {
+el_resolve_auxiliaries <- function(auxiliary_matrix_resp,
+                                   auxiliary_matrix_full,
+                                   auxiliary_means,
+                                   weights_full = NULL) {
 # No auxiliaries requested
-  if (is.null(aux_formula)) {
-    return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
+  if (is.null(auxiliary_matrix_resp) || !is.matrix(auxiliary_matrix_resp) || ncol(auxiliary_matrix_resp) == 0) {
+    n_resp <- if (!is.null(auxiliary_matrix_resp) && is.matrix(auxiliary_matrix_resp)) nrow(auxiliary_matrix_resp) else 0
+    return(list(matrix = matrix(nrow = n_resp, ncol = 0),
                 means = NULL,
                 has_aux = FALSE))
   }
 
-  aux_resp <- model.matrix(aux_formula, data = respondent_data, na.action = stats::na.pass)
-  if (ncol(aux_resp) == 0) {
-    return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
-                means = NULL,
-                has_aux = FALSE))
-  }
-
+  aux_resp <- auxiliary_matrix_resp
+  aux_full <- auxiliary_matrix_full
   if ("(Intercept)" %in% colnames(aux_resp)) {
-    stop("Internal error: auxiliary design should not contain an intercept.", call. = FALSE)
+    aux_resp <- aux_resp[, setdiff(colnames(aux_resp), "(Intercept)"), drop = FALSE]
+  }
+  if (!is.null(aux_full) && "(Intercept)" %in% colnames(aux_full)) {
+    aux_full <- aux_full[, setdiff(colnames(aux_full), "(Intercept)"), drop = FALSE]
   }
 
   if (!is.null(auxiliary_means)) {
@@ -110,49 +111,28 @@ el_resolve_auxiliaries <- function(full_data,
     return(list(matrix = aux_resp, means = mu, has_aux = TRUE))
   }
 
-# Otherwise compute from the full data (design-weighted if survey)
-  if (inherits(full_data, "survey.design")) {
-    mm_full <- model.matrix(aux_formula, data = full_data$variables, na.action = stats::na.pass)
-    if (ncol(mm_full) == 0) {
-      return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
-                  means = NULL,
-                  has_aux = FALSE))
-    }
-    if ("(Intercept)" %in% colnames(mm_full)) {
-      stop("Internal error: auxiliary design should not contain an intercept.", call. = FALSE)
-    }
-    common_cols <- intersect(colnames(aux_resp), colnames(mm_full))
-    if (length(common_cols) == 0L) {
-      return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
-                  means = NULL,
-                  has_aux = FALSE))
-    }
-    aux_resp <- aux_resp[, common_cols, drop = FALSE]
-    mm_full <- mm_full[, common_cols, drop = FALSE]
-    w_full <- as.numeric(weights(full_data))
-    mu <- as.numeric(colSums(mm_full * w_full) / sum(w_full))
-    names(mu) <- colnames(aux_resp)
-    return(list(matrix = aux_resp, means = mu, has_aux = TRUE))
-  } else {
-    mm_full <- model.matrix(aux_formula, data = full_data, na.action = stats::na.pass)
-    if (ncol(mm_full) == 0) {
-      return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
-                  means = NULL,
-                  has_aux = FALSE))
-    }
-    if ("(Intercept)" %in% colnames(mm_full)) {
-      stop("Internal error: auxiliary design should not contain an intercept.", call. = FALSE)
-    }
-    common_cols <- intersect(colnames(aux_resp), colnames(mm_full))
-    if (length(common_cols) == 0L) {
-      return(list(matrix = matrix(nrow = nrow(respondent_data), ncol = 0),
-                  means = NULL,
-                  has_aux = FALSE))
-    }
-    aux_resp <- aux_resp[, common_cols, drop = FALSE]
-    mm_full <- mm_full[, common_cols, drop = FALSE]
-    mu <- as.numeric(colMeans(mm_full))
-    names(mu) <- colnames(aux_resp)
-    return(list(matrix = aux_resp, means = mu, has_aux = TRUE))
+  if (is.null(aux_full) || ncol(aux_full) == 0) {
+    return(list(matrix = matrix(nrow = nrow(aux_resp), ncol = 0),
+                means = NULL,
+                has_aux = FALSE))
   }
+
+  if (!identical(colnames(aux_resp), colnames(aux_full))) {
+    common_cols <- intersect(colnames(aux_resp), colnames(aux_full))
+    if (length(common_cols) == 0L) {
+      return(list(matrix = matrix(nrow = nrow(aux_resp), ncol = 0),
+                  means = NULL,
+                  has_aux = FALSE))
+    }
+    aux_resp <- aux_resp[, common_cols, drop = FALSE]
+    aux_full <- aux_full[, common_cols, drop = FALSE]
+  }
+
+  if (!is.null(weights_full)) {
+    mu <- as.numeric(colSums(aux_full * weights_full) / sum(weights_full))
+  } else {
+    mu <- as.numeric(colMeans(aux_full))
+  }
+  names(mu) <- colnames(aux_resp)
+  list(matrix = aux_resp, means = mu, has_aux = TRUE)
 }

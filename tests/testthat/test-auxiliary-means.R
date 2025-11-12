@@ -29,11 +29,12 @@ test_that("misnamed auxiliary_means trigger an error", {
   resp_df <- df[!is.na(df$Y_miss), , drop = FALSE]
 
 # Misnamed means (no match) -> informative error
+  aux_resp <- model.matrix(aux_fml, data = resp_df)
+  aux_full <- model.matrix(aux_fml, data = df)
   expect_error(
     NMAR:::el_resolve_auxiliaries(
-      full_data = df,
-      respondent_data = resp_df,
-      aux_formula = aux_fml,
+      aux_resp,
+      aux_full,
       auxiliary_means = c(X2 = 0) # misnamed
     ),
     "auxiliary_means must supply entries",

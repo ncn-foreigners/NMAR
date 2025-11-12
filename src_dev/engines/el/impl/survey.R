@@ -38,7 +38,8 @@ el.survey.design <- function(data, formula,
                              on_failure = c("return", "error"),
                              variance_method = c("delta", "bootstrap", "none"),
                              bootstrap_reps = 500,
-                             n_total = NULL, start = NULL, trace_level = 0, ...) {
+                             n_total = NULL, start = NULL, trace_level = 0,
+                             family = logit_family(), ...) {
   cl <- match.call()
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
@@ -49,24 +50,8 @@ el.survey.design <- function(data, formula,
 
   design <- data
 
-# If respondents-only design is supplied, enforce auxiliary_means first (if auxiliaries requested),
-# then require n_total for scale coherence.
-  outcome_var_check <- all.vars(formula[[2]])
-  rhs <- formula[[3]]
-  aux_expr <- rhs
-  if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) aux_expr <- rhs[[2L]]
-  has_aux_rhs <- length(all.vars(aux_expr)) > 0
-  respondents_only_0 <- length(outcome_var_check) == 1 && !anyNA(design$variables[[outcome_var_check]])
-  if (respondents_only_0 && has_aux_rhs && is.null(auxiliary_means)) {
-    stop(
-      paste0(
-        "Respondents-only survey design (no NAs in outcome) and auxiliary constraints were requested, ",
-        "but 'auxiliary_means' was not provided. Provide population auxiliary means via auxiliary_means=."
-      ),
-      call. = FALSE
-    )
-  }
-  if (respondents_only_0 && is.null(n_total)) {
+  respondents_only <- el_validate_respondents_only(formula, design$variables, auxiliary_means, context_label = "survey design")
+  if (respondents_only && is.null(n_total)) {
     stop("Respondents-only survey design detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total design weight or population total>).", call. = FALSE)
   }
 
@@ -89,17 +74,20 @@ el.survey.design <- function(data, formula,
 
   survey_ctx <- el_get_design_context(design)
 
-  parsed_inputs <- tryCatch(
-    el_prepare_inputs(formula, design$variables,
-                      require_na = is.null(n_total),
-                      auxiliary_means = auxiliary_means),
+  spec <- tryCatch(
+    el_prepare_inputs(
+      formula = formula,
+      data = design$variables,
+      require_na = is.null(n_total),
+      auxiliary_means = auxiliary_means
+    ),
     error = function(e) {
       msg <- conditionMessage(e)
       msg2 <- paste0(msg, sprintf("\nSurvey design info: ids = %s, strata = %s", survey_ctx$ids, survey_ctx$strata))
       stop(msg2, call. = FALSE)
     }
   )
-  design$variables <- parsed_inputs$data
+  design$variables <- spec$data
 
 # Scale coherence: ensure N_pop and design weights are on the same scale
   weights_all <- as.numeric(weights(design))
@@ -161,20 +149,22 @@ el.survey.design <- function(data, formula,
     scale_mismatch_pct <- 0
   }
 
-  context <- el_build_analysis_inputs(
-    parsed_inputs = parsed_inputs,
+  context <- el_build_context(
+    prepared_inputs = spec,
     full_data = design,
     formula = formula,
     respondent_weights_full = respondent_weights_full,
     N_pop = N_pop,
     is_survey = TRUE,
     design = design,
-    variance_method = variance_method,
-    sample_extras = list(
-      scale_factor = scale_factor,
-      scale_mismatch_detected = scale_mismatch_detected,
-      scale_mismatch_pct = scale_mismatch_pct
-    )
+    variance_method = variance_method
+  )
+
+  aux_summary <- el_resolve_auxiliaries(
+    spec$auxiliary_matrix,
+    spec$auxiliary_matrix_full,
+    auxiliary_means,
+    weights_full = weights_all
   )
 
   core_results <- el_estimator_core(
@@ -182,18 +172,30 @@ el.survey.design <- function(data, formula,
     respondent_data = context$respondent_data,
     respondent_weights = context$respondent_weights,
     N_pop = context$N_pop,
-    internal_formula = context$internal_formula,
-    auxiliary_means = auxiliary_means,
-    standardize = standardize, trim_cap = trim_cap, control = control,
+    response_matrix = spec$response_matrix,
+    auxiliary_matrix = aux_summary$matrix,
+    mu_x = aux_summary$means,
+    standardize = standardize,
+    trim_cap = trim_cap,
+    control = control,
     on_failure = on_failure,
-    variance_method = variance_method, bootstrap_reps = bootstrap_reps,
+    family = family,
+    variance_method = variance_method,
+    bootstrap_reps = bootstrap_reps,
     user_args = list(
       formula = formula,
-      auxiliary_means = auxiliary_means, standardize = standardize,
-      trim_cap = trim_cap, control = control, ...
+      auxiliary_means = auxiliary_means,
+      standardize = standardize,
+      trim_cap = trim_cap,
+      control = control,
+      ...
     ),
-    start = start, trace_level = trace_level, ...
+    start = start,
+    trace_level = trace_level,
+    outcome_var = spec$outcome_var,
+    has_aux = aux_summary$has_aux,
+    auxiliary_means = auxiliary_means
   )
 
-  el_finalize_result(core_results, context$sample_info, cl)
+  el_build_result(core_results, context$analysis_info, cl, formula)
 }

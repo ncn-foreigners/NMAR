@@ -2,7 +2,8 @@
 #' @keywords internal
 new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
                                converged, diagnostics, data_info,
-                               nmar_scaling_recipe, fitted_values, call) {
+                               nmar_scaling_recipe, fitted_values, call,
+                               formula = NULL) {
   diagnostics <- diagnostics %||% list()
   if (is.null(data_info$method)) data_info$method <- "Empirical Likelihood (EL)"
   outcome_name <- data_info$outcome_var %||% NA_character_
@@ -41,7 +42,7 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
   meta <- list(
     engine_name = "empirical_likelihood",
     call = call,
-    formula = data_info$formula
+    formula = formula
   )
 
   result <- new_nmar_result(

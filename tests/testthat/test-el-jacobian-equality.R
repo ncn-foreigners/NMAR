@@ -10,14 +10,13 @@ test_that("analytic Jacobian matches numeric Jacobian at solution (logit and pro
 
   parsed <- NMAR:::el_prepare_inputs(Y_miss ~ X, df)
   dat2 <- parsed$data
-  fmls <- parsed$formula_list
-  resp_var <- all.vars(fmls$response)[1]
+  resp_var <- parsed$delta_name
   obs_idx <- which(dat2[[resp_var]] == 1)
   resp_df <- dat2[obs_idx, ]
-  Z_un <- model.matrix(update(fmls$response, NULL ~ .), data = resp_df)
-  X_un <- model.matrix(fmls$auxiliary, data = resp_df)
+  Z_un <- parsed$response_matrix
+  X_un <- parsed$auxiliary_matrix
   aux_means <- c(X = 0)
-  sc <- NMAR:::validate_and_apply_nmar_scaling(FALSE, !is.null(fmls$auxiliary), Z_un, if (is.null(fmls$auxiliary)) matrix(nrow = nrow(Z_un), ncol = 0) else X_un, if (is.null(fmls$auxiliary)) NULL else aux_means)
+  sc <- NMAR:::validate_and_apply_nmar_scaling(FALSE, parsed$has_aux, Z_un, if (parsed$has_aux) X_un else matrix(nrow = nrow(Z_un), ncol = 0), if (parsed$has_aux) aux_means else NULL)
   Z <- sc$response_model_matrix_scaled
   Xc <- sc$auxiliary_matrix_scaled
   mu_x <- sc$mu_x_scaled

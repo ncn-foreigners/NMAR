@@ -36,7 +36,8 @@ el.data.frame <- function(data, formula,
                           on_failure = c("return", "error"),
                           variance_method = c("delta", "bootstrap", "none"),
                           bootstrap_reps = 500,
-                          n_total = NULL, start = NULL, trace_level = 0, ...) {
+                          n_total = NULL, start = NULL, trace_level = 0,
+                          family = logit_family(), ...) {
   cl <- match.call()
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
@@ -45,30 +46,19 @@ el.data.frame <- function(data, formula,
   if (identical(variance_method, "delta")) variance_method <- "none"
 
 
-# If respondents-only data is supplied (no NA in outcome), require n_total
-  outcome_var_check <- all.vars(formula[[2]])
-# Detect auxiliaries directly from the RHS (exclude response-only part if | present)
-  rhs <- formula[[3]]
-  aux_expr <- rhs
-  if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) aux_expr <- rhs[[2L]]
-  has_aux_rhs <- length(all.vars(aux_expr)) > 0
-  respondents_only_0 <- length(outcome_var_check) == 1 && !anyNA(data[[outcome_var_check]])
-  if (respondents_only_0 && has_aux_rhs && is.null(auxiliary_means)) {
-    stop(
-      paste0(
-        "Respondents-only data detected (no NAs in outcome) and auxiliary constraints were requested, ",
-        "but 'auxiliary_means' was not provided. Provide population auxiliary means via auxiliary_means=."
-      ),
-      call. = FALSE
-    )
-  }
-# Do not error on respondents-only here; el_prepare_inputs(require_na = is.null(n_total))
-# will produce a clear 'must contain NA' message when applicable.
+  respondents_only <- el_validate_respondents_only(formula, data, auxiliary_means, context_label = "data frame")
+# el_prepare_inputs(require_na = is.null(n_total)) still enforces the NA requirement.
 
-  parsed_inputs <- el_prepare_inputs(formula, data, require_na = is.null(n_total), auxiliary_means = auxiliary_means)
-  context <- el_build_analysis_inputs(
-    parsed_inputs = parsed_inputs,
-    full_data = parsed_inputs$data,
+  spec <- el_prepare_inputs(
+    formula = formula,
+    data = data,
+    require_na = is.null(n_total),
+    auxiliary_means = auxiliary_means
+  )
+
+  context <- el_build_context(
+    prepared_inputs = spec,
+    full_data = spec$data,
     formula = formula,
     respondent_weights_full = NULL,
     N_pop = n_total,
@@ -77,17 +67,26 @@ el.data.frame <- function(data, formula,
     variance_method = variance_method
   )
 
+  aux_summary <- el_resolve_auxiliaries(
+    spec$auxiliary_matrix,
+    spec$auxiliary_matrix_full,
+    auxiliary_means,
+    weights_full = NULL
+  )
+
   core_results <- el_estimator_core(
     full_data = context$full_data,
     respondent_data = context$respondent_data,
     respondent_weights = context$respondent_weights,
     N_pop = context$N_pop,
-    internal_formula = context$internal_formula,
-    auxiliary_means = auxiliary_means,
+    response_matrix = spec$response_matrix,
+    auxiliary_matrix = aux_summary$matrix,
+    mu_x = aux_summary$means,
     standardize = standardize,
     trim_cap = trim_cap,
     control = control,
     on_failure = on_failure,
+    family = family,
     variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,
     user_args = list(
@@ -100,8 +99,10 @@ el.data.frame <- function(data, formula,
     ),
     start = start,
     trace_level = trace_level,
-    ...
+    outcome_var = spec$outcome_var,
+    has_aux = aux_summary$has_aux,
+    auxiliary_means = auxiliary_means
   )
 
-  el_finalize_result(core_results, context$sample_info, cl)
+  el_build_result(core_results, context$analysis_info, cl, formula)
 }
