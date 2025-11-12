@@ -100,16 +100,10 @@ el.survey.design <- function(data, formula,
     }
   )
   design$variables <- parsed_inputs$data
-  internal_formula <- parsed_inputs$formula_list
-  response_var <- all.vars(internal_formula$response)[1]
-  observed_mask <- design$variables[[response_var]] == 1
-  observed_indices <- which(observed_mask)
-  resp_design <- subset(design, observed_mask)
-
-# (Guard handled earlier.)
 
 # Scale coherence: ensure N_pop and design weights are on the same scale
-  design_weight_sum <- sum(weights(design))
+  weights_all <- as.numeric(weights(design))
+  design_weight_sum <- sum(weights_all)
 
   if (!is.null(n_total)) {
     N_pop <- n_total
@@ -156,80 +150,50 @@ el.survey.design <- function(data, formula,
       scale_mismatch_detected <- FALSE
     }
 
-# Apply scaling to respondent weights
-    respondent_weights <- weights(resp_design) * scale_factor
+    respondent_weights_full <- weights_all * scale_factor
 
   } else {
 # No n_total supplied: use design total as population size
     N_pop <- design_weight_sum
-    respondent_weights <- weights(resp_design)
+    respondent_weights_full <- weights_all
     scale_factor <- 1.0
     scale_mismatch_detected <- FALSE
     scale_mismatch_pct <- 0
   }
 
-  user_args <- list(
-    formula = formula,
-    auxiliary_means = auxiliary_means, standardize = standardize,
-    trim_cap = trim_cap, control = control, ...
-  )
-
-  core_results <- el_estimator_core(
+  context <- el_build_analysis_inputs(
+    parsed_inputs = parsed_inputs,
     full_data = design,
-    respondent_data = resp_design$variables,
-    respondent_weights = respondent_weights, N_pop = N_pop,
-    internal_formula = internal_formula, auxiliary_means = auxiliary_means,
-    standardize = standardize, trim_cap = trim_cap, control = control,
-    on_failure = on_failure,
-    variance_method = variance_method, bootstrap_reps = bootstrap_reps,
-    user_args = user_args, start = start, trace_level = trace_level, ...
-  )
-
-  sample_info <- list(
-    outcome_var = all.vars(internal_formula$outcome)[1],
-    response_var = response_var,
     formula = formula,
-    nobs = nrow(design$variables),
-    nobs_resp = length(observed_indices),
-    n_total = N_pop, # Store N_pop for weights() method
+    respondent_weights_full = respondent_weights_full,
+    N_pop = N_pop,
     is_survey = TRUE,
     design = design,
     variance_method = variance_method,
-    scale_factor = scale_factor, # Store scale diagnostics
-    scale_mismatch_detected = scale_mismatch_detected,
-    scale_mismatch_pct = scale_mismatch_pct
-  )
-
-  if (!core_results$converged) {
-    diag_list <- core_results$diagnostics
-    if (is.null(diag_list)) diag_list <- list()
-    msg <- diag_list$message
-    if (is.null(msg)) msg <- NA_character_
-    result <- new_nmar_result(
-      estimate = NA_real_,
-      estimate_name = sample_info$outcome_var,
-      se = NA_real_,
-      converged = FALSE,
-      model = list(coefficients = NULL, vcov = NULL),
-      weights_info = list(values = numeric(0), trimmed_fraction = NA_real_),
-      sample = list(n_total = N_pop, n_respondents = sample_info$nobs_resp, is_survey = TRUE, design = design),
-      inference = list(variance_method = variance_method, df = NA_real_, message = msg),
-      diagnostics = diag_list,
-      meta = list(engine_name = "empirical_likelihood", call = cl, formula = formula),
-      extra = list(nmar_scaling_recipe = core_results$nmar_scaling_recipe),
-      class = "nmar_result_el"
+    sample_extras = list(
+      scale_factor = scale_factor,
+      scale_mismatch_detected = scale_mismatch_detected,
+      scale_mismatch_pct = scale_mismatch_pct
     )
-    return(validate_nmar_result(result, "nmar_result_el"))
-  }
-
-  result <- new_nmar_result_el(
-    y_hat = core_results$y_hat, se = core_results$se, weights = core_results$weights,
-    coefficients = core_results$coefficients, vcov = core_results$vcov,
-    converged = core_results$converged, diagnostics = core_results$diagnostics,
-    data_info = sample_info,
-    nmar_scaling_recipe = core_results$nmar_scaling_recipe,
-    fitted_values = core_results$fitted_values, call = cl
   )
 
-  validate_nmar_result(result, "nmar_result_el")
+  core_results <- el_estimator_core(
+    full_data = context$full_data,
+    respondent_data = context$respondent_data,
+    respondent_weights = context$respondent_weights,
+    N_pop = context$N_pop,
+    internal_formula = context$internal_formula,
+    auxiliary_means = auxiliary_means,
+    standardize = standardize, trim_cap = trim_cap, control = control,
+    on_failure = on_failure,
+    variance_method = variance_method, bootstrap_reps = bootstrap_reps,
+    user_args = list(
+      formula = formula,
+      auxiliary_means = auxiliary_means, standardize = standardize,
+      trim_cap = trim_cap, control = control, ...
+    ),
+    start = start, trace_level = trace_level, ...
+  )
+
+  el_finalize_result(core_results, context$sample_info, cl)
 }

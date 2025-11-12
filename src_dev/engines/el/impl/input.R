@@ -157,6 +157,101 @@ el_make_delta_column <- function(data, outcome_var) {
   list(data = data2, delta_name = delta_name)
 }
 
+#' Assemble common EL inputs after formula parsing
+#' @keywords internal
+el_build_analysis_inputs <- function(parsed_inputs,
+                                     full_data,
+                                     formula,
+                                     respondent_weights_full = NULL,
+                                     N_pop = NULL,
+                                     is_survey = FALSE,
+                                     design = NULL,
+                                     variance_method,
+                                     sample_extras = list()) {
+  data_aug <- parsed_inputs$data
+  internal_formula <- parsed_inputs$formula_list
+  response_var <- all.vars(internal_formula$response)[1]
+  respondent_mask <- data_aug[[response_var]] == 1
+  observed_idx <- which(respondent_mask)
+  if (length(observed_idx) == 0) {
+    stop("No respondents detected in data after preprocessing.", call. = FALSE)
+  }
+  respondent_data <- data_aug[observed_idx, , drop = FALSE]
+  if (is.null(respondent_weights_full)) {
+    respondent_weights <- rep(1, length(observed_idx))
+  } else {
+    if (length(respondent_weights_full) != nrow(data_aug)) {
+      stop("`respondent_weights` must have the same length as the number of rows in the data.", call. = FALSE)
+    }
+    respondent_weights <- respondent_weights_full[observed_idx]
+  }
+  N_pop_val <- N_pop %||% nrow(data_aug)
+  base_info <- list(
+    outcome_var = all.vars(internal_formula$outcome)[1],
+    response_var = response_var,
+    formula = formula,
+    nobs = nrow(data_aug),
+    nobs_resp = length(observed_idx),
+    n_total = N_pop_val,
+    is_survey = is_survey,
+    design = if (is_survey) design else NULL,
+    variance_method = variance_method
+  )
+  sample_info <- modifyList(base_info, sample_extras, keep.null = TRUE)
+  list(
+    full_data = full_data,
+    respondent_data = respondent_data,
+    respondent_weights = respondent_weights,
+    N_pop = N_pop_val,
+    internal_formula = internal_formula,
+    sample_info = sample_info
+  )
+}
+
+#' Finalize EL results into nmar_result objects
+#' @keywords internal
+el_finalize_result <- function(core_results, sample_info, call, engine_name = "empirical_likelihood") {
+  diag_list <- core_results$diagnostics %||% list()
+  if (!core_results$converged) {
+    msg <- diag_list$message %||% NA_character_
+    result <- new_nmar_result(
+      estimate = NA_real_,
+      estimate_name = sample_info$outcome_var,
+      se = NA_real_,
+      converged = FALSE,
+      model = list(coefficients = NULL, vcov = NULL),
+      weights_info = list(values = numeric(0), trimmed_fraction = NA_real_),
+      sample = list(
+        n_total = sample_info$n_total,
+        n_respondents = sample_info$nobs_resp,
+        is_survey = sample_info$is_survey,
+        design = sample_info$design
+      ),
+      inference = list(variance_method = sample_info$variance_method, df = NA_real_, message = msg),
+      diagnostics = diag_list,
+      meta = list(engine_name = engine_name, call = call, formula = sample_info$formula),
+      extra = list(nmar_scaling_recipe = core_results$nmar_scaling_recipe),
+      class = "nmar_result_el"
+    )
+    return(validate_nmar_result(result, "nmar_result_el"))
+  }
+
+  result <- new_nmar_result_el(
+    y_hat = core_results$y_hat,
+    se = core_results$se,
+    weights = core_results$weights,
+    coefficients = core_results$coefficients,
+    vcov = core_results$vcov,
+    converged = TRUE,
+    diagnostics = diag_list,
+    data_info = sample_info,
+    nmar_scaling_recipe = core_results$nmar_scaling_recipe,
+    fitted_values = core_results$fitted_values,
+    call = call
+  )
+  validate_nmar_result(result, "nmar_result_el")
+}
+
 #' Re-throw parsing/model-frame errors with a standardized message
 #' @keywords internal
 el_rethrow_data_error <- function(err) {

@@ -66,77 +66,42 @@ el.data.frame <- function(data, formula,
 # will produce a clear 'must contain NA' message when applicable.
 
   parsed_inputs <- el_prepare_inputs(formula, data, require_na = is.null(n_total), auxiliary_means = auxiliary_means)
-  estimation_data <- parsed_inputs$data
-  internal_formula <- parsed_inputs$formula_list
-  response_var <- all.vars(internal_formula$response)[1]
-  observed_indices <- which(estimation_data[[response_var]] == 1)
-
-# (Guard handled above, before any n_total enforcement.)
-
-  respondent_weights <- rep(1, length(observed_indices))
-# For data frames: if n_total not specified, use total sample size
-# This represents the "population" we're inferring about
-  N_pop <- n_total %||% nrow(estimation_data)
-
-  user_args <- list(
+  context <- el_build_analysis_inputs(
+    parsed_inputs = parsed_inputs,
+    full_data = parsed_inputs$data,
     formula = formula,
-    auxiliary_means = auxiliary_means, standardize = standardize,
-    trim_cap = trim_cap, control = control, ...
-  )
-
-  core_results <- el_estimator_core(
-    full_data = estimation_data,
-    respondent_data = estimation_data[observed_indices, ],
-    respondent_weights = respondent_weights, N_pop = N_pop,
-    internal_formula = internal_formula, auxiliary_means = auxiliary_means,
-    standardize = standardize, trim_cap = trim_cap, control = control,
-    on_failure = on_failure,
-    variance_method = variance_method, bootstrap_reps = bootstrap_reps,
-    user_args = user_args, start = start, trace_level = trace_level, ...
-  )
-
-  sample_info <- list(
-    outcome_var = all.vars(internal_formula$outcome)[1],
-    response_var = response_var,
-    formula = formula,
-    nobs = nrow(estimation_data),
-    nobs_resp = length(observed_indices),
-    n_total = N_pop, # Store N_pop for weights() method
+    respondent_weights_full = NULL,
+    N_pop = n_total,
     is_survey = FALSE,
     design = NULL,
     variance_method = variance_method
   )
 
-  if (!core_results$converged) {
-    diag_list <- core_results$diagnostics
-    if (is.null(diag_list)) diag_list <- list()
-    msg <- diag_list$message
-    if (is.null(msg)) msg <- NA_character_
-    result <- new_nmar_result(
-      estimate = NA_real_,
-      estimate_name = sample_info$outcome_var,
-      se = NA_real_,
-      converged = FALSE,
-      model = list(coefficients = NULL, vcov = NULL),
-      weights_info = list(values = numeric(0), trimmed_fraction = NA_real_),
-      sample = list(n_total = N_pop, n_respondents = sample_info$nobs_resp, is_survey = FALSE, design = NULL),
-      inference = list(variance_method = variance_method, df = NA_real_, message = msg),
-      diagnostics = diag_list,
-      meta = list(engine_name = "empirical_likelihood", call = cl, formula = formula),
-      extra = list(nmar_scaling_recipe = core_results$nmar_scaling_recipe),
-      class = "nmar_result_el"
-    )
-    return(validate_nmar_result(result, "nmar_result_el"))
-  }
-
-  result <- new_nmar_result_el(
-    y_hat = core_results$y_hat, se = core_results$se, weights = core_results$weights,
-    coefficients = core_results$coefficients, vcov = core_results$vcov,
-    converged = core_results$converged, diagnostics = core_results$diagnostics,
-    data_info = sample_info,
-    nmar_scaling_recipe = core_results$nmar_scaling_recipe,
-    fitted_values = core_results$fitted_values, call = cl
+  core_results <- el_estimator_core(
+    full_data = context$full_data,
+    respondent_data = context$respondent_data,
+    respondent_weights = context$respondent_weights,
+    N_pop = context$N_pop,
+    internal_formula = context$internal_formula,
+    auxiliary_means = auxiliary_means,
+    standardize = standardize,
+    trim_cap = trim_cap,
+    control = control,
+    on_failure = on_failure,
+    variance_method = variance_method,
+    bootstrap_reps = bootstrap_reps,
+    user_args = list(
+      formula = formula,
+      auxiliary_means = auxiliary_means,
+      standardize = standardize,
+      trim_cap = trim_cap,
+      control = control,
+      ...
+    ),
+    start = start,
+    trace_level = trace_level,
+    ...
   )
 
-  validate_nmar_result(result, "nmar_result_el")
+  el_finalize_result(core_results, context$sample_info, cl)
 }
