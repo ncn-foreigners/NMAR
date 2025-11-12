@@ -137,6 +137,13 @@ el_prepare_inputs <- function(formula, data, require_na = TRUE, auxiliary_means 
   aux_vars <- unique(all.vars(parts$aux_expr))
   resp_vars <- if (is.null(parts$resp_expr)) character() else unique(all.vars(parts$resp_expr))
 
+# Forbid using the outcome in auxiliary constraints (QLS: auxiliaries are covariates with known means)
+  if (!is.null(parts$aux_expr) && length(aux_vars) > 0) {
+    if (outcome_var %in% aux_vars) {
+      stop("The outcome cannot appear in auxiliary constraints.", call. = FALSE)
+    }
+  }
+
   el_validate_outcome(data, outcome_var, require_na)
   el_validate_vars_present(data, aux_vars, resp_vars)
   respondent_mask <- !is.na(data[[outcome_var]])
