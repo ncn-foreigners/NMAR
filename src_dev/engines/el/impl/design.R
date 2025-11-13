@@ -1,24 +1,31 @@
 #' EL design construction and Formula workflow
 #'
 #' Builds the shared design matrices for the empirical likelihood estimator.
-#' One `model.frame` is constructed from the supplied `Formula`. The left-hand
-#' side (outcome) and the respondent mask are extracted, and then the two RHS
-#' partitions are materialized as model matrices:
-#' - RHS1 (auxiliaries): full-data matrix with L-1 factor coding and no
-#'   intercept. When dot expansion is used (e.g., `~ .`), the outcome column is
-#'   dropped explicitly to prevent accidental leakage into auxiliary constraints.
-#' - RHS2 (missingness predictors): respondent-only matrix with L-1 factor
-#'   coding (we always add our own intercept and outcome column).
-#'
-#' Notes:
-#' - Offsets (`offset()`) are not supported in either partition.
-#' - Factor coding is normalized by forcing an intercept at the terms level and
-#'   then dropping it (L-1 dummies). This avoids changes in basis from user
-#'   toggles like `-1` or `+0` and prevents collinearity when adding the
-#'   missingness-model intercept.
+#' A single `model.frame()` is constructed from the supplied `Formula`, the
+#' respondent mask is derived from the numeric outcome, and then each RHS part
+#' is materialized via the standard Formula `model.matrix()` helpers. Auxiliary
+#' matrices are full-data, L-1 coded, and never contain an intercept; missingness
+#' matrices are respondent-only with an explicit intercept and outcome column.
 #'
 #' @keywords internal
 el_prepare_design <- function(formula, data, require_na = TRUE) {
+  parsed <- el_parse_formula(formula, data, require_na)
+
+  aux_design <- el_build_aux_design(parsed)
+  missingness_design <- el_build_missingness_design(parsed)
+
+  design <- list(
+    missingness_design = missingness_design,
+    auxiliary_design_full = aux_design,
+    respondent_mask = parsed$mask,
+    outcome_var = parsed$outcome_var,
+    response_vector = parsed$response_vector
+  )
+
+  structure(design, class = "el_design")
+}
+
+el_parse_formula <- function(formula, data, require_na) {
   if (missing(formula)) stop("`formula` must be supplied.", call. = FALSE)
 
   base_formula <- stats::as.formula(formula)
@@ -30,13 +37,11 @@ el_prepare_design <- function(formula, data, require_na = TRUE) {
   if (is.null(lhs_part) || is.null(rhs_part)) {
     stop("`formula` must be a two-sided formula, e.g., y ~ x1 + x2.", call. = FALSE)
   }
-
-  outcome_expr <- base_formula[[2L]]
-  outcome_vars <- all.vars(outcome_expr)
-  if (length(outcome_vars) != 1L) {
-    stop("The left-hand side must contain exactly one outcome variable.", call. = FALSE)
+  if (!is.symbol(lhs_part)) {
+    stop("The left-hand side must be a variable name. Create a column in `data` for transformed outcomes.", call. = FALSE)
   }
-  outcome_var <- outcome_vars[1L]
+
+  outcome_var <- as.character(lhs_part)
   el_validate_outcome(data, outcome_var, require_na = require_na)
 
   fml <- el_as_formula(base_formula)
@@ -68,35 +73,92 @@ el_prepare_design <- function(formula, data, require_na = TRUE) {
     stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_var), call. = FALSE)
   }
 
-  respondent_indices <- which(mask)
-
-  aux_design <- el_build_aux_design(
-    fml = fml,
-    model_frame = model_frame,
-    mask = mask,
-    n_rhs_parts = n_rhs_parts,
-    outcome_var = outcome_var,
-    respondent_indices = respondent_indices
-  )
-
-  missingness_design <- el_build_missingness_design(
+  list(
     fml = fml,
     model_frame = model_frame,
     response_vector = response_vector,
-    mask = mask,
-    n_rhs_parts = n_rhs_parts,
     outcome_var = outcome_var,
-    respondent_indices = respondent_indices
+    mask = mask,
+    respondent_indices = which(mask),
+    n_rhs_parts = n_rhs_parts
   )
+}
 
-  design <- list(
-    missingness_design = missingness_design,
-    auxiliary_design_full = aux_design,
-    respondent_mask = mask,
-    outcome_var = outcome_var
-  )
+el_build_aux_design <- function(parsed) {
+  n <- nrow(parsed$model_frame)
+  if (n == 0 || parsed$n_rhs_parts < 1L) {
+    return(matrix(nrow = n, ncol = 0))
+  }
 
-  structure(design, class = "el_design")
+  rhs <- el_materialize_rhs(parsed, part = 1L, label = "auxiliary predictors")
+  aux_expr <- rhs$expr
+  aux_terms <- rhs$terms
+
+  aux_expr_vars <- if (!is.null(aux_expr)) all.vars(aux_expr) else character(0)
+  if (length(aux_expr_vars) > 0 && parsed$outcome_var %in% aux_expr_vars) {
+    stop("The outcome cannot appear in auxiliary constraints.", call. = FALSE)
+  }
+
+  aux_matrix <- drop_intercept(rhs$matrix)
+  if (ncol(aux_matrix) > 0 && parsed$outcome_var %in% colnames(aux_matrix)) {
+    aux_matrix <- aux_matrix[, colnames(aux_matrix) != parsed$outcome_var, drop = FALSE]
+  }
+
+  intercept_requested <- isTRUE(attr(aux_terms, "intercept") == 1) && el_has_explicit_intercept(aux_expr)
+  if (intercept_requested) {
+    warning("Auxiliary intercepts are ignored; + 1 has no effect.", call. = FALSE)
+  }
+
+  if (ncol(aux_matrix) > 0) {
+    aux_resp <- aux_matrix[parsed$mask, , drop = FALSE]
+    el_assert_no_na(aux_resp, parsed$respondent_indices, "Auxiliary covariate")
+    el_check_constant_columns(aux_resp, label = "Auxiliary covariate", severity = "error")
+  }
+
+  aux_matrix
+}
+
+el_build_missingness_design <- function(parsed) {
+  n_resp <- sum(parsed$mask)
+  if (n_resp == 0) {
+    return(matrix(nrow = 0, ncol = 0))
+  }
+
+  intercept_col <- matrix(1, nrow = n_resp, ncol = 1)
+  colnames(intercept_col) <- "(Intercept)"
+
+  outcome_col <- matrix(parsed$response_vector[parsed$mask], ncol = 1)
+  colnames(outcome_col) <- parsed$outcome_var
+
+  rhs_predictors <- if (parsed$n_rhs_parts >= 2L) {
+    rhs <- el_materialize_rhs(parsed, part = 2L, label = "response predictors")
+    if (isTRUE(attr(rhs$terms, "intercept") == 0)) {
+      warning("Missingness-model intercept is required; '-1' or '+0' has no effect.", call. = FALSE)
+    }
+    rhs_matrix <- drop_intercept(rhs$matrix)
+    rhs_sub <- rhs_matrix[parsed$mask, , drop = FALSE]
+    el_assert_no_na(rhs_sub, parsed$respondent_indices, "Missingness-model predictor")
+    el_check_constant_columns(rhs_sub, label = "Missingness-model predictor", severity = "warn")
+    rhs_sub
+  } else {
+    matrix(nrow = n_resp, ncol = 0)
+  }
+
+  cbind(intercept_col, outcome_col, rhs_predictors)
+}
+
+el_materialize_rhs <- function(parsed, part, label) {
+  rhs_formula <- stats::formula(parsed$fml, lhs = 0, rhs = part)
+  rhs_expr <- el_rhs_expression(rhs_formula)
+  rhs_terms <- el_terms_no_offset(rhs_formula, parsed$model_frame, "data", label)
+  terms_for_mm <- rhs_terms
+  attr(terms_for_mm, "intercept") <- 1L
+  mm <- el_with_formula_errors(stats::model.matrix(terms_for_mm, data = parsed$model_frame), "data")
+  list(matrix = mm, expr = rhs_expr, terms = rhs_terms)
+}
+
+el_rhs_expression <- function(rhs_formula) {
+  tryCatch(rhs_formula[[2L]], error = function(e) NULL)
 }
 
 el_as_formula <- function(base_formula) {
@@ -115,83 +177,6 @@ el_with_formula_errors <- function(expr, context_label) {
   )
 }
 
-el_build_missingness_design <- function(fml,
-                                        model_frame,
-                                        response_vector,
-                                        mask,
-                                        n_rhs_parts,
-                                        outcome_var,
-                                        respondent_indices) {
-  n_resp <- sum(mask)
-  if (n_resp == 0) {
-    return(matrix(nrow = 0, ncol = 0))
-  }
-
-  intercept_col <- matrix(1, nrow = n_resp, ncol = 1)
-  colnames(intercept_col) <- "(Intercept)"
-
-  outcome_col <- matrix(response_vector[mask], ncol = 1)
-  colnames(outcome_col) <- outcome_var
-
-  rhs_predictors <- if (n_rhs_parts >= 2L) {
-    rhs_formula <- stats::formula(fml, lhs = 0, rhs = 2L)
-    rhs_terms <- el_terms_no_offset(rhs_formula, model_frame, "data", "response predictors")
-    if (isTRUE(attr(rhs_terms, "intercept") == 0)) {
-      warning("Missingness-model intercept is required; '-1' or '+0' has no effect.", call. = FALSE)
-    }
-# Normalize coding to L-1 for factors and drop intercept
-    rhs_matrix <- el_build_mm_lminus1(rhs_terms, model_frame, context_label)
-    rhs_sub <- rhs_matrix[mask, , drop = FALSE]
-    el_assert_no_na(rhs_sub, respondent_indices, "Missingness-model predictor")
-    el_check_constant_columns(rhs_sub, label = "Missingness-model predictor", severity = "warn")
-    rhs_sub
-  } else {
-    matrix(nrow = n_resp, ncol = 0)
-  }
-
-  cbind(intercept_col, outcome_col, rhs_predictors)
-}
-
-el_build_aux_design <- function(fml,
-                                model_frame,
-                                mask,
-                                n_rhs_parts,
-                                outcome_var,
-                                respondent_indices) {
-  if (nrow(model_frame) == 0 || n_rhs_parts < 1L) {
-    out <- matrix(nrow = nrow(model_frame), ncol = 0)
-    return(out)
-  }
-
-  aux_formula <- stats::formula(fml, lhs = 0, rhs = 1L)
-  aux_terms <- el_terms_no_offset(aux_formula, model_frame, "data", "auxiliary predictors")
-# Extract the raw RHS expression for part 1 using public API (future-proof)
-  aux_expr <- tryCatch(stats::formula(fml, lhs = 0, rhs = 1L)[[2L]], error = function(e) NULL)
-  aux_vars_expr <- if (!is.null(aux_expr)) all.vars(aux_expr) else character(0)
-  if (length(aux_vars_expr) > 0 && outcome_var %in% aux_vars_expr) {
-    stop("The outcome cannot appear in auxiliary constraints.", call. = FALSE)
-  }
-  intercept_requested <- isTRUE(attr(aux_terms, "intercept") == 1) && el_has_explicit_intercept(aux_expr)
-  if (intercept_requested) {
-    warning("Auxiliary intercepts are ignored; + 1 has no effect.", call. = FALSE)
-  }
-
-# Normalize coding to L-1 for factors and drop intercept
-  aux_matrix <- el_build_mm_lminus1(aux_terms, model_frame, "data")
-# If dot expansion accidentally pulled in the outcome column, drop it.
-  if (ncol(aux_matrix) > 0 && outcome_var %in% colnames(aux_matrix)) {
-    aux_matrix <- aux_matrix[, colnames(aux_matrix) != outcome_var, drop = FALSE]
-  }
-
-  if (ncol(aux_matrix) > 0) {
-    aux_resp <- aux_matrix[mask, , drop = FALSE]
-    el_assert_no_na(aux_resp, respondent_indices, "Auxiliary covariate")
-    el_check_constant_columns(aux_resp, label = "Auxiliary covariate", severity = "error")
-  }
-
-  aux_matrix
-}
-
 el_has_explicit_intercept <- function(node) {
   if (is.null(node)) return(FALSE)
   if (is.numeric(node) && length(node) == 1L && isTRUE(all.equal(node, 1))) return(TRUE)
@@ -206,30 +191,18 @@ el_has_explicit_intercept <- function(node) {
   FALSE
 }
 
+el_terms_no_offset <- function(rhs_formula, model_frame, context_label, label) {
+  tr <- el_with_formula_errors(stats::terms(rhs_formula, data = model_frame), context_label)
+  el_assert_no_offset(tr, context_label, label)
+  tr
+}
+
 drop_intercept <- function(mm) {
   if (is.null(mm) || !is.matrix(mm) || ncol(mm) == 0) return(mm)
   if ("(Intercept)" %in% colnames(mm)) {
     mm <- mm[, colnames(mm) != "(Intercept)", drop = FALSE]
   }
   mm
-}
-
-#' Build model.matrix from a terms object with normalized factor coding
-#' Ensures intercept is included for coding (yielding L-1 dummies) and then dropped.
-#' @keywords internal
-el_build_mm_lminus1 <- function(terms_obj, data, context_label) {
-  t_for_mm <- terms_obj
-  attr(t_for_mm, "intercept") <- 1L
-  mm <- el_with_formula_errors(stats::model.matrix(t_for_mm, data = data), context_label)
-  drop_intercept(mm)
-}
-
-#' Build terms object and assert no offsets
-#' @keywords internal
-el_terms_no_offset <- function(rhs_formula, model_frame, context_label, label) {
-  tr <- el_with_formula_errors(stats::terms(rhs_formula, data = model_frame), context_label)
-  el_assert_no_offset(tr, context_label, label)
-  tr
 }
 
 el_check_constant_columns <- function(mat, label, severity = c("error", "warn")) {
@@ -308,6 +281,9 @@ el_validate_design_spec <- function(design, data_nrow, context_label) {
   }
   if (length(mask) != data_nrow) {
     stop(sprintf("Internal error: respondent mask length (%d) must equal %s rows (%d).", length(mask), context_label, data_nrow), call. = FALSE)
+  }
+  if (!is.numeric(design$response_vector) || length(design$response_vector) != length(mask)) {
+    stop("Internal error: response_vector must align with respondent mask.", call. = FALSE)
   }
   missingness_design <- design$missingness_design
   if (!is.null(missingness_design) && nrow(missingness_design) != sum(mask)) {

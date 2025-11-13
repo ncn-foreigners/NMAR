@@ -17,6 +17,18 @@ test_that("el_prepare_design expands dot notation via Formula", {
   expect_true(all(c("(Intercept)", "Y_miss", "X1", "X2", "Z") %in% colnames(design$missingness_design)))
 })
 
+test_that("el_prepare_design requires bare outcome names", {
+  df <- data.frame(
+    Y_miss = c(1, NA, 2, NA),
+    X = rnorm(4)
+  )
+  expect_error(
+    NMAR:::el_prepare_design(log(Y_miss) ~ X, df, require_na = FALSE),
+    regexp = "left-hand side must be a variable name",
+    fixed = FALSE
+  )
+})
+
 test_that("response intercept is retained even when formula uses +0", {
   df <- data.frame(
     Y_miss = c(1, NA, 2, NA),

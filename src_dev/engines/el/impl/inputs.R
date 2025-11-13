@@ -170,11 +170,7 @@ el_run_core_analysis <- function(call,
 
   core_results <- el_estimator_core(
     missingness_design = design$missingness_design,
-    response_outcome = {
-      ao <- analysis_object
-      y_full <- if (inherits(ao, "survey.design")) ao$variables[[design$outcome_var]] else ao[[design$outcome_var]]
-      y_full[prep$respondent_indices]
-    },
+    response_outcome = design$response_vector[prep$respondent_indices],
     auxiliary_matrix = aux_summary$auxiliary_design,
     mu_x = aux_summary$means,
     respondent_weights = prep$respondent_weights,
