@@ -95,8 +95,7 @@ el.survey.design <- function(data, formula,
     el_prepare_design(
       formula = formula,
       data = design$variables,
-      require_na = FALSE,
-      context_label = "survey design"
+      require_na = FALSE
     ),
     error = function(e) {
       msg <- conditionMessage(e)

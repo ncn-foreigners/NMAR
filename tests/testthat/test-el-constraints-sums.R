@@ -17,11 +17,10 @@ test_that("constraint sums are near zero at solution (no trimming)", {
     design_inputs = design,
     weights_full = NULL,
     N_pop = NULL,
-    variance_method = "none",
     is_survey = FALSE,
     design_object = NULL
   )
-  dat2 <- prep$data_aug
+  dat2 <- if (inherits(prep$analysis_object, "survey.design")) prep$analysis_object$variables else prep$analysis_object
   obs_idx <- prep$respondent_indices
   resp_df <- dat2[obs_idx, ]
   Z_un <- design$missingness_design

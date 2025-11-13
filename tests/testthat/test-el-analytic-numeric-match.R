@@ -18,11 +18,10 @@ test_that("analytic vs numeric Jacobian agree across links and scaling", {
       design_inputs = design,
       weights_full = NULL,
       N_pop = NULL,
-      variance_method = "none",
       is_survey = FALSE,
       design_object = NULL
     )
-    dat2 <- prep$data_aug
+    dat2 <- if (inherits(prep$analysis_object, "survey.design")) prep$analysis_object$variables else prep$analysis_object
     resp_df <- dat2[prep$respondent_indices, , drop = FALSE]
     Z_un <- design$missingness_design
     X_un <- design$auxiliary_design_full[design$respondent_mask, , drop = FALSE]

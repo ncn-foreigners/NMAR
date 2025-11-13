@@ -87,7 +87,6 @@ test_that("intercept-only auxiliaries are ignored (with warning)", {
     "intercept",
     fixed = FALSE
   )
-  expect_false(design$has_aux)
   expect_equal(ncol(design$auxiliary_design_full), 0)
 })
 

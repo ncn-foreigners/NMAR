@@ -1,13 +1,24 @@
 #' EL design construction and Formula workflow
 #'
-#' Builds the shared design matrices for the empirical likelihood engine. The
-#' function constructs one `model.frame` from the supplied `Formula`, extracts
-#' the respondent indicators, and materializes the auxiliary (RHS1) and
-#' missingness (intercept + outcome + RHS2) matrices. Offsets (`offset()`) are
-#' not supported in either partition; users should add predictors explicitly.
+#' Builds the shared design matrices for the empirical likelihood estimator.
+#' One `model.frame` is constructed from the supplied `Formula`. The left-hand
+#' side (outcome) and the respondent mask are extracted, and then the two RHS
+#' partitions are materialized as model matrices:
+#' - RHS1 (auxiliaries): full-data matrix with L-1 factor coding and no
+#'   intercept. When dot expansion is used (e.g., `~ .`), the outcome column is
+#'   dropped explicitly to prevent accidental leakage into auxiliary constraints.
+#' - RHS2 (missingness predictors): respondent-only matrix with L-1 factor
+#'   coding (we always add our own intercept and outcome column).
+#'
+#' Notes:
+#' - Offsets (`offset()`) are not supported in either partition.
+#' - Factor coding is normalized by forcing an intercept at the terms level and
+#'   then dropping it (L-1 dummies). This avoids changes in basis from user
+#'   toggles like `-1` or `+0` and prevents collinearity when adding the
+#'   missingness-model intercept.
 #'
 #' @keywords internal
-el_prepare_design <- function(formula, data, require_na = TRUE, context_label = "data") {
+el_prepare_design <- function(formula, data, require_na = TRUE) {
   if (missing(formula)) stop("`formula` must be supplied.", call. = FALSE)
 
   base_formula <- stats::as.formula(formula)
@@ -37,12 +48,12 @@ el_prepare_design <- function(formula, data, require_na = TRUE, context_label = 
 
   model_frame <- el_with_formula_errors(
     stats::model.frame(fml, data = data, na.action = stats::na.pass, drop.unused.levels = TRUE),
-    context_label
+    "data"
   )
 
   response_vector <- el_with_formula_errors(
     Formula::model.part(fml, data = model_frame, lhs = 1, drop = TRUE),
-    context_label
+    "data"
   )
   if (!is.numeric(response_vector)) {
     stop("Outcome variable must evaluate to a numeric vector.", call. = FALSE)
@@ -65,7 +76,6 @@ el_prepare_design <- function(formula, data, require_na = TRUE, context_label = 
     mask = mask,
     n_rhs_parts = n_rhs_parts,
     outcome_var = outcome_var,
-    context_label = context_label,
     respondent_indices = respondent_indices
   )
 
@@ -76,19 +86,14 @@ el_prepare_design <- function(formula, data, require_na = TRUE, context_label = 
     mask = mask,
     n_rhs_parts = n_rhs_parts,
     outcome_var = outcome_var,
-    context_label = context_label,
     respondent_indices = respondent_indices
   )
 
   design <- list(
     missingness_design = missingness_design,
-    y_obs = response_vector[mask],
     auxiliary_design_full = aux_design,
     respondent_mask = mask,
-    respondents_only = respondents_only,
-    outcome_var = outcome_var,
-    has_aux = ncol(aux_design) > 0,
-    context_label = context_label
+    outcome_var = outcome_var
   )
 
   structure(design, class = "el_design")
@@ -116,7 +121,6 @@ el_build_missingness_design <- function(fml,
                                         mask,
                                         n_rhs_parts,
                                         outcome_var,
-                                        context_label,
                                         respondent_indices) {
   n_resp <- sum(mask)
   if (n_resp == 0) {
@@ -131,13 +135,12 @@ el_build_missingness_design <- function(fml,
 
   rhs_predictors <- if (n_rhs_parts >= 2L) {
     rhs_formula <- stats::formula(fml, lhs = 0, rhs = 2L)
-    rhs_terms <- el_with_formula_errors(stats::terms(rhs_formula, data = model_frame), context_label)
-    el_assert_no_offset(rhs_terms, context_label, "response predictors")
+    rhs_terms <- el_terms_no_offset(rhs_formula, model_frame, "data", "response predictors")
     if (isTRUE(attr(rhs_terms, "intercept") == 0)) {
       warning("Missingness-model intercept is required; '-1' or '+0' has no effect.", call. = FALSE)
     }
-    rhs_matrix <- el_with_formula_errors(stats::model.matrix(fml, data = model_frame, rhs = 2L), context_label)
-    rhs_matrix <- drop_intercept(rhs_matrix)
+# Normalize coding to L-1 for factors and drop intercept
+    rhs_matrix <- el_build_mm_lminus1(rhs_terms, model_frame, context_label)
     rhs_sub <- rhs_matrix[mask, , drop = FALSE]
     el_assert_no_na(rhs_sub, respondent_indices, "Missingness-model predictor")
     el_check_constant_columns(rhs_sub, label = "Missingness-model predictor", severity = "warn")
@@ -154,7 +157,6 @@ el_build_aux_design <- function(fml,
                                 mask,
                                 n_rhs_parts,
                                 outcome_var,
-                                context_label,
                                 respondent_indices) {
   if (nrow(model_frame) == 0 || n_rhs_parts < 1L) {
     out <- matrix(nrow = nrow(model_frame), ncol = 0)
@@ -162,8 +164,7 @@ el_build_aux_design <- function(fml,
   }
 
   aux_formula <- stats::formula(fml, lhs = 0, rhs = 1L)
-  aux_terms <- el_with_formula_errors(stats::terms(aux_formula, data = model_frame), context_label)
-  el_assert_no_offset(aux_terms, context_label, "auxiliary predictors")
+  aux_terms <- el_terms_no_offset(aux_formula, model_frame, "data", "auxiliary predictors")
 # Extract the raw RHS expression for part 1 using public API (future-proof)
   aux_expr <- tryCatch(stats::formula(fml, lhs = 0, rhs = 1L)[[2L]], error = function(e) NULL)
   aux_vars_expr <- if (!is.null(aux_expr)) all.vars(aux_expr) else character(0)
@@ -175,8 +176,9 @@ el_build_aux_design <- function(fml,
     warning("Auxiliary intercepts are ignored; + 1 has no effect.", call. = FALSE)
   }
 
-  aux_matrix <- el_with_formula_errors(stats::model.matrix(fml, data = model_frame, rhs = 1L), context_label)
-  aux_matrix <- drop_intercept(aux_matrix)
+# Normalize coding to L-1 for factors and drop intercept
+  aux_matrix <- el_build_mm_lminus1(aux_terms, model_frame, "data")
+# If dot expansion accidentally pulled in the outcome column, drop it.
   if (ncol(aux_matrix) > 0 && outcome_var %in% colnames(aux_matrix)) {
     aux_matrix <- aux_matrix[, colnames(aux_matrix) != outcome_var, drop = FALSE]
   }
@@ -210,6 +212,24 @@ drop_intercept <- function(mm) {
     mm <- mm[, colnames(mm) != "(Intercept)", drop = FALSE]
   }
   mm
+}
+
+#' Build model.matrix from a terms object with normalized factor coding
+#' Ensures intercept is included for coding (yielding L-1 dummies) and then dropped.
+#' @keywords internal
+el_build_mm_lminus1 <- function(terms_obj, data, context_label) {
+  t_for_mm <- terms_obj
+  attr(t_for_mm, "intercept") <- 1L
+  mm <- el_with_formula_errors(stats::model.matrix(t_for_mm, data = data), context_label)
+  drop_intercept(mm)
+}
+
+#' Build terms object and assert no offsets
+#' @keywords internal
+el_terms_no_offset <- function(rhs_formula, model_frame, context_label, label) {
+  tr <- el_with_formula_errors(stats::terms(rhs_formula, data = model_frame), context_label)
+  el_assert_no_offset(tr, context_label, label)
+  tr
 }
 
 el_check_constant_columns <- function(mat, label, severity = c("error", "warn")) {

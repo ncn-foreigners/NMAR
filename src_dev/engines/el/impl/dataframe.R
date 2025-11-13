@@ -58,8 +58,7 @@ el.data.frame <- function(data, formula,
   design <- el_prepare_design(
     formula = formula,
     data = data,
-    require_na = FALSE,
-    context_label = "data frame"
+    require_na = FALSE
   )
 
   extra_args <- list(...)
