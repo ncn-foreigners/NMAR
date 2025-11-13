@@ -35,6 +35,9 @@ test_that("EL survey estimator is invariant to uniform rescaling of design weigh
   p1 <- as.numeric(weights(fit1, scale = "probability"))
   p2 <- as.numeric(weights(fit2, scale = "probability"))
   expect_equal(p1, p2, tolerance = 1e-10)
+# Probability weights sum to 1 for both fits
+  expect_true(abs(sum(p1) - 1) < 1e-12)
+  expect_true(abs(sum(p2) - 1) < 1e-12)
 
 # Population-scale weights should differ by the same cfac
   Wpop1 <- as.numeric(weights(fit1, scale = "population"))

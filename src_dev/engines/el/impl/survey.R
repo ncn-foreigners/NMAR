@@ -20,7 +20,10 @@ el_rescale_survey_design_weights <- function(design, scale_factor) {
 #'   not implemented and returns NA when requested.
 #' @param data A `survey.design` created with [survey::svydesign()].
 #' @param formula Two-sided formula: NA-valued outcome on LHS; auxiliaries on RHS.
-#' @param auxiliary_means Named numeric vector of population means for auxiliaries.
+#' @param auxiliary_means Named numeric vector of population means for auxiliary
+#'   design columns. Names must match the materialized `model.matrix` columns on
+#'   the first RHS (after formula expansion), including factor indicators and
+#'   transformed terms. The intercept is always excluded.
 #' @param standardize Logical; standardize predictors.
 #' @param trim_cap Numeric; cap for EL weights (Inf = no trimming).
 #' @param control List; solver control for `nleqslv(control=...)`.
@@ -165,7 +168,7 @@ el.survey.design <- function(data, formula,
     call = cl,
     formula = formula,
     raw_data = design$variables,
-    design_inputs = design_inputs,
+    design = design_inputs,
     weights_full = respondent_weights_full,
     n_total = N_pop,
     variance_method = variance_method,

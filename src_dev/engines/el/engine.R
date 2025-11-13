@@ -19,8 +19,10 @@
 #'   \code{"delta"} is supplied it is coerced to \code{"none"} with a warning.
 #' @param bootstrap_reps integer; number of bootstrap replicates when
 #'   \code{variance_method = "bootstrap"}.
-#' @param auxiliary_means named numeric vector; population means for auxiliaries
-#'   (names must match the RHS of the outcome formula). Optional.
+#' @param auxiliary_means named numeric vector; population means for auxiliary
+#'   design columns. Names must match the materialized model.matrix column names
+#'   on the first RHS (after formula expansion), e.g., factor indicators like
+#'   `F_b` or transformed terms `I(X^2)`. Intercept is always excluded. Optional.
 #' @param control list; optional solver control for \code{nleqslv::nleqslv()}.
 #'   Recognized fields (defaults in parentheses):
 #'   \itemize{

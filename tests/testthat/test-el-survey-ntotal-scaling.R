@@ -26,4 +26,7 @@ test_that("Survey weights normalization matches user-supplied n_total (mismatch 
 # Population weights from the result must sum to the supplied n_total
   wN <- weights(fit, scale = "population")
   expect_true(abs(sum(wN) - n_total) < 1e-8)
+# Probability weights should always sum to 1
+  wp <- weights(fit, scale = "probability")
+  expect_true(abs(sum(wp) - 1) < 1e-12)
 })

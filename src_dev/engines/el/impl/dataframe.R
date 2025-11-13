@@ -4,7 +4,10 @@
 #'   bootstrap SE, weights, coefficients, diagnostics, and metadata.
 #' @param data A `data.frame` where the outcome column contains `NA` for nonrespondents.
 #' @param formula Two-sided formula `Y_miss ~ auxiliaries`.
-#' @param auxiliary_means Named numeric vector of population means for auxiliary variables (names must match RHS of outcome formula).
+#' @param auxiliary_means Named numeric vector of population means for auxiliary
+#'   design columns. Names must match the materialized `model.matrix` columns on
+#'   the first RHS (after formula expansion), including factor indicators and
+#'   transformed terms. The intercept is always excluded.
 #' @param standardize Logical; whether to standardize predictors prior to estimation.
 #' @param trim_cap Numeric; cap for EL weights (`Inf` = no trimming).
 #' @param control List; optional solver control parameters for `nleqslv(control=...)`.
@@ -65,7 +68,7 @@ el.data.frame <- function(data, formula,
     call = cl,
     formula = formula,
     raw_data = data,
-    design_inputs = design,
+    design = design,
     weights_full = NULL,
     n_total = n_total,
     variance_method = variance_method,

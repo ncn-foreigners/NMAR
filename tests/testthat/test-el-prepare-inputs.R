@@ -1,20 +1,20 @@
-test_that("el_prepare_inputs creates unique delta var name when colliding", {
+test_that("delta column name avoids collisions and is present", {
   df <- data.frame(`..nmar_delta..` = 1:5, Y = c(1, 2, NA, 4, 5), X = rnorm(5))
-  res <- prepare_el_inputs(Y ~ X, df, NULL)
-  expect_true(res$delta_column_name != "..nmar_delta..")
-  expect_true(res$delta_column_name %in% names(res$data))
+  out <- NMAR:::el_make_delta_column_name(df, outcome_var = "Y", respondent_mask = !is.na(df$Y))
+  expect_true(out$delta_column_name != "..nmar_delta..")
+  expect_true(out$delta_column_name %in% names(out$data))
 })
 
-test_that("el_prepare_inputs expands dot notation via Formula", {
+test_that("el_prepare_design expands dot notation via Formula", {
   df <- data.frame(
     Y_miss = c(1, NA, 0, 1),
     X1 = rnorm(4),
     X2 = rnorm(4),
     Z = rnorm(4)
   )
-  res <- prepare_el_inputs(Y_miss ~ . | ., df, require_na = FALSE)
-  expect_setequal(colnames(res$auxiliary_matrix_full), c("X1", "X2", "Z"))
-  expect_true(all(c("(Intercept)", "Y_miss", "X1", "X2", "Z") %in% colnames(res$missingness_design)))
+  design <- NMAR:::el_prepare_design(Y_miss ~ . | ., df, require_na = FALSE)
+  expect_setequal(colnames(design$auxiliary_design_full), c("X1", "X2", "Z"))
+  expect_true(all(c("(Intercept)", "Y_miss", "X1", "X2", "Z") %in% colnames(design$missingness_design)))
 })
 
 test_that("response intercept is retained even when formula uses +0", {
@@ -59,36 +59,36 @@ test_that("dot expansion drops outcome-derived auxiliary terms", {
     X = rnorm(4),
     F = factor(c("a", "b", "a", "b"))
   )
-  res <- prepare_el_inputs(Y_miss ~ . | ., df, require_na = FALSE)
-  expect_false("Y_miss" %in% colnames(res$auxiliary_matrix_full))
-  expect_false(anyNA(res$auxiliary_matrix_full))
+  design <- NMAR:::el_prepare_design(Y_miss ~ . | ., df, require_na = FALSE)
+  expect_false("Y_miss" %in% colnames(design$auxiliary_design_full))
+  expect_false(anyNA(design$auxiliary_design_full))
 })
 
-test_that("el_prepare_inputs forbids outcome in auxiliary constraints", {
+test_that("el_prepare_design forbids outcome in auxiliary constraints", {
   df <- data.frame(
     Y_miss = c(1, NA, 2, NA),
     X = rnorm(4),
     Z = rnorm(4)
   )
   expect_error(
-    prepare_el_inputs(Y_miss ~ I(Y_miss^2) + X | Z, df),
+    NMAR:::el_prepare_design(Y_miss ~ I(Y_miss^2) + X | Z, df),
     "outcome cannot appear",
     fixed = FALSE
   )
 })
 
-test_that("intercept-only auxiliaries are ignored without warnings", {
+test_that("intercept-only auxiliaries are ignored (with warning)", {
   df <- data.frame(
     Y_miss = c(1, NA, 3, NA),
     Z = rnorm(4)
   )
   expect_warning(
-    res <- prepare_el_inputs(Y_miss ~ 1 | Z, df),
+    design <- NMAR:::el_prepare_design(Y_miss ~ 1 | Z, df, require_na = FALSE),
     "intercept",
     fixed = FALSE
   )
-  expect_false(res$has_aux)
-  expect_equal(ncol(res$auxiliary_matrix), 0)
+  expect_false(design$has_aux)
+  expect_equal(ncol(design$auxiliary_design_full), 0)
 })
 
 test_that("explicit intercept plus auxiliaries triggers a warning", {
@@ -97,11 +97,29 @@ test_that("explicit intercept plus auxiliaries triggers a warning", {
     X = rnorm(4)
   )
   expect_warning(
-    res <- prepare_el_inputs(Y_miss ~ 1 + X, df),
+    design <- NMAR:::el_prepare_design(Y_miss ~ 1 + X, df, require_na = FALSE),
     "Auxiliary intercepts are ignored",
     fixed = FALSE
   )
-  expect_equal(colnames(res$auxiliary_matrix), "X")
+  expect_equal(colnames(design$auxiliary_design_full), "X")
+})
+
+test_that("auxiliary '-1' or '+0' are no-ops (no warning, no intercept)", {
+  set.seed(123)
+  df <- data.frame(
+    Y_miss = c(1, NA, 3, NA),
+    X = rnorm(4),
+    Z = rnorm(4)
+  )
+# '-1' should remove any implicit intercept silently
+  design_m1 <- NMAR:::el_prepare_design(Y_miss ~ X - 1 | Z, df, require_na = FALSE)
+  expect_false("(Intercept)" %in% colnames(design_m1$auxiliary_design_full))
+  expect_equal(colnames(design_m1$auxiliary_design_full), "X")
+
+# '+0' should behave identically and silently
+  design_p0 <- NMAR:::el_prepare_design(Y_miss ~ X + 0 | Z, df, require_na = FALSE)
+  expect_false("(Intercept)" %in% colnames(design_p0$auxiliary_design_full))
+  expect_equal(colnames(design_p0$auxiliary_design_full), "X")
 })
 
 test_that("el_prepare_design rejects formulas with more than two RHS partitions", {

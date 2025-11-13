@@ -36,3 +36,22 @@ test_that("el_resolve_auxiliaries computes design-weighted means for survey.desi
   mu_expected <- mu_expected[colnames(out$auxiliary_design)]
   expect_equal(unname(out$means), unname(mu_expected), tolerance = 1e-12)
 })
+
+test_that("el_resolve_auxiliaries warns on extra names in auxiliary_means and ignores them", {
+  set.seed(3)
+  n <- 25
+  full <- data.frame(
+    Y = rnorm(n),
+    X = rnorm(n)
+  )
+  auxiliary_design_full <- model.matrix(~ X - 1, data = full)
+  respondent_mask <- rep(TRUE, n)
+  aux_means_supplied <- c(X = 0, EXTRA = 123)
+  expect_warning(
+    out <- NMAR:::el_resolve_auxiliaries(auxiliary_design_full, respondent_mask, auxiliary_means = aux_means_supplied),
+    regexp = "Ignoring unused names in 'auxiliary_means'",
+    fixed = FALSE
+  )
+  expect_equal(names(out$means), colnames(out$auxiliary_design))
+  expect_false("EXTRA" %in% names(out$means))
+})
