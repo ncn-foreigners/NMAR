@@ -37,14 +37,12 @@ el_parse_design <- function(formula, data, require_na = TRUE) {
     stop("EL formulas support at most two RHS partitions (auxiliaries | response predictors).", call. = FALSE)
   }
 
-  model_frame <- tryCatch(
-    stats::model.frame(fml, data = data, na.action = stats::na.pass, drop.unused.levels = TRUE),
-    error = el_rethrow_data_error
+  model_frame <- el_formula_eval(
+    stats::model.frame(fml, data = data, na.action = stats::na.pass, drop.unused.levels = TRUE)
   )
 
-  response_vector <- tryCatch(
-    Formula::model.part(fml, data = model_frame, lhs = 1, drop = TRUE),
-    error = el_rethrow_data_error
+  response_vector <- el_formula_eval(
+    Formula::model.part(fml, data = model_frame, lhs = 1, drop = TRUE)
   )
   if (!is.numeric(response_vector)) {
     stop("Outcome variable must evaluate to a numeric vector.", call. = FALSE)
@@ -84,13 +82,21 @@ el_parse_design <- function(formula, data, require_na = TRUE) {
 }
 
 el_as_formula <- function(base_formula) {
-# Wrap in as.list() before as.Formula() to avoid edge cases when the caller
-# supplies language objects instead of plain formula literals.
+# Wrap language objects in as.list() so as.Formula() handles calls, expressions, or literal formulas.
   tryCatch(
     Formula::as.Formula(as.list(base_formula)),
     error = function(err) {
       stop(conditionMessage(err), call. = FALSE)
     }
+  )
+}
+
+el_formula_eval <- function(expr) {
+# Evaluate a formula/data expression and rethrow with el-specific data-mismatch diagnostics.
+  expr <- substitute(expr)
+  eval(
+    bquote(tryCatch(.(expr), error = el_rethrow_data_error)),
+    envir = parent.frame()
   )
 }
 
@@ -107,12 +113,20 @@ el_build_response_matrix <- function(fml, model_frame, response_vector, mask, n_
 
   rhs_terms <- if (n_rhs_parts >= 2L) {
     rhs_formula <- stats::formula(fml, lhs = 0, rhs = 2L)
-    rhs_terms_obj <- tryCatch(stats::terms(rhs_formula, data = model_frame), error = el_rethrow_data_error)
+    rhs_terms_obj <- el_formula_eval(stats::terms(rhs_formula, data = model_frame))
     if (isTRUE(attr(rhs_terms_obj, "intercept") == 0)) {
       warning("Missingness-model intercept is required; '-1' or '+0' has no effect.", call. = FALSE)
     }
-    rhs_mm <- tryCatch(stats::model.matrix(fml, data = model_frame, rhs = 2L), error = el_rethrow_data_error)
-    el_remove_intercept(rhs_mm)[mask, , drop = FALSE]
+    rhs_labels <- attr(rhs_terms_obj, "term.labels")
+    if (length(rhs_labels) == 0L) {
+      matrix(nrow = n_resp, ncol = 0)
+    } else {
+# Rebuild an intercept-free RHS2 formula from expanded term labels to avoid '.' update pitfalls and preserve user environments.
+      rhs_formula_no_int <- stats::reformulate(rhs_labels, response = NULL, intercept = 0)
+      environment(rhs_formula_no_int) <- environment(rhs_formula)
+      rhs_mm <- el_formula_eval(stats::model.matrix(rhs_formula_no_int, data = model_frame))
+      rhs_mm[mask, , drop = FALSE]
+    }
   } else {
     matrix(nrow = n_resp, ncol = 0)
   }
@@ -131,27 +145,26 @@ el_build_aux_matrix <- function(fml, model_frame, n_rhs_parts, outcome_var) {
     stop("The outcome cannot appear in auxiliary constraints.", call. = FALSE)
   }
 
-  aux_terms <- tryCatch(stats::terms(aux_formula, data = model_frame), error = el_rethrow_data_error)
+  aux_terms <- el_formula_eval(stats::terms(aux_formula, data = model_frame))
   rhs_expr <- if (length(aux_formula) >= 3L) aux_formula[[3L]] else aux_formula[[2L]]
   intercept_requested <- isTRUE(attr(aux_terms, "intercept") == 1) && el_has_explicit_intercept(rhs_expr)
   if (intercept_requested) {
     warning("Auxiliary intercepts are ignored; + 1 has no effect.", call. = FALSE)
   }
 
-  aux_full <- tryCatch(stats::model.matrix(fml, data = model_frame, rhs = 1L), error = el_rethrow_data_error)
-  aux_full <- el_remove_intercept(aux_full)
+  aux_labels <- attr(aux_terms, "term.labels")
+  if (length(aux_labels) == 0L) {
+    aux_full <- matrix(nrow = nrow(model_frame), ncol = 0)
+  } else {
+# Build the auxiliary design via reformulate() so dot expansion and user-defined transforms match the terms() output.
+    aux_formula_no_int <- stats::reformulate(aux_labels, response = NULL, intercept = 0)
+    environment(aux_formula_no_int) <- environment(aux_formula)
+    aux_full <- el_formula_eval(stats::model.matrix(aux_formula_no_int, data = model_frame))
+  }
   if (ncol(aux_full) > 0 && outcome_var %in% colnames(aux_full)) {
     aux_full <- aux_full[, colnames(aux_full) != outcome_var, drop = FALSE]
   }
   aux_full
-}
-
-el_remove_intercept <- function(mm) {
-  if (is.null(mm) || !is.matrix(mm) || ncol(mm) == 0) return(mm)
-  if ("(Intercept)" %in% colnames(mm)) {
-    mm <- mm[, colnames(mm) != "(Intercept)", drop = FALSE]
-  }
-  mm
 }
 
 el_has_explicit_intercept <- function(node) {

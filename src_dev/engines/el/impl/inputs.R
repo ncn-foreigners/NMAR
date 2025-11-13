@@ -1,8 +1,15 @@
-#' EL respondent-level input preparation (IID and survey)
+#' Validate respondents-only workflows
 #'
-#' Attaches the NMAR delta indicator, slices respondent rows/weights, computes
-#' the default N_pop, and assembles metadata used downstream.
+#' Ensures that respondents-only data (no NA values in the outcome) satisfy the
+#' ancillary requirements of the empirical likelihood estimator: population
+#' totals (`n_total`) must be supplied elsewhere and auxiliary constraints
+#' require `auxiliary_means`.
 #'
+#' @param formula Two-sided formula supplied to `nmar()`.
+#' @param data Data frame or survey variables referenced by the formula.
+#' @param auxiliary_means Optional named vector of auxiliary population means.
+#' @param context_label Character string inserted into error messages to clarify the source (e.g., "data frame").
+#' @return Logical; `TRUE` when the outcome contains no NA values.
 #' @keywords internal
 el_validate_respondents_only <- function(formula, data, auxiliary_means, context_label = "data") {
   outcome_var <- all.vars(formula[[2L]])
@@ -87,7 +94,7 @@ el_prepare_analysis_inputs <- function(data,
   )
 }
 
-#' Create/attach the NMAR delta indicator column
+#' Create the NMAR delta indicator column
 #' @keywords internal
 el_make_delta_column <- function(data, outcome_var, respondent_mask = NULL) {
   if (is.null(respondent_mask)) {
@@ -108,7 +115,10 @@ el_make_delta_column <- function(data, outcome_var, respondent_mask = NULL) {
   list(data = data, delta_name = delta_name)
 }
 
-#' Shared launcher for EL estimation once design matrices are parsed
+#' Launch EL estimation once design matrices are parsed
+#'
+#' Wraps the shared respondent-level preparation, auxiliary resolution,
+#' and downstream estimator call so that IID and survey entry points stay in sync.
 #' @keywords internal
 el_run_core_analysis <- function(call,
                                  formula,

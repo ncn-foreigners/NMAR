@@ -128,3 +128,13 @@ test_that("el_parse_design handles language objects coerced to formula", {
   expect_identical(parsed$outcome_var, "Y_miss")
   expect_true("(Intercept)" %in% colnames(parsed$response_matrix))
 })
+
+test_that("response-only formulas drop RHS2 entirely", {
+  set.seed(55)
+  df <- data.frame(
+    Y_miss = c(rnorm(4), NA),
+    X = rnorm(5)
+  )
+  parsed <- NMAR:::el_parse_design(Y_miss ~ X, df, require_na = FALSE)
+  expect_identical(colnames(parsed$response_matrix), c("(Intercept)", "Y_miss"))
+})
