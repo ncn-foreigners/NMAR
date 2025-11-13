@@ -111,8 +111,8 @@ el_make_delta_column_name <- function(data, outcome_var, respondent_mask = NULL)
 
 #' Launch EL estimation once design matrices are parsed
 #'
-#' Wraps the shared respondent-level preparation, auxiliary resolution,
-#' and downstream estimator call so that IID and survey entry points stay in sync.
+#' Runs the shared respondent prep, auxiliary resolution, and solver call so IID
+#' and survey methods stay aligned.
 #' @keywords internal
 el_run_core_analysis <- function(call,
                                  formula,

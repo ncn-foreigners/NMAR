@@ -69,7 +69,7 @@ el.survey.design <- function(data, formula,
 
 
   design <- data
-# Prepare inputs, appending survey design context to any validation error
+# Prepare inputs and carry survey metadata into any validation error
   el_get_design_context <- function(design) {
     ctx <- list(ids = "<unspecified>", strata = "<unspecified>")
     dc <- try(getCall(design), silent = TRUE)

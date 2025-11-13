@@ -47,7 +47,13 @@ el_resolve_auxiliaries <- function(auxiliary_design_full,
     return(list(auxiliary_design = aux_resp, means = mu))
   }
 
-  el_validate_auxiliary_full(auxiliary_design_full)
+  el_assert_no_na(
+    auxiliary_design_full,
+    row_map = seq_len(nrow(auxiliary_design_full)),
+    label = "Auxiliary variables",
+    scope_note = " in full data (needed to compute population means)",
+    plural_label = TRUE
+  )
 
   if (!is.null(weights_full)) {
     mu <- as.numeric(colSums(auxiliary_design_full * weights_full) / sum(weights_full))
@@ -56,19 +62,4 @@ el_resolve_auxiliaries <- function(auxiliary_design_full,
   }
   names(mu) <- colnames(aux_resp)
   list(auxiliary_design = aux_resp, means = mu)
-}
-
-#' Validate that full auxiliary data has no NA when means must be computed
-#' @keywords internal
-el_validate_auxiliary_full <- function(auxiliary_design_full) {
-  if (is.null(auxiliary_design_full) || !is.matrix(auxiliary_design_full) || ncol(auxiliary_design_full) == 0) return(invisible(NULL))
-  if (!anyNA(auxiliary_design_full)) return(invisible(NULL))
-  na_loc <- which(is.na(auxiliary_design_full), arr.ind = TRUE)[1, , drop = TRUE]
-  bad_col <- colnames(auxiliary_design_full)[na_loc[2]]
-  bad_row <- na_loc[1]
-  msg <- sprintf(
-    "Auxiliary variables contain NA values in full data (needed to compute population means).%s\nEither provide auxiliary_means=... or remove NA values from auxiliary variables.",
-    if (is.finite(bad_row)) sprintf("\nFirst NA in '%s' at row %d", bad_col, bad_row) else ""
-  )
-  stop(msg, call. = FALSE)
 }

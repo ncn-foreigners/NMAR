@@ -1,11 +1,10 @@
 #' EL design construction and Formula workflow
 #'
-#' Centralizes Formula parsing and design-matrix construction for the EL engine.
-#' Builds a single `model.frame` from a `Formula` object and materializes the
-#' missingness design (intercept + outcome + RHS2 predictors) and auxiliary design
-#' (RHS1 without intercepts). This helper is the single source of truth for both
-#' IID and survey entry points. Offsets (`offset()`) are not supported on either
-#' partition; use explicit predictors instead.
+#' Builds the shared design matrices for the empirical likelihood engine. The
+#' function constructs one `model.frame` from the supplied `Formula`, extracts
+#' the respondent indicators, and materializes the auxiliary (RHS1) and
+#' missingness (intercept + outcome + RHS2) matrices. Offsets (`offset()`) are
+#' not supported in either partition; users should add predictors explicitly.
 #'
 #' @keywords internal
 el_prepare_design <- function(formula, data, require_na = TRUE, context_label = "data") {
@@ -61,27 +60,24 @@ el_prepare_design <- function(formula, data, require_na = TRUE, context_label = 
 
   aux_design <- el_build_aux_design(
     fml = fml,
-    base_formula = base_formula,
     model_frame = model_frame,
+    mask = mask,
     n_rhs_parts = n_rhs_parts,
     outcome_var = outcome_var,
-    context_label = context_label
+    context_label = context_label,
+    respondent_indices = respondent_indices
   )
-  if (ncol(aux_design) > 0) {
-    el_abort_if_na(aux_design[mask, , drop = FALSE], respondent_indices, "Auxiliary covariate")
-  }
 
   response_design <- el_build_missingness_design(
     fml = fml,
-    base_formula = base_formula,
     model_frame = model_frame,
     response_vector = response_vector,
     mask = mask,
     n_rhs_parts = n_rhs_parts,
     outcome_var = outcome_var,
-    context_label = context_label
+    context_label = context_label,
+    respondent_indices = respondent_indices
   )
-  el_abort_if_na(response_design, respondent_indices, "Missingness-model predictor")
 
   structure(
     list(
@@ -99,7 +95,7 @@ el_prepare_design <- function(formula, data, require_na = TRUE, context_label = 
 
 el_as_formula <- function(base_formula) {
   tryCatch(
-    Formula::as.Formula(as.list(base_formula)),
+    Formula::as.Formula(base_formula),
     error = function(err) {
       stop(conditionMessage(err), call. = FALSE)
     }
@@ -115,13 +111,13 @@ el_eval_formula_call <- function(expr, context_label) {
 }
 
 el_build_missingness_design <- function(fml,
-                                        base_formula,
                                         model_frame,
                                         response_vector,
                                         mask,
                                         n_rhs_parts,
                                         outcome_var,
-                                        context_label) {
+                                        context_label,
+                                        respondent_indices) {
   n_resp <- sum(mask)
   if (n_resp == 0) {
     return(matrix(nrow = 0, ncol = 0))
@@ -144,7 +140,10 @@ el_build_missingness_design <- function(fml,
     if (ncol(rhs_matrix) > 0 && "(Intercept)" %in% colnames(rhs_matrix)) {
       rhs_matrix <- rhs_matrix[, colnames(rhs_matrix) != "(Intercept)", drop = FALSE]
     }
-    rhs_matrix[mask, , drop = FALSE]
+    rhs_sub <- rhs_matrix[mask, , drop = FALSE]
+    el_assert_no_na(rhs_sub, respondent_indices, "Missingness-model predictor")
+    el_check_constant_columns(rhs_sub, label = "Missingness-model predictor", severity = "warn")
+    rhs_sub
   } else {
     matrix(nrow = n_resp, ncol = 0)
   }
@@ -153,11 +152,12 @@ el_build_missingness_design <- function(fml,
 }
 
 el_build_aux_design <- function(fml,
-                                base_formula,
                                 model_frame,
+                                mask,
                                 n_rhs_parts,
                                 outcome_var,
-                                context_label) {
+                                context_label,
+                                respondent_indices) {
   if (nrow(model_frame) == 0 || n_rhs_parts < 1L) {
     out <- matrix(nrow = nrow(model_frame), ncol = 0)
     attr(out, "has_aux") <- FALSE
@@ -167,7 +167,7 @@ el_build_aux_design <- function(fml,
   aux_formula <- stats::formula(fml, lhs = 0, rhs = 1L)
   aux_terms <- el_eval_formula_call(stats::terms(aux_formula, data = model_frame), context_label)
   el_assert_no_offset(aux_terms, context_label, "auxiliary predictors")
-  aux_expr <- el_extract_rhs_part(base_formula, part = 1L)
+  aux_expr <- el_rhs_part(fml, part = 1L)
   aux_vars_expr <- if (!is.null(aux_expr)) all.vars(aux_expr) else character(0)
   if (length(aux_vars_expr) > 0 && outcome_var %in% aux_vars_expr) {
     stop("The outcome cannot appear in auxiliary constraints.", call. = FALSE)
@@ -185,16 +185,20 @@ el_build_aux_design <- function(fml,
     aux_matrix <- aux_matrix[, colnames(aux_matrix) != outcome_var, drop = FALSE]
   }
 
+  if (ncol(aux_matrix) > 0) {
+    aux_resp <- aux_matrix[mask, , drop = FALSE]
+    el_assert_no_na(aux_resp, respondent_indices, "Auxiliary covariate")
+    el_check_constant_columns(aux_resp, label = "Auxiliary covariate", severity = "error")
+  }
+
   attr(aux_matrix, "has_aux") <- ncol(aux_matrix) > 0
   aux_matrix
 }
 
-el_extract_rhs_part <- function(base_formula, part = 1L) {
-  rhs <- base_formula[[3L]]
-  if (!is.call(rhs) || !identical(rhs[[1L]], as.name("|"))) {
-    return(if (part == 1L) rhs else NULL)
-  }
-  if (part == 1L) rhs[[2L]] else if (part == 2L) rhs[[3L]] else NULL
+el_rhs_part <- function(fml, part = 1L) {
+  rhs_parts <- attr(fml, "rhs")
+  if (is.null(rhs_parts) || length(rhs_parts) < part) return(NULL)
+  rhs_parts[[part]]
 }
 
 el_has_explicit_intercept <- function(node) {
@@ -211,29 +215,60 @@ el_has_explicit_intercept <- function(node) {
   FALSE
 }
 
-el_abort_if_na <- function(mat, respondent_indices, label) {
+el_check_constant_columns <- function(mat, label, severity = c("error", "warn")) {
+  severity <- match.arg(severity)
+  if (is.null(mat) || !is.matrix(mat) || ncol(mat) == 0 || nrow(mat) == 0) return(invisible(NULL))
+
+  is_constant <- vapply(seq_len(ncol(mat)), function(j) {
+    col <- mat[, j]
+    if (all(is.na(col))) return(FALSE)
+    all(col == col[which(!is.na(col))[1]], na.rm = TRUE)
+  }, logical(1))
+
+  if (!any(is_constant)) return(invisible(NULL))
+  cols <- colnames(mat)[is_constant]
+  msg <- sprintf(
+    "%s %s zero variance among respondents: %s",
+    label,
+    if (length(cols) == 1) "has" else "have",
+    paste(cols, collapse = ", ")
+  )
+  if (identical(severity, "warn")) {
+    warning(msg, call. = FALSE)
+    return(invisible(NULL))
+  }
+  stop(msg, call. = FALSE)
+}
+
+el_assert_no_na <- function(mat, row_map = NULL, label, scope_note = NULL, plural_label = FALSE) {
   if (is.null(mat) || !is.matrix(mat) || ncol(mat) == 0 || nrow(mat) == 0) return(invisible(NULL))
   if (!anyNA(mat)) return(invisible(NULL))
   na_loc <- which(is.na(mat), arr.ind = TRUE)[1, , drop = TRUE]
   bad_col <- colnames(mat)[na_loc[2]]
-  bad_row <- if (length(respondent_indices) >= na_loc[1]) respondent_indices[na_loc[1]] else NA_integer_
-  msg <- sprintf(
-    "%s '%s' contains NA values among respondents.%s",
-    label,
-    bad_col,
-    if (is.finite(bad_row)) sprintf("\nFirst NA at row %d", bad_row) else ""
-  )
+  row_label <- if (!is.null(row_map) && length(row_map) >= na_loc[1]) row_map[na_loc[1]] else na_loc[1]
+  note <- scope_note %||% if (!is.null(row_map)) " among respondents" else ""
+  msg <- if (isTRUE(plural_label)) {
+    sprintf(
+      "%s contain NA values%s.%s",
+      label,
+      note,
+      if (isTRUE(is.finite(row_label))) sprintf("\nFirst NA in '%s' at row %d", bad_col, row_label) else ""
+    )
+  } else {
+    sprintf(
+      "%s '%s' contains NA values%s.%s",
+      label,
+      bad_col,
+      note,
+      if (isTRUE(is.finite(row_label))) sprintf("\nFirst NA at row %d", row_label) else ""
+    )
+  }
   stop(msg, call. = FALSE)
 }
 
 el_rethrow_data_error <- function(err, context_label) {
   msg <- conditionMessage(err)
-  missing_pattern <- "object '([^']+)' not found"
-  if (grepl(missing_pattern, msg, perl = TRUE)) {
-    missing_var <- sub(missing_pattern, "\\1", msg, perl = TRUE)
-    stop(sprintf("Variables not found in %s: %s", context_label, missing_var), call. = FALSE)
-  }
-  stop(msg, call. = FALSE)
+  stop(sprintf("Formula evaluation failed for %s: %s", context_label, msg), call. = FALSE)
 }
 
 el_validate_outcome <- function(data, outcome_var, require_na) {

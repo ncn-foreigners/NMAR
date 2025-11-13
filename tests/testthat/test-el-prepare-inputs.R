@@ -118,6 +118,30 @@ test_that("el_prepare_design rejects formulas with more than two RHS partitions"
   )
 })
 
+test_that("auxiliary constraints cannot reference the outcome", {
+  df <- data.frame(
+    Y_miss = c(1, NA, 2, NA),
+    X = rnorm(4)
+  )
+  expect_error(
+    NMAR:::el_prepare_design(Y_miss ~ Y_miss + X, df, require_na = FALSE),
+    regexp = "outcome cannot appear",
+    fixed = FALSE
+  )
+})
+
+test_that("constant auxiliary columns created via transforms are rejected", {
+  df <- data.frame(
+    Y_miss = c(1, NA, 2, NA),
+    X = rnorm(4)
+  )
+  expect_error(
+    NMAR:::el_prepare_design(Y_miss ~ I(0 * X + 1) + X, df, require_na = FALSE),
+    regexp = "Auxiliary covariate .* zero variance",
+    fixed = FALSE
+  )
+})
+
 test_that("el_prepare_design handles language objects coerced to formula", {
   df <- data.frame(
     Y_miss = c(1, NA, 2, NA),
@@ -156,4 +180,30 @@ test_that("offset() usage is rejected on auxiliary and response partitions", {
     "Offsets .* response predictors",
     fixed = FALSE
   )
+})
+
+test_that("auxiliary predictors with zero variance among respondents trigger an error", {
+  df <- data.frame(
+    Y_miss = c(1, NA, 2, NA),
+    A = c(5, 2, 5, 3)
+  )
+  expect_error(
+    NMAR:::el_prepare_design(Y_miss ~ A, df, require_na = FALSE),
+    regexp = "Auxiliary covariate .* zero variance",
+    fixed = FALSE
+  )
+})
+
+test_that("missingness predictors with zero variance among respondents only warn", {
+  df <- data.frame(
+    Y_miss = c(1, NA, 2, NA),
+    X = rnorm(4),
+    Z = c(4, 1, 4, 2)
+  )
+  expect_warning(
+    design <- NMAR:::el_prepare_design(Y_miss ~ X | Z, df, require_na = FALSE),
+    regexp = "Missingness-model predictor .* zero variance",
+    fixed = FALSE
+  )
+  expect_s3_class(design, "el_design")
 })

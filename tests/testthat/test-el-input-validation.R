@@ -56,13 +56,13 @@ test_that("el engine rejects faulty inputs", {
       data = base_df,
       formula = Y_miss ~ W,
       response_predictors = NULL,
-      message = "Variables not found"
+      message = "Formula evaluation failed"
     ),
     list(
       name = "missing response predictor",
       data = base_df,
       formula = Y_miss ~ X | W,
-      message = "Variables not found"
+      message = "Formula evaluation failed"
     ),
     list(
       name = "non numeric outcome",
