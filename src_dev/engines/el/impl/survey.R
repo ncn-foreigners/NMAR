@@ -102,9 +102,6 @@ el.survey.design <- function(data, formula,
     }
   )
 
-  el_check_respondents_only_requirements(design_inputs, n_total, auxiliary_means, context_label = "survey design")
-  design$variables <- el_make_delta_column_name(design$variables, design_inputs$outcome_var, design_inputs$respondent_mask)$data
-
 # Scale coherence: ensure N_pop and design weights are on the same scale
   weights_initial <- as.numeric(weights(design))
   design_weight_sum <- sum(weights_initial)
@@ -130,8 +127,6 @@ el.survey.design <- function(data, formula,
         ),
         scale_mismatch_pct, n_total, design_weight_sum, scale_factor
       ), call. = FALSE)
-      scale_mismatch_detected <- TRUE
-
     } else if (scale_mismatch_pct > 1) {
 # Moderate rescaling (1-10%): upgrade to warning for visibility
       warning(sprintf(
@@ -147,11 +142,8 @@ el.survey.design <- function(data, formula,
         ),
         scale_mismatch_pct, n_total, design_weight_sum, scale_factor
       ), call. = FALSE)
-      scale_mismatch_detected <- TRUE
-
     } else {
 # Negligible (<1%) - likely rounding, no message
-      scale_mismatch_detected <- FALSE
     }
 
     if (!isTRUE(all.equal(scale_factor, 1))) {
@@ -164,7 +156,6 @@ el.survey.design <- function(data, formula,
     N_pop <- design_weight_sum
     respondent_weights_full <- weights_initial
     scale_factor <- 1.0
-    scale_mismatch_detected <- FALSE
     scale_mismatch_pct <- 0
   }
 

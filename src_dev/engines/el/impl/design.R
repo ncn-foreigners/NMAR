@@ -8,88 +8,114 @@
 #'
 #' @keywords internal
 el_prepare_design <- function(formula, data, require_na = TRUE, context_label = "data") {
+  spec <- el_parse_formula_spec(
+    formula = formula,
+    data = data,
+    require_na = require_na,
+    context_label = context_label
+  )
+
+  design <- el_build_design_from_spec(
+    spec = spec,
+    context_label = context_label
+  )
+
+  structure(design, class = "el_design")
+}
+
+el_parse_formula_spec <- function(formula, data, require_na, context_label) {
   if (missing(formula)) stop("`formula` must be supplied.", call. = FALSE)
 
-  base_formula <- stats::as.formula(formula)
-  if (!inherits(base_formula, "formula")) {
-    stop("`formula` must be a two-sided formula, e.g., y ~ x1 + x2.", call. = FALSE)
-  }
-  lhs_part <- tryCatch(base_formula[[2L]], error = function(e) NULL)
-  rhs_part <- tryCatch(base_formula[[3L]], error = function(e) NULL)
-  if (is.null(lhs_part) || is.null(rhs_part)) {
-    stop("`formula` must be a two-sided formula, e.g., y ~ x1 + x2.", call. = FALSE)
-  }
+   base_formula <- stats::as.formula(formula)
+   if (!inherits(base_formula, "formula")) {
+     stop("`formula` must be a two-sided formula, e.g., y ~ x1 + x2.", call. = FALSE)
+   }
+   lhs_part <- tryCatch(base_formula[[2L]], error = function(e) NULL)
+   rhs_part <- tryCatch(base_formula[[3L]], error = function(e) NULL)
+   if (is.null(lhs_part) || is.null(rhs_part)) {
+     stop("`formula` must be a two-sided formula, e.g., y ~ x1 + x2.", call. = FALSE)
+   }
 
-  outcome_expr <- base_formula[[2L]]
-  outcome_vars <- all.vars(outcome_expr)
-  if (length(outcome_vars) != 1L) {
-    stop("The left-hand side must contain exactly one outcome variable.", call. = FALSE)
-  }
-  outcome_var <- outcome_vars[1L]
-  el_validate_outcome(data, outcome_var, require_na = require_na)
+   outcome_expr <- base_formula[[2L]]
+   outcome_vars <- all.vars(outcome_expr)
+   if (length(outcome_vars) != 1L) {
+     stop("The left-hand side must contain exactly one outcome variable.", call. = FALSE)
+   }
+   outcome_var <- outcome_vars[1L]
+   el_validate_outcome(data, outcome_var, require_na = require_na)
 
-  fml <- el_as_formula(base_formula)
-  parts <- length(fml)
-  n_rhs_parts <- if (length(parts) >= 2L) parts[2L] else 1L
-  if (n_rhs_parts > 2L) {
-    stop("EL formulas support at most two RHS partitions (auxiliaries | response predictors).", call. = FALSE)
-  }
+   fml <- el_as_formula(base_formula)
+   parts <- length(fml)
+   n_rhs_parts <- if (length(parts) >= 2L) parts[2L] else 1L
+   if (n_rhs_parts > 2L) {
+     stop("EL formulas support at most two RHS partitions (auxiliaries | response predictors).", call. = FALSE)
+   }
 
-  model_frame <- el_eval_formula_call(
-    stats::model.frame(fml, data = data, na.action = stats::na.pass, drop.unused.levels = TRUE),
-    context_label
-  )
+   model_frame <- el_with_formula_errors(
+     stats::model.frame(fml, data = data, na.action = stats::na.pass, drop.unused.levels = TRUE),
+     context_label
+   )
 
-  response_vector <- el_eval_formula_call(
-    Formula::model.part(fml, data = model_frame, lhs = 1, drop = TRUE),
-    context_label
-  )
-  if (!is.numeric(response_vector)) {
-    stop("Outcome variable must evaluate to a numeric vector.", call. = FALSE)
-  }
-  if (length(response_vector) != nrow(model_frame)) {
-    stop("Internal error: response extraction did not align with data.", call. = FALSE)
-  }
+   response_vector <- el_with_formula_errors(
+     Formula::model.part(fml, data = model_frame, lhs = 1, drop = TRUE),
+     context_label
+   )
+   if (!is.numeric(response_vector)) {
+     stop("Outcome variable must evaluate to a numeric vector.", call. = FALSE)
+   }
+   if (length(response_vector) != nrow(model_frame)) {
+     stop("Internal error: response extraction did not align with data.", call. = FALSE)
+   }
 
-  mask <- !is.na(response_vector)
-  respondents_only <- all(mask)
-  if (isTRUE(require_na) && respondents_only) {
-    stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_var), call. = FALSE)
-  }
-  respondent_indices <- which(mask)
+   mask <- !is.na(response_vector)
+   respondents_only <- all(mask)
+   if (isTRUE(require_na) && respondents_only) {
+     stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_var), call. = FALSE)
+   }
 
+   list(
+     fml = fml,
+     model_frame = model_frame,
+     response_vector = response_vector,
+     mask = mask,
+     respondent_indices = which(mask),
+     respondents_only = respondents_only,
+     outcome_var = outcome_var,
+     n_rhs_parts = n_rhs_parts
+   )
+ }
+
+el_build_design_from_spec <- function(spec, context_label) {
   aux_design <- el_build_aux_design(
-    fml = fml,
-    model_frame = model_frame,
-    mask = mask,
-    n_rhs_parts = n_rhs_parts,
-    outcome_var = outcome_var,
+    fml = spec$fml,
+    model_frame = spec$model_frame,
+    mask = spec$mask,
+    n_rhs_parts = spec$n_rhs_parts,
+    outcome_var = spec$outcome_var,
     context_label = context_label,
-    respondent_indices = respondent_indices
+    respondent_indices = spec$respondent_indices
   )
 
-  response_design <- el_build_missingness_design(
-    fml = fml,
-    model_frame = model_frame,
-    response_vector = response_vector,
-    mask = mask,
-    n_rhs_parts = n_rhs_parts,
-    outcome_var = outcome_var,
+  missingness_design <- el_build_missingness_design(
+    fml = spec$fml,
+    model_frame = spec$model_frame,
+    response_vector = spec$response_vector,
+    mask = spec$mask,
+    n_rhs_parts = spec$n_rhs_parts,
+    outcome_var = spec$outcome_var,
     context_label = context_label,
-    respondent_indices = respondent_indices
+    respondent_indices = spec$respondent_indices
   )
 
-  structure(
-    list(
-      missingness_design = response_design,
-      y_obs = response_vector[mask],
-      auxiliary_design_full = aux_design,
-      respondent_mask = mask,
-      respondents_only = respondents_only,
-      outcome_var = outcome_var,
-      has_aux = attr(aux_design, "has_aux") %||% (ncol(aux_design) > 0)
-    ),
-    class = "el_design"
+  list(
+    missingness_design = missingness_design,
+    y_obs = spec$response_vector[spec$mask],
+    auxiliary_design_full = aux_design,
+    respondent_mask = spec$mask,
+    respondents_only = spec$respondents_only,
+    outcome_var = spec$outcome_var,
+    has_aux = attr(aux_design, "has_aux") %||% (ncol(aux_design) > 0),
+    context_label = context_label
   )
 }
 
@@ -102,11 +128,10 @@ el_as_formula <- function(base_formula) {
   )
 }
 
-el_eval_formula_call <- function(expr, context_label) {
-  expr <- substitute(expr)
-  eval(
-    bquote(tryCatch(.(expr), error = function(e) el_rethrow_data_error(e, context_label))),
-    envir = parent.frame()
+el_with_formula_errors <- function(expr, context_label) {
+  tryCatch(
+    expr,
+    error = function(e) el_rethrow_data_error(e, context_label)
   )
 }
 
@@ -131,12 +156,12 @@ el_build_missingness_design <- function(fml,
 
   rhs_predictors <- if (n_rhs_parts >= 2L) {
     rhs_formula <- stats::formula(fml, lhs = 0, rhs = 2L)
-    rhs_terms <- el_eval_formula_call(stats::terms(rhs_formula, data = model_frame), context_label)
+    rhs_terms <- el_with_formula_errors(stats::terms(rhs_formula, data = model_frame), context_label)
     el_assert_no_offset(rhs_terms, context_label, "response predictors")
     if (isTRUE(attr(rhs_terms, "intercept") == 0)) {
       warning("Missingness-model intercept is required; '-1' or '+0' has no effect.", call. = FALSE)
     }
-    rhs_matrix <- el_eval_formula_call(stats::model.matrix(fml, data = model_frame, rhs = 2L), context_label)
+    rhs_matrix <- el_with_formula_errors(stats::model.matrix(fml, data = model_frame, rhs = 2L), context_label)
     if (ncol(rhs_matrix) > 0 && "(Intercept)" %in% colnames(rhs_matrix)) {
       rhs_matrix <- rhs_matrix[, colnames(rhs_matrix) != "(Intercept)", drop = FALSE]
     }
@@ -165,7 +190,7 @@ el_build_aux_design <- function(fml,
   }
 
   aux_formula <- stats::formula(fml, lhs = 0, rhs = 1L)
-  aux_terms <- el_eval_formula_call(stats::terms(aux_formula, data = model_frame), context_label)
+  aux_terms <- el_with_formula_errors(stats::terms(aux_formula, data = model_frame), context_label)
   el_assert_no_offset(aux_terms, context_label, "auxiliary predictors")
   aux_expr <- el_rhs_part(fml, part = 1L)
   aux_vars_expr <- if (!is.null(aux_expr)) all.vars(aux_expr) else character(0)
@@ -177,7 +202,7 @@ el_build_aux_design <- function(fml,
     warning("Auxiliary intercepts are ignored; + 1 has no effect.", call. = FALSE)
   }
 
-  aux_matrix <- el_eval_formula_call(stats::model.matrix(fml, data = model_frame, rhs = 1L), context_label)
+  aux_matrix <- el_with_formula_errors(stats::model.matrix(fml, data = model_frame, rhs = 1L), context_label)
   if (ncol(aux_matrix) > 0 && "(Intercept)" %in% colnames(aux_matrix)) {
     aux_matrix <- aux_matrix[, colnames(aux_matrix) != "(Intercept)", drop = FALSE]
   }

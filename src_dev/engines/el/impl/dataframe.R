@@ -58,7 +58,6 @@ el.data.frame <- function(data, formula,
     require_na = FALSE,
     context_label = "data frame"
   )
-  el_check_respondents_only_requirements(design, n_total, auxiliary_means, context_label = "data frame")
 
   extra_args <- list(...)
 

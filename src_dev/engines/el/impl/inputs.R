@@ -40,14 +40,14 @@ el_check_respondents_only_requirements <- function(design, n_total, auxiliary_me
 #' @param design Survey design object when `is_survey = TRUE`.
 #' @return A list with fields `data_aug`, `respondent_weights`, `respondent_indices`, `N_pop`, and `data_info`.
 #' @keywords internal
-el_prepare_analysis_inputs <- function(data,
-                                       outcome_var,
-                                       mask,
-                                       weights_full = NULL,
-                                       N_pop = NULL,
-                                       variance_method,
-                                       is_survey = FALSE,
-                                       design = NULL) {
+el_prepare_analysis_context <- function(data,
+                                        outcome_var,
+                                        mask,
+                                        weights_full = NULL,
+                                        N_pop = NULL,
+                                        variance_method,
+                                        is_survey = FALSE,
+                                        design = NULL) {
   if (length(mask) != nrow(data)) {
     stop("Internal error: respondent mask must have the same length as data.", call. = FALSE)
   }
@@ -138,7 +138,14 @@ el_run_core_analysis <- function(call,
     data_nrow = nrow(raw_data),
     context_label = if (isTRUE(is_survey)) "survey design" else "data"
   )
-  prep <- el_prepare_analysis_inputs(
+  context_label <- design_inputs$context_label %||% if (isTRUE(is_survey)) "survey design" else "data"
+  el_check_respondents_only_requirements(
+    design = design_inputs,
+    n_total = n_total,
+    auxiliary_means = auxiliary_means,
+    context_label = context_label
+  )
+  prep <- el_prepare_analysis_context(
     data = raw_data,
     outcome_var = design_inputs$outcome_var,
     mask = design_inputs$respondent_mask,
@@ -149,11 +156,12 @@ el_run_core_analysis <- function(call,
     design = if (is_survey) design_object else NULL
   )
 
-  analysis_object <- if (is_survey) {
+  if (is_survey) {
     design_object$variables <- prep$data_aug
-    design_object
+    prep$data_info$design <- design_object
+    analysis_object <- design_object
   } else {
-    prep$data_aug
+    analysis_object <- prep$data_aug
   }
 
   aux_summary <- el_resolve_auxiliaries(
