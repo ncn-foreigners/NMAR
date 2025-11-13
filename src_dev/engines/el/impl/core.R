@@ -4,12 +4,12 @@
 #' under nonignorable nonresponse, including parameter solving, variance calculation,
 #' and diagnostic computation.
 #'
-#' @param response_matrix Respondent-side missingness (response) model design matrix (intercept + predictors).
+#' @param missingness_design Respondent-side missingness (response) model design matrix (intercept + predictors).
 #' @param response_outcome Numeric vector of respondent outcomes (used for point estimate).
 #' @param auxiliary_matrix Auxiliary design matrix on respondents (may have zero columns).
 #' @param mu_x Named numeric vector of auxiliary population means (aligned to columns of `auxiliary_matrix`).
 #' @param auxiliary_means Named numeric vector of known population means supplied by the user (optional; used for diagnostics).
-#' @param respondent_weights Numeric vector of respondent weights aligned with `response_matrix` rows.
+#' @param respondent_weights Numeric vector of respondent weights aligned with `missingness_design` rows.
 #' @param full_data Data object used for logging (survey designs supply the design object).
 #' @param outcome_var Character string identifying the outcome variable.
 #' @param N_pop Population size on the analysis scale.
@@ -38,7 +38,7 @@
 #' implemented.
 #'
 #' @keywords internal
-el_estimator_core <- function(response_matrix,
+el_estimator_core <- function(missingness_design,
                               response_outcome,
                               auxiliary_matrix, mu_x,
                               respondent_weights,
@@ -53,11 +53,11 @@ el_estimator_core <- function(response_matrix,
 
 # 0. Setup
   force(family)
-  if (!is.matrix(response_matrix)) {
-    stop("Internal error: response_matrix must be a matrix.", call. = FALSE)
+  if (!is.matrix(missingness_design)) {
+    stop("Internal error: missingness_design must be a matrix.", call. = FALSE)
   }
   if (is.null(auxiliary_matrix)) {
-    auxiliary_matrix <- matrix(nrow = nrow(response_matrix), ncol = 0)
+    auxiliary_matrix <- matrix(nrow = nrow(missingness_design), ncol = 0)
   }
   if (is.null(mu_x)) {
     mu_x <- numeric(0)
@@ -71,7 +71,7 @@ el_estimator_core <- function(response_matrix,
   el_log_trace(verboser, trace_level)
 
 # 1. Data Preparation
-  missingness_model_matrix_unscaled <- response_matrix
+  missingness_model_matrix_unscaled <- missingness_design
   auxiliary_matrix_unscaled <- auxiliary_matrix
   mu_x_unscaled <- mu_x
   K_aux <- if (has_aux) ncol(auxiliary_matrix_unscaled) else 0

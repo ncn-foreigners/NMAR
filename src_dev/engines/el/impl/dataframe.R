@@ -52,17 +52,13 @@ el.data.frame <- function(data, formula,
   if (identical(variance_method, "delta")) variance_method <- "none"
 
 
-  lhs_vars <- all.vars(formula[[2L]])
-  outcome_name <- lhs_vars[1]
-  respondents_only <- el_validate_respondents_only(formula, data, auxiliary_means, context_label = "data frame")
-  if (respondents_only && outcome_name %in% names(data) && is.null(n_total)) {
-    stop("Respondents-only data detected (no NAs in outcome), but 'n_total' was not provided. Supply n_total = total sampled units.", call. = FALSE)
-  }
-  design <- el_parse_design(
+  design <- el_prepare_design(
     formula = formula,
     data = data,
-    require_na = is.null(n_total)
+    require_na = FALSE,
+    context_label = "data frame"
   )
+  el_check_respondents_only_requirements(design, n_total, auxiliary_means, context_label = "data frame")
 
   extra_args <- list(...)
 

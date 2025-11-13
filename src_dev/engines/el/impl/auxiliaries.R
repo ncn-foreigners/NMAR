@@ -5,21 +5,19 @@
 #' when supplied.
 #'
 #' @keywords internal
-el_resolve_auxiliaries <- function(auxiliary_matrix_resp,
-                                   auxiliary_matrix_full,
+el_resolve_auxiliaries <- function(auxiliary_design_full,
+                                   respondent_mask,
                                    auxiliary_means,
                                    weights_full = NULL) {
-  n_resp <- if (!is.null(auxiliary_matrix_resp) && is.matrix(auxiliary_matrix_resp)) nrow(auxiliary_matrix_resp) else 0
-
-  if (is.null(auxiliary_matrix_resp) || !is.matrix(auxiliary_matrix_resp) || ncol(auxiliary_matrix_resp) == 0) {
+  n_resp <- if (!is.null(respondent_mask)) sum(respondent_mask) else 0
+  if (is.null(auxiliary_design_full) || !is.matrix(auxiliary_design_full) || ncol(auxiliary_design_full) == 0) {
     return(list(
-      matrix = matrix(nrow = n_resp, ncol = 0),
+      auxiliary_design = matrix(nrow = n_resp, ncol = 0),
       means = NULL
     ))
   }
 
-  aux_resp <- auxiliary_matrix_resp
-  aux_full <- auxiliary_matrix_full
+  aux_resp <- auxiliary_design_full[respondent_mask, , drop = FALSE]
 
   if (!is.null(auxiliary_means)) {
     provided_names <- names(auxiliary_means)
@@ -46,33 +44,27 @@ el_resolve_auxiliaries <- function(auxiliary_matrix_resp,
     ordered_means <- auxiliary_means[colnames(aux_resp)]
     mu <- as.numeric(ordered_means)
     names(mu) <- colnames(aux_resp)
-    return(list(matrix = aux_resp, means = mu))
+    return(list(auxiliary_design = aux_resp, means = mu))
   }
 
-  if (is.null(aux_full) || ncol(aux_full) == 0) {
-    stop(
-      "Internal error: auxiliary full matrix is missing while auxiliaries are requested.",
-      call. = FALSE
-    )
-  }
-  el_validate_auxiliary_full(aux_full)
+  el_validate_auxiliary_full(auxiliary_design_full)
 
   if (!is.null(weights_full)) {
-    mu <- as.numeric(colSums(aux_full * weights_full) / sum(weights_full))
+    mu <- as.numeric(colSums(auxiliary_design_full * weights_full) / sum(weights_full))
   } else {
-    mu <- as.numeric(colMeans(aux_full))
+    mu <- as.numeric(colMeans(auxiliary_design_full))
   }
   names(mu) <- colnames(aux_resp)
-  list(matrix = aux_resp, means = mu)
+  list(auxiliary_design = aux_resp, means = mu)
 }
 
 #' Validate that full auxiliary data has no NA when means must be computed
 #' @keywords internal
-el_validate_auxiliary_full <- function(aux_full) {
-  if (is.null(aux_full) || !is.matrix(aux_full) || ncol(aux_full) == 0) return(invisible(NULL))
-  if (!anyNA(aux_full)) return(invisible(NULL))
-  na_loc <- which(is.na(aux_full), arr.ind = TRUE)[1, , drop = TRUE]
-  bad_col <- colnames(aux_full)[na_loc[2]]
+el_validate_auxiliary_full <- function(auxiliary_design_full) {
+  if (is.null(auxiliary_design_full) || !is.matrix(auxiliary_design_full) || ncol(auxiliary_design_full) == 0) return(invisible(NULL))
+  if (!anyNA(auxiliary_design_full)) return(invisible(NULL))
+  na_loc <- which(is.na(auxiliary_design_full), arr.ind = TRUE)[1, , drop = TRUE]
+  bad_col <- colnames(auxiliary_design_full)[na_loc[2]]
   bad_row <- na_loc[1]
   msg <- sprintf(
     "Auxiliary variables contain NA values in full data (needed to compute population means).%s\nEither provide auxiliary_means=... or remove NA values from auxiliary variables.",

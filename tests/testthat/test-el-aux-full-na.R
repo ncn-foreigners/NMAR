@@ -1,12 +1,12 @@
 test_that("el_resolve_auxiliaries rejects NA in full auxiliary data", {
-  aux_resp <- cbind(X = rnorm(3))
-  aux_full <- rbind(
+  auxiliary_design_full <- rbind(
     c(X = 1),
     c(X = NA_real_),
     c(X = 0)
   )
+  respondent_mask <- c(TRUE, FALSE, TRUE)
   expect_error(
-    NMAR:::el_resolve_auxiliaries(aux_resp, aux_full, auxiliary_means = NULL),
+    NMAR:::el_resolve_auxiliaries(auxiliary_design_full, respondent_mask, auxiliary_means = NULL),
     "Auxiliary variables contain NA values",
     fixed = FALSE
   )

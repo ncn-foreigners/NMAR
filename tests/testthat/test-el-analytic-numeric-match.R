@@ -14,10 +14,10 @@ test_that("analytic vs numeric Jacobian agree across links and scaling", {
   check_one <- function(fam, standardize) {
     parsed <- prepare_el_inputs(Y_miss ~ X1 + X2 | Z, df)
     dat2 <- parsed$data
-    resp_var <- parsed$delta_name
+    resp_var <- parsed$delta_column_name
     obs_idx <- which(dat2[[resp_var]] == 1)
     resp_df <- dat2[obs_idx, , drop = FALSE]
-    Z_un <- parsed$response_matrix
+    Z_un <- parsed$missingness_design
     X_un <- parsed$auxiliary_matrix
     aux_means <- setNames(rep(0, ncol(X_un)), colnames(X_un))
     sc <- NMAR:::validate_and_apply_nmar_scaling(standardize, TRUE, Z_un, X_un, aux_means, weights = rep(1, nrow(resp_df)))

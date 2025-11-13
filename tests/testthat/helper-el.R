@@ -32,17 +32,17 @@ make_engine <- function(variance_method = c("delta", "bootstrap", "none"),
 }
 
 prepare_el_inputs <- function(formula, data, require_na = TRUE, auxiliary_means = NULL) {
-  design <- NMAR:::el_parse_design(formula, data, require_na)
-  delta <- NMAR:::el_make_delta_column(data, design$outcome_var, design$respondent_mask)
+  design <- NMAR:::el_prepare_design(formula, data, require_na)
+  delta <- NMAR:::el_make_delta_column_name(data, design$outcome_var, design$respondent_mask)
   list(
     data = delta$data,
     outcome_var = design$outcome_var,
-    delta_name = delta$delta_name,
+    delta_column_name = delta$delta_column_name,
     respondent_mask = design$respondent_mask,
-    response_matrix = design$response_matrix,
+    missingness_design = design$missingness_design,
     response_outcome = design$y_obs,
-    auxiliary_matrix = design$aux_full[design$respondent_mask, , drop = FALSE],
-    auxiliary_matrix_full = design$aux_full,
-    has_aux = ncol(design$aux_full) > 0
+    auxiliary_matrix = design$auxiliary_design_full[design$respondent_mask, , drop = FALSE],
+    auxiliary_matrix_full = design$auxiliary_design_full,
+    has_aux = ncol(design$auxiliary_design_full) > 0
   )
 }

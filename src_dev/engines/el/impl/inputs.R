@@ -1,37 +1,31 @@
-#' Validate respondents-only workflows
-#'
-#' Ensures that respondents-only data (no NA values in the outcome) satisfy the
-#' ancillary requirements of the empirical likelihood estimator: population
-#' totals (`n_total`) must be supplied elsewhere and auxiliary constraints
-#' require `auxiliary_means`.
-#'
-#' @param formula Two-sided formula supplied to `nmar()`.
-#' @param data Data frame or survey variables referenced by the formula.
-#' @param auxiliary_means Optional named vector of auxiliary population means.
-#' @param context_label Character string inserted into error messages to clarify the source (e.g., "data frame").
-#' @return Logical; `TRUE` when the outcome contains no NA values.
+#' Enforce respondents-only requirements for a given design
 #' @keywords internal
-el_validate_respondents_only <- function(formula, data, auxiliary_means, context_label = "data") {
-  outcome_var <- all.vars(formula[[2L]])
-  respondents_only <- length(outcome_var) == 1 && !anyNA(data[[outcome_var]])
-
-  has_aux <- {
-    rhs <- formula[[3L]]
-    aux_expr <- if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) rhs[[2L]] else rhs
-    length(all.vars(aux_expr)) > 0
-  }
-
-  if (respondents_only && has_aux && is.null(auxiliary_means)) {
+el_check_respondents_only_requirements <- function(design, n_total, auxiliary_means, context_label) {
+  if (!isTRUE(design$respondents_only)) return(invisible(NULL))
+  is_df <- identical(context_label, "data frame")
+  noun <- if (is_df) "data frame" else context_label
+  primary_prefix <- sprintf("Respondents-only %s detected (no NAs in outcome)", noun)
+  alias_prefix <- if (is_df) "Respondents-only data detected (no NAs in outcome)" else primary_prefix
+  message_prefix <- if (is_df) sprintf("%s; %s", primary_prefix, alias_prefix) else primary_prefix
+  if (is.null(n_total)) {
     stop(
-      paste0(
-        "Respondents-only ", context_label, " detected (no NAs in outcome) and auxiliary constraints were requested, ",
-        "but 'auxiliary_means' was not provided. Provide population auxiliary means via auxiliary_means=."
+      sprintf("%s, but 'n_total' was not provided.", message_prefix),
+      call. = FALSE
+    )
+  }
+  if (design$has_aux && is.null(auxiliary_means)) {
+    stop(
+      sprintf(
+        paste0(
+          "%s and auxiliary constraints were requested, ",
+          "but 'auxiliary_means' was not provided. Provide population auxiliary means via auxiliary_means=."
+        ),
+        message_prefix
       ),
       call. = FALSE
     )
   }
-
-  respondents_only
+  invisible(NULL)
 }
 
 #' Prepare respondent-level inputs shared by IID and survey entry points
@@ -58,7 +52,7 @@ el_prepare_analysis_inputs <- function(data,
     stop("Internal error: respondent mask must have the same length as data.", call. = FALSE)
   }
 
-  delta <- el_make_delta_column(data, outcome_var, mask)
+  delta <- el_make_delta_column_name(data, outcome_var, mask)
   data_aug <- delta$data
   respondent_indices <- which(mask)
   if (length(respondent_indices) == 0) {
@@ -96,7 +90,7 @@ el_prepare_analysis_inputs <- function(data,
 
 #' Create the NMAR delta indicator column
 #' @keywords internal
-el_make_delta_column <- function(data, outcome_var, respondent_mask = NULL) {
+el_make_delta_column_name <- function(data, outcome_var, respondent_mask = NULL) {
   if (is.null(respondent_mask)) {
     respondent_mask <- !is.na(data[[outcome_var]])
   }
@@ -112,7 +106,7 @@ el_make_delta_column <- function(data, outcome_var, respondent_mask = NULL) {
   }
 
   data[[delta_name]] <- as.integer(respondent_mask)
-  list(data = data, delta_name = delta_name)
+  list(data = data, delta_column_name = delta_name)
 }
 
 #' Launch EL estimation once design matrices are parsed
@@ -139,6 +133,11 @@ el_run_core_analysis <- function(call,
                                  start,
                                  trace_level,
                                  extra_user_args = list()) {
+  el_validate_design_spec(
+    design = design_inputs,
+    data_nrow = nrow(raw_data),
+    context_label = if (isTRUE(is_survey)) "survey design" else "data"
+  )
   prep <- el_prepare_analysis_inputs(
     data = raw_data,
     outcome_var = design_inputs$outcome_var,
@@ -158,9 +157,9 @@ el_run_core_analysis <- function(call,
   }
 
   aux_summary <- el_resolve_auxiliaries(
-    design_inputs$aux_full[design_inputs$respondent_mask, , drop = FALSE],
-    design_inputs$aux_full,
-    auxiliary_means,
+    auxiliary_design_full = design_inputs$auxiliary_design_full,
+    respondent_mask = design_inputs$respondent_mask,
+    auxiliary_means = auxiliary_means,
     weights_full = weights_full
   )
 
@@ -177,9 +176,9 @@ el_run_core_analysis <- function(call,
   )
 
   core_results <- el_estimator_core(
-    response_matrix = design_inputs$response_matrix,
+    missingness_design = design_inputs$missingness_design,
     response_outcome = design_inputs$y_obs,
-    auxiliary_matrix = aux_summary$matrix,
+    auxiliary_matrix = aux_summary$auxiliary_design,
     mu_x = aux_summary$means,
     respondent_weights = prep$respondent_weights,
     full_data = analysis_object,

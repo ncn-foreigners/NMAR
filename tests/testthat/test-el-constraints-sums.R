@@ -13,10 +13,10 @@ test_that("constraint sums are near zero at solution (no trimming)", {
 # Reconstruct components to compute raw constraint sums from stored diagnostics inputs
   parsed <- prepare_el_inputs(Y_miss ~ X, df, NULL)
   dat2 <- parsed$data
-  resp_var <- parsed$delta_name
+  resp_var <- parsed$delta_column_name
   obs_idx <- which(dat2[[resp_var]] == 1)
   resp_df <- dat2[obs_idx, ]
-  Z_un <- parsed$response_matrix
+  Z_un <- parsed$missingness_design
   X_un <- parsed$auxiliary_matrix
   aux_means <- if (parsed$has_aux) c(X = 0) else NULL
   aux_mat <- if (parsed$has_aux) X_un else matrix(nrow = nrow(Z_un), ncol = 0)

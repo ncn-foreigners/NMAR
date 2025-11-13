@@ -69,12 +69,6 @@ el.survey.design <- function(data, formula,
 
 
   design <- data
-
-  respondents_only <- el_validate_respondents_only(formula, design$variables, auxiliary_means, context_label = "survey design")
-  if (respondents_only && is.null(n_total)) {
-    stop("Respondents-only survey design detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total design weight or population total>).", call. = FALSE)
-  }
-
 # Prepare inputs, appending survey design context to any validation error
   el_get_design_context <- function(design) {
     ctx <- list(ids = "<unspecified>", strata = "<unspecified>")
@@ -95,10 +89,11 @@ el.survey.design <- function(data, formula,
   survey_ctx <- el_get_design_context(design)
 
   design_inputs <- tryCatch(
-    el_parse_design(
+    el_prepare_design(
       formula = formula,
       data = design$variables,
-      require_na = is.null(n_total)
+      require_na = FALSE,
+      context_label = "survey design"
     ),
     error = function(e) {
       msg <- conditionMessage(e)
@@ -106,7 +101,9 @@ el.survey.design <- function(data, formula,
       stop(msg2, call. = FALSE)
     }
   )
-  design$variables <- el_make_delta_column(design$variables, design_inputs$outcome_var, design_inputs$respondent_mask)$data
+
+  el_check_respondents_only_requirements(design_inputs, n_total, auxiliary_means, context_label = "survey design")
+  design$variables <- el_make_delta_column_name(design$variables, design_inputs$outcome_var, design_inputs$respondent_mask)$data
 
 # Scale coherence: ensure N_pop and design weights are on the same scale
   weights_initial <- as.numeric(weights(design))

@@ -142,7 +142,7 @@ method.data.frame <- function(data, formula, controls = list(), ...) {
   obs_idx <- which(parsed$respondent_mask)
 
 # Build design matrices supplied by the shared parser
-  Z_un <- parsed$response_matrix
+  Z_un <- parsed$missingness_design
   X_un <- parsed$auxiliary_matrix
   mu_x <- controls$auxiliary_means
 
