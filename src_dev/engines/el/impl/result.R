@@ -1,25 +1,24 @@
 #' Build EL result object (success or failure)
 #' @keywords internal
-el_build_result <- function(core_results, data_info, call, formula, engine_name = "empirical_likelihood") {
-  meta <- data_info
+el_build_result <- function(core_results, input_spec, call, formula, engine_name = "empirical_likelihood") {
   diag_list <- core_results$diagnostics %||% list()
 
   if (!core_results$converged) {
     msg <- diag_list$message %||% NA_character_
     result <- new_nmar_result(
       estimate = NA_real_,
-      estimate_name = meta$outcome_var,
+      estimate_name = input_spec$outcome_var,
       se = NA_real_,
       converged = FALSE,
       model = list(coefficients = NULL, vcov = NULL),
       weights_info = list(values = numeric(0), trimmed_fraction = NA_real_),
       sample = list(
-        n_total = meta$n_total,
-        n_respondents = meta$nobs_resp,
-        is_survey = meta$is_survey,
-        design = meta$design
+        n_total = input_spec$N_pop,
+        n_respondents = length(input_spec$respondent_indices),
+        is_survey = input_spec$is_survey,
+        design = if (isTRUE(input_spec$is_survey)) input_spec$analysis_object else NULL
       ),
-      inference = list(variance_method = meta$variance_method, df = NA_real_, message = msg),
+      inference = list(variance_method = input_spec$variance_method %||% NA_character_, df = NA_real_, message = msg),
       diagnostics = diag_list,
       meta = list(engine_name = engine_name, call = call, formula = formula),
       extra = list(nmar_scaling_recipe = core_results$nmar_scaling_recipe),
@@ -27,9 +26,6 @@ el_build_result <- function(core_results, data_info, call, formula, engine_name 
     )
     return(validate_nmar_result(result, "nmar_result_el"))
   }
-
-  meta$call <- call
-  meta$formula <- formula
 
   new_nmar_result_el(
     y_hat = core_results$y_hat,
@@ -39,7 +35,7 @@ el_build_result <- function(core_results, data_info, call, formula, engine_name 
     vcov = core_results$vcov,
     converged = TRUE,
     diagnostics = diag_list,
-    data_info = meta,
+    input_spec = input_spec,
     nmar_scaling_recipe = core_results$nmar_scaling_recipe,
     fitted_values = core_results$fitted_values,
     call = call,

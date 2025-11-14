@@ -1,12 +1,11 @@
 #' Construct EL Result Object
 #' @keywords internal
 new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
-                               converged, diagnostics, data_info,
+                               converged, diagnostics, input_spec,
                                nmar_scaling_recipe, fitted_values, call,
                                formula = NULL) {
   diagnostics <- diagnostics %||% list()
-  if (is.null(data_info$method)) data_info$method <- "Empirical Likelihood (EL)"
-  outcome_name <- data_info$outcome_var %||% NA_character_
+  outcome_name <- input_spec$outcome_var %||% NA_character_
   trim_fraction <- diagnostics$trimmed_fraction %||% NA_real_
 
   sample <- list(
@@ -14,10 +13,10 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
 # Use data_info$n_total when provided (set by dataframe/survey methods), not
 # data_info$nobs. This ensures weights(object, scale = "population") sums
 # to N_pop and survey-scale reporting is correct.
-    n_total = data_info$n_total %||% data_info$nobs %||% NA_integer_,
-    n_respondents = data_info$nobs_resp %||% NA_integer_,
-    is_survey = isTRUE(data_info$is_survey),
-    design = if (isTRUE(data_info$is_survey)) data_info$design else NULL
+    n_total = input_spec$N_pop %||% NA_integer_,
+    n_respondents = length(input_spec$respondent_indices) %||% NA_integer_,
+    is_survey = isTRUE(input_spec$is_survey),
+    design = if (isTRUE(input_spec$is_survey)) input_spec$analysis_object else NULL
   )
 
   df_val <- NA_real_
@@ -34,7 +33,7 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
   }
 
   inference <- list(
-    variance_method = data_info$variance_method %||% NA_character_,
+    variance_method = input_spec$variance_method %||% NA_character_,
     df = df_val,
     message = diagnostics$vcov_message %||% NA_character_
   )

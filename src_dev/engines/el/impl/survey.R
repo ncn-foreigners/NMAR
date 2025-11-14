@@ -91,19 +91,6 @@ el.survey.design <- function(data, formula,
 
   survey_ctx <- el_get_design_context(design)
 
-  design_inputs <- tryCatch(
-    el_prepare_design(
-      formula = formula,
-      data = design$variables,
-      require_na = FALSE
-    ),
-    error = function(e) {
-      msg <- conditionMessage(e)
-      msg2 <- paste0(msg, sprintf("\nSurvey design info: ids = %s, strata = %s", survey_ctx$ids, survey_ctx$strata))
-      stop(msg2, call. = FALSE)
-    }
-  )
-
 # Scale coherence: ensure N_pop and design weights are on the same scale
   weights_initial <- as.numeric(weights(design))
   design_weight_sum <- sum(weights_initial)
@@ -163,16 +150,29 @@ el.survey.design <- function(data, formula,
 
   extra_args <- list(...)
 
+  input_spec <- tryCatch(
+    el_build_input_spec(
+      formula = formula,
+      data = design$variables,
+      weights_full = respondent_weights_full,
+      population_total = N_pop,
+      n_total_arg = n_total,
+      is_survey = TRUE,
+      design_object = design,
+      auxiliary_means = auxiliary_means
+    ),
+    error = function(e) {
+      msg <- conditionMessage(e)
+      msg2 <- paste0(msg, sprintf("\nSurvey design info: ids = %s, strata = %s", survey_ctx$ids, survey_ctx$strata))
+      stop(msg2, call. = FALSE)
+    }
+  )
+
   el_run_core_analysis(
     call = cl,
     formula = formula,
-    raw_data = design$variables,
-    design = design_inputs,
-    weights_full = respondent_weights_full,
-    n_total = N_pop,
+    input_spec = input_spec,
     variance_method = variance_method,
-    is_survey = TRUE,
-    design_object = design,
     auxiliary_means = auxiliary_means,
     standardize = standardize,
     trim_cap = trim_cap,

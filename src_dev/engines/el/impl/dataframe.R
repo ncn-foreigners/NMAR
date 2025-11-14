@@ -55,10 +55,15 @@ el.data.frame <- function(data, formula,
   if (identical(variance_method, "delta")) variance_method <- "none"
 
 
-  design <- el_prepare_design(
+  input_spec <- el_build_input_spec(
     formula = formula,
     data = data,
-    require_na = FALSE
+    weights_full = NULL,
+    population_total = n_total,
+    n_total_arg = n_total,
+    is_survey = FALSE,
+    design_object = NULL,
+    auxiliary_means = auxiliary_means
   )
 
   extra_args <- list(...)
@@ -66,13 +71,8 @@ el.data.frame <- function(data, formula,
   el_run_core_analysis(
     call = cl,
     formula = formula,
-    raw_data = data,
-    design = design,
-    weights_full = NULL,
-    n_total = n_total,
+    input_spec = input_spec,
     variance_method = variance_method,
-    is_survey = FALSE,
-    design_object = NULL,
     auxiliary_means = auxiliary_means,
     standardize = standardize,
     trim_cap = trim_cap,

@@ -113,21 +113,20 @@ el_build_aux_design <- function(parsed) {
 
   rhs <- el_materialize_rhs(parsed, part = 1L, label = "auxiliary predictors")
   aux_expr <- rhs$expr
-  aux_terms <- rhs$terms
 
   aux_expr_vars <- if (!is.null(aux_expr)) all.vars(aux_expr) else character(0)
   if (length(aux_expr_vars) > 0 && parsed$outcome_source %in% aux_expr_vars) {
     stop("The outcome cannot appear in auxiliary constraints.", call. = FALSE)
   }
 
-  aux_matrix <- drop_intercept(rhs$matrix)
-  drop_names <- c(parsed$outcome_source, parsed$outcome_label)
+  aux_matrix <- rhs$matrix
+  drop_names <- c("(Intercept)", parsed$outcome_source, parsed$outcome_label)
   if (ncol(aux_matrix) > 0) {
     keep <- !colnames(aux_matrix) %in% drop_names
     aux_matrix <- aux_matrix[, keep, drop = FALSE]
   }
 
-  intercept_requested <- isTRUE(attr(aux_terms, "intercept") == 1) && el_has_explicit_intercept(aux_expr)
+  intercept_requested <- isTRUE(attr(rhs$terms, "intercept") == 1) && el_has_explicit_intercept(aux_expr)
   if (intercept_requested) {
     warning("Auxiliary intercepts are ignored; + 1 has no effect.", call. = FALSE)
   }
@@ -158,7 +157,10 @@ el_build_missingness_design <- function(parsed) {
     if (isTRUE(attr(rhs$terms, "intercept") == 0)) {
       warning("Missingness-model intercept is required; '-1' or '+0' has no effect.", call. = FALSE)
     }
-    rhs_matrix <- drop_intercept(rhs$matrix)
+    rhs_matrix <- rhs$matrix
+    if ("(Intercept)" %in% colnames(rhs_matrix)) {
+      rhs_matrix <- rhs_matrix[, colnames(rhs_matrix) != "(Intercept)", drop = FALSE]
+    }
     rhs_sub <- rhs_matrix[parsed$mask, , drop = FALSE]
     el_assert_no_na(rhs_sub, parsed$respondent_indices, "Missingness-model predictor")
     el_check_constant_columns(rhs_sub, label = "Missingness-model predictor", severity = "warn")
@@ -172,14 +174,11 @@ el_build_missingness_design <- function(parsed) {
 
 el_materialize_rhs <- function(parsed, part, label) {
   rhs_formula <- stats::formula(parsed$fml, lhs = 0, rhs = part)
-  rhs_expr <- el_rhs_expression(rhs_formula)
-  rhs_terms <- el_terms_no_offset(rhs_formula, parsed$model_frame, "data", label)
+  rhs_expr <- tryCatch(rhs_formula[[2L]], error = function(e) NULL)
+  rhs_terms <- el_with_formula_errors(stats::terms(rhs_formula, data = parsed$model_frame), "data")
+  el_assert_no_offset(rhs_terms, "data", label)
   mm <- el_with_formula_errors(stats::model.matrix(rhs_terms, data = parsed$model_frame), "data")
   list(matrix = mm, expr = rhs_expr, terms = rhs_terms)
-}
-
-el_rhs_expression <- function(rhs_formula) {
-  tryCatch(rhs_formula[[2L]], error = function(e) NULL)
 }
 
 el_as_formula <- function(base_formula) {
@@ -212,19 +211,6 @@ el_has_explicit_intercept <- function(node) {
   FALSE
 }
 
-el_terms_no_offset <- function(rhs_formula, model_frame, context_label, label) {
-  tr <- el_with_formula_errors(stats::terms(rhs_formula, data = model_frame), context_label)
-  el_assert_no_offset(tr, context_label, label)
-  tr
-}
-
-drop_intercept <- function(mm) {
-  if (is.null(mm) || !is.matrix(mm) || ncol(mm) == 0) return(mm)
-  if ("(Intercept)" %in% colnames(mm)) {
-    mm <- mm[, colnames(mm) != "(Intercept)", drop = FALSE]
-  }
-  mm
-}
 
 el_check_constant_columns <- function(mat, label, severity = c("error", "warn")) {
   severity <- match.arg(severity)

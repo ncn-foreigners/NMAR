@@ -1,6 +1,50 @@
+#' Build the combined EL input specification
+#' @keywords internal
+el_build_input_spec <- function(formula,
+                                data,
+                                weights_full = NULL,
+                                population_total = NULL,
+                                n_total_arg = population_total,
+                                is_survey = FALSE,
+                                design_object = NULL,
+                                auxiliary_means = NULL) {
+  context_label <- if (isTRUE(is_survey)) "survey design" else "data frame"
+  design <- el_prepare_design(
+    formula = formula,
+    data = data,
+    require_na = FALSE
+  )
+  el_require_population_inputs(design, n_total_arg, auxiliary_means, context_label)
+
+  context <- el_prepare_analysis_context(
+    data = data,
+    design_inputs = design,
+    weights_full = weights_full,
+    N_pop = population_total,
+    is_survey = is_survey,
+    design_object = design_object
+  )
+
+  list(
+    missingness_design = design$missingness_design,
+    auxiliary_design_full = design$auxiliary_design_full,
+    respondent_mask = design$respondent_mask,
+    outcome_var = design$outcome_var,
+    outcome_source = design$outcome_source,
+    analysis_object = context$analysis_object,
+    respondent_weights = context$respondent_weights,
+    respondent_indices = context$respondent_indices,
+    N_pop = context$N_pop,
+    weights_full = context$weights_full,
+    is_survey = context$is_survey,
+    data_nrow = nrow(data),
+    context_label = context$context_label
+  )
+}
+
 #' Enforce respondents-only requirements for a given design
 #' @keywords internal
-el_check_respondents_only_requirements <- function(design, n_total, auxiliary_means, context_label) {
+el_require_population_inputs <- function(design, n_total, auxiliary_means, context_label) {
   if (!isTRUE(all(design$respondent_mask))) return(invisible(NULL))
   noun <- if (identical(context_label, "data frame")) "data" else context_label
   message_prefix <- sprintf("Respondents-only %s detected (no NAs in outcome)", noun)
@@ -76,9 +120,13 @@ el_prepare_analysis_context <- function(data,
 
   list(
     analysis_object = analysis_object,
+    design_object = if (isTRUE(is_survey)) analysis_object else NULL,
     respondent_weights = respondent_weights,
     respondent_indices = respondent_indices,
-    N_pop = N_pop_val
+    N_pop = N_pop_val,
+    weights_full = weights_full,
+    is_survey = isTRUE(is_survey),
+    context_label = if (isTRUE(is_survey)) "survey design" else "data"
   )
 }
 
@@ -110,13 +158,8 @@ el_make_delta_column_name <- function(data, outcome_var, respondent_mask = NULL)
 #' @keywords internal
 el_run_core_analysis <- function(call,
                                  formula,
-                                 raw_data,
-                                 design,
-                                 weights_full,
-                                 n_total,
+                                 input_spec,
                                  variance_method,
-                                 is_survey,
-                                 design_object,
                                  auxiliary_means,
                                  standardize,
                                  trim_cap,
@@ -128,32 +171,20 @@ el_run_core_analysis <- function(call,
                                  trace_level,
                                  extra_user_args = list()) {
   el_validate_design_spec(
-    design = design,
-    data_nrow = nrow(raw_data),
-    context_label = if (isTRUE(is_survey)) "survey design" else "data"
+    design = list(
+      respondent_mask = input_spec$respondent_mask,
+      missingness_design = input_spec$missingness_design,
+      auxiliary_design_full = input_spec$auxiliary_design_full
+    ),
+    data_nrow = input_spec$data_nrow,
+    context_label = input_spec$context_label
   )
-  context_label <- if (isTRUE(is_survey)) "survey design" else "data"
-  el_check_respondents_only_requirements(
-    design = design,
-    n_total = n_total,
-    auxiliary_means = auxiliary_means,
-    context_label = context_label
-  )
-  prep <- el_prepare_analysis_context(
-    data = raw_data,
-    design_inputs = design,
-    weights_full = weights_full,
-    N_pop = n_total,
-    is_survey = is_survey,
-    design_object = if (is_survey) design_object else NULL
-  )
-  analysis_object <- prep$analysis_object
 
   aux_summary <- el_resolve_auxiliaries(
-    auxiliary_design_full = design$auxiliary_design_full,
-    respondent_mask = design$respondent_mask,
+    auxiliary_design_full = input_spec$auxiliary_design_full,
+    respondent_mask = input_spec$respondent_mask,
     auxiliary_means = auxiliary_means,
-    weights_full = weights_full
+    weights_full = input_spec$weights_full
   )
 
   user_args <- c(
@@ -163,19 +194,19 @@ el_run_core_analysis <- function(call,
       standardize = standardize,
       trim_cap = trim_cap,
       control = control,
-      n_total = n_total
+      n_total = input_spec$N_pop
     ),
     extra_user_args
   )
 
   core_results <- el_estimator_core(
-    missingness_design = design$missingness_design,
+    missingness_design = input_spec$missingness_design,
     auxiliary_matrix = aux_summary$auxiliary_design,
     mu_x = aux_summary$means,
-    respondent_weights = prep$respondent_weights,
-    full_data = analysis_object,
-    outcome_var = design$outcome_var,
-    N_pop = prep$N_pop,
+    respondent_weights = input_spec$respondent_weights,
+    full_data = input_spec$analysis_object,
+    outcome_var = input_spec$outcome_var,
+    N_pop = input_spec$N_pop,
     standardize = standardize,
     trim_cap = trim_cap,
     control = control,
@@ -189,13 +220,6 @@ el_run_core_analysis <- function(call,
     auxiliary_means = auxiliary_means
   )
 
-  data_info <- list(
-    outcome_var = design$outcome_var,
-    n_total = prep$N_pop,
-    nobs_resp = length(prep$respondent_indices),
-    is_survey = is_survey,
-    design = if (is_survey) analysis_object else NULL,
-    variance_method = variance_method
-  )
-  el_build_result(core_results, data_info, call, formula)
+  input_spec$variance_method <- variance_method
+  el_build_result(core_results, input_spec, call, formula)
 }
