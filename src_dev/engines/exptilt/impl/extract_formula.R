@@ -1,4 +1,4 @@
-et_extract_formula <- function(formula_str, data) {
+et_extract_formula <- function(formula_str, data, allow_z_categorical = FALSE) {
 # browser()
 
 
@@ -26,6 +26,10 @@ et_extract_formula <- function(formula_str, data) {
     f_Z <- formula(f, lhs = 0, rhs = 2)
 # This will be c("Y", "x3")
     Z_terms <- attr(terms(f_Z), "term.labels")
+    if (allow_z_categorical) {
+     Z_mat = data[, Z_terms, drop = FALSE]
+    }
+    else {
 
 # Z_mat <- model.matrix(f_Z, data = data, na.action = na.pass)
     mf_Z <- model.frame(f_Z, data = data, na.action = na.pass)
@@ -33,7 +37,7 @@ et_extract_formula <- function(formula_str, data) {
 
 # This removes the intercept, leaving the two broken columns
     Z_mat <- Z_mat[, colnames(Z_mat) != "(Intercept)", drop = FALSE]
-
+}
 # *** THIS IS THE FIX ***
 # It checks if 2 columns exist (they do: "" and "x3")
 # It then renames them to c("Y", "x3")
