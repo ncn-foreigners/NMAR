@@ -1,6 +1,6 @@
 # Summary method for EL results
 
-Summarize estimation, standard error and response-model coefficients.
+Summarize estimation, standard error and missingness-model coefficients.
 
 ## Usage
 

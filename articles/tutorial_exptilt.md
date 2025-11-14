@@ -60,14 +60,14 @@ exptilt_config <- exptilt_engine(
   variance_method = 'bootstrap'
 )
 
-
-formula = Y ~ x1
+formula = Y ~x1 | Y
 res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 3)
+#> Warning: Outcome variable (Y) found in missingness predictors; Performance with / without Y on the right side is the same
 #> [STEP-1] ============================================================ 
 #> [STEP-1]   EXPTILT ESTIMATION STARTED 
 #> [STEP-1] ============================================================ 
 #> [INFO] Running with trace_level = 3 
-#> [INFO] Formula: Y ~ x1 
+#> [INFO] Formula: Y ~ x1 | Y 
 #> [INFO]  
 #> [INFO] -- DATA SUMMARY -- 
 #> [INFO]   Total observations:      500 
@@ -217,41 +217,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> The following object is masked from 'package:graphics':
 #> 
 #>     dotchart
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EXPTILT ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detailed output, use trace_level = 2. Available trace_level = c(1,2,3) 
-#> [INFO] Formula: Y ~ x1 
-#> [INFO]  
-#> [INFO] -- DATA SUMMARY -- 
-#> [INFO]   Total observations:      500 
-#> [INFO]   Respondents:             368 (73.6%) 
-#> [INFO]   Non-respondents:         132 (26.4%) 
-#> [INFO]  
-#> [INFO] -- CONDITIONAL DENSITY ESTIMATION -- 
-#> [INFO]   Selected distribution:   normal 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER (nleqslv) -- 
-#> [INFO]   Solving... 
-#> [INFO]  
-#> [INFO]   OK Converged 
-#> [INFO]   Iterations:               4 
-#> [INFO]  
-#> [INFO] -- VARIANCE ESTIMATION (Delta Method) --
 #> Warning: Delta variance failed to evaluate; using bootstrap instead.
-#> [INFO]  
-#> [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- 
-#> [INFO]   Bootstrap replications:   50 
-#> [INFO]   OK Bootstrap complete 
-#> [INFO]   Standard error:           0.063102 
-#> [INFO]  
-#> [RESULT] ============================================================ 
-#> [RESULT]   ESTIMATION COMPLETE 
-#> [RESULT] ============================================================ 
-#> [RESULT]   Mean estimate:            -1.003204 
-#> [RESULT]   Standard error:           0.063102 
-#> [RESULT]   95% CI:                   [-1.126883, -0.879525] 
-#> [RESULT] ============================================================ 
 #> NMAR Result
 #> ------------
 #> Y mean: -1.003204 (0.063102)

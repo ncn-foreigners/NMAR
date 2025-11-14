@@ -8,12 +8,13 @@ variance calculation, and diagnostic computation.
 
 ``` r
 el_estimator_core(
-  full_data,
-  respondent_data,
+  missingness_design,
+  auxiliary_matrix,
+  mu_x,
   respondent_weights,
+  full_data,
+  outcome_var,
   N_pop,
-  internal_formula,
-  auxiliary_means,
   standardize,
   trim_cap,
   control,
@@ -24,35 +25,44 @@ el_estimator_core(
   user_args,
   start = NULL,
   trace_level = 0,
-  ...
+  auxiliary_means = NULL
 )
 ```
 
 ## Arguments
 
-- full_data:
+- missingness_design:
 
-  Data frame or survey design object containing all units.
+  Respondent-side missingness (response) model design matrix
+  (intercept + predictors).
 
-- respondent_data:
+- auxiliary_matrix:
 
-  Data frame containing only responding units.
+  Auxiliary design matrix on respondents (may have zero columns).
+
+- mu_x:
+
+  Named numeric vector of auxiliary population means (aligned to columns
+  of \`auxiliary_matrix\`).
 
 - respondent_weights:
 
-  Numeric vector of base sampling weights for respondents.
+  Numeric vector of respondent weights aligned with
+  \`missingness_design\` rows.
+
+- full_data:
+
+  Data object used for logging (survey designs supply the design
+  object).
+
+- outcome_var:
+
+  Character string identifying the outcome expression displayed in
+  outputs.
 
 - N_pop:
 
-  Numeric. Total population size (weighted if survey design).
-
-- internal_formula:
-
-  List of internal formulas for outcome, response, and auxiliary models.
-
-- auxiliary_means:
-
-  Named numeric vector of known population means.
+  Population size on the analysis scale.
 
 - standardize:
 
@@ -85,6 +95,11 @@ el_estimator_core(
 - user_args:
 
   List. Original user arguments for bootstrap replication.
+
+- auxiliary_means:
+
+  Named numeric vector of known population means supplied by the user
+  (optional; used for diagnostics).
 
 - ...:
 

@@ -22,6 +22,7 @@ el(
   n_total = NULL,
   start = NULL,
   trace_level = 0,
+  family = logit_family(),
   ...
 )
 ```
@@ -39,8 +40,10 @@ el(
 
 - auxiliary_means:
 
-  Named numeric vector of population means for auxiliary variables
-  (names must match RHS of outcome formula).
+  Named numeric vector of population means for auxiliary design columns.
+  Names must match the materialized \`model.matrix\` columns on the
+  first RHS (after formula expansion), including factor indicators and
+  transformed terms. The intercept is always excluded.
 
 - standardize:
 
@@ -67,6 +70,26 @@ el(
   Integer; number of bootstrap reps if \`variance_method =
   "bootstrap"\`.
 
+- n_total:
+
+  Optional integer population size. When the outcome contains at least
+  one \`NA\`, \`n_total\` defaults to \`nrow(data)\`; when
+  respondents-only data are supplied (no \`NA\` in the outcome),
+  \`n_total\` must be provided.
+
+- start:
+
+  Optional list of starting values passed to the solver helpers.
+
+- trace_level:
+
+  Integer 0-3 controlling estimator logging detail.
+
+- family:
+
+  Missingness (response) model family specification (defaults to the
+  logit bundle).
+
 - ...:
 
   Additional arguments passed to the solver.
@@ -74,14 +97,16 @@ el(
 ## Details
 
 Implements the empirical likelihood estimator for IID data with optional
-auxiliary moment constraints. The response-model score is the Bernoulli
-derivative with respect to the linear predictor, supporting logit and
-probit links. When respondents-only data is supplied (no NA in the
-outcome), set `n_total` to the total number of sampled units; otherwise
-the total is taken as `nrow(data)`. If respondents-only data is used and
-auxiliaries are requested, you must also provide population auxiliary
-means via `auxiliary_means`. Result weights are the unnormalized EL
-masses `d_i/D_i(theta)` on this analysis scale.
+auxiliary moment constraints. The missingness-model score is the
+Bernoulli derivative with respect to the linear predictor, supporting
+logit and probit links. When respondents-only data are supplied (no
+\`NA\` in the outcome), \`n_total\` is required so the response-rate
+equation targets the full sample size. When missingness is observed
+(\`NA\` present), the default population total is \`nrow(data)\`. If
+respondents-only data are used and auxiliaries are requested, you must
+also provide population auxiliary means via \`auxiliary_means\`. Result
+weights are the unnormalized EL masses `d_i/D_i(theta)` on this analysis
+scale.
 
 ## References
 

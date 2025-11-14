@@ -13,9 +13,10 @@ new_nmar_result_el(
   vcov,
   converged,
   diagnostics,
-  data_info,
+  input_spec,
   nmar_scaling_recipe,
   fitted_values,
-  call
+  call,
+  formula = NULL
 )
 ```

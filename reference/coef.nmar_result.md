@@ -1,6 +1,6 @@
 # Default coefficients for NMAR results
 
-Returns response-model coefficients if available.
+Returns missingness-model coefficients if available.
 
 ## Usage
 

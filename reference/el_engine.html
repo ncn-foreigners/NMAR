@@ -110,8 +110,10 @@ The analytical delta method for EL is currently not implemented; when
 
 
 <dt id="arg-auxiliary-means">auxiliary_means<a class="anchor" aria-label="anchor" href="#arg-auxiliary-means"></a></dt>
-<dd><p>named numeric vector; population means for auxiliaries
-(names must match the RHS of the outcome formula). Optional.</p></dd>
+<dd><p>named numeric vector; population means for auxiliary
+design columns. Names must match the materialized model.matrix column names
+on the first RHS (after formula expansion), e.g., factor indicators like
+`F_b` or transformed terms `I(X^2)`. Intercept is always excluded. Optional.</p></dd>
 
 
 <dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
@@ -133,7 +135,7 @@ the estimator errors, requesting <code>n_total</code>.</p></dd>
 
 
 <dt id="arg-start">start<a class="anchor" aria-label="anchor" href="#arg-start"></a></dt>
-<dd><p>list; optional starting point for the solver. Fields:</p><ul><li><p><code>beta</code>: named numeric vector of response-model coefficients on the
+<dd><p>list; optional starting point for the solver. Fields:</p><ul><li><p><code>beta</code>: named numeric vector of missingness-model coefficients on the
     original (unscaled) scale, including <code>(Intercept)</code>.</p></li>
 <li><p><code>W</code> or <code>z</code>: starting value for population response rate (<code>0 &lt; W &lt; 1</code>)
     or its logit (<code>z</code>). If both are provided, <code>z</code> takes precedence.</p></li>
@@ -144,7 +146,7 @@ the estimator errors, requesting <code>n_total</code>.</p></dd>
 
 
 <dt id="arg-family">family<a class="anchor" aria-label="anchor" href="#arg-family"></a></dt>
-<dd><p>character; response model family, either <code>"logit"</code> or <code>"probit"</code>,
+<dd><p>character; missingness (response) model family, either <code>"logit"</code> or <code>"probit"</code>,
 or a family object created by <code><a href="logit_family.html">logit_family()</a></code> / <code><a href="probit_family.html">probit_family()</a></code>.</p></dd>
 
 </dl></div>
@@ -173,7 +175,7 @@ designs (\(d_i\) are design weights). The estimating equations impose
 \(\sum_i m_i\{w_i(\beta) - W\} = 0\),
 \(\sum_i m_i\,s_i(\beta) = 0\) with \(s_i(\beta) = \partial \log w_i / \partial \eta_i\),
 and, when present, \(\sum_i m_i X_{i\cdot}^{(c)} = 0\).</p>
-<p>The response-model score used in both equations and Jacobian is the derivative
+<p>The missingness-model score used in both equations and Jacobian is the derivative
 of the Bernoulli log-likelihood with respect to the linear predictor, i.e.
 <code>mu.eta(eta) / linkinv(eta)</code> (logit: <code>1 - w</code>; probit: Mills ratio <code>phi/Phi</code>).
 We apply a consistent guarding policy (cap \(\eta\), clip \(w\), floor denominators
@@ -190,7 +192,7 @@ with an analytic Jacobian and line-search globalization. Defaults are
 Invalid values are coerced to these defaults with a warning.</p>
 <p><strong>Formula syntax</strong>: <code><a href="nmar.html">nmar()</a></code> supports a partitioned right-hand side
 <code>y_miss ~ aux1 + aux2 | z1 + z2</code>. Variables left of <code>|</code> are auxiliaries
-(used in EL moment constraints); variables right of <code>|</code> are response-model
+(used in EL moment constraints); variables right of <code>|</code> are missingness-model
 predictors only. The outcome appears on the left-hand side and is included as a
 response predictor by default.</p>
 <p><strong>Weights in results</strong>: Calling <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code> on the returned <code>nmar_result</code>
@@ -269,28 +271,6 @@ likelihood constraints rather than calibration adjustments to weights.</p>
 <span class="r-in"><span><span class="va">df</span><span class="op">$</span><span class="va">Y_miss</span><span class="op">[</span><span class="op">!</span><span class="va">R</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NA_real_</span></span></span>
 <span class="r-in"><span><span class="va">eng</span> <span class="op">&lt;-</span> <span class="fu">el_engine</span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="nmar.html">nmar</a></span><span class="op">(</span><span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>, data <span class="op">=</span> <span class="va">df</span>, engine <span class="op">=</span> <span class="va">eng</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1] ============================================================ </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1] ============================================================ </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] -- DATA PREPARATION -- </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Total weighted size:      200.0 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Respondents (weighted):   76.0 (38.0%) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] -- NONLINEAR SOLVER -- </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] Solving stacked system... </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT] [OK] Solver converged successfully </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1] ============================================================ </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1] ============================================================ </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   Estimate (y_hat):         1.979080 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   Standard error:           NA </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NMAR Model Summary</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> =================</span>
@@ -302,7 +282,7 @@ likelihood constraints rather than calibration adjustments to weights.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Respondents: 76 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=200&gt;, engine = empirical_likelihood)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Response-model coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Missingness-model coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>              Estimate Std. Error z value Pr(&gt;|z|)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) -2.535301         NA      NA       NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss       0.987603         NA      NA       NA</span>
@@ -312,28 +292,6 @@ likelihood constraints rather than calibration adjustments to weights.</p>
 <span class="r-in"><span><span class="va">df2</span><span class="op">$</span><span class="va">Y_miss</span><span class="op">[</span><span class="op">!</span><span class="va">R</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NA_real_</span></span></span>
 <span class="r-in"><span><span class="va">eng2</span> <span class="op">&lt;-</span> <span class="fu">el_engine</span><span class="op">(</span>auxiliary_means <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>, variance_method <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit2</span> <span class="op">&lt;-</span> <span class="fu"><a href="nmar.html">nmar</a></span><span class="op">(</span><span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span> <span class="op">|</span> <span class="va">Z</span>, data <span class="op">=</span> <span class="va">df2</span>, engine <span class="op">=</span> <span class="va">eng2</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1] ============================================================ </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1] ============================================================ </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] -- DATA PREPARATION -- </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Total weighted size:      200.0 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Respondents (weighted):   76.0 (38.0%) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] -- NONLINEAR SOLVER -- </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] Solving stacked system... </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT] [OK] Solver converged successfully </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1] ============================================================ </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1] ============================================================ </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   Estimate (y_hat):         2.372442 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   Standard error:           NA </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">fit2</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Call: nmar(Y_miss ~ X | Z, data = &lt;data.frame: N=200&gt;, engine = empirical_likelihood)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
@@ -359,28 +317,6 @@ likelihood constraints rather than calibration adjustments to weights.</p>
 <span class="r-in"><span>  <span class="va">fit3</span> <span class="op">&lt;-</span> <span class="fu"><a href="nmar.html">nmar</a></span><span class="op">(</span><span class="va">Y_miss</span> <span class="op">~</span> <span class="va">X</span>, data <span class="op">=</span> <span class="va">des</span>, engine <span class="op">=</span> <span class="va">eng3</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit3</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1] ============================================================ </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1] ============================================================ </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] -- DATA PREPARATION -- </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Total weighted size:      200.0 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Respondents (weighted):   76.0 (38.0%) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] -- NONLINEAR SOLVER -- </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] Solving stacked system... </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT] [OK] Solver converged successfully </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1] ============================================================ </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [STEP-1] ============================================================ </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   Estimate (y_hat):         1.979080 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   Standard error:           NA </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NMAR Model Summary</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> =================</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss mean: 1.979080</span>
@@ -391,7 +327,7 @@ likelihood constraints rather than calibration adjustments to weights.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Respondents: 76 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Call: nmar(Y_miss ~ X, data = &lt;survey.design: N=200&gt;, engine = empirical_likelihood)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Response-model coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Missingness-model coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>              Estimate Std. Error t value Pr(&gt;|t|)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) -2.535301         NA      NA       NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Y_miss       0.987603         NA      NA       NA</span>

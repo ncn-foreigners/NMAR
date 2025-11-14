@@ -1,7 +1,7 @@
 # Tidy summary for NMAR results
 
 Return a data frame with the primary estimate and (if available)
-response-model coefficients.
+missingness-model coefficients.
 
 ## Usage
 

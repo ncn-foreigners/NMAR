@@ -7,7 +7,7 @@ Analytical Jacobian for empirical likelihood
 ``` r
 el_build_jacobian(
   family,
-  response_model_matrix,
+  missingness_model_matrix,
   auxiliary_matrix,
   respondent_weights,
   N_pop,
@@ -21,11 +21,11 @@ el_build_jacobian(
 Builds the block Jacobian \\A = \partial F/\partial \theta\\ for the EL
 system with \\\theta = (\beta, z, \lambda_x)\\ and \\z =
 \operatorname{logit}(W)\\. Blocks follow Qin, Leung, and Shao (2002,
-Eqs. 7-10). The derivative with respect to the linear predictor uses the
-Bernoulli score form \\\partial/\partial\eta\\ \log w(\eta) =
-\mu.\eta(\eta)/w(\eta)\\ with link-inverse clipping. Denominator guards
-are applied consistently when forming terms depending on
-\\D_i(\theta)\\.
+Eqs. 7-10). The derivative with respect to the linear predictor for the
+missingness (response) model uses the Bernoulli score form
+\\\partial/\partial\eta\\ \log w(\eta) = \mu.\eta(\eta)/w(\eta)\\ with
+link-inverse clipping. Denominator guards are applied consistently when
+forming terms depending on \\D_i(\theta)\\.
 
 Guarding policy (must remain consistent across
 equations/Jacobian/post): - Cap eta: eta \<- pmax(pmin(eta,

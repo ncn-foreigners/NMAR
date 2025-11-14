@@ -5,9 +5,8 @@ Check auxiliary means consistency against respondents' sample support
 ## Usage
 
 ``` r
-el_check_aux_inconsistency(
-  respondent_df,
-  aux_formula,
+el_check_aux_inconsistency_matrix(
+  aux_matrix_resp,
   provided_means = NULL,
   threshold = 8
 )
@@ -15,18 +14,14 @@ el_check_aux_inconsistency(
 
 ## Arguments
 
-- respondent_df:
+- aux_matrix_resp:
 
-  data.frame of respondents (no NAs in outcome indicator)
-
-- aux_formula:
-
-  RHS-only formula for auxiliaries (no intercept)
+  Respondent-side auxiliary design matrix.
 
 - provided_means:
 
-  optional named numeric vector of auxiliary means on the same columns
-  as model matrix
+  Optional named numeric vector of auxiliary means aligned to the matrix
+  columns.
 
 - threshold:
 

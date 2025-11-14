@@ -67,6 +67,7 @@
 <span>  n_total <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  start <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  trace_level <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  family <span class="op">=</span> <span class="fu"><a href="logit_family.html">logit_family</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -84,7 +85,10 @@
 
 
 <dt id="arg-auxiliary-means">auxiliary_means<a class="anchor" aria-label="anchor" href="#arg-auxiliary-means"></a></dt>
-<dd><p>Named numeric vector of population means for auxiliary variables (names must match RHS of outcome formula).</p></dd>
+<dd><p>Named numeric vector of population means for auxiliary
+design columns. Names must match the materialized `model.matrix` columns on
+the first RHS (after formula expansion), including factor indicators and
+transformed terms. The intercept is always excluded.</p></dd>
 
 
 <dt id="arg-standardize">standardize<a class="anchor" aria-label="anchor" href="#arg-standardize"></a></dt>
@@ -111,6 +115,24 @@
 <dd><p>Integer; number of bootstrap reps if `variance_method = "bootstrap"`.</p></dd>
 
 
+<dt id="arg-n-total">n_total<a class="anchor" aria-label="anchor" href="#arg-n-total"></a></dt>
+<dd><p>Optional integer population size. When the outcome contains
+at least one `NA`, `n_total` defaults to `nrow(data)`; when respondents-only
+data are supplied (no `NA` in the outcome), `n_total` must be provided.</p></dd>
+
+
+<dt id="arg-start">start<a class="anchor" aria-label="anchor" href="#arg-start"></a></dt>
+<dd><p>Optional list of starting values passed to the solver helpers.</p></dd>
+
+
+<dt id="arg-trace-level">trace_level<a class="anchor" aria-label="anchor" href="#arg-trace-level"></a></dt>
+<dd><p>Integer 0-3 controlling estimator logging detail.</p></dd>
+
+
+<dt id="arg-family">family<a class="anchor" aria-label="anchor" href="#arg-family"></a></dt>
+<dd><p>Missingness (response) model family specification (defaults to the logit bundle).</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments passed to the solver.</p></dd>
 
@@ -118,13 +140,14 @@
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Implements the empirical likelihood estimator for IID data with
-  optional auxiliary moment constraints. The response-model score is the
+  optional auxiliary moment constraints. The missingness-model score is the
   Bernoulli derivative with respect to the linear predictor, supporting logit
-  and probit links. When respondents-only data is supplied (no NA in the
-  outcome), set <code>n_total</code> to the total number of sampled units; otherwise
-  the total is taken as <code>nrow(data)</code>. If respondents-only data is used
-  and auxiliaries are requested, you must also provide population auxiliary
-  means via <code>auxiliary_means</code>. Result weights are the unnormalized EL
+  and probit links. When respondents-only data are supplied (no `NA` in the
+  outcome), `n_total` is required so the response-rate equation targets the
+  full sample size. When missingness is observed (`NA` present), the default
+  population total is `nrow(data)`. If respondents-only data are used and
+  auxiliaries are requested, you must also provide population auxiliary
+  means via `auxiliary_means`. Result weights are the unnormalized EL
   masses <code>d_i/D_i(theta)</code> on this analysis scale.</p>
     </div>
     <div class="section level2">

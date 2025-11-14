@@ -74,28 +74,6 @@ fit <- nmar(
   data = dat,
   engine = engine
 )
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   150.0 (30.0%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.878660 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]
 
 summary(fit)
 #> NMAR Model Summary
@@ -108,7 +86,7 @@ summary(fit)
 #> Respondents: 150 
 #> Call: nmar(Y_miss ~ X, data = <data.frame: N=500>, engine = empirical_likelihood)
 #> 
-#> Response-model coefficients:
+#> Missingness-model coefficients:
 #>              Estimate Std. Error z value Pr(>|z|)
 #> (Intercept) -1.570694         NA      NA       NA
 #> Y_miss       0.366754         NA      NA       NA
@@ -126,28 +104,6 @@ fit_probit <- nmar(
   data = dat
 
 )
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   150.0 (30.0%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.880128 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]
 summary(fit_probit)
 #> NMAR Model Summary
 #> =================
@@ -159,7 +115,7 @@ summary(fit_probit)
 #> Respondents: 150 
 #> Call: nmar(Y_miss ~ X, data = <data.frame: N=500>, engine = empirical_likelihood)
 #> 
-#> Response-model coefficients:
+#> Missingness-model coefficients:
 #>              Estimate Std. Error z value Pr(>|z|)
 #> (Intercept) -0.949678         NA      NA       NA
 #> Y_miss       0.217504         NA      NA       NA
@@ -255,361 +211,6 @@ if (requireNamespace("future.apply", quietly = TRUE)) {
 } else {
   message("Skipping bootstrap example: future.apply not installed")
 }
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   150.0 (30.0%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [INFO] -- VARIANCE ESTIMATION -- 
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   160.0 (32.0%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         2.021830 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   128.0 (25.6%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.816029 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   140.0 (28.0%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.882756 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   156.0 (31.2%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.414553 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   135.0 (27.0%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         2.068973 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   135.0 (27.0%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         2.081038 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   167.0 (33.4%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.988969 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   173.0 (34.6%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         2.133437 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   152.0 (30.4%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.861888 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   141.0 (28.2%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         2.162211 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   146.0 (29.2%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         2.015950 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   145.0 (29.0%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         2.166546 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   149.0 (29.8%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.901207 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   147.0 (29.4%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.981714 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   134.0 (26.8%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.865088 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.878660 
-#> [RESULT]   Standard error:           0.187963 
-#> [RESULT]   95% CI:                   [1.510252, 2.247068] 
-#> [INFO]
 #> [1] 0.1879633
 ```
 
@@ -627,28 +228,6 @@ R <- runif(N) < p
 df_resp <- subset(data.frame(Y_miss = Y, X = X), R == 1)
 eng_resp <- el_engine(auxiliary_means = c(X = 0), variance_method = "none", n_total = N)
 fit_resp <- nmar(Y_miss ~ X, data = df_resp, engine = eng_resp)
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      300.0 
-#> [INFO]   Respondents (weighted):   118.0 (39.3%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.105712 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]
 summary(fit_resp)
 #> NMAR Model Summary
 #> =================
@@ -660,7 +239,7 @@ summary(fit_resp)
 #> Respondents: 118 
 #> Call: nmar(Y_miss ~ X, data = <data.frame: N=300>, engine = empirical_likelihood)
 #> 
-#> Response-model coefficients:
+#> Missingness-model coefficients:
 #>              Estimate Std. Error z value Pr(>|z|)
 #> (Intercept) -1.449030         NA      NA       NA
 #> Y_miss       0.826353         NA      NA       NA
@@ -689,28 +268,6 @@ fit_resp_only <- nmar(
   data = df2,
   engine = engine
 )
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      400.0 
-#> [INFO]   Respondents (weighted):   140.0 (35.0%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.422045 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]
 summary(fit_resp_only)
 #> NMAR Model Summary
 #> =================
@@ -722,7 +279,7 @@ summary(fit_resp_only)
 #> Respondents: 140 
 #> Call: nmar(Y_miss ~ X | Z, data = <data.frame: N=400>, engine = empirical_likelihood)
 #> 
-#> Response-model coefficients:
+#> Missingness-model coefficients:
 #>              Estimate Std. Error z value Pr(>|z|)
 #> (Intercept) -0.557563         NA      NA       NA
 #> Y_miss      -0.044005         NA      NA       NA
@@ -782,28 +339,6 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> The following object is masked from 'package:graphics':
 #> 
 #>     dotchart
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      6194.0 
-#> [INFO]   Respondents (weighted):   2200.1 (35.5%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         691.822197 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]
 #> NMAR Model Summary
 #> =================
 #> api00_miss mean: 691.822197
@@ -814,7 +349,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> Respondents: 65 
 #> Call: nmar(api00_miss ~ ell, data = <survey.design: N=6194.00032424927>, engine = empirical_likelihood)
 #> 
-#> Response-model coefficients:
+#> Missingness-model coefficients:
 #>              Estimate Std. Error t value Pr(>|t|)
 #> (Intercept)  3.231721         NA      NA       NA
 #> api00_miss  -0.005586         NA      NA       NA
@@ -865,28 +400,6 @@ Troubleshooting:
 ctrl <- list(maxit = 200, xtol = 1e-10, ftol = 1e-10)
 eng_ctrl <- el_engine(auxiliary_means = c(X = 0), variance_method = "none", control = ctrl)
 invisible(nmar(Y_miss ~ X, data = dat, engine = eng_ctrl))
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      500.0 
-#> [INFO]   Respondents (weighted):   150.0 (30.0%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.878660 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]
 ```
 
 ## References and further reading
@@ -934,24 +447,24 @@ sessionInfo()
 #> [1] survey_4.4-8   survival_3.8-3 Matrix_1.7-4   future_1.67.0  NMAR_0.0.0.1  
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] future.apply_1.20.0 jsonlite_2.0.0      dplyr_1.1.4        
-#>  [4] compiler_4.5.2      Rcpp_1.1.0          tidyselect_1.2.1   
-#>  [7] nleqslv_3.3.5       parallel_4.5.2      tidyr_1.3.1        
-#> [10] jquerylib_0.1.4     splines_4.5.2       globals_0.18.0     
-#> [13] systemfonts_1.3.1   textshaping_1.0.4   yaml_2.3.10        
-#> [16] fastmap_1.2.0       lattice_0.22-7      R6_2.6.1           
-#> [19] generics_0.1.4      knitr_1.50          htmlwidgets_1.6.4  
-#> [22] backports_1.5.0     tibble_3.3.0        desc_1.4.3         
-#> [25] DBI_1.2.3           bslib_0.9.0         pillar_1.11.1      
-#> [28] rlang_1.1.6         cachem_1.1.0        broom_1.0.10       
-#> [31] xfun_0.54           fs_1.6.6            sass_0.4.10        
-#> [34] cli_3.6.5           progressr_0.18.0    pkgdown_2.2.0      
-#> [37] magrittr_2.0.4      digest_0.6.37       lifecycle_1.0.4    
-#> [40] vctrs_0.6.5         evaluate_1.0.5      glue_1.8.0         
-#> [43] listenv_0.10.0      mitools_2.4         codetools_0.2-20   
-#> [46] ragg_1.5.0          parallelly_1.45.1   rmarkdown_2.30     
-#> [49] purrr_1.2.0         tools_4.5.2         pkgconfig_2.0.3    
-#> [52] htmltools_0.5.8.1
+#>  [1] sass_0.4.10         generics_0.1.4      tidyr_1.3.1        
+#>  [4] lattice_0.22-7      listenv_0.10.0      digest_0.6.38      
+#>  [7] magrittr_2.0.4      evaluate_1.0.5      nleqslv_3.3.5      
+#> [10] fastmap_1.2.0       jsonlite_2.0.0      backports_1.5.0    
+#> [13] DBI_1.2.3           Formula_1.2-5       purrr_1.2.0        
+#> [16] codetools_0.2-20    textshaping_1.0.4   jquerylib_0.1.4    
+#> [19] cli_3.6.5           mitools_2.4         rlang_1.1.6        
+#> [22] parallelly_1.45.1   future.apply_1.20.0 splines_4.5.2      
+#> [25] cachem_1.1.0        yaml_2.3.10         tools_4.5.2        
+#> [28] parallel_4.5.2      dplyr_1.1.4         globals_0.18.0     
+#> [31] broom_1.0.10        vctrs_0.6.5         R6_2.6.1           
+#> [34] lifecycle_1.0.4     fs_1.6.6            htmlwidgets_1.6.4  
+#> [37] ragg_1.5.0          pkgconfig_2.0.3     desc_1.4.3         
+#> [40] pkgdown_2.2.0       progressr_0.18.0    pillar_1.11.1      
+#> [43] bslib_0.9.0         Rcpp_1.1.0          glue_1.8.0         
+#> [46] systemfonts_1.3.1   xfun_0.54           tibble_3.3.0       
+#> [49] tidyselect_1.2.1    knitr_1.50          htmltools_0.5.8.1  
+#> [52] rmarkdown_2.30      compiler_4.5.2
 ```
 
 ## Notes on variance choices

@@ -56,8 +56,11 @@ el_engine(
 
 - auxiliary_means:
 
-  named numeric vector; population means for auxiliaries (names must
-  match the RHS of the outcome formula). Optional.
+  named numeric vector; population means for auxiliary design columns.
+  Names must match the materialized model.matrix column names on the
+  first RHS (after formula expansion), e.g., factor indicators like
+  \`F_b\` or transformed terms \`I(X^2)\`. Intercept is always excluded.
+  Optional.
 
 - control:
 
@@ -88,8 +91,8 @@ el_engine(
 
   list; optional starting point for the solver. Fields:
 
-  - `beta`: named numeric vector of response-model coefficients on the
-    original (unscaled) scale, including `(Intercept)`.
+  - `beta`: named numeric vector of missingness-model coefficients on
+    the original (unscaled) scale, including `(Intercept)`.
 
   - `W` or `z`: starting value for population response rate
     (`0 < W < 1`) or its logit (`z`). If both are provided, `z` takes
@@ -101,8 +104,8 @@ el_engine(
 
 - family:
 
-  character; response model family, either `"logit"` or `"probit"`, or a
-  family object created by
+  character; missingness (response) model family, either `"logit"` or
+  `"probit"`, or a family object created by
   [`logit_family()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/logit_family.md)
   /
   [`probit_family()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/probit_family.md).
@@ -137,7 +140,7 @@ m_i\\w_i(\beta) - W\\ = 0\\, \\\sum_i m_i\\s_i(\beta) = 0\\ with
 \\s_i(\beta) = \partial \log w_i / \partial \eta_i\\, and, when present,
 \\\sum_i m_i X\_{i\cdot}^{(c)} = 0\\.
 
-The response-model score used in both equations and Jacobian is the
+The missingness-model score used in both equations and Jacobian is the
 derivative of the Bernoulli log-likelihood with respect to the linear
 predictor, i.e. `mu.eta(eta) / linkinv(eta)` (logit: `1 - w`; probit:
 Mills ratio `phi/Phi`). We apply a consistent guarding policy (cap
@@ -161,9 +164,9 @@ coerced to these defaults with a warning.
 [`nmar()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md)
 supports a partitioned right-hand side `y_miss ~ aux1 + aux2 | z1 + z2`.
 Variables left of `|` are auxiliaries (used in EL moment constraints);
-variables right of `|` are response-model predictors only. The outcome
-appears on the left-hand side and is included as a response predictor by
-default.
+variables right of `|` are missingness-model predictors only. The
+outcome appears on the left-hand side and is included as a response
+predictor by default.
 
 **Weights in results**: Calling
 [`weights()`](https://rdrr.io/r/stats/weights.html) on the returned
@@ -251,28 +254,6 @@ df <- data.frame(Y_miss = Y, X = X)
 df$Y_miss[!R] <- NA_real_
 eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
 fit <- nmar(Y_miss ~ X, data = df, engine = eng)
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      200.0 
-#> [INFO]   Respondents (weighted):   76.0 (38.0%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.979080 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
 summary(fit)
 #> NMAR Model Summary
 #> =================
@@ -284,7 +265,7 @@ summary(fit)
 #> Respondents: 76 
 #> Call: nmar(Y_miss ~ X, data = <data.frame: N=200>, engine = empirical_likelihood)
 #> 
-#> Response-model coefficients:
+#> Missingness-model coefficients:
 #>              Estimate Std. Error z value Pr(>|z|)
 #> (Intercept) -2.535301         NA      NA       NA
 #> Y_miss       0.987603         NA      NA       NA
@@ -294,28 +275,6 @@ df2 <- data.frame(Y_miss = Y, X = X, Z = Z)
 df2$Y_miss[!R] <- NA_real_
 eng2 <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
 fit2 <- nmar(Y_miss ~ X | Z, data = df2, engine = eng2)
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      200.0 
-#> [INFO]   Respondents (weighted):   76.0 (38.0%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         2.372442 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
 print(fit2)
 #> Call: nmar(Y_miss ~ X | Z, data = <data.frame: N=200>, engine = empirical_likelihood)
 #> 
@@ -341,28 +300,6 @@ if (requireNamespace("survey", quietly = TRUE)) {
   fit3 <- nmar(Y_miss ~ X, data = des, engine = eng3)
   summary(fit3)
 }
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION STARTED 
-#> [STEP-1] ============================================================ 
-#> [INFO] Running with trace_level = 1 | For more detail, use trace_level = 2 
-#> [INFO]  
-#> [INFO] -- DATA PREPARATION -- 
-#> [INFO]   Total weighted size:      200.0 
-#> [INFO]   Respondents (weighted):   76.0 (38.0%) 
-#> [INFO]  
-#> [INFO] -- NONLINEAR SOLVER -- 
-#> [INFO]  
-#> [INFO] Solving stacked system... 
-#> [INFO]  
-#> [RESULT] [OK] Solver converged successfully 
-#> [INFO]  
-#> [STEP-1] ============================================================ 
-#> [STEP-1]   EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED 
-#> [STEP-1] ============================================================ 
-#> [INFO]  
-#> [RESULT]   Estimate (y_hat):         1.979080 
-#> [RESULT]   Standard error:           NA 
-#> [INFO]  
 #> NMAR Model Summary
 #> =================
 #> Y_miss mean: 1.979080
@@ -373,7 +310,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> Respondents: 76 
 #> Call: nmar(Y_miss ~ X, data = <survey.design: N=200>, engine = empirical_likelihood)
 #> 
-#> Response-model coefficients:
+#> Missingness-model coefficients:
 #>              Estimate Std. Error t value Pr(>|t|)
 #> (Intercept) -2.535301         NA      NA       NA
 #> Y_miss       0.987603         NA      NA       NA

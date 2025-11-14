@@ -1,8 +1,9 @@
 # Confidence intervals for coefficient table (summary objects)
 
-Returns Wald-style confidence intervals for response-model coefficients
-from a \`summary_nmar_result\*\` object. Uses t-quantiles when finite
-degrees of freedom are available, otherwise normal quantiles.
+Returns Wald-style confidence intervals for missingness-model
+coefficients from a \`summary_nmar_result\*\` object. Uses t-quantiles
+when finite degrees of freedom are available, otherwise normal
+quantiles.
 
 ## Usage
 

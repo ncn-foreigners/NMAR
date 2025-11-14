@@ -67,6 +67,7 @@
 <span>  n_total <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  start <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  trace_level <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  family <span class="op">=</span> <span class="fu"><a href="logit_family.html">logit_family</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -84,7 +85,10 @@
 
 
 <dt id="arg-auxiliary-means">auxiliary_means<a class="anchor" aria-label="anchor" href="#arg-auxiliary-means"></a></dt>
-<dd><p>Named numeric vector of population means for auxiliaries.</p></dd>
+<dd><p>Named numeric vector of population means for auxiliary
+design columns. Names must match the materialized `model.matrix` columns on
+the first RHS (after formula expansion), including factor indicators and
+transformed terms. The intercept is always excluded.</p></dd>
 
 
 <dt id="arg-standardize">standardize<a class="anchor" aria-label="anchor" href="#arg-standardize"></a></dt>
@@ -109,6 +113,22 @@
 
 <dt id="arg-bootstrap-reps">bootstrap_reps<a class="anchor" aria-label="anchor" href="#arg-bootstrap-reps"></a></dt>
 <dd><p>Integer; reps when `variance_method = "bootstrap"`.</p></dd>
+
+
+<dt id="arg-n-total">n_total<a class="anchor" aria-label="anchor" href="#arg-n-total"></a></dt>
+<dd><p>Optional population size used to rescale design weights; required for respondents-only designs.</p></dd>
+
+
+<dt id="arg-start">start<a class="anchor" aria-label="anchor" href="#arg-start"></a></dt>
+<dd><p>Optional list of starting values passed to solver helpers.</p></dd>
+
+
+<dt id="arg-trace-level">trace_level<a class="anchor" aria-label="anchor" href="#arg-trace-level"></a></dt>
+<dd><p>Integer 0-3 controlling estimator logging detail.</p></dd>
+
+
+<dt id="arg-family">family<a class="anchor" aria-label="anchor" href="#arg-family"></a></dt>
+<dd><p>Missingness (response) model family specification (defaults to logit).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

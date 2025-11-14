@@ -13,12 +13,11 @@ are applied consistently here for diagnostic coherence.
 ``` r
 el_post_solution(
   estimates,
-  response_model_matrix_scaled,
-  response_model_matrix_unscaled,
+  missingness_model_matrix_scaled,
+  missingness_model_matrix_unscaled,
   auxiliary_matrix_scaled,
   mu_x_scaled,
-  respondent_data,
-  outcome_var,
+  response_outcome,
   family,
   N_pop,
   respondent_weights,
@@ -37,13 +36,13 @@ el_post_solution(
 
   Numeric vector (beta, z, lambda) at the solution.
 
-- response_model_matrix_scaled:
+- missingness_model_matrix_scaled:
 
-  Scaled design matrix for the response model.
+  Scaled design matrix for the missingness (response) model.
 
-- response_model_matrix_unscaled:
+- missingness_model_matrix_unscaled:
 
-  Unscaled design matrix for the response model.
+  Unscaled design matrix for the missingness (response) model.
 
 - auxiliary_matrix_scaled:
 
@@ -53,13 +52,9 @@ el_post_solution(
 
   Vector of population means for scaled auxiliaries (or NULL).
 
-- respondent_data:
+- response_outcome:
 
-  Data frame of respondents.
-
-- outcome_var:
-
-  Character; outcome column name in respondent_data.
+  Numeric vector of respondent outcomes.
 
 - family:
 

@@ -54,12 +54,13 @@ and diagnostic computation.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">el_estimator_core</span><span class="op">(</span></span>
-<span>  <span class="va">full_data</span>,</span>
-<span>  <span class="va">respondent_data</span>,</span>
+<span>  <span class="va">missingness_design</span>,</span>
+<span>  <span class="va">auxiliary_matrix</span>,</span>
+<span>  <span class="va">mu_x</span>,</span>
 <span>  <span class="va">respondent_weights</span>,</span>
+<span>  <span class="va">full_data</span>,</span>
+<span>  <span class="va">outcome_var</span>,</span>
 <span>  <span class="va">N_pop</span>,</span>
-<span>  <span class="va">internal_formula</span>,</span>
-<span>  <span class="va">auxiliary_means</span>,</span>
 <span>  <span class="va">standardize</span>,</span>
 <span>  <span class="va">trim_cap</span>,</span>
 <span>  <span class="va">control</span>,</span>
@@ -70,7 +71,7 @@ and diagnostic computation.</p>
 <span>  <span class="va">user_args</span>,</span>
 <span>  start <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  trace_level <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  <span class="va">...</span></span>
+<span>  auxiliary_means <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -78,28 +79,32 @@ and diagnostic computation.</p>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-full-data">full_data<a class="anchor" aria-label="anchor" href="#arg-full-data"></a></dt>
-<dd><p>Data frame or survey design object containing all units.</p></dd>
+<dl><dt id="arg-missingness-design">missingness_design<a class="anchor" aria-label="anchor" href="#arg-missingness-design"></a></dt>
+<dd><p>Respondent-side missingness (response) model design matrix (intercept + predictors).</p></dd>
 
 
-<dt id="arg-respondent-data">respondent_data<a class="anchor" aria-label="anchor" href="#arg-respondent-data"></a></dt>
-<dd><p>Data frame containing only responding units.</p></dd>
+<dt id="arg-auxiliary-matrix">auxiliary_matrix<a class="anchor" aria-label="anchor" href="#arg-auxiliary-matrix"></a></dt>
+<dd><p>Auxiliary design matrix on respondents (may have zero columns).</p></dd>
+
+
+<dt id="arg-mu-x">mu_x<a class="anchor" aria-label="anchor" href="#arg-mu-x"></a></dt>
+<dd><p>Named numeric vector of auxiliary population means (aligned to columns of `auxiliary_matrix`).</p></dd>
 
 
 <dt id="arg-respondent-weights">respondent_weights<a class="anchor" aria-label="anchor" href="#arg-respondent-weights"></a></dt>
-<dd><p>Numeric vector of base sampling weights for respondents.</p></dd>
+<dd><p>Numeric vector of respondent weights aligned with `missingness_design` rows.</p></dd>
+
+
+<dt id="arg-full-data">full_data<a class="anchor" aria-label="anchor" href="#arg-full-data"></a></dt>
+<dd><p>Data object used for logging (survey designs supply the design object).</p></dd>
+
+
+<dt id="arg-outcome-var">outcome_var<a class="anchor" aria-label="anchor" href="#arg-outcome-var"></a></dt>
+<dd><p>Character string identifying the outcome expression displayed in outputs.</p></dd>
 
 
 <dt id="arg-n-pop">N_pop<a class="anchor" aria-label="anchor" href="#arg-n-pop"></a></dt>
-<dd><p>Numeric. Total population size (weighted if survey design).</p></dd>
-
-
-<dt id="arg-internal-formula">internal_formula<a class="anchor" aria-label="anchor" href="#arg-internal-formula"></a></dt>
-<dd><p>List of internal formulas for outcome, response, and auxiliary models.</p></dd>
-
-
-<dt id="arg-auxiliary-means">auxiliary_means<a class="anchor" aria-label="anchor" href="#arg-auxiliary-means"></a></dt>
-<dd><p>Named numeric vector of known population means.</p></dd>
+<dd><p>Population size on the analysis scale.</p></dd>
 
 
 <dt id="arg-standardize">standardize<a class="anchor" aria-label="anchor" href="#arg-standardize"></a></dt>
@@ -132,6 +137,10 @@ and diagnostic computation.</p>
 
 <dt id="arg-user-args">user_args<a class="anchor" aria-label="anchor" href="#arg-user-args"></a></dt>
 <dd><p>List. Original user arguments for bootstrap replication.</p></dd>
+
+
+<dt id="arg-auxiliary-means">auxiliary_means<a class="anchor" aria-label="anchor" href="#arg-auxiliary-means"></a></dt>
+<dd><p>Named numeric vector of known population means supplied by the user (optional; used for diagnostics).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

@@ -47,17 +47,13 @@ User workflow:
 1.  User creates an engine configuration (e.g., `el_engine(...)`).
 2.  User calls `nmar(formula = ..., data = ..., engine = <engine>)`.
 3.  [`nmar()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md)
-    creates an `nmar_input_spec` via
-    [`parse_nmar_spec()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/parse_nmar_spec.md),
-    validates it with
-    [`validate_nmar_args()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/validate_nmar_args.md)
-    (using engine-specific traits), and then dispatches to
-    `run_engine(engine, task)` by S3.
+    creates an `nmar_input_spec` via `parse_nmar_spec()`, validates it
+    with `validate_nmar_args()` (using engine-specific traits), and then
+    dispatches to `run_engine(engine, task)` by S3.
 4.  The engine’s `run_engine.<engine_class>()` extracts what it needs
-    from `task` (typically via
-    [`prepare_nmar_design()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/prepare_nmar_design.md))
-    and passes control to a method-specific generic, which dispatches on
-    `data` type:
+    from `task` (typically via `prepare_nmar_design()`) and passes
+    control to a method-specific generic, which dispatches on `data`
+    type:
     - `*.data.frame(...)` for IID data
     - `*.survey.design(...)` for complex surveys
 5.  The method computes the estimator and returns a result object of
@@ -144,18 +140,14 @@ method <- function(data, ...) UseMethod("method")
 ``` r
 #' @export
 method.data.frame <- function(data, formula, controls = list(), ...) {
-# Prepare inputs. You may adapt from EL’s prepare_el_inputs() pattern.
+# Prepare inputs. You may adapt from EL’s el_prepare_inputs() pattern.
   parsed <- build_method_inputs(data, formula, controls)
   estimation_data <- parsed$data
-  internal_formula <- parsed$formula_list
+  obs_idx <- which(parsed$respondent_mask)
 
-# Identify respondents
-  response_var <- all.vars(internal_formula$response)[1]
-  obs_idx <- which(estimation_data[[response_var]] == 1)
-
-# Build design matrices
-  Z_un <- model.matrix(update(internal_formula$response, NULL ~ .), data = estimation_data[obs_idx, ])
-  X_un <- build_method_auxiliary_matrix(estimation_data[obs_idx, ])
+# Build design matrices supplied by the shared parser
+  Z_un <- parsed$missingness_design
+  X_un <- parsed$auxiliary_matrix
   mu_x <- controls$auxiliary_means
 
 # Shared scaling

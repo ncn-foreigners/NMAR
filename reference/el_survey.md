@@ -21,6 +21,7 @@ el(
   n_total = NULL,
   start = NULL,
   trace_level = 0,
+  family = logit_family(),
   ...
 )
 ```
@@ -37,7 +38,10 @@ el(
 
 - auxiliary_means:
 
-  Named numeric vector of population means for auxiliaries.
+  Named numeric vector of population means for auxiliary design columns.
+  Names must match the materialized \`model.matrix\` columns on the
+  first RHS (after formula expansion), including factor indicators and
+  transformed terms. The intercept is always excluded.
 
 - standardize:
 
@@ -62,6 +66,23 @@ el(
 - bootstrap_reps:
 
   Integer; reps when \`variance_method = "bootstrap"\`.
+
+- n_total:
+
+  Optional population size used to rescale design weights; required for
+  respondents-only designs.
+
+- start:
+
+  Optional list of starting values passed to solver helpers.
+
+- trace_level:
+
+  Integer 0-3 controlling estimator logging detail.
+
+- family:
+
+  Missingness (response) model family specification (defaults to logit).
 
 - ...:
 

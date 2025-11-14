@@ -136,14 +136,14 @@ https://doi.org/10.1093/jssam/smv047
 <span>  variance_method <span class="op">=</span> <span class="st">'bootstrap'</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span></span>
-<span><span class="va">formula</span> <span class="op">=</span> <span class="va">Y</span> <span class="op">~</span> <span class="va">x1</span></span>
+<span><span class="va">formula</span> <span class="op">=</span> <span class="va">Y</span> <span class="op">~</span><span class="va">x1</span> <span class="op">|</span> <span class="va">Y</span></span>
 <span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">x</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span>, trace_level <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: Outcome variable (Y) found in missingness predictors; Performance with / without Y on the right side is the same</span></span>
 <span><span class="co">#&gt; [STEP-1] ============================================================ </span></span>
 <span><span class="co">#&gt; [STEP-1]   EXPTILT ESTIMATION STARTED </span></span>
 <span><span class="co">#&gt; [STEP-1] ============================================================ </span></span>
 <span><span class="co">#&gt; [INFO] Running with trace_level = 3 </span></span>
-<span><span class="co">#&gt; [INFO] Formula: Y ~ x1 </span></span>
+<span><span class="co">#&gt; [INFO] Formula: Y ~ x1 | Y </span></span>
 <span><span class="co">#&gt; [INFO]  </span></span>
 <span><span class="co">#&gt; [INFO] -- DATA SUMMARY -- </span></span>
 <span><span class="co">#&gt; [INFO]   Total observations:      500 </span></span>
@@ -285,41 +285,7 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="co">#&gt; The following object is masked from 'package:graphics':</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     dotchart</span></span>
-<span><span class="co">#&gt; [STEP-1] ============================================================ </span></span>
-<span><span class="co">#&gt; [STEP-1]   EXPTILT ESTIMATION STARTED </span></span>
-<span><span class="co">#&gt; [STEP-1] ============================================================ </span></span>
-<span><span class="co">#&gt; [INFO] Running with trace_level = 1 | For more detailed output, use trace_level = 2. Available trace_level = c(1,2,3) </span></span>
-<span><span class="co">#&gt; [INFO] Formula: Y ~ x1 </span></span>
-<span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] -- DATA SUMMARY -- </span></span>
-<span><span class="co">#&gt; [INFO]   Total observations:      500 </span></span>
-<span><span class="co">#&gt; [INFO]   Respondents:             368 (73.6%) </span></span>
-<span><span class="co">#&gt; [INFO]   Non-respondents:         132 (26.4%) </span></span>
-<span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] -- CONDITIONAL DENSITY ESTIMATION -- </span></span>
-<span><span class="co">#&gt; [INFO]   Selected distribution:   normal </span></span>
-<span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] -- NONLINEAR SOLVER (nleqslv) -- </span></span>
-<span><span class="co">#&gt; [INFO]   Solving... </span></span>
-<span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO]   OK Converged </span></span>
-<span><span class="co">#&gt; [INFO]   Iterations:               4 </span></span>
-<span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] -- VARIANCE ESTIMATION (Delta Method) --</span></span>
 <span><span class="co">#&gt; Warning: Delta variance failed to evaluate; using bootstrap instead.</span></span>
-<span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- </span></span>
-<span><span class="co">#&gt; [INFO]   Bootstrap replications:   50 </span></span>
-<span><span class="co">#&gt; [INFO]   OK Bootstrap complete </span></span>
-<span><span class="co">#&gt; [INFO]   Standard error:           0.063102 </span></span>
-<span><span class="co">#&gt; [INFO]  </span></span>
-<span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
-<span><span class="co">#&gt; [RESULT]   ESTIMATION COMPLETE </span></span>
-<span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
-<span><span class="co">#&gt; [RESULT]   Mean estimate:            -1.003204 </span></span>
-<span><span class="co">#&gt; [RESULT]   Standard error:           0.063102 </span></span>
-<span><span class="co">#&gt; [RESULT]   95% CI:                   [-1.126883, -0.879525] </span></span>
-<span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
 <span><span class="co">#&gt; NMAR Result</span></span>
 <span><span class="co">#&gt; ------------</span></span>
 <span><span class="co">#&gt; Y mean: -1.003204 (0.063102)</span></span>

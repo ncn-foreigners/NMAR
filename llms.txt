@@ -202,8 +202,6 @@ Research grant: [OPUS 20
   : Extract engine configuration
 - [`engine_name()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/engine_name.md)
   : Canonical engine name
-- [`engine_traits()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/engine_traits.md)
-  : Engine trait declarations
 - [`format(`*`<nmar_engine>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/format.nmar_engine.md)
   : One-line formatter for NMAR engines
 - [`nmar_engine_helpers`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_engine_helpers.md)

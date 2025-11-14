@@ -8,7 +8,7 @@ Variance driver for EL (bootstrap or none)
 el_compute_variance(
   y_hat,
   full_data,
-  internal_formula,
+  formula,
   user_args,
   variance_method,
   bootstrap_reps,

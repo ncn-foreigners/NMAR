@@ -6,5 +6,5 @@ Run method for EL engine
 
 ``` r
 # S3 method for class 'nmar_engine_el'
-run_engine(engine, task)
+run_engine(engine, formula, data, trace_level = 0)
 ```

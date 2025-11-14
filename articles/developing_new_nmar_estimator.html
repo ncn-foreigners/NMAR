@@ -136,12 +136,12 @@ Astonishment, and Law of Demeter?</li>
 <code>nmar(formula = ..., data = ..., engine = &lt;engine&gt;)</code>.</li>
 <li>
 <code><a href="../reference/nmar.html">nmar()</a></code> creates an <code>nmar_input_spec</code> via
-<code><a href="../reference/parse_nmar_spec.html">parse_nmar_spec()</a></code>, validates it with
-<code><a href="../reference/validate_nmar_args.html">validate_nmar_args()</a></code> (using engine-specific traits), and
+<code>parse_nmar_spec()</code>, validates it with
+<code>validate_nmar_args()</code> (using engine-specific traits), and
 then dispatches to <code>run_engine(engine, task)</code> by S3.</li>
 <li>The engine’s <code>run_engine.&lt;engine_class&gt;()</code> extracts
 what it needs from <code>task</code> (typically via
-<code><a href="../reference/prepare_nmar_design.html">prepare_nmar_design()</a></code>) and passes control to a
+<code>prepare_nmar_design()</code>) and passes control to a
 method-specific generic, which dispatches on <code>data</code> type:
 <ul>
 <li>
@@ -179,7 +179,7 @@ containing the primary estimand and supporting data for S3 methods.</li>
 <code>run_engine.R</code> — run_engine method</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">run_engine.nmar_engine_method</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">engine</span>, <span class="va">task</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_nmar_design.html">prepare_nmar_design</a></span><span class="op">(</span></span>
+<span>  <span class="va">design</span> <span class="op">&lt;-</span> <span class="fu">prepare_nmar_design</span><span class="op">(</span></span>
 <span>    <span class="va">task</span>,</span>
 <span>    standardize <span class="op">=</span> <span class="va">engine</span><span class="op">$</span><span class="va">standardize</span>,</span>
 <span>    auxiliary_means <span class="op">=</span> <span class="va">engine</span><span class="op">$</span><span class="va">auxiliary_means</span>,</span>
@@ -231,18 +231,14 @@ data<a class="anchor" aria-label="anchor" href="#implmethod_dataframe-r-method-f
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">#' @export</span></span>
 <span><span class="va">method.data.frame</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">formula</span>, <span class="va">controls</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
-<span><span class="co"># Prepare inputs. You may adapt from EL’s prepare_el_inputs() pattern.</span></span>
+<span><span class="co"># Prepare inputs. You may adapt from EL’s el_prepare_inputs() pattern.</span></span>
 <span>  <span class="va">parsed</span> <span class="op">&lt;-</span> <span class="fu">build_method_inputs</span><span class="op">(</span><span class="va">data</span>, <span class="va">formula</span>, <span class="va">controls</span><span class="op">)</span></span>
 <span>  <span class="va">estimation_data</span> <span class="op">&lt;-</span> <span class="va">parsed</span><span class="op">$</span><span class="va">data</span></span>
-<span>  <span class="va">internal_formula</span> <span class="op">&lt;-</span> <span class="va">parsed</span><span class="op">$</span><span class="va">formula_list</span></span>
+<span>  <span class="va">obs_idx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">parsed</span><span class="op">$</span><span class="va">respondent_mask</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Identify respondents</span></span>
-<span>  <span class="va">response_var</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/allnames.html" class="external-link">all.vars</a></span><span class="op">(</span><span class="va">internal_formula</span><span class="op">$</span><span class="va">response</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
-<span>  <span class="va">obs_idx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">estimation_data</span><span class="op">[[</span><span class="va">response_var</span><span class="op">]</span><span class="op">]</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Build design matrices</span></span>
-<span>  <span class="va">Z_un</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/model.matrix.html" class="external-link">model.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/update.html" class="external-link">update</a></span><span class="op">(</span><span class="va">internal_formula</span><span class="op">$</span><span class="va">response</span>, <span class="cn">NULL</span> <span class="op">~</span> <span class="va">.</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">estimation_data</span><span class="op">[</span><span class="va">obs_idx</span>, <span class="op">]</span><span class="op">)</span></span>
-<span>  <span class="va">X_un</span> <span class="op">&lt;-</span> <span class="fu">build_method_auxiliary_matrix</span><span class="op">(</span><span class="va">estimation_data</span><span class="op">[</span><span class="va">obs_idx</span>, <span class="op">]</span><span class="op">)</span></span>
+<span><span class="co"># Build design matrices supplied by the shared parser</span></span>
+<span>  <span class="va">Z_un</span> <span class="op">&lt;-</span> <span class="va">parsed</span><span class="op">$</span><span class="va">missingness_design</span></span>
+<span>  <span class="va">X_un</span> <span class="op">&lt;-</span> <span class="va">parsed</span><span class="op">$</span><span class="va">auxiliary_matrix</span></span>
 <span>  <span class="va">mu_x</span> <span class="op">&lt;-</span> <span class="va">controls</span><span class="op">$</span><span class="va">auxiliary_means</span></span>
 <span></span>
 <span><span class="co"># Shared scaling</span></span>

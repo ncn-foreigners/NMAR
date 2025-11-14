@@ -1,9 +1,9 @@
 # Coefficient table for summary objects
 
 Returns a coefficients table (Estimate, Std. Error, statistic, p-value)
-from a \`summary_nmar_result\*\` object when response-model coefficients
-and a variance matrix are available. If the summary does not carry
-response-model coefficients, returns \`NULL\`.
+from a \`summary_nmar_result\*\` object when missingness-model
+coefficients and a variance matrix are available. If the summary does
+not carry missingness-model coefficients, returns \`NULL\`.
 
 ## Usage
 

@@ -9,7 +9,7 @@ specifications are correctly formatted before computation begins.
 ## Usage
 
 ``` r
-nmar(formula, data, engine, trace_level = 1)
+nmar(formula, data, engine, trace_level = 0)
 ```
 
 ## Arguments
@@ -20,10 +20,10 @@ nmar(formula, data, engine, trace_level = 1)
   The left-hand side is the outcome (with \`NA\` values indicating
   nonresponse). The right-hand side is split by \`\|\` into two parts: -
   left of \`\|\`: auxiliary variables (enter moment constraints); -
-  right of \`\|\`: response-model predictors (enter the missingness
-  model only). If \`\|\` is omitted, only auxiliary variables are used
-  for both parsing and printing. The outcome variable is implicitly
-  included in the response model.
+  right of \`\|\`: missingness (response) model predictors (enter the
+  missingness model only). If \`\|\` is omitted, only auxiliary
+  variables are used for both parsing and printing. The outcome variable
+  is implicitly included in the response model.
 
 - data:
 

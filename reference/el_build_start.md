@@ -6,7 +6,7 @@ Build starting values for the EL solver (beta, z, lambda)
 
 ``` r
 el_build_start(
-  response_model_matrix_scaled,
+  missingness_model_matrix_scaled,
   auxiliary_matrix_scaled,
   nmar_scaling_recipe,
   start,

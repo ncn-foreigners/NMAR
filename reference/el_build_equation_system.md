@@ -7,7 +7,7 @@ Empirical likelihood estimating equations
 ``` r
 el_build_equation_system(
   family,
-  response_model_matrix,
+  missingness_model_matrix,
   auxiliary_matrix,
   respondent_weights,
   N_pop,
@@ -20,14 +20,14 @@ el_build_equation_system(
 
 Returns a function that evaluates the stacked EL system for \\\theta =
 (\beta, z, \lambda_x)\\ with \\z = \operatorname{logit}(W)\\. Blocks
-correspond to: (i) response-model score equations in \\\beta\\, (ii) the
-response-rate equation in \\W\\, and (iii) auxiliary moment constraints
-in \\\lambda_x\\. When no auxiliaries are present the last block is
-omitted. The system matches Qin, Leung, and Shao (2002, Eqs. 7-10) with
-empirical masses \\m_i = d_i/D_i(\theta)\\, \\D_i\\ as in the paper. We
-cap \\\eta\\, clip \\p\\, and guard \\D_i\\ away from zero to ensure
-numerical stability; these safeguards are applied consistently in
-equations, Jacobian, and post-solution weights.
+correspond to: (i) missingness (response) model score equations in
+\\\beta\\, (ii) the response-rate equation in \\W\\, and (iii) auxiliary
+moment constraints in \\\lambda_x\\. When no auxiliaries are present the
+last block is omitted. The system matches Qin, Leung, and Shao (2002,
+Eqs. 7-10) with empirical masses \\m_i = d_i/D_i(\theta)\\, \\D_i\\ as
+in the paper. We cap \\\eta\\, clip \\p\\, and guard \\D_i\\ away from
+zero to ensure numerical stability; these safeguards are applied
+consistently in equations, Jacobian, and post-solution weights.
 
 Guarding policy (must remain consistent across
 equations/Jacobian/post): - Cap eta: eta \<- pmax(pmin(eta,
