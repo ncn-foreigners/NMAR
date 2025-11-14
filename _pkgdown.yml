@@ -15,7 +15,7 @@ articles:
   - title: Estimators
     desc: >
       Step-by-step tutorials for using estimators in nmar package including both data.frame and survey design objects
-    navbar: ~
+    navbar: Tutorials
     contents:
       # - Empirical Likelihood
       # - Exponential Tilting
@@ -31,8 +31,10 @@ articles:
   - title: Theory
     # desc: >
     #   Theoretical background of estimators
+    navbar: Theory
     contents:
       - el_empirical_likelihood_theory
+      - exptilt_theory
 
 
 
