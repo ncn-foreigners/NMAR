@@ -18,7 +18,8 @@ el_prepare_design <- function(formula, data, require_na = TRUE) {
     missingness_design = missingness_design,
     auxiliary_design_full = aux_design,
     respondent_mask = parsed$mask,
-    outcome_var = parsed$outcome_var
+    outcome_var = parsed$outcome_label,
+    outcome_source = parsed$outcome_source
   )
 
   structure(design, class = "el_design")
@@ -36,19 +37,20 @@ el_parse_formula <- function(formula, data, require_na) {
   if (is.null(lhs_part) || is.null(rhs_part)) {
     stop("`formula` must be a two-sided formula, e.g., y ~ x1 + x2.", call. = FALSE)
   }
-  if (!is.symbol(lhs_part)) {
+  lhs_vars <- unique(all.vars(lhs_part))
+  if (length(lhs_vars) == 0) {
+    stop("Left-hand side must reference a variable in `data`.", call. = FALSE)
+  }
+  if (length(lhs_vars) > 1) {
     stop(
-      paste0(
-        "The left-hand side must be a variable name. ",
-        "Create a transformed column in data (e.g., df$logY <- log(df$Y)) ",
-        "and then use that name on the LHS."
-      ),
+      "Left-hand side may reference only one outcome variable; pre-compute other transforms before modeling.",
       call. = FALSE
     )
   }
 
-  outcome_var <- as.character(lhs_part)
-  el_validate_outcome(data, outcome_var, require_na = require_na)
+  outcome_source <- lhs_vars[[1L]]
+  el_validate_outcome(data, outcome_source, require_na = require_na)
+  outcome_label <- el_outcome_label(lhs_part)
 
   fml <- el_as_formula(base_formula)
   parts <- length(fml)
@@ -73,17 +75,30 @@ el_parse_formula <- function(formula, data, require_na) {
     stop("Internal error: response extraction did not align with data.", call. = FALSE)
   }
 
-  mask <- !is.na(response_vector)
+  mask <- !is.na(data[[outcome_source]])
   respondents_only <- all(mask)
   if (isTRUE(require_na) && respondents_only) {
-    stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_var), call. = FALSE)
+    stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_source), call. = FALSE)
+  }
+
+  response_na <- is.na(response_vector)
+  transformed_na <- which(mask & response_na)
+  if (length(transformed_na) > 0) {
+    stop(
+      sprintf(
+        "LHS expression '%s' produced NA/NaN for observed outcome rows. Ensure the transform is defined for all respondents.",
+        outcome_label
+      ),
+      call. = FALSE
+    )
   }
 
   list(
     fml = fml,
     model_frame = model_frame,
     response_vector = response_vector,
-    outcome_var = outcome_var,
+    outcome_label = outcome_label,
+    outcome_source = outcome_source,
     mask = mask,
     respondent_indices = which(mask),
     n_rhs_parts = n_rhs_parts
@@ -101,13 +116,15 @@ el_build_aux_design <- function(parsed) {
   aux_terms <- rhs$terms
 
   aux_expr_vars <- if (!is.null(aux_expr)) all.vars(aux_expr) else character(0)
-  if (length(aux_expr_vars) > 0 && parsed$outcome_var %in% aux_expr_vars) {
+  if (length(aux_expr_vars) > 0 && parsed$outcome_source %in% aux_expr_vars) {
     stop("The outcome cannot appear in auxiliary constraints.", call. = FALSE)
   }
 
   aux_matrix <- drop_intercept(rhs$matrix)
-  if (ncol(aux_matrix) > 0 && parsed$outcome_var %in% colnames(aux_matrix)) {
-    aux_matrix <- aux_matrix[, colnames(aux_matrix) != parsed$outcome_var, drop = FALSE]
+  drop_names <- c(parsed$outcome_source, parsed$outcome_label)
+  if (ncol(aux_matrix) > 0) {
+    keep <- !colnames(aux_matrix) %in% drop_names
+    aux_matrix <- aux_matrix[, keep, drop = FALSE]
   }
 
   intercept_requested <- isTRUE(attr(aux_terms, "intercept") == 1) && el_has_explicit_intercept(aux_expr)
@@ -134,7 +151,7 @@ el_build_missingness_design <- function(parsed) {
   colnames(intercept_col) <- "(Intercept)"
 
   outcome_col <- matrix(parsed$response_vector[parsed$mask], ncol = 1)
-  colnames(outcome_col) <- parsed$outcome_var
+  colnames(outcome_col) <- parsed$outcome_label
 
   rhs_predictors <- if (parsed$n_rhs_parts >= 2L) {
     rhs <- el_materialize_rhs(parsed, part = 2L, label = "response predictors")
@@ -157,12 +174,7 @@ el_materialize_rhs <- function(parsed, part, label) {
   rhs_formula <- stats::formula(parsed$fml, lhs = 0, rhs = part)
   rhs_expr <- el_rhs_expression(rhs_formula)
   rhs_terms <- el_terms_no_offset(rhs_formula, parsed$model_frame, "data", label)
-# Force an intercept in the terms used for model.matrix to ensure stable
-# L-1 coding for factor columns, regardless of user '-1/+0'. The intercept is
-# removed later via drop_intercept().
-  terms_for_mm <- rhs_terms
-  attr(terms_for_mm, "intercept") <- 1L
-  mm <- el_with_formula_errors(stats::model.matrix(terms_for_mm, data = parsed$model_frame), "data")
+  mm <- el_with_formula_errors(stats::model.matrix(rhs_terms, data = parsed$model_frame), "data")
   list(matrix = mm, expr = rhs_expr, terms = rhs_terms)
 }
 
@@ -281,6 +293,10 @@ el_validate_outcome <- function(data, outcome_var, require_na) {
     stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_var), call. = FALSE)
   }
   invisible(NULL)
+}
+
+el_outcome_label <- function(expr) {
+  paste(deparse(expr), collapse = " ")
 }
 
 el_validate_design_spec <- function(design, data_nrow, context_label) {

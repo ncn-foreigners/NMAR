@@ -43,7 +43,7 @@ el_prepare_analysis_context <- function(data,
                                         N_pop = NULL,
                                         is_survey = FALSE,
                                         design_object = NULL) {
-  outcome_var <- design_inputs$outcome_var
+  outcome_var <- design_inputs$outcome_source %||% design_inputs$outcome_var
   mask <- design_inputs$respondent_mask
   if (length(mask) != nrow(data)) {
     stop("Internal error: respondent mask must have the same length as data.", call. = FALSE)

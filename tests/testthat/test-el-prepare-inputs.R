@@ -17,14 +17,38 @@ test_that("el_prepare_design expands dot notation via Formula", {
   expect_true(all(c("(Intercept)", "Y_miss", "X1", "X2", "Z") %in% colnames(design$missingness_design)))
 })
 
-test_that("el_prepare_design requires bare outcome names", {
+test_that("el_prepare_design accepts transformed outcomes and tracks source column", {
   df <- data.frame(
     Y_miss = c(1, NA, 2, NA),
     X = rnorm(4)
   )
+  design <- NMAR:::el_prepare_design(log(Y_miss) ~ X, df, require_na = FALSE)
+  expect_identical(design$outcome_var, "log(Y_miss)")
+  expect_identical(design$outcome_source, "Y_miss")
+  expect_true("log(Y_miss)" %in% colnames(design$missingness_design))
+})
+
+test_that("LHS expressions referencing multiple outcome variables are rejected", {
+  df <- data.frame(
+    Y_miss = c(1, NA, 2, NA),
+    Y2 = rnorm(4),
+    X = rnorm(4)
+  )
+  expect_error(
+    NMAR:::el_prepare_design(I(Y_miss + Y2) ~ X, df, require_na = FALSE),
+    regexp = "Left-hand side may reference only one outcome variable",
+    fixed = FALSE
+  )
+})
+
+test_that("transforms that introduce NA for respondents are rejected", {
+  df <- data.frame(
+    Y_miss = c(1, NA, -2, NA),
+    X = rnorm(4)
+  )
   expect_error(
     NMAR:::el_prepare_design(log(Y_miss) ~ X, df, require_na = FALSE),
-    regexp = "left-hand side must be a variable name",
+    regexp = "produced NA/NaN",
     fixed = FALSE
   )
 })
@@ -179,6 +203,7 @@ test_that("el_prepare_design handles language objects coerced to formula", {
   lang_formula <- as.call(list(as.name("~"), quote(Y_miss), quote(X)))
   parsed <- NMAR:::el_prepare_design(lang_formula, df, require_na = FALSE)
   expect_identical(parsed$outcome_var, "Y_miss")
+  expect_identical(parsed$outcome_source, "Y_miss")
   expect_true("(Intercept)" %in% colnames(parsed$missingness_design))
 })
 

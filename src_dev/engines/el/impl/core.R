@@ -10,7 +10,7 @@
 #' @param auxiliary_means Named numeric vector of known population means supplied by the user (optional; used for diagnostics).
 #' @param respondent_weights Numeric vector of respondent weights aligned with `missingness_design` rows.
 #' @param full_data Data object used for logging (survey designs supply the design object).
-#' @param outcome_var Character string identifying the outcome variable.
+#' @param outcome_var Character string identifying the outcome expression displayed in outputs.
 #' @param N_pop Population size on the analysis scale.
 #' @param standardize Logical. Whether to standardize predictors during estimation.
 #' @param trim_cap Numeric. Upper bound for empirical likelihood weight trimming.

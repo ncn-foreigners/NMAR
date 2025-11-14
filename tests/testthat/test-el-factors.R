@@ -18,7 +18,11 @@ test_that("EL handles factor auxiliaries and response predictors; intercept poli
 # Use a model where RHS expands factor(G) in auxiliaries
   expect_s3_class(nmar(Y_miss ~ X + G | Z, data = df2, engine = eng), "nmar_result_el")
 
-# Case 2: no auxiliary_means -> NA anywhere in aux should error
+# Case 2: no auxiliary_means -> NA columns trigger error
   eng2 <- el_engine(auxiliary_means = NULL, variance_method = "none")
-  expect_error(nmar(Y_miss ~ X + G | Z, data = df2, engine = eng2), regexp = "Auxiliary variables contain NA values")
+  expect_error(
+    nmar(Y_miss ~ X + G | Z, data = df2, engine = eng2),
+    regexp = "Auxiliary variables contain NA values",
+    fixed = TRUE
+  )
 })

@@ -33,7 +33,7 @@ make_engine <- function(variance_method = c("delta", "bootstrap", "none"),
 
 prepare_el_inputs <- function(formula, data, require_na = TRUE, auxiliary_means = NULL) {
   design <- NMAR:::el_prepare_design(formula, data, require_na)
-  delta <- NMAR:::el_make_delta_column_name(data, design$outcome_var, design$respondent_mask)
+  delta <- NMAR:::el_make_delta_column_name(data, design$outcome_source, design$respondent_mask)
   list(
     data = delta$data,
     outcome_var = design$outcome_var,

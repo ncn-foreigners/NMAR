@@ -24,4 +24,5 @@ test_that("el_prepare_analysis_context validates mask and weights", {
   expect_equal(res$N_pop, nrow(dat2))
   expect_equal(length(res$respondent_weights), sum(design$respondent_mask))
   expect_equal(design$outcome_var, "Y_miss")
+  expect_equal(design$outcome_source, "Y_miss")
 })
