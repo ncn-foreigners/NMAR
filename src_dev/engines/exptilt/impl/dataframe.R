@@ -21,29 +21,44 @@ exptilt.data.frame <- function(data, formula,
   variance_method <- match.arg(variance_method)
   on_failure <- match.arg(on_failure)
 
-  # f <- as.list(Formula::Formula(formula))
-  # Y = Formula::model.part(f, data = data, lhs = NULL)
-  # X = model.matrix(f, data = data, rhs = 1, na.action = na.pass)
-  # Z = model.matrix(f, data = data, rhs = 2, na.action = na.pass)
-  res= et_extract_formula(format(formula), data)
-  Y= res$Y
-  X= res$X
-  Z= res$Z
+# f <- as.list(Formula::Formula(formula))
+# Y = Formula::model.part(f, data = data, lhs = NULL)
+# X = model.matrix(f, data = data, rhs = 1, na.action = na.pass)
+# Z = model.matrix(f, data = data, rhs = 2, na.action = na.pass)
+  res = et_extract_formula(format(formula), data)
+  Y = res$Y
+  X = res$X
+  Z = res$Z
   outcome_var <- as.vector(colnames(Y)[1])
+  if (is.null(Z)) {
+    Z = matrix(1, nrow = nrow(X), ncol = 1)
+    colnames(Z) = "(Intercept)"
+  }
 
-  # browser()
-
+# browser()
   if (length(colnames(Y)) > 1) {
     stop("Exptilt supports only single outcome variable.")
   }
 
   X = X[, !colnames(X) %in% c("(Intercept)"), drop = FALSE]
 
-  Z = Z[, !colnames(Z) %in% c("(Intercept)"), drop = FALSE]
+  if (outcome_var %in% colnames(Z)) {
+    warning(
+      sprintf(
+        "Outcome variable (%s) found in missingness predictors; Performance with / without %s on the right side is the same \n",
+        outcome_var,
+        outcome_var
+      ),
+      call. = FALSE
+    )
+  }
+
+  Z = Z[, !colnames(Z) %in% c("(Intercept)", outcome_var), drop = FALSE]
 
   cols_y_observed <- as.vector(colnames(X))
   cols_delta <- as.vector(colnames(Z))
 
+# browser()
   et_validate_df(X, Y, Z)
 
 

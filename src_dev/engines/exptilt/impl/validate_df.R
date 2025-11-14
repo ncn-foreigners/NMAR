@@ -4,9 +4,9 @@ et_validate_df <- function(X, Y, Z) {
 
 # --- Helper checks for empty data frames ---
 # We define "empty" as having 0 rows or 0 columns
-  is_X_empty <- nrow(X) == 0 || ncol(X) == 0
-  is_Y_empty <- nrow(Y) == 0 || ncol(Y) == 0
-  is_Z_empty <- nrow(Z) == 0 || ncol(Z) == 0
+  is_X_empty <- is.null(X) || nrow(X) == 0 || ncol(X) == 0
+  is_Y_empty <- is.null(Y) || nrow(Y) == 0 || ncol(Y) == 0
+  is_Z_empty <- is.null(Z) || nrow(Z) == 0 || ncol(Z) == 0
 
 # --- 1. Validate Column Names (Disjoint Sets) ---
 # Colnames across all *non-empty* data frames must be unique.
