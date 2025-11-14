@@ -259,5 +259,5 @@ test_that("missingness predictors with zero variance among respondents only warn
     regexp = "Missingness-model predictor .* zero variance",
     fixed = FALSE
   )
-  expect_s3_class(design, "el_design")
+  expect_s3_class(design, "el_design_spec")
 })

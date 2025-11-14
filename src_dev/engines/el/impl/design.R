@@ -1,11 +1,10 @@
 #' EL design construction and Formula workflow
 #'
-#' Builds the shared design matrices for the empirical likelihood estimator.
-#' A single `model.frame()` is constructed from the supplied `Formula`, the
-#' respondent mask is derived from the numeric outcome, and then each RHS part
-#' is materialized via the standard Formula `model.matrix()` helpers. Auxiliary
-#' matrices are full-data, L-1 coded, and never contain an intercept; missingness
-#' matrices are respondent-only with an explicit intercept and outcome column.
+#' Parses the user formula once via `Formula::model.frame()` and materializes
+#' each RHS block with the standard `model.matrix()` machinery. Auxiliary
+#' designs are built on the full dataset (with the intercept and outcome
+#' columns removed) while the missingness design uses only respondent rows
+#' and always includes an explicit intercept and outcome column.
 #'
 #' @keywords internal
 el_prepare_design <- function(formula, data, require_na = TRUE) {
@@ -22,7 +21,7 @@ el_prepare_design <- function(formula, data, require_na = TRUE) {
     outcome_source = parsed$outcome_source
   )
 
-  structure(design, class = "el_design")
+  structure(design, class = "el_design_spec")
 }
 
 el_parse_formula <- function(formula, data, require_na) {
@@ -120,22 +119,27 @@ el_build_aux_design <- function(parsed) {
   }
 
   aux_matrix <- rhs$matrix
-  drop_names <- c("(Intercept)", parsed$outcome_source, parsed$outcome_label)
+  intercept_requested <- isTRUE(attr(rhs$terms, "intercept") == 1) && el_has_explicit_intercept(aux_expr)
+  if (ncol(aux_matrix) > 0 && "(Intercept)" %in% colnames(aux_matrix)) {
+    aux_matrix <- aux_matrix[, colnames(aux_matrix) != "(Intercept)", drop = FALSE]
+  }
+  if (intercept_requested) {
+    warning("Auxiliary intercepts are ignored; + 1 has no effect.", call. = FALSE)
+  }
+
+  drop_names <- c(parsed$outcome_source, parsed$outcome_label)
   if (ncol(aux_matrix) > 0) {
     keep <- !colnames(aux_matrix) %in% drop_names
     aux_matrix <- aux_matrix[, keep, drop = FALSE]
   }
 
-  intercept_requested <- isTRUE(attr(rhs$terms, "intercept") == 1) && el_has_explicit_intercept(aux_expr)
-  if (intercept_requested) {
-    warning("Auxiliary intercepts are ignored; + 1 has no effect.", call. = FALSE)
-  }
-
-  if (ncol(aux_matrix) > 0) {
-    aux_resp <- aux_matrix[parsed$mask, , drop = FALSE]
-    el_assert_no_na(aux_resp, parsed$respondent_indices, "Auxiliary covariate")
-    el_check_constant_columns(aux_resp, label = "Auxiliary covariate", severity = "error")
-  }
+  el_validate_matrix_block(
+    mat = aux_matrix,
+    mask = parsed$mask,
+    row_map = parsed$respondent_indices,
+    label = "Auxiliary covariate",
+    severity = "error"
+  )
 
   aux_matrix
 }
@@ -161,10 +165,14 @@ el_build_missingness_design <- function(parsed) {
     if ("(Intercept)" %in% colnames(rhs_matrix)) {
       rhs_matrix <- rhs_matrix[, colnames(rhs_matrix) != "(Intercept)", drop = FALSE]
     }
-    rhs_sub <- rhs_matrix[parsed$mask, , drop = FALSE]
-    el_assert_no_na(rhs_sub, parsed$respondent_indices, "Missingness-model predictor")
-    el_check_constant_columns(rhs_sub, label = "Missingness-model predictor", severity = "warn")
-    rhs_sub
+    el_validate_matrix_block(
+      mat = rhs_matrix,
+      mask = parsed$mask,
+      row_map = parsed$respondent_indices,
+      label = "Missingness-model predictor",
+      severity = "warn"
+    )
+    rhs_matrix[parsed$mask, , drop = FALSE]
   } else {
     matrix(nrow = n_resp, ncol = 0)
   }
@@ -177,7 +185,10 @@ el_materialize_rhs <- function(parsed, part, label) {
   rhs_expr <- tryCatch(rhs_formula[[2L]], error = function(e) NULL)
   rhs_terms <- el_with_formula_errors(stats::terms(rhs_formula, data = parsed$model_frame), "data")
   el_assert_no_offset(rhs_terms, "data", label)
-  mm <- el_with_formula_errors(stats::model.matrix(rhs_terms, data = parsed$model_frame), "data")
+  mm <- el_with_formula_errors(
+    stats::model.matrix(parsed$fml, data = parsed$model_frame, rhs = part),
+    "data"
+  )
   list(matrix = mm, expr = rhs_expr, terms = rhs_terms)
 }
 
@@ -211,6 +222,14 @@ el_has_explicit_intercept <- function(node) {
   FALSE
 }
 
+
+el_validate_matrix_block <- function(mat, mask, row_map, label, severity = c("error", "warn")) {
+  if (is.null(mat) || !is.matrix(mat) || ncol(mat) == 0 || nrow(mat) == 0) return(invisible(NULL))
+  mat_sub <- if (is.null(mask)) mat else mat[mask, , drop = FALSE]
+  if (nrow(mat_sub) == 0 || ncol(mat_sub) == 0) return(invisible(NULL))
+  el_assert_no_na(mat_sub, row_map, label)
+  el_check_constant_columns(mat_sub, label = label, severity = severity)
+}
 
 el_check_constant_columns <- function(mat, label, severity = c("error", "warn")) {
   severity <- match.arg(severity)

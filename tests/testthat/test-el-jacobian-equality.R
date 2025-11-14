@@ -8,20 +8,20 @@ test_that("analytic Jacobian matches numeric Jacobian at solution (logit and pro
   )
   expect_type(fit$converged, "logical")
 
-  design <- NMAR:::el_prepare_design(Y_miss ~ X, df, require_na = FALSE)
-  prep <- NMAR:::el_prepare_analysis_context(
+  spec <- NMAR:::el_build_input_spec(
+    formula = Y_miss ~ X,
     data = df,
-    design_inputs = design,
     weights_full = NULL,
-    N_pop = NULL,
+    population_total = NULL,
     is_survey = FALSE,
-    design_object = NULL
+    design_object = NULL,
+    auxiliary_means = NULL
   )
-  dat2 <- if (inherits(prep$analysis_object, "survey.design")) prep$analysis_object$variables else prep$analysis_object
-  obs_idx <- prep$respondent_indices
+  dat2 <- if (inherits(spec$analysis_object, "survey.design")) spec$analysis_object$variables else spec$analysis_object
+  obs_idx <- spec$respondent_indices
   resp_df <- dat2[obs_idx, ]
-  Z_un <- design$missingness_design
-  X_un <- design$auxiliary_design_full[design$respondent_mask, , drop = FALSE]
+  Z_un <- spec$missingness_design
+  X_un <- spec$auxiliary_design_full[spec$respondent_mask, , drop = FALSE]
   aux_means <- if (ncol(X_un) > 0) setNames(rep(0, ncol(X_un)), colnames(X_un)) else NULL
   aux_mat <- if (ncol(X_un) > 0) X_un else matrix(nrow = nrow(Z_un), ncol = 0)
   sc <- NMAR:::validate_and_apply_nmar_scaling(FALSE, ncol(aux_mat) > 0, Z_un, aux_mat, aux_means)

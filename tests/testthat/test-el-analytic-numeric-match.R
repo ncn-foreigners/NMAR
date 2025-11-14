@@ -12,19 +12,19 @@ test_that("analytic vs numeric Jacobian agree across links and scaling", {
 
 # Helper to check one configuration
   check_one <- function(fam, standardize) {
-    design <- NMAR:::el_prepare_design(Y_miss ~ X1 + X2 | Z, df, require_na = FALSE)
-    prep <- NMAR:::el_prepare_analysis_context(
+    spec <- NMAR:::el_build_input_spec(
+      formula = Y_miss ~ X1 + X2 | Z,
       data = df,
-      design_inputs = design,
       weights_full = NULL,
-      N_pop = NULL,
+      population_total = NULL,
       is_survey = FALSE,
-      design_object = NULL
+      design_object = NULL,
+      auxiliary_means = NULL
     )
-    dat2 <- if (inherits(prep$analysis_object, "survey.design")) prep$analysis_object$variables else prep$analysis_object
-    resp_df <- dat2[prep$respondent_indices, , drop = FALSE]
-    Z_un <- design$missingness_design
-    X_un <- design$auxiliary_design_full[design$respondent_mask, , drop = FALSE]
+    dat2 <- if (inherits(spec$analysis_object, "survey.design")) spec$analysis_object$variables else spec$analysis_object
+    resp_df <- dat2[spec$respondent_indices, , drop = FALSE]
+    Z_un <- spec$missingness_design
+    X_un <- spec$auxiliary_design_full[spec$respondent_mask, , drop = FALSE]
     aux_means <- setNames(rep(0, ncol(X_un)), colnames(X_un))
     sc <- NMAR:::validate_and_apply_nmar_scaling(standardize, ncol(X_un) > 0, Z_un, X_un, aux_means, weights = rep(1, nrow(resp_df)))
     Z <- sc$response_model_matrix_scaled

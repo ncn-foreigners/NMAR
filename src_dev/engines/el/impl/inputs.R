@@ -1,4 +1,8 @@
 #' Build the combined EL input specification
+#'
+#' Constructs the parsed design matrices and augments the data with the
+#' respondent indicator so iid and survey entry points can share the same
+#' downstream workflow.
 #' @keywords internal
 el_build_input_spec <- function(formula,
                                 data,
@@ -14,31 +18,54 @@ el_build_input_spec <- function(formula,
     data = data,
     require_na = FALSE
   )
+  el_validate_design_spec(design, data_nrow = nrow(data), context_label = context_label)
   el_require_population_inputs(design, n_total_arg, auxiliary_means, context_label)
 
-  context <- el_prepare_analysis_context(
-    data = data,
-    design_inputs = design,
-    weights_full = weights_full,
-    N_pop = population_total,
-    is_survey = is_survey,
-    design_object = design_object
-  )
+  outcome_var <- design$outcome_source %||% design$outcome_var
+  mask <- design$respondent_mask
+  if (length(mask) != nrow(data)) {
+    stop("Internal error: respondent mask must have the same length as data.", call. = FALSE)
+  }
+
+  delta <- el_make_delta_column_name(data, outcome_var, mask)
+  data_aug <- delta$data
+  respondent_indices <- which(mask)
+  if (length(respondent_indices) == 0) {
+    stop("No respondents detected in data after preprocessing.", call. = FALSE)
+  }
+
+  if (!is.null(weights_full)) {
+    if (length(weights_full) != nrow(data)) {
+      stop("`weights_full` must align with the number of rows in the data.", call. = FALSE)
+    }
+    respondent_weights <- weights_full[mask]
+  } else {
+    respondent_weights <- rep(1, length(respondent_indices))
+  }
+
+  analysis_object <- if (isTRUE(is_survey)) {
+    if (is.null(design_object)) {
+      stop("Internal error: design object must be supplied for survey workflows.", call. = FALSE)
+    }
+    design_object$variables <- data_aug
+    design_object
+  } else {
+    data_aug
+  }
+
+  N_pop_val <- population_total %||% nrow(data_aug)
 
   list(
     missingness_design = design$missingness_design,
     auxiliary_design_full = design$auxiliary_design_full,
-    respondent_mask = design$respondent_mask,
+    respondent_mask = mask,
     outcome_var = design$outcome_var,
-    outcome_source = design$outcome_source,
-    analysis_object = context$analysis_object,
-    respondent_weights = context$respondent_weights,
-    respondent_indices = context$respondent_indices,
-    N_pop = context$N_pop,
-    weights_full = context$weights_full,
-    is_survey = context$is_survey,
-    data_nrow = nrow(data),
-    context_label = context$context_label
+    analysis_object = analysis_object,
+    respondent_weights = respondent_weights,
+    respondent_indices = respondent_indices,
+    N_pop = N_pop_val,
+    weights_full = weights_full,
+    is_survey = isTRUE(is_survey)
   )
 }
 
@@ -65,69 +92,6 @@ el_require_population_inputs <- function(design, n_total, auxiliary_means, conte
     )
   }
   invisible(NULL)
-}
-
-#' Prepare respondent-level inputs shared by IID and survey entry points
-#'
-#' Builds the analysis object and respondent metadata used by the estimator.
-#' Adds a delta indicator column to the data and returns respondent weights,
-#' indices, and the analysis-scale population size.
-#'
-#' @param data Data frame (or survey design variables) containing the outcome.
-#' @param design_inputs Design list returned by `el_prepare_design()`.
-#' @param weights_full Optional weight vector aligned with `data` (survey designs supply this).
-#' @param N_pop Optional population size; defaults to the augmented row count when missing.
-#' @param is_survey Logical; `TRUE` when called from the survey method.
-#' @param design_object Survey design object when `is_survey = TRUE`.
-#' @return A list with fields `analysis_object`, `respondent_weights`, `respondent_indices`, and `N_pop`.
-#' @keywords internal
-el_prepare_analysis_context <- function(data,
-                                        design_inputs,
-                                        weights_full = NULL,
-                                        N_pop = NULL,
-                                        is_survey = FALSE,
-                                        design_object = NULL) {
-  outcome_var <- design_inputs$outcome_source %||% design_inputs$outcome_var
-  mask <- design_inputs$respondent_mask
-  if (length(mask) != nrow(data)) {
-    stop("Internal error: respondent mask must have the same length as data.", call. = FALSE)
-  }
-
-  delta <- el_make_delta_column_name(data, outcome_var, mask)
-  data_aug <- delta$data
-  respondent_indices <- which(mask)
-  if (length(respondent_indices) == 0) {
-    stop("No respondents detected in data after preprocessing.", call. = FALSE)
-  }
-
-  if (!is.null(weights_full)) {
-    if (length(weights_full) != nrow(data)) {
-      stop("`weights_full` must align with the number of rows in the data.", call. = FALSE)
-    }
-    respondent_weights <- weights_full[mask]
-  } else {
-    respondent_weights <- rep(1, length(respondent_indices))
-  }
-
-  N_pop_val <- N_pop %||% nrow(data_aug)
-
-  analysis_object <- if (isTRUE(is_survey)) {
-    design_object$variables <- data_aug
-    design_object
-  } else {
-    data_aug
-  }
-
-  list(
-    analysis_object = analysis_object,
-    design_object = if (isTRUE(is_survey)) analysis_object else NULL,
-    respondent_weights = respondent_weights,
-    respondent_indices = respondent_indices,
-    N_pop = N_pop_val,
-    weights_full = weights_full,
-    is_survey = isTRUE(is_survey),
-    context_label = if (isTRUE(is_survey)) "survey design" else "data"
-  )
 }
 
 #' Create the NMAR delta indicator column
@@ -170,16 +134,6 @@ el_run_core_analysis <- function(call,
                                  start,
                                  trace_level,
                                  extra_user_args = list()) {
-  el_validate_design_spec(
-    design = list(
-      respondent_mask = input_spec$respondent_mask,
-      missingness_design = input_spec$missingness_design,
-      auxiliary_design_full = input_spec$auxiliary_design_full
-    ),
-    data_nrow = input_spec$data_nrow,
-    context_label = input_spec$context_label
-  )
-
   aux_summary <- el_resolve_auxiliaries(
     auxiliary_design_full = input_spec$auxiliary_design_full,
     respondent_mask = input_spec$respondent_mask,
