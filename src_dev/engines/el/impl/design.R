@@ -18,8 +18,7 @@ el_prepare_design <- function(formula, data, require_na = TRUE) {
     missingness_design = missingness_design,
     auxiliary_design_full = aux_design,
     respondent_mask = parsed$mask,
-    outcome_var = parsed$outcome_var,
-    response_vector = parsed$response_vector
+    outcome_var = parsed$outcome_var
   )
 
   structure(design, class = "el_design")
@@ -38,7 +37,14 @@ el_parse_formula <- function(formula, data, require_na) {
     stop("`formula` must be a two-sided formula, e.g., y ~ x1 + x2.", call. = FALSE)
   }
   if (!is.symbol(lhs_part)) {
-    stop("The left-hand side must be a variable name. Create a column in `data` for transformed outcomes.", call. = FALSE)
+    stop(
+      paste0(
+        "The left-hand side must be a variable name. ",
+        "Create a transformed column in data (e.g., df$logY <- log(df$Y)) ",
+        "and then use that name on the LHS."
+      ),
+      call. = FALSE
+    )
   }
 
   outcome_var <- as.character(lhs_part)
@@ -151,6 +157,9 @@ el_materialize_rhs <- function(parsed, part, label) {
   rhs_formula <- stats::formula(parsed$fml, lhs = 0, rhs = part)
   rhs_expr <- el_rhs_expression(rhs_formula)
   rhs_terms <- el_terms_no_offset(rhs_formula, parsed$model_frame, "data", label)
+# Force an intercept in the terms used for model.matrix to ensure stable
+# L-1 coding for factor columns, regardless of user '-1/+0'. The intercept is
+# removed later via drop_intercept().
   terms_for_mm <- rhs_terms
   attr(terms_for_mm, "intercept") <- 1L
   mm <- el_with_formula_errors(stats::model.matrix(terms_for_mm, data = parsed$model_frame), "data")
@@ -281,9 +290,6 @@ el_validate_design_spec <- function(design, data_nrow, context_label) {
   }
   if (length(mask) != data_nrow) {
     stop(sprintf("Internal error: respondent mask length (%d) must equal %s rows (%d).", length(mask), context_label, data_nrow), call. = FALSE)
-  }
-  if (!is.numeric(design$response_vector) || length(design$response_vector) != length(mask)) {
-    stop("Internal error: response_vector must align with respondent mask.", call. = FALSE)
   }
   missingness_design <- design$missingness_design
   if (!is.null(missingness_design) && nrow(missingness_design) != sum(mask)) {

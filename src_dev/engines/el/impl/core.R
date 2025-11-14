@@ -5,7 +5,6 @@
 #' and diagnostic computation.
 #'
 #' @param missingness_design Respondent-side missingness (response) model design matrix (intercept + predictors).
-#' @param response_outcome Numeric vector of respondent outcomes (used for point estimate).
 #' @param auxiliary_matrix Auxiliary design matrix on respondents (may have zero columns).
 #' @param mu_x Named numeric vector of auxiliary population means (aligned to columns of `auxiliary_matrix`).
 #' @param auxiliary_means Named numeric vector of known population means supplied by the user (optional; used for diagnostics).
@@ -39,7 +38,6 @@
 #'
 #' @keywords internal
 el_estimator_core <- function(missingness_design,
-                              response_outcome,
                               auxiliary_matrix, mu_x,
                               respondent_weights,
                               full_data,
@@ -75,6 +73,13 @@ el_estimator_core <- function(missingness_design,
   auxiliary_matrix_unscaled <- auxiliary_matrix
   mu_x_unscaled <- mu_x
   K_aux <- if (has_aux) ncol(auxiliary_matrix_unscaled) else 0
+# Derive the respondent outcomes from the unscaled missingness design
+# The outcome column is named by outcome_var
+  if (!is.null(outcome_var) && outcome_var %in% colnames(missingness_model_matrix_unscaled)) {
+    response_outcome <- missingness_model_matrix_unscaled[, outcome_var]
+  } else {
+    stop("Internal error: outcome column not found in missingness design.", call. = FALSE)
+  }
 
 # Data summary
   n_resp_weighted <- sum(respondent_weights)
