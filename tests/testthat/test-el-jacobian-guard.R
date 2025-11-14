@@ -16,7 +16,7 @@ test_that("EL analytic Jacobian matches numeric (no aux, logit)", {
 
   eq <- NMAR:::el_build_equation_system(
     family = fam,
-    response_model_matrix = X,
+    missingness_model_matrix = X,
     auxiliary_matrix = matrix(nrow = n, ncol = 0),
     respondent_weights = resp_w,
     N_pop = N_pop,
@@ -25,7 +25,7 @@ test_that("EL analytic Jacobian matches numeric (no aux, logit)", {
   )
   jac <- NMAR:::el_build_jacobian(
     family = fam,
-    response_model_matrix = X,
+    missingness_model_matrix = X,
     auxiliary_matrix = matrix(nrow = n, ncol = 0),
     respondent_weights = resp_w,
     N_pop = N_pop,

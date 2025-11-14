@@ -235,6 +235,10 @@ validate_and_apply_nmar_scaling <- function(standardize, has_aux, response_model
       stop("Response and auxiliary matrices must have the same number of rows.", call. = FALSE)
     }
     if (has_aux) {
+# Drop any stray intercept column from auxiliary matrix before name matching
+      if ("(Intercept)" %in% colnames(auxiliary_matrix_unscaled)) {
+        auxiliary_matrix_unscaled <- auxiliary_matrix_unscaled[, setdiff(colnames(auxiliary_matrix_unscaled), "(Intercept)"), drop = FALSE]
+      }
       if (!setequal(colnames(auxiliary_matrix_unscaled), names(mu_x_unscaled))) {
         stop("Names of `auxiliary_means` do not match the variables specified on the RHS of the formula.")
       }
@@ -254,7 +258,7 @@ validate_and_apply_nmar_scaling <- function(standardize, has_aux, response_model
     )
     response_model_matrix_scaled <- apply_nmar_scaling(response_model_matrix_unscaled, nmar_scaling_recipe)
     auxiliary_matrix_scaled <- apply_nmar_scaling(auxiliary_matrix_unscaled, nmar_scaling_recipe)
-    mu_x_scaled <- if (has_aux) {
+    mu_x_scaled <- if (has_aux && !is.null(mu_x_unscaled) && length(mu_x_unscaled) > 0) {
       vapply(names(mu_x_unscaled), function(n) (mu_x_unscaled[n] - nmar_scaling_recipe[[n]]$mean) / nmar_scaling_recipe[[n]]$sd, numeric(1))
     } else {
       numeric(0)

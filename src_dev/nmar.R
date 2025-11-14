@@ -10,7 +10,7 @@
 #'   The left-hand side is the outcome (with `NA` values indicating nonresponse).
 #'   The right-hand side is split by `|` into two parts:
 #'   - left of `|`: auxiliary variables (enter moment constraints);
-#'   - right of `|`: response-model predictors (enter the missingness model only).
+#'   - right of `|`: missingness (response) model predictors (enter the missingness model only).
 #'   If `|` is omitted, only auxiliary variables are used for both parsing and printing.
 #'   The outcome variable is implicitly included in the response model.
 #' @param data A data frame or `survey.design` containing the variables referenced by the
@@ -32,36 +32,23 @@
 #'   convergence information, and other relevant output from the chosen NMAR method.
 #' @keywords nmar
 #' @export
-nmar <- function(formula, data, engine, trace_level = 1) {
+nmar <- function(formula, data, engine, trace_level = 0) {
   stopifnot(inherits(engine, "nmar_engine"))
 
   validator$assert_choice(trace_level, choices = 0:3, name = "trace_level")
+  validate_data(data)
 
-  spec <- parse_nmar_spec(
-    formula = formula,
-    data = data,
-    env = parent.frame()
-  )
+# Dispatch to engine
+  res <- run_engine(engine, formula, data, trace_level)
 
-  traits <- engine_traits(engine)
-# Activate respondents-only relaxation only when the engine supplies
-# the required extra information (currently: n_total for EL).
-  if (isTRUE(traits$allow_respondents_only)) {
-    has_n_total <- !is.null(engine$n_total)
-    traits$allow_respondents_only <- isTRUE(has_n_total)
-  }
-  validate_nmar_args(spec, traits)
-
-# Wrap the validated spec and engine traits into a task object so every
-# engine sees the same downstream interface.
-  task <- new_nmar_task(spec, traits)
-
-# Pass trace_level to the engine
-  task$trace_level <- trace_level
-
-  run_engine(engine, task)
+# Ensure meta$call records the outer nmar() call with the actual formula object
+  nmar_call <- match.call()
+  nmar_call$formula <- formula
+  if (is.null(res$meta) || !is.list(res$meta)) res$meta <- list()
+  res$meta$call <- nmar_call
+  res
 }
 
-run_engine <- function(engine, task) {
+run_engine <- function(engine, formula, data, trace_level) {
   UseMethod("run_engine")
 }

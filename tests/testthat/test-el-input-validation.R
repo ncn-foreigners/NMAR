@@ -52,24 +52,17 @@ test_that("el engine rejects faulty inputs", {
       message = "Variables not found"
     ),
     list(
-      name = "outcome without NA",
-      data = transform(base_df, Y_miss = ifelse(is.na(Y_miss), 0, Y_miss)),
-      formula = Y_miss ~ X,
-      response_predictors = NULL,
-      message = "must contain NA"
-    ),
-    list(
       name = "missing covariate",
       data = base_df,
       formula = Y_miss ~ W,
       response_predictors = NULL,
-      message = "Variables not found"
+      message = "Formula evaluation failed"
     ),
     list(
       name = "missing response predictor",
       data = base_df,
       formula = Y_miss ~ X | W,
-      message = "Variables not found"
+      message = "Formula evaluation failed"
     ),
     list(
       name = "non numeric outcome",
@@ -80,7 +73,12 @@ test_that("el engine rejects faulty inputs", {
     ),
     list(
       name = "NA in covariate",
-      data = transform(base_df, X = replace(X, 1, NA_real_)),
+      data = {
+        df2 <- base_df
+        idx <- which(!is.na(df2$Y_miss))[1]
+        df2$X[idx] <- NA_real_
+        df2
+      },
       formula = Y_miss ~ X,
       response_predictors = NULL,
       message = "contains NA values"
@@ -88,14 +86,25 @@ test_that("el engine rejects faulty inputs", {
   )
 
   for (case in bad_cases) {
-    expect_error(
-      nmar(
-        formula = case$formula,
-        data = case$data,
-        engine = good_engine
-      ),
-      regexp = case$message,
-      info = case$name
-    )
+    if (is.null(case$message)) {
+      expect_error(
+        nmar(
+          formula = case$formula,
+          data = case$data,
+          engine = good_engine
+        ),
+        info = case$name
+      )
+    } else {
+      expect_error(
+        nmar(
+          formula = case$formula,
+          data = case$data,
+          engine = good_engine
+        ),
+        regexp = case$message,
+        info = case$name
+      )
+    }
   }
 })

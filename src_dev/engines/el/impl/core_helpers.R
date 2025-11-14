@@ -138,12 +138,11 @@ el_run_solver <- function(equation_system_func,
 #' diagnostic coherence.
 #'
 #' @param estimates Numeric vector (beta, z, lambda) at the solution.
-#' @param response_model_matrix_scaled Scaled design matrix for the response model.
-#' @param response_model_matrix_unscaled Unscaled design matrix for the response model.
+#' @param missingness_model_matrix_scaled Scaled design matrix for the missingness (response) model.
+#' @param missingness_model_matrix_unscaled Unscaled design matrix for the missingness (response) model.
 #' @param auxiliary_matrix_scaled Scaled auxiliary matrix (or empty matrix).
 #' @param mu_x_scaled Vector of population means for scaled auxiliaries (or NULL).
-#' @param respondent_data Data frame of respondents.
-#' @param outcome_var Character; outcome column name in respondent_data.
+#' @param response_outcome Numeric vector of respondent outcomes.
 #' @param family Family object with linkinv and mu.eta.
 #' @param N_pop Numeric; population total on the analysis scale.
 #' @param respondent_weights Base weights for respondents.
@@ -154,12 +153,11 @@ el_run_solver <- function(equation_system_func,
 #'
 #' @keywords internal
 el_post_solution <- function(estimates,
-                             response_model_matrix_scaled,
-                             response_model_matrix_unscaled,
+                             missingness_model_matrix_scaled,
+                             missingness_model_matrix_unscaled,
                              auxiliary_matrix_scaled,
                              mu_x_scaled,
-                             respondent_data,
-                             outcome_var,
+                             response_outcome,
                              family,
                              N_pop,
                              respondent_weights,
@@ -170,10 +168,10 @@ el_post_solution <- function(estimates,
                              trim_cap,
                              X_centered = NULL) {
   beta_hat_scaled <- estimates[1:K_beta]
-  names(beta_hat_scaled) <- colnames(response_model_matrix_scaled)
+  names(beta_hat_scaled) <- colnames(missingness_model_matrix_scaled)
   W_hat <- stats::plogis(estimates[K_beta + 1])
   lambda_hat <- if (K_aux > 0) estimates[(K_beta + 2):length(estimates)] else numeric(0)
-  eta_i_hat <- as.vector(response_model_matrix_scaled %*% beta_hat_scaled)
+  eta_i_hat <- as.vector(missingness_model_matrix_scaled %*% beta_hat_scaled)
 # Clip eta consistently with equations/Jacobian for diagnostic coherence
   ETA_CAP <- get_eta_cap()
   eta_i_hat_capped <- pmax(pmin(eta_i_hat, ETA_CAP), -ETA_CAP)
@@ -193,9 +191,9 @@ el_post_solution <- function(estimates,
   dpack <- el_denominator(lambda_W_hat, W_hat, Xc_lambda, w_i_hat, denom_floor)
   masses <- el_masses(respondent_weights, dpack$denom, denom_floor, trim_cap)
   prob_mass <- masses$prob_mass
-  y_hat <- el_mean(prob_mass, respondent_data[[outcome_var]])
+  y_hat <- el_mean(prob_mass, response_outcome)
   beta_hat_unscaled <- if (standardize) unscale_coefficients(beta_hat_scaled, matrix(0, K_beta, K_beta), nmar_scaling_recipe)$coefficients else beta_hat_scaled
-  names(beta_hat_unscaled) <- colnames(response_model_matrix_unscaled)
+  names(beta_hat_unscaled) <- colnames(missingness_model_matrix_unscaled)
   list(
     error = FALSE,
     y_hat = y_hat,
@@ -215,17 +213,17 @@ el_post_solution <- function(estimates,
 
 #' Build starting values for the EL solver (beta, z, lambda)
 #' @keywords internal
-el_build_start <- function(response_model_matrix_scaled,
+el_build_start <- function(missingness_model_matrix_scaled,
                            auxiliary_matrix_scaled,
                            nmar_scaling_recipe,
                            start,
                            N_pop,
                            respondent_weights) {
-  K_beta <- ncol(response_model_matrix_scaled)
+  K_beta <- ncol(missingness_model_matrix_scaled)
   K_aux <- if (is.null(auxiliary_matrix_scaled)) 0L else ncol(auxiliary_matrix_scaled)
 
   init_beta <- rep(0, K_beta)
-  names(init_beta) <- colnames(response_model_matrix_scaled)
+  names(init_beta) <- colnames(missingness_model_matrix_scaled)
   init_lambda <- if (K_aux > 0) setNames(rep(0, K_aux), colnames(auxiliary_matrix_scaled)) else numeric(0)
   W0 <- sum(respondent_weights) / N_pop
   W0 <- min(max(W0, 1e-12), 1 - 1e-12)
@@ -233,7 +231,7 @@ el_build_start <- function(response_model_matrix_scaled,
 
   if (!is.null(start) && is.list(start)) {
     if (!is.null(start$beta)) {
-      init_beta <- scale_coefficients(start$beta, nmar_scaling_recipe, colnames(response_model_matrix_scaled))
+      init_beta <- scale_coefficients(start$beta, nmar_scaling_recipe, colnames(missingness_model_matrix_scaled))
     }
     if (!is.null(start$z)) {
       z_try <- as.numeric(start$z)[1]
@@ -337,7 +335,7 @@ el_compute_diagnostics <- function(estimates,
 #' @keywords internal
 el_compute_variance <- function(y_hat,
                                 full_data,
-                                internal_formula,
+                                formula,
                                 user_args,
                                 variance_method,
                                 bootstrap_reps,
@@ -358,7 +356,7 @@ el_compute_variance <- function(y_hat,
       on_failure = on_failure,
       auxiliary_means = auxiliary_means,
       control = control,
-      n_total = NULL,
+      n_total = user_args$n_total %||% NULL,
       start = start,
       family = family
     )
@@ -373,7 +371,7 @@ el_compute_variance <- function(y_hat,
       estimator_func = est_closure,
       point_estimate = y_hat,
       bootstrap_reps = bootstrap_reps,
-      formula = user_args$formula %||% internal_formula$outcome,
+      formula = user_args$formula %||% formula,
       engine_args = engine_args
     )
     boot_try <- tryCatch(

@@ -1,29 +1,13 @@
 #' Run method for EL engine
 #' @keywords internal
 #' @exportS3Method run_engine nmar_engine_el
-run_engine.nmar_engine_el <- function(engine, task) {
-# Reuse the shared design preparation so EL mirrors the ET workflow for
-# survey designs, scaling, and auxiliary moment injection
-  design_info <- prepare_nmar_design(
-    task,
-    standardize = engine$standardize,
-    auxiliary_means = engine$auxiliary_means,
-    include_response = TRUE,
-    include_auxiliary = TRUE
-  )
-
-# Reconstruct a formula carrying response-only predictors to the right of `|`
-  f_use <- nmar_rebuild_partitioned_formula(
-    base_formula = task$formula,
-    response_predictors = design_info$response_predictors,
-    env = task$environment
-  )
-
+run_engine.nmar_engine_el <- function(engine, formula, data, trace_level = 0) {
+# Build argument list for EL implementation directly from engine config
   args <- list(
-    data = design_info$survey_design %||% design_info$data,
-    formula = f_use,
-    auxiliary_means = design_info$auxiliary_means,
-    standardize = design_info$standardize,
+    data = data,
+    formula = formula,
+    auxiliary_means = engine$auxiliary_means,
+    standardize = engine$standardize,
     n_total = engine$n_total,
     start = engine$start,
     trim_cap = engine$trim_cap,
@@ -32,7 +16,7 @@ run_engine.nmar_engine_el <- function(engine, task) {
     variance_method = engine$variance_method,
     bootstrap_reps = engine$bootstrap_reps,
     family = engine$family,
-    trace_level = task$trace_level
+    trace_level = trace_level
   )
 
 # Dispatch to EL implementation (data.frame or survey.design)
@@ -41,6 +25,11 @@ run_engine.nmar_engine_el <- function(engine, task) {
 # Ensure class includes the NMAR parent for downstream compatibility
   if (!inherits(res, "nmar_result_el")) {
     stop("EL engine did not return an 'nmar_result_el' object.")
+  }
+# Patch result metadata: expose outer nmar() call as meta$call and engine call as meta$engine_call
+  if (is.list(res$meta)) {
+    engine_call <- res$meta$call %||% NULL
+    res$meta$engine_call <- engine_call
   }
   res
 }

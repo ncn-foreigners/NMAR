@@ -1,16 +1,39 @@
+#' Rescale survey design weights in place
+#' @keywords internal
+el_rescale_survey_design_weights <- function(design, scale_factor) {
+  if (!inherits(design, "survey.design")) {
+    stop("Internal error: expected a survey.design object for weight rescaling.", call. = FALSE)
+  }
+  if (!is.finite(scale_factor) || scale_factor <= 0) {
+    stop("scale_factor must be a positive, finite numeric value.", call. = FALSE)
+  }
+  design[["prob"]] <- design[["prob"]] / scale_factor
+  if (!is.null(design[["allprob"]])) {
+    design[["allprob"]] <- design[["allprob"]] / scale_factor
+  }
+  design
+}
+
 #' Empirical likelihood for survey designs (NMAR)
 #' @description Internal method dispatched by `el()` when `data` is a `survey.design`.
 #'   Variance via bootstrap is supported. Analytical delta variance for EL is
 #'   not implemented and returns NA when requested.
 #' @param data A `survey.design` created with [survey::svydesign()].
 #' @param formula Two-sided formula: NA-valued outcome on LHS; auxiliaries on RHS.
-#' @param auxiliary_means Named numeric vector of population means for auxiliaries.
+#' @param auxiliary_means Named numeric vector of population means for auxiliary
+#'   design columns. Names must match the materialized `model.matrix` columns on
+#'   the first RHS (after formula expansion), including factor indicators and
+#'   transformed terms. The intercept is always excluded.
 #' @param standardize Logical; standardize predictors.
 #' @param trim_cap Numeric; cap for EL weights (Inf = no trimming).
 #' @param control List; solver control for `nleqslv(control=...)`.
 #' @param on_failure Character; "return" or "error" on solver failure.
 #' @param variance_method Character; "delta" or "bootstrap".
 #' @param bootstrap_reps Integer; reps when `variance_method = "bootstrap"`.
+#' @param n_total Optional population size used to rescale design weights; required for respondents-only designs.
+#' @param start Optional list of starting values passed to solver helpers.
+#' @param trace_level Integer 0-3 controlling estimator logging detail.
+#' @param family Missingness (response) model family specification (defaults to logit).
 #' @param ... Passed to solver.
 #' @details Implements the empirical likelihood estimator with design weights.
 #'   If \code{n_total} is supplied, design weights are rescaled internally to
@@ -38,60 +61,48 @@ el.survey.design <- function(data, formula,
                              on_failure = c("return", "error"),
                              variance_method = c("delta", "bootstrap", "none"),
                              bootstrap_reps = 500,
-                             n_total = NULL, start = NULL, trace_level = 0, ...) {
+                             n_total = NULL, start = NULL, trace_level = 0,
+                             family = logit_family(), ...) {
   cl <- match.call()
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
   variance_method <- match.arg(variance_method)
-# Coerce unsupported mode to 'none' locally (engine-level warning already issued when called via nmar)
+# Coerce unsupported variance modes to "none"; nmar() already warned at dispatch time.
   if (identical(variance_method, "delta")) variance_method <- "none"
 
 
   design <- data
-
-# If respondents-only design is supplied, enforce auxiliary_means first (if auxiliaries requested),
-# then require n_total for scale coherence.
-  outcome_var_check <- all.vars(formula[[2]])
-  rhs <- formula[[3]]
-  aux_expr <- rhs
-  if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) aux_expr <- rhs[[2L]]
-  has_aux_rhs <- length(all.vars(aux_expr)) > 0
-  respondents_only_0 <- length(outcome_var_check) == 1 && !anyNA(design$variables[[outcome_var_check]])
-  if (respondents_only_0 && has_aux_rhs && is.null(auxiliary_means)) {
-    stop(
-      paste0(
-        "Respondents-only survey design (no NAs in outcome) and auxiliary constraints were requested, ",
-        "but 'auxiliary_means' was not provided. Provide population auxiliary means via auxiliary_means=."
-      ),
-      call. = FALSE
-    )
-  }
-  if (respondents_only_0 && is.null(n_total)) {
-    stop("Respondents-only survey design detected (no NAs in outcome), but 'n_total' was not provided. Set el_engine(n_total = <total design weight or population total>).", call. = FALSE)
+# Capture a readable summary so validation errors can report the original survey call.
+  el_get_design_context <- function(design) {
+    ctx <- list(ids = "<unspecified>", strata = "<unspecified>")
+    dc <- try(getCall(design), silent = TRUE)
+    if (!inherits(dc, "try-error") && !is.null(dc)) {
+      args <- as.list(dc)[-1]
+      get_arg <- function(nm) if (!is.null(args[[nm]])) args[[nm]] else NULL
+      ids_val <- get_arg("ids"); id_val <- get_arg("id")
+      ids_obj <- if (!is.null(ids_val)) ids_val else id_val
+      strata_obj <- get_arg("strata")
+      deparse1 <- function(x) paste(deparse(x, width.cutoff = 200L), collapse = " ")
+      if (!is.null(ids_obj)) ctx$ids <- deparse1(ids_obj)
+      if (!is.null(strata_obj)) ctx$strata <- deparse1(strata_obj)
+    }
+    ctx
   }
 
-  parsed_inputs <- prepare_el_inputs(formula, design$variables,
-                                     require_na = is.null(n_total))
-  design$variables <- parsed_inputs$data
-  internal_formula <- parsed_inputs$formula_list
-  response_var <- all.vars(internal_formula$response)[1]
-  observed_mask <- design$variables[[response_var]] == 1
-  observed_indices <- which(observed_mask)
-  resp_design <- subset(design, observed_mask)
+  survey_ctx <- el_get_design_context(design)
 
-# (Guard handled earlier.)
-
-# Scale coherence: ensure N_pop and design weights are on the same scale
-  design_weight_sum <- sum(weights(design))
+# Scale coherence: ensure `N_pop` and design weights remain on the same scale.
+  weights_initial <- as.numeric(weights(design))
+  design_weight_sum <- sum(weights_initial)
 
   if (!is.null(n_total)) {
     N_pop <- n_total
     scale_factor <- N_pop / design_weight_sum
     scale_mismatch_pct <- abs(scale_factor - 1) * 100
 
-# Graduated warnings based on severity
+# Emit warnings with severity that reflects the amount of rescaling.
     if (scale_mismatch_pct > 10) {
-# Large mismatch (>10%): likely user error
+# Large mismatch (>10%) is most often a data-preparation error.
       warning(sprintf(
         paste0(
           "Large scale mismatch detected (%.1f%%):\n",
@@ -105,10 +116,8 @@ el.survey.design <- function(data, formula,
         ),
         scale_mismatch_pct, n_total, design_weight_sum, scale_factor
       ), call. = FALSE)
-      scale_mismatch_detected <- TRUE
-
     } else if (scale_mismatch_pct > 1) {
-# Moderate rescaling (1-10%): upgrade to warning for visibility
+# Moderate rescaling (1-10%) still deserves a warning so users can confirm intent.
       warning(sprintf(
         paste0(
           "Scale mismatch detected (%.1f%%):\n",
@@ -122,87 +131,57 @@ el.survey.design <- function(data, formula,
         ),
         scale_mismatch_pct, n_total, design_weight_sum, scale_factor
       ), call. = FALSE)
-      scale_mismatch_detected <- TRUE
-
     } else {
-# Negligible (<1%) - likely rounding, no message
-      scale_mismatch_detected <- FALSE
+# Negligible (<1%) differences usually stem from rounding, so we stay silent.
     }
 
-# Apply scaling to respondent weights
-    respondent_weights <- weights(resp_design) * scale_factor
+    if (!isTRUE(all.equal(scale_factor, 1))) {
+      design <- el_rescale_survey_design_weights(design, scale_factor)
+    }
+    respondent_weights_full <- as.numeric(weights(design))
 
   } else {
-# No n_total supplied: use design total as population size
+# If no population size is supplied, default to the design-weight total.
     N_pop <- design_weight_sum
-    respondent_weights <- weights(resp_design)
+    respondent_weights_full <- weights_initial
     scale_factor <- 1.0
-    scale_mismatch_detected <- FALSE
     scale_mismatch_pct <- 0
   }
 
-  user_args <- list(
-    formula = formula,
-    auxiliary_means = auxiliary_means, standardize = standardize,
-    trim_cap = trim_cap, control = control, ...
+  extra_args <- list(...)
+
+  input_spec <- tryCatch(
+    el_build_input_spec(
+      formula = formula,
+      data = design$variables,
+      weights_full = respondent_weights_full,
+      population_total = N_pop,
+      population_total_supplied = !is.null(n_total),
+      is_survey = TRUE,
+      design_object = design,
+      auxiliary_means = auxiliary_means
+    ),
+    error = function(e) {
+      msg <- conditionMessage(e)
+      msg2 <- paste0(msg, sprintf("\nSurvey design info: ids = %s, strata = %s", survey_ctx$ids, survey_ctx$strata))
+      stop(msg2, call. = FALSE)
+    }
   )
 
-  core_results <- el_estimator_core(
-    full_data = design,
-    respondent_data = resp_design$variables,
-    respondent_weights = respondent_weights, N_pop = N_pop,
-    internal_formula = internal_formula, auxiliary_means = auxiliary_means,
-    standardize = standardize, trim_cap = trim_cap, control = control,
-    on_failure = on_failure,
-    variance_method = variance_method, bootstrap_reps = bootstrap_reps,
-    user_args = user_args, start = start, trace_level = trace_level, ...
-  )
-
-  sample_info <- list(
-    outcome_var = all.vars(internal_formula$outcome)[1],
-    response_var = response_var,
+  el_run_core_analysis(
+    call = cl,
     formula = formula,
-    nobs = nrow(design$variables),
-    nobs_resp = length(observed_indices),
-    n_total = N_pop, # Store N_pop for weights() method
-    is_survey = TRUE,
-    design = design,
+    input_spec = input_spec,
     variance_method = variance_method,
-    scale_factor = scale_factor, # Store scale diagnostics
-    scale_mismatch_detected = scale_mismatch_detected,
-    scale_mismatch_pct = scale_mismatch_pct
+    auxiliary_means = auxiliary_means,
+    standardize = standardize,
+    trim_cap = trim_cap,
+    control = control,
+    on_failure = on_failure,
+    family = family,
+    bootstrap_reps = bootstrap_reps,
+    start = start,
+    trace_level = trace_level,
+    extra_user_args = extra_args
   )
-
-  if (!core_results$converged) {
-    diag_list <- core_results$diagnostics
-    if (is.null(diag_list)) diag_list <- list()
-    msg <- diag_list$message
-    if (is.null(msg)) msg <- NA_character_
-    result <- new_nmar_result(
-      estimate = NA_real_,
-      estimate_name = sample_info$outcome_var,
-      se = NA_real_,
-      converged = FALSE,
-      model = list(coefficients = NULL, vcov = NULL),
-      weights_info = list(values = numeric(0), trimmed_fraction = NA_real_),
-      sample = list(n_total = N_pop, n_respondents = sample_info$nobs_resp, is_survey = TRUE, design = design),
-      inference = list(variance_method = variance_method, df = NA_real_, message = msg),
-      diagnostics = diag_list,
-      meta = list(engine_name = "empirical_likelihood", call = cl, formula = formula),
-      extra = list(nmar_scaling_recipe = core_results$nmar_scaling_recipe),
-      class = "nmar_result_el"
-    )
-    return(validate_nmar_result(result, "nmar_result_el"))
-  }
-
-  result <- new_nmar_result_el(
-    y_hat = core_results$y_hat, se = core_results$se, weights = core_results$weights,
-    coefficients = core_results$coefficients, vcov = core_results$vcov,
-    converged = core_results$converged, diagnostics = core_results$diagnostics,
-    data_info = sample_info,
-    nmar_scaling_recipe = core_results$nmar_scaling_recipe,
-    fitted_values = core_results$fitted_values, call = cl
-  )
-
-  validate_nmar_result(result, "nmar_result_el")
 }

@@ -2,7 +2,6 @@
 #' @importFrom stats as.formula coef dnorm dgamma sd setNames
 #' @exportS3Method exptilt data.frame
 exptilt.data.frame <- function(data, formula,
-                               auxiliary_means = NULL,
                                standardize = TRUE,
                                prob_model_type = c("logit", "probit"),
                                y_dens = c("auto", "normal", "lognormal", "exponential"),
@@ -22,34 +21,70 @@ exptilt.data.frame <- function(data, formula,
   variance_method <- match.arg(variance_method)
   on_failure <- match.arg(on_failure)
 
-  outcome_var <- all.vars(formula[[2]])[1]
-# Split RHS into auxiliaries and response predictors via `|` if present
-  rhs <- formula[[3]]
-  aux_expr <- rhs
-  resp_expr <- NULL
-  if (is.call(rhs) && identical(rhs[[1L]], as.name("|"))) {
-    aux_expr <- rhs[[2L]]
-    resp_expr <- rhs[[3L]]
+# f <- as.list(Formula::Formula(formula))
+# Y = Formula::model.part(f, data = data, lhs = NULL)
+# X = model.matrix(f, data = data, rhs = 1, na.action = na.pass)
+# Z = model.matrix(f, data = data, rhs = 2, na.action = na.pass)
+  res = et_extract_formula(format(formula), data)
+  Y = res$Y
+  X = res$X
+  Z = res$Z
+  outcome_var <- as.vector(colnames(Y)[1])
+  if (is.null(Z)) {
+    Z = matrix(1, nrow = nrow(X), ncol = 1)
+    colnames(Z) = "(Intercept)"
   }
-  aux_vars <- unique(all.vars(aux_expr))
-  if (length(aux_vars) == 0) aux_vars <- character()
-  resp_pred <- if (is.null(resp_expr)) character() else unique(all.vars(resp_expr))
-# Response-only predictors; the outcome enters the response model automatically elsewhere
-  response_predictors <- unique(resp_pred)
 
-  required_cols <- unique(c(outcome_var, aux_vars, response_predictors))
-  data_subset <- data[, required_cols, drop = FALSE]
-
-  if (is.null(survey_design)) {
-    data <- as.data.frame(data)
-    data_subset <- as.data.frame(data_subset)
+# browser()
+  if (length(colnames(Y)) > 1) {
+    stop("Exptilt supports only single outcome variable.")
   }
+
+  X = X[, !colnames(X) %in% c("(Intercept)"), drop = FALSE]
+
+  if (outcome_var %in% colnames(Z)) {
+    warning(
+      sprintf(
+        "Outcome variable (%s) found in missingness predictors; Performance with / without %s on the right side is the same \n",
+        outcome_var,
+        outcome_var
+      ),
+      call. = FALSE
+    )
+  }
+
+  Z = Z[, !colnames(Z) %in% c("(Intercept)", outcome_var), drop = FALSE]
+
+  cols_y_observed <- as.vector(colnames(X))
+  cols_delta <- as.vector(colnames(Z))
+
+# browser()
+  et_validate_df(X, Y, Z)
+
+
+
+# browser()
+
+# Combine model parts. Intercept columns were already removed above by name
+# (we filtered out "(Intercept)"), so avoid positional drops which can
+# accidentally remove the first real predictor (e.g. when RHS includes the
+# LHS variable). Keep columns by name to preserve correct variable names.
+
+  data <- cbind(
+    as.data.frame(Y),
+    as.data.frame(X),
+    as.data.frame(Z)
+  )
+
+
+
+
 
 # Stratified sampling for memory optimization
 # Preserve respondent/non-respondent ratio
-  n_total <- nrow(data_subset)
-  respondent_idx <- which(!is.na(data_subset[, outcome_var]))
-  nonrespondent_idx <- which(is.na(data_subset[, outcome_var]))
+  n_total <- nrow(data)
+  respondent_idx <- which(!is.na(data[, outcome_var]))
+  nonrespondent_idx <- which(is.na(data[, outcome_var]))
   n_resp <- length(respondent_idx)
   n_nonresp <- length(nonrespondent_idx)
 
@@ -78,21 +113,37 @@ exptilt.data.frame <- function(data, formula,
     sampled_idx <- c(sampled_resp_idx, sampled_nonresp_idx)
 
 # Update data_subset
-    data_subset <- data_subset[sampled_idx, , drop = FALSE]
+    data_subset <- data[sampled_idx, , drop = FALSE]
 
     sampling_performed <- TRUE
   }
 
+# f <- as.list(Formula::Formula(formula))
+# Y = model.part(f, data = data_subset, lhs = NULL)
+# X = model.matrix(f, data = data_subset, rhs = 1)
+# Z = model.matrix(f, data = data_subset, rhs = 2)
+#
+# outcome_var <- as.vector(colnames(Y)[1])
+# cols_y_observed <- as.vector(colnames(X))
+# cols_delta <- as.vector(colnames(Z))
+
+  data_subset <- cbind(
+    as.data.frame(Y),
+    as.data.frame(X),
+    as.data.frame(Z)
+  )
+
+
   model <- list(
     data = data_subset,
-    required_cols = required_cols,
+# required_cols = required_cols,
     col_y = outcome_var,
-    cols_y_observed = aux_vars,
-    cols_delta = response_predictors,
+    cols_y_observed = cols_y_observed,
+    cols_delta = cols_delta,
     prob_model_type = prob_model_type,
     y_dens = y_dens,
     stopping_threshold = stopping_threshold,
-    auxiliary_means = auxiliary_means,
+# auxiliary_means = auxiliary_means,
     standardize = standardize,
     control = control,
     variance_method = variance_method,
@@ -102,8 +153,9 @@ exptilt.data.frame <- function(data, formula,
     design_weights = design_weights,
     design = survey_design,
     formula = formula,
-    call = match.call(),
     trace_level = trace_level,
+    call = match.call(),
+
 
 # Sampling information
     sample_size = sample_size,
@@ -125,6 +177,7 @@ exptilt.data.frame <- function(data, formula,
     probit_family()
   }
 
+# browser()
 
   model$original_params <- model # for bootstrap purposes, to re-run exptilt_fit_model
 
@@ -162,7 +215,7 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   formula_str <- deparse(model$formula)
   verboser(sprintf("Formula: %s", formula_str), level = 1)
 
-  model$cols_required <- colnames(model$x)
+
 
 # model$x_1 <- model$x[!is.na(model$x[,model$col_y]),,drop=FALSE] #observed
 # model$x_0 <- model$x[is.na(model$x[,model$col_y]),,drop=FALSE] #unobserved
@@ -170,14 +223,6 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
 #
 # model$x_for_y_obs <- model$x_1[,model$cols_y_observed,drop=FALSE]
 # model$x_for_y_unobs <- model$x_0[,model$cols_y_observed,drop=FALSE]
-
-  has_aux <- length(model$cols_y_observed) > 0 && !is.null(model$auxiliary_means)
-  filtered_aux_means <- if (has_aux) {
-    aux_names <- intersect(names(model$auxiliary_means), model$cols_y_observed)
-    model$auxiliary_means[aux_names]
-  } else {
-    NULL
-  }
 
   respondent_mask <- !is.na(model$x[, model$col_y])
   model$respondent_mask <- respondent_mask
@@ -240,10 +285,10 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
 
   scaling_result <- validate_and_apply_nmar_scaling(
     standardize = model$standardize,
-    has_aux = has_aux,
+    has_aux = F,
     response_model_matrix_unscaled = model$x[, c(model$col_y, model$cols_delta), drop = FALSE],
     auxiliary_matrix_unscaled = model$x[, model$cols_y_observed, drop = FALSE],
-    mu_x_unscaled = filtered_aux_means,
+    mu_x_unscaled = NULL,
     weights = scaling_weights,
     weight_mask = weight_mask
   )

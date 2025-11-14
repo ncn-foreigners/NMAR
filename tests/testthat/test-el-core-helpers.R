@@ -34,12 +34,11 @@ test_that("el_post_solution returns sane weights and mean in trivial case", {
   est <- c(0, 0, 0) # beta=(0,0), z=0 => W=0.5
   out <- NMAR:::el_post_solution(
     estimates = est,
-    response_model_matrix_scaled = X,
-    response_model_matrix_unscaled = X,
+    missingness_model_matrix_scaled = X,
+    missingness_model_matrix_unscaled = X,
     auxiliary_matrix_scaled = aux,
     mu_x_scaled = mu_x,
-    respondent_data = df,
-    outcome_var = "y",
+    response_outcome = df$y,
     family = fam,
     N_pop = sum(wts),
     respondent_weights = wts,

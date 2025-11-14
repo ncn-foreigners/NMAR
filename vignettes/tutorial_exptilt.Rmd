@@ -81,8 +81,7 @@ exptilt_config <- exptilt_engine(
   variance_method = 'bootstrap'
 )
 
-
-formula = Y ~ x1
+formula = Y ~x1 | Y
 res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 3)
 ```
 

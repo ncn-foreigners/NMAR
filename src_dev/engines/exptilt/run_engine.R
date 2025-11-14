@@ -1,27 +1,11 @@
 #' @exportS3Method run_engine nmar_engine_exptilt
-run_engine.nmar_engine_exptilt <- function(engine, task) {
-# All ET fits flow through the shared design prep so data-frame and survey
-# paths inherit the same scaling, auxiliary moments, and weight handling as EL
-  design_info <- prepare_nmar_design(
-    task,
-    standardize = engine$standardize,
-    auxiliary_means = engine$auxiliary_means,
-    include_response = TRUE,
-    include_auxiliary = TRUE
-  )
-
-# Reconstruct a formula carrying response-only predictors to the right of `|`
-  f_use <- nmar_rebuild_partitioned_formula(
-    base_formula = task$formula,
-    response_predictors = design_info$response_predictors,
-    env = task$environment
-  )
+run_engine.nmar_engine_exptilt <- function(engine, formula, data, trace_level) {
 
   args <- list(
-    data = design_info$survey_design %||% design_info$data,
-    formula = f_use,
-    auxiliary_means = design_info$auxiliary_means,
-    standardize = design_info$standardize,
+    data = data,
+    formula = formula,
+    trace_level = trace_level,
+    standardize = engine$standardize,
     prob_model_type = engine$prob_model_type,
     y_dens = engine$y_dens,
     variance_method = engine$variance_method,
@@ -30,16 +14,8 @@ run_engine.nmar_engine_exptilt <- function(engine, task) {
     stopping_threshold = engine$stopping_threshold,
     on_failure = engine$on_failure,
     supress_warnings = engine$supress_warnings,
-    trace_level = task$trace_level,
     sample_size = engine$sample_size
   )
-
-  if (!isTRUE(design_info$is_survey)) {
-# For data.frames we pass explicit design weights (all ones unless supplied).
-# For survey designs the method extracts weights via stats::weights(), so we
-# avoid passing a duplicate argument to prevent ambiguity
-    args$design_weights <- design_info$weights
-  }
 
   res <- do.call(exptilt, args)
   if (!inherits(res, "nmar_result_exptilt")) {
@@ -60,3 +36,7 @@ generate_Odds <- function(model, ...) {
 s_function <- function(model, ...) {
   UseMethod("s_function", model)
 }
+# validate_df <- function(model, covariate_outcome, covariates_aux, covariates_missingness,X,Y,Z) {
+#   # Dispatch on `model` class only. Additional args are for method signatures.
+#   UseMethod("validate_df", model)
+# }

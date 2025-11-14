@@ -136,18 +136,14 @@ method <- function(data, ...) UseMethod("method")
 ```{r eval=FALSE}
 #' @export
 method.data.frame <- function(data, formula, controls = list(), ...) {
-# Prepare inputs. You may adapt from EL’s prepare_el_inputs() pattern.
+# Prepare inputs. You may adapt from EL’s el_prepare_inputs() pattern.
   parsed <- build_method_inputs(data, formula, controls)
   estimation_data <- parsed$data
-  internal_formula <- parsed$formula_list
+  obs_idx <- which(parsed$respondent_mask)
 
-# Identify respondents
-  response_var <- all.vars(internal_formula$response)[1]
-  obs_idx <- which(estimation_data[[response_var]] == 1)
-
-# Build design matrices
-  Z_un <- model.matrix(update(internal_formula$response, NULL ~ .), data = estimation_data[obs_idx, ])
-  X_un <- build_method_auxiliary_matrix(estimation_data[obs_idx, ])
+# Build design matrices supplied by the shared parser
+  Z_un <- parsed$missingness_design
+  X_un <- parsed$auxiliary_matrix
   mu_x <- controls$auxiliary_means
 
 # Shared scaling

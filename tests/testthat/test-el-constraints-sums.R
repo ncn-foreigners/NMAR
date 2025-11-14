@@ -11,15 +11,23 @@ test_that("constraint sums are near zero at solution (no trimming)", {
   diag <- fit$diagnostics
   expect_true(is.finite(diag$jacobian_condition_number) || is.na(diag$jacobian_condition_number))
 # Reconstruct components to compute raw constraint sums from stored diagnostics inputs
-  parsed <- NMAR:::prepare_el_inputs(Y_miss ~ X, df, NULL)
-  dat2 <- parsed$data
-  fmls <- parsed$formula_list
-  resp_var <- all.vars(fmls$response)[1]
-  obs_idx <- which(dat2[[resp_var]] == 1)
+  spec <- NMAR:::el_build_input_spec(
+    formula = Y_miss ~ X,
+    data = df,
+    weights_full = NULL,
+    population_total = NULL,
+    is_survey = FALSE,
+    design_object = NULL,
+    auxiliary_means = NULL
+  )
+  dat2 <- if (inherits(spec$analysis_object, "survey.design")) spec$analysis_object$variables else spec$analysis_object
+  obs_idx <- spec$respondent_indices
   resp_df <- dat2[obs_idx, ]
-  Z_un <- model.matrix(update(fmls$response, NULL ~ .), data = resp_df)
-  X_un <- model.matrix(fmls$auxiliary, data = resp_df)
-  sc <- NMAR:::validate_and_apply_nmar_scaling(FALSE, !is.null(fmls$auxiliary), Z_un, if (is.null(fmls$auxiliary)) matrix(nrow = nrow(Z_un), ncol = 0) else X_un, if (is.null(fmls$auxiliary)) NULL else c(X = 0))
+  Z_un <- spec$missingness_design
+  X_un <- spec$auxiliary_design_full[spec$respondent_mask, , drop = FALSE]
+  aux_means <- if (ncol(X_un) > 0) c(X = 0) else NULL
+  aux_mat <- if (ncol(X_un) > 0) X_un else matrix(nrow = nrow(Z_un), ncol = 0)
+  sc <- NMAR:::validate_and_apply_nmar_scaling(FALSE, ncol(aux_mat) > 0, Z_un, aux_mat, aux_means)
   Z <- sc$response_model_matrix_scaled
   Xc <- sc$auxiliary_matrix_scaled
   mu_x <- sc$mu_x_scaled

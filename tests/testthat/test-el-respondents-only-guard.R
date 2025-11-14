@@ -9,7 +9,7 @@ test_that("respondents-only data.frame with auxiliaries requires auxiliary_means
       n_total = nrow(df),
       variance_method = "none"
     ),
-    "Respondents-only data detected.*auxiliary_means",
+    "Respondents-only .* detected.*auxiliary_means",
     fixed = FALSE
   )
 # Provide auxiliary means -> should run
@@ -38,7 +38,7 @@ test_that("respondents-only survey design with auxiliaries requires auxiliary_me
       n_total = sum(weights(des)),
       variance_method = "none"
     ),
-    "Respondents-only survey design.*auxiliary_means",
+    "Respondents-only .* detected.*auxiliary_means",
     fixed = FALSE
   )
   expect_s3_class(
