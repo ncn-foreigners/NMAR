@@ -8,7 +8,7 @@ el_build_input_spec <- function(formula,
                                 data,
                                 weights_full = NULL,
                                 population_total = NULL,
-                                n_total_arg = population_total,
+                                population_total_supplied = FALSE,
                                 is_survey = FALSE,
                                 design_object = NULL,
                                 auxiliary_means = NULL) {
@@ -18,7 +18,7 @@ el_build_input_spec <- function(formula,
     data = data
   )
   el_validate_design_spec(design, data_nrow = nrow(data), context_label = context_label)
-  el_require_population_inputs(design, n_total_arg, auxiliary_means, context_label)
+  el_require_population_inputs(design, population_total_supplied, auxiliary_means, context_label)
 
   outcome_var <- design$outcome_source %||% design$outcome_var
   mask <- design$respondent_mask
@@ -69,12 +69,18 @@ el_build_input_spec <- function(formula,
 }
 
 #' Enforce respondents-only requirements for a given design
+#'
+#' When all rows are respondents we no longer observe the population size in the
+#' data. This helper ensures we were given `n_total` (communicated here via the
+#' boolean flag) and, when auxiliary constraints are present, verifies that
+#' population means were supplied as well.
+#'
 #' @keywords internal
-el_require_population_inputs <- function(design, n_total, auxiliary_means, context_label) {
+el_require_population_inputs <- function(design, population_total_supplied, auxiliary_means, context_label) {
   if (!isTRUE(all(design$respondent_mask))) return(invisible(NULL))
   noun <- if (identical(context_label, "data frame")) "data" else context_label
   message_prefix <- sprintf("Respondents-only %s detected (no NAs in outcome)", noun)
-  if (is.null(n_total)) {
+  if (!isTRUE(population_total_supplied)) {
     stop(
       sprintf("%s, but 'n_total' was not provided.", message_prefix),
       call. = FALSE
@@ -94,6 +100,11 @@ el_require_population_inputs <- function(design, n_total, auxiliary_means, conte
 }
 
 #' Create the NMAR delta indicator column
+#'
+#' Adds a respondent indicator column to the data, choosing a unique internal
+#' name (`..nmar_delta..` plus numeric suffixes when necessary) so user columns
+#' are never clobbered.
+#'
 #' @keywords internal
 el_make_delta_column_name <- function(data, outcome_var, respondent_mask = NULL) {
   if (is.null(respondent_mask)) {

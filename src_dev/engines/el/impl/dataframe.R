@@ -60,7 +60,7 @@ el.data.frame <- function(data, formula,
     data = data,
     weights_full = NULL,
     population_total = n_total,
-    n_total_arg = n_total,
+    population_total_supplied = !is.null(n_total),
     is_survey = FALSE,
     design_object = NULL,
     auxiliary_means = auxiliary_means

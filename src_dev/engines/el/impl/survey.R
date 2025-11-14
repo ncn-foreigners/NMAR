@@ -67,12 +67,12 @@ el.survey.design <- function(data, formula,
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
   variance_method <- match.arg(variance_method)
-# Coerce unsupported mode to 'none' locally (engine-level warning already issued when called via nmar)
+# Coerce unsupported variance modes to "none"; nmar() already warned at dispatch time.
   if (identical(variance_method, "delta")) variance_method <- "none"
 
 
   design <- data
-# Prepare inputs and carry survey metadata into any validation error
+# Capture a readable summary so validation errors can report the original survey call.
   el_get_design_context <- function(design) {
     ctx <- list(ids = "<unspecified>", strata = "<unspecified>")
     dc <- try(getCall(design), silent = TRUE)
@@ -91,7 +91,7 @@ el.survey.design <- function(data, formula,
 
   survey_ctx <- el_get_design_context(design)
 
-# Scale coherence: ensure N_pop and design weights are on the same scale
+# Scale coherence: ensure `N_pop` and design weights remain on the same scale.
   weights_initial <- as.numeric(weights(design))
   design_weight_sum <- sum(weights_initial)
 
@@ -100,9 +100,9 @@ el.survey.design <- function(data, formula,
     scale_factor <- N_pop / design_weight_sum
     scale_mismatch_pct <- abs(scale_factor - 1) * 100
 
-# Graduated warnings based on severity
+# Emit warnings with severity that reflects the amount of rescaling.
     if (scale_mismatch_pct > 10) {
-# Large mismatch (>10%): likely user error
+# Large mismatch (>10%) is most often a data-preparation error.
       warning(sprintf(
         paste0(
           "Large scale mismatch detected (%.1f%%):\n",
@@ -117,7 +117,7 @@ el.survey.design <- function(data, formula,
         scale_mismatch_pct, n_total, design_weight_sum, scale_factor
       ), call. = FALSE)
     } else if (scale_mismatch_pct > 1) {
-# Moderate rescaling (1-10%): upgrade to warning for visibility
+# Moderate rescaling (1-10%) still deserves a warning so users can confirm intent.
       warning(sprintf(
         paste0(
           "Scale mismatch detected (%.1f%%):\n",
@@ -132,7 +132,7 @@ el.survey.design <- function(data, formula,
         scale_mismatch_pct, n_total, design_weight_sum, scale_factor
       ), call. = FALSE)
     } else {
-# Negligible (<1%) - likely rounding, no message
+# Negligible (<1%) differences usually stem from rounding, so we stay silent.
     }
 
     if (!isTRUE(all.equal(scale_factor, 1))) {
@@ -141,7 +141,7 @@ el.survey.design <- function(data, formula,
     respondent_weights_full <- as.numeric(weights(design))
 
   } else {
-# No n_total supplied: use design total as population size
+# If no population size is supplied, default to the design-weight total.
     N_pop <- design_weight_sum
     respondent_weights_full <- weights_initial
     scale_factor <- 1.0
@@ -156,7 +156,7 @@ el.survey.design <- function(data, formula,
       data = design$variables,
       weights_full = respondent_weights_full,
       population_total = N_pop,
-      n_total_arg = n_total,
+      population_total_supplied = !is.null(n_total),
       is_survey = TRUE,
       design_object = design,
       auxiliary_means = auxiliary_means

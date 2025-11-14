@@ -115,9 +115,7 @@ el_build_aux_design <- function(parsed) {
 
   aux_matrix <- rhs$matrix
   intercept_requested <- isTRUE(attr(rhs$terms, "intercept") == 1) && el_has_explicit_intercept(aux_expr)
-  if (ncol(aux_matrix) > 0 && "(Intercept)" %in% colnames(aux_matrix)) {
-    aux_matrix <- aux_matrix[, colnames(aux_matrix) != "(Intercept)", drop = FALSE]
-  }
+  aux_matrix <- el_drop_intercept_columns(aux_matrix)
   if (intercept_requested) {
     warning("Auxiliary intercepts are ignored; + 1 has no effect.", call. = FALSE)
   }
@@ -156,18 +154,15 @@ el_build_missingness_design <- function(parsed) {
     if (isTRUE(attr(rhs$terms, "intercept") == 0)) {
       warning("Missingness-model intercept is required; '-1' or '+0' has no effect.", call. = FALSE)
     }
-    rhs_matrix <- rhs$matrix
-    if ("(Intercept)" %in% colnames(rhs_matrix)) {
-      rhs_matrix <- rhs_matrix[, colnames(rhs_matrix) != "(Intercept)", drop = FALSE]
-    }
-    el_validate_matrix_block(
+    rhs_matrix <- el_drop_intercept_columns(rhs$matrix)
+    rhs_predictors_validated <- el_validate_matrix_block(
       mat = rhs_matrix,
       mask = parsed$mask,
       row_map = parsed$respondent_indices,
       label = "Missingness-model predictor",
       severity = "warn"
     )
-    rhs_matrix[parsed$mask, , drop = FALSE]
+    rhs_predictors_validated
   } else {
     matrix(nrow = n_resp, ncol = 0)
   }
@@ -203,6 +198,14 @@ el_with_formula_errors <- function(expr, context_label) {
   )
 }
 
+#' Detect whether the RHS explicitly requests an intercept
+#'
+#' The Formula/terms machinery already controls implicit intercepts, but we
+#' warn users who add `+ 1` manually. This helper scans the parsed language tree
+#' for an explicit scalar `1` so we can emit a user-facing warning without
+#' treating `.` expansions or other implicit intercepts as explicit requests.
+#'
+#' @keywords internal
 el_has_explicit_intercept <- function(node) {
   if (is.null(node)) return(FALSE)
   if (is.numeric(node) && length(node) == 1L && isTRUE(all.equal(node, 1))) return(TRUE)
@@ -217,13 +220,34 @@ el_has_explicit_intercept <- function(node) {
   FALSE
 }
 
+#' Remove `(Intercept)` columns from a model matrix
+#'
+#' Auxiliary constraints should never include an intercept, and the
+#' missingness design injects its own intercept. We therefore strip the
+#' automatically generated `(Intercept)` column before running downstream
+#' validation.
+#'
+#' @keywords internal
+el_drop_intercept_columns <- function(mat) {
+  if (is.null(mat) || !is.matrix(mat) || ncol(mat) == 0) return(mat)
+  keep <- colnames(mat) != "(Intercept)"
+  if (all(keep)) return(mat)
+  mat[, keep, drop = FALSE]
+}
 
+#' Validate a design-matrix block and optionally return respondent rows
+#'
+#' Applies the respondent mask, enforces the "no NA, no zero-variance" policy,
+#' and returns the subset that downstream routines should use.
+#'
+#' @keywords internal
 el_validate_matrix_block <- function(mat, mask, row_map, label, severity = c("error", "warn")) {
-  if (is.null(mat) || !is.matrix(mat) || ncol(mat) == 0 || nrow(mat) == 0) return(invisible(NULL))
+  if (is.null(mat) || !is.matrix(mat)) return(mat)
   mat_sub <- if (is.null(mask)) mat else mat[mask, , drop = FALSE]
-  if (nrow(mat_sub) == 0 || ncol(mat_sub) == 0) return(invisible(NULL))
+  if (nrow(mat_sub) == 0 || ncol(mat_sub) == 0) return(mat_sub)
   el_assert_no_na(mat_sub, row_map, label)
   el_check_constant_columns(mat_sub, label = label, severity = severity)
+  mat_sub
 }
 
 el_check_constant_columns <- function(mat, label, severity = c("error", "warn")) {

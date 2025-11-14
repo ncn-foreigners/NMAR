@@ -56,7 +56,7 @@ test_that("el_build_input_spec carries survey metadata and totals", {
     data = des$variables,
     weights_full = as.numeric(weights(des)),
     population_total = n_total,
-    n_total_arg = n_total,
+    population_total_supplied = TRUE,
     is_survey = TRUE,
     design_object = des,
     auxiliary_means = c(X = 0)
