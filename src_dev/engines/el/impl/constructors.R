@@ -9,10 +9,9 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
   trim_fraction <- diagnostics$trimmed_fraction %||% NA_real_
 
   sample <- list(
-# Preserve the engine-supplied analysis-scale population total (N_pop).
-# Use data_info$n_total when provided (set by dataframe/survey methods), not
-# data_info$nobs. This ensures weights(object, scale = "population") sums
-# to N_pop and survey-scale reporting is correct.
+# Preserve the engine-supplied analysis-scale population total (N_pop) from
+# input_spec so weights(object, scale = "population") sums to N_pop for both
+# IID and survey designs.
     n_total = input_spec$N_pop %||% NA_integer_,
     n_respondents = length(input_spec$respondent_indices) %||% NA_integer_,
     is_survey = isTRUE(input_spec$is_survey),
@@ -69,17 +68,3 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
 
   result
 }
-
-#' Prepare inputs for EL estimation
-#' @details Validates the two-sided outcome formula and constructs three
-#'   internal formulas: outcome (~ outcome_var), response (for the missingness
-#'   model), and auxiliary (RHS only, no intercept). Response-only predictors
-#'   may include variables not on the outcome RHS; such variables enter only the
-#'   response model (no auxiliary moment constraint). Only variables on the
-#'   outcome RHS are treated as auxiliaries and, when provided, must match the
-#'   names in `auxiliary_means`. See Qin, Leung and Shao (2002) for the EL
-#'   formulation.
-#' @keywords internal
-#' Build internal EL formulas and data
-#' @keywords internal
-## Validation moved to src_dev/engines/el/impl/validation.R

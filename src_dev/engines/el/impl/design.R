@@ -1,14 +1,14 @@
 #' EL design construction and Formula workflow
 #'
-#' Parses the user formula once via `Formula::model.frame()` and materializes
-#' each RHS block with the standard `model.matrix()` machinery. Auxiliary
-#' designs are built on the full dataset (with the intercept and outcome
-#' columns removed) while the missingness design uses only respondent rows
-#' and always includes an explicit intercept and outcome column.
+#' Parses the user formula once via `model.frame()` on a `Formula` object and
+#' materializes each RHS block with the standard `model.matrix()` machinery.
+#' Auxiliary designs are built on the full dataset (with the intercept and
+#' outcome columns removed) while the missingness design uses only respondent
+#' rows and always includes an explicit intercept and outcome column.
 #'
 #' @keywords internal
-el_prepare_design <- function(formula, data, require_na = TRUE) {
-  parsed <- el_parse_formula(formula, data, require_na)
+el_prepare_design <- function(formula, data) {
+  parsed <- el_parse_formula(formula, data)
 
   aux_design <- el_build_aux_design(parsed)
   missingness_design <- el_build_missingness_design(parsed)
@@ -24,7 +24,7 @@ el_prepare_design <- function(formula, data, require_na = TRUE) {
   structure(design, class = "el_design_spec")
 }
 
-el_parse_formula <- function(formula, data, require_na) {
+el_parse_formula <- function(formula, data) {
   if (missing(formula)) stop("`formula` must be supplied.", call. = FALSE)
 
   base_formula <- stats::as.formula(formula)
@@ -48,7 +48,7 @@ el_parse_formula <- function(formula, data, require_na) {
   }
 
   outcome_source <- lhs_vars[[1L]]
-  el_validate_outcome(data, outcome_source, require_na = require_na)
+  el_validate_outcome(data, outcome_source)
   outcome_label <- el_outcome_label(lhs_part)
 
   fml <- el_as_formula(base_formula)
@@ -75,11 +75,6 @@ el_parse_formula <- function(formula, data, require_na) {
   }
 
   mask <- !is.na(data[[outcome_source]])
-  respondents_only <- all(mask)
-  if (isTRUE(require_na) && respondents_only) {
-    stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_source), call. = FALSE)
-  }
-
   response_na <- is.na(response_vector)
   transformed_na <- which(mask & response_na)
   if (length(transformed_na) > 0) {
@@ -186,7 +181,7 @@ el_materialize_rhs <- function(parsed, part, label) {
   rhs_terms <- el_with_formula_errors(stats::terms(rhs_formula, data = parsed$model_frame), "data")
   el_assert_no_offset(rhs_terms, "data", label)
   mm <- el_with_formula_errors(
-    stats::model.matrix(parsed$fml, data = parsed$model_frame, rhs = part),
+    stats::model.matrix(parsed$fml, data = parsed$model_frame, rhs = part, na.action = stats::na.pass),
     "data"
   )
   list(matrix = mm, expr = rhs_expr, terms = rhs_terms)
@@ -287,15 +282,12 @@ el_rethrow_data_error <- function(err, context_label) {
   stop(sprintf("Formula evaluation failed for %s: %s", context_label, msg), call. = FALSE)
 }
 
-el_validate_outcome <- function(data, outcome_var, require_na) {
+el_validate_outcome <- function(data, outcome_var) {
   if (!outcome_var %in% names(data)) {
     stop(sprintf("Variables not found in data: %s", outcome_var), call. = FALSE)
   }
   if (!is.numeric(data[[outcome_var]])) {
     stop(sprintf("Outcome variable '%s' must be numeric.", outcome_var), call. = FALSE)
-  }
-  if (isTRUE(require_na) && !anyNA(data[[outcome_var]])) {
-    stop(sprintf("Outcome variable '%s' must contain NA values to indicate nonresponse.", outcome_var), call. = FALSE)
   }
   invisible(NULL)
 }

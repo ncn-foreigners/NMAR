@@ -38,7 +38,7 @@ test_that("el_validate_design_spec detects tampered respondent mask", {
     Y_miss = c(1, NA, 2, NA),
     X = rnorm(4)
   )
-  design <- NMAR:::el_prepare_design(Y_miss ~ X, df, require_na = FALSE)
+  design <- NMAR:::el_prepare_design(Y_miss ~ X, df)
   tampered <- design
   tampered$respondent_mask <- tampered$respondent_mask[-1]
   expect_error(

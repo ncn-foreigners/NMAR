@@ -15,8 +15,7 @@ el_build_input_spec <- function(formula,
   context_label <- if (isTRUE(is_survey)) "survey design" else "data frame"
   design <- el_prepare_design(
     formula = formula,
-    data = data,
-    require_na = FALSE
+    data = data
   )
   el_validate_design_spec(design, data_nrow = nrow(data), context_label = context_label)
   el_require_population_inputs(design, n_total_arg, auxiliary_means, context_label)

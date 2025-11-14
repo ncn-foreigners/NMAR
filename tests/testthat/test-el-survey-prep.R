@@ -9,8 +9,8 @@ test_that("survey designs reuse EL prep workflow", {
   )
   design <- survey::svydesign(ids = ~1, data = df, weights = ~w)
 
-  prep <- NMAR:::el_prepare_design(Y_miss ~ X, df, require_na = FALSE)
-  design_svy <- NMAR:::el_prepare_design(Y_miss ~ X, design$variables, require_na = FALSE)
+  prep <- NMAR:::el_prepare_design(Y_miss ~ X, df)
+  design_svy <- NMAR:::el_prepare_design(Y_miss ~ X, design$variables)
 
   expect_equal(prep$missingness_design, design_svy$missingness_design)
   expect_equal(prep$auxiliary_design_full[prep$respondent_mask, , drop = FALSE],
