@@ -47,18 +47,18 @@ em_formula <- Voted_A + Voted_B + Other ~ Gender
 ```
 
 ```{r}
-# Exptilt Nonparam engine configuration
-np_em_config <- exptilt_nonparam_engine(
-# outcome_cols = c("Voted_A", "Voted_B", "Other"),
-  refusal_col = "Refusal",
-  max_iter = 100,
-  tol_value = 1e-6
-)
+# # Exptilt Nonparam engine configuration
+# np_em_config <- exptilt_nonparam_engine(
+# # outcome_cols = c("Voted_A", "Voted_B", "Other"),
+#   refusal_col = "Refusal",
+#   max_iter = 100,
+#   tol_value = 1e-6
+# )
 ```
 
 ```{r}
-results_em_np <- nmar(formula = Voted_A + Voted_B + Other ~ Gender | Age_group, data = voting_data_example, engine = np_em_config)
+# results_em_np <- nmar(formula = Voted_A + Voted_B + Other ~ Gender | Age_group, data = voting_data_example, engine = np_em_config)
 ```
 ```{r}
-print(results_em_np$processed_data)
+# print(results_em_np$processed_data)
 ```
