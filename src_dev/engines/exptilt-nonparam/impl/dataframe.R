@@ -1,5 +1,6 @@
 #' @importFrom stats aggregate
 #' @exportS3Method exptilt_nonparam data.frame
+#' @keywords internal
 exptilt_nonparam.data.frame <- function(
     data,
     formula,

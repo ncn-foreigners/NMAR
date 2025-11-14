@@ -1,12 +1,8 @@
-#' @title Exponential Tilt Nonparametric Estimation
+#' Nonparametric Exponential Tilting (Internal Generic)
 #'
-#' @description
-#' A generic function for performing exponential tilt nonparametric estimation.
-#'
-#' @param data The input data.
-#' @param ... Additional arguments passed to methods.
-#'
-#' @export
+#' @param data A data.frame or survey.design object
+#' @param ... Other arguments passed to methods
+#' @keywords internal
 exptilt_nonparam <- function(data, ...) {
   UseMethod("exptilt_nonparam")
 }
