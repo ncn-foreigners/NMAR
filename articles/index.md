@@ -43,3 +43,6 @@ both data.frame and survey design objects
   Mathematical details behind the empirical likelihood estimator for
   NMAR data (Qin, Leung, and Shao 2002), and how the theory maps to our
   implementation.
+
+- [Exponential Tilting
+  Theory](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/exptilt_theory.md):
