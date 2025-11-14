@@ -1,46 +1,18 @@
 #' @exportS3Method NULL
-run_engine.nmar_engine_exptilt_nonparam <- function(engine, task) {
-  # Nonparametric ET reuses the shared design prep to match the EL/ET data
-  # workflow (common scaling, auxiliary handling, and survey support)
-  design_info <- prepare_nmar_design(
-    task,
-    standardize = FALSE,
-    auxiliary_means = NULL,
-    include_response = TRUE,
-    include_auxiliary = TRUE
-  )
-
-  # Use the normalized outcome list from the prepared design for consistency
-  outcome_cols <- design_info$outcome
-  common_covariates_from_formula <- design_info$auxiliary_vars
-  instrumental_covariates_from_formula <- design_info$response_predictors
+run_engine.nmar_engine_exptilt_nonparam <- function(engine, formula, data, trace_level = 0) {
 
 
-  if (length(common_covariates_from_formula) == 0) {
-    stop("`covariates_outcome` in formula must specify at least one common covariate for the nonparametric EM method.")
-  }
-
-
-  if (length(instrumental_covariates_from_formula) == 0) {
-    instrumental_covariates_used <- common_covariates_from_formula
-  } else {
-    instrumental_covariates_used <- instrumental_covariates_from_formula
-  }
-  model_results <- run_em_nmar_nonparametric(
-    data = design_info$data,
-    outcome_cols = outcome_cols,
-    refusal_col = engine$refusal_col,
-    common_covariates = common_covariates_from_formula,
-    instrumental_covariates = instrumental_covariates_used,
-    max_iter = engine$max_iter,
-    tol = engine$tol_value
-  )
-
-
-  return(structure(list(
-    O_values = model_results$final_O_values,
-    estimated_m_ij = model_results$final_m_ij,
-    iterations = model_results$iterations,
-    processed_data = model_results$final_data
-  ), class = "nmar_result"))
+args <- list(
+  data = data,
+  formula = formula,
+  trace_level = trace_level,
+  refusal_col = engine$refusal_col,
+  max_iter = engine$max_iter,
+  tol = engine$tol_value
+)
+res <- do.call(exptilt_nonparam, args)
+if (!inherits(res, "nmar_result_exptilt_nonparam")) {
+  stop("Exptilt engine did not return an 'nmar_result_exptilt_nonparam' object.")
+}
+res
 }
