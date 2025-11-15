@@ -64,3 +64,18 @@
   : Variance-covariance for base NMAR results
 - [`weights(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/weights.nmar_result.md)
   : Extract Weights from NMAR Result
+
+## Datasets
+
+- [`polish_households`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/polish_households.md)
+  : Polish Household Budget Data with Simulated Nonignorable Nonresponse
+- [`riddles_case1`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/riddles_case1.md)
+  : Riddles Simulation, Case 1: Linear Mean
+- [`riddles_case2`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/riddles_case2.md)
+  : Riddles Simulation, Case 2: Exponential Mean
+- [`riddles_case3`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/riddles_case3.md)
+  : Riddles Simulation, Case 3: Sine Wave Mean
+- [`riddles_case4`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/riddles_case4.md)
+  : Riddles Simulation, Case 4: Cubic Mean
+- [`voting`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/voting.md)
+  : Aggregated Exit Poll Data for Gangdong-Gap (2012)

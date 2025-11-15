@@ -81,46 +81,7 @@ gender (if we assume gender affects the likelihood of responding but not
 the salary value itself).
 
 ``` r
-generate_test_data <- function(n_rows = 400, n_cols = 2, case = 2, x_var = 0.5, eps_var = 0.5, a = 0.8, b = -0.2, c = NULL) {
-# Generate main features (only the actual predictors)
-  X <- as.data.frame(replicate(n_cols, rnorm(n_rows, 0, x_var)^1))
-  colnames(X) <- paste0("x", 1:n_cols)
-
-# Generate Y using ONLY the main predictors
-  coefs <- runif(n_cols, 0.95, 1.05)
-  eps <- rnorm(n_rows, 0, eps_var)
-
-  if (case == 1) {
-    X$Y <- as.vector(-1 + as.matrix(X) %*% coefs + eps)
-  }
-
-# Add additional column AFTER generating Y
-  if (!is.null(c)) {
-    X$x_additional <- runif(n_rows, 0, 2)
-  }
-
-# Sort by Y
-  X <- X[order(X$Y), ]
-  Y_original <- X$Y
-
-# Generate missingness
-  if (is.null(c)) {
-    pi_obs <- 1 / (1 + exp(-(a + b * X$Y)))
-  } else {
-    pi_obs <- 1 / (1 + exp(-(a + b * X$Y + c * X$x_additional)))
-  }
-
-  mask <- runif(nrow(X)) > pi_obs
-  mask[1] <- FALSE # Ensure at least one observation
-  X$Y[mask] <- NA
-
-  return(list(X = X, Y_original = Y_original))
-}
-
 library(NMAR, quietly = T)
-set.seed(1106)
-res_test_data <- generate_test_data(n_rows = 500, n_cols = 3, case = 1, c = NULL)
-data <- res_test_data$X
 
 exptilt_config <- exptilt_engine(
   y_dens = 'normal',
@@ -129,19 +90,19 @@ exptilt_config <- exptilt_engine(
   bootstrap_reps = 10
 )
 
-formula = Y ~ x1 + x2
-res <- nmar(formula = formula, data = data, engine = exptilt_config, trace_level = 0)
+formula = y ~ x
+res <- nmar(formula = formula, data = riddles_case1, engine = exptilt_config, trace_level = 0)
 print(coef(res))
-#> (Intercept)           Y 
-#>  0.60735452 -0.05136721
+#> (Intercept)           y 
+#>   0.5329473  -0.1025188
 print(res)
 #> NMAR Result
 #> ------------
-#> Y mean: -0.955991 (0.043103)
+#> y mean: -1.003033 (0.068809)
 #> Converged: TRUE 
 #> Variance method: bootstrap 
 #> Estimator: exponential_tilting 
-#> Sample size: 500 (respondents: 372)
+#> Sample size: 500 (respondents: 368)
 ```
 
 ## Getting help
@@ -226,6 +187,21 @@ Research grant: [OPUS 20
 - [`weights(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/weights.nmar_result.md)
   : Extract Weights from NMAR Result
 
+## Datasets
+
+- [`polish_households`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/polish_households.md)
+  : Polish Household Budget Data with Simulated Nonignorable Nonresponse
+- [`riddles_case1`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/riddles_case1.md)
+  : Riddles Simulation, Case 1: Linear Mean
+- [`riddles_case2`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/riddles_case2.md)
+  : Riddles Simulation, Case 2: Exponential Mean
+- [`riddles_case3`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/riddles_case3.md)
+  : Riddles Simulation, Case 3: Sine Wave Mean
+- [`riddles_case4`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/riddles_case4.md)
+  : Riddles Simulation, Case 4: Cubic Mean
+- [`voting`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/voting.md)
+  : Aggregated Exit Poll Data for Gangdong-Gap (2012)
+
 # Articles
 
 ### Estimators
@@ -267,13 +243,7 @@ both data.frame and survey design objects
 
 - [Empirical Likelihood
   Theory](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/el_empirical_likelihood_theory.md):
-
-  Mathematical details behind the empirical likelihood estimator for
-  NMAR data (Qin, Leung, and Shao 2002), and how the theory maps to our
-  implementation.
-
 - [Exponential Tilting
   Theory](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/exptilt_theory.md):
-
 - [Nonparametric Exponential Tilting
   Theory](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/exptilt_nonparam_theory.md):
