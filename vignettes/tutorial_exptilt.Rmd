@@ -94,8 +94,8 @@ if (requireNamespace("survey", quietly = TRUE)) {
 )
 
 
-  formula = Y ~ x1
-  res <- nmar(formula = formula, data = x, engine = exptilt_config)
+  formula = y ~ x1
+  res <- nmar(formula = formula, data = riddles_case1, engine = exptilt_config)
   print(res)
 
 }
