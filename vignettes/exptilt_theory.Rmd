@@ -1,0 +1,202 @@
+---
+title: "Exponential Tilting Theory"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{EXPTILT: vectorized matrix method}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Overview
+
+This vignette explains the matrix-vectorized implementation of the exponential tilting (EXPTILT) estimator used in this package. The exposition focuses on concepts and linear-algebraic operations used in the implementation (functions such as `generate_conditional_density_matrix`, `generate_C_matrix`, `generate_Odds`, and the vectorized `s_function`), and mirrors the statistical equations that underlie the algorithm (see Riddles et al. (2016) for the theoretical background).
+
+The method operates on a dataset split into respondents and non-respondents. Let
+\[n = n_0 + n_1\]
+where $n_1$ is the number of respondents (observed $Y$) and $n_0$ is the number of non-respondents (missing $Y$). The algorithm always treats these two groups separately: the conditional-density model is fit on respondents and used to impute support for non-respondents; the missingness model is fit using covariates that include the candidate $y$ values.
+
+We emphasize two distinct and disjoint sets of covariates throughout, and we require they have empty intersection:
+\[\mathcal{X}_{\text{outcome}} \cap \mathcal{X}_{\text{missingness}} = \varnothing.\]
+
+- covariates_for_outcome (denote $X_{\text{out}}$): variables used to model the conditional density $f_1(y\mid X_{\text{out}})$ on respondents;
+- covariates_for_missingness (denote $X_{\text{miss}}$): variables used in the response probability $\pi(X_{\text{miss}},y;\phi)$ (this includes candidate $y$ values when evaluating the missing-data expectation).
+
+Distinguishing these sets clearly in notation and code is crucial: the conditional density model is fit using `covariates_for_outcome` on respondents only, while the missingness model uses `covariates_for_missingness` and (importantly) takes $y$ as an additional predictor when forming $\pi(\cdot;\phi)$.
+
+## Notation and main objects
+
+Let:
+
+- $n$ be the total number of units; split them into respondents (observed $Y$) and non-respondents (missing $Y$). Denote indices with $i$ for non-respondents and $k$ (or $j$) for respondent outcomes used as support.
+- $\{y_j\}_{j=1}^{n_1}$ be the vector of observed outcome values (respondents).
+- $X^{\text{out}}$ denote the matrix of covariates_for_outcome for respondents.
+- $X^{\text{un}}$ denote the matrix of covariates_for_outcome for non-respondents.
+- $X^{\text{miss,obs}}$ and $X^{\text{miss,un}}$ denote the covariates_for_missingness for respondents and non-respondents, respectively (we shorten these to $X_{\text{miss}}^{\text{obs}}$ and $X_{\text{miss}}^{\text{un}}$ when needed).
+- $\pi(x_{\text{miss}},y;\phi)$ the response probability (no explicit link notation here): for a given covariate row used in the missingness model and a candidate $y$, \(\pi(\cdot;\phi)\) denotes the probability of response under parameter $\phi$.
+
+We build three central matrices:
+
+1. Conditional-density matrix $F$ (denoted in code as `f_matrix_nieobs`):
+
+   - Size: $n_0 \times n_1$ where $n_0$ is the number of non-respondents and $n_1$ is the number of distinct respondent $y$ values used as support.
+   - Entries:
+     \[F_{ij} = f_1(y_j \mid x^{\text{un}}_i; \hat\gamma)\]\
+     where $\hat\gamma$ is the (estimated) parameter vector of the conditional-density model fit on respondents. This corresponds to the empirical approximation in equation (12):
+     \[\hat f_1(y_j) \propto \sum_{k:\,\delta_k=1} f_1(y_j \mid x_k; \hat\gamma).\]
+
+2. Column-normalizer vector $C$ (denoted in code as `C_matrix_nieobs`):
+
+   - Size: $n_1 \times 1$ (a column vector).
+   - Entries: the column-sums of the conditional densities evaluated at respondent covariates:
+     \[C_j = C(y_j;\hat\gamma) = \sum_{k:\,\delta_k=1} f_1(y_j \mid x^{\text{obs}}_k;\hat\gamma).\]
+     Conceptually this is the denominator that appears when fractional weights are formed (see below).
+
+3. Odds matrix $O(\phi)$ (constructed by `generate_Odds`):
+
+   - Size: $n_0 \times n_1$.
+  - Entries (for non-respondent $i$ and candidate $y_j$):
+    \[O_{ij}(\phi) = \frac{1-\pi(x^{\text{miss,un}}_i, y_j;\phi)}{\pi(x^{\text{miss,un}}_i, y_j;\phi)}\]
+    The implementation exploits the separability of the linear predictor in the parameters:
+    \[\eta_{ij} = \beta_0 + X^{\text{miss,un}}_i\beta_{\text{miss}} + \beta_y y_j,\]
+     and uses `outer()` to form the $n_0\times n_1$ matrix efficiently.
+
+Using these objects we form a non-normalized weight matrix
+\[U_{ij}(\phi) = O_{ij}(\phi) \cdot F_{ij}\]
+and then a normalized fractional-weight matrix
+\[W_{ij}(\phi) = \frac{U_{ij}(\phi)}{C_j} = \frac{O_{ij}(\phi)\,f_1(y_j\mid x^{\text{un}}_i;\hat\gamma)}{\sum_{k:\,\delta_k=1} f_1(y_j\mid x^{\text{obs}}_k;\hat\gamma)}.\]
+
+These $W_{ij}$ match the weights appearing in the theoretical mean score approximation (equation (15) in the notes): they are the fractional contribution of each imputed $(i,j)$ pair to the conditional expectation for unit $i$.
+
+## The vectorized score S_2 and matrix algebra
+
+Recall the mean-score approximation that leads to the estimating equation used to solve for $\phi$ (cf. equation (13) in the notes):
+\[
+S_2(\phi; \hat\phi^{(t)}, \hat\gamma) = \sum_{r=1}^n \Big[ \delta_r s(\phi;\delta_r, x^{\text{miss}}_r, x^{\text{out}}_r, y_r) + (1-\delta_r)\widetilde{E}_0\{ s(\phi;\delta, x^{\text{miss}}_r, x^{\text{out}}_r, Y) \mid x^{\text{out}}_r;\hat\phi^{(t)},\hat\gamma\} \Big] = 0.
+\]
+
+It is convenient to decompose this as the sum of observed and unobserved contributions:
+\[
+S_2(\phi) = S_{\text{obs}}(\phi) + S_{\text{un}}(\phi),
+\]
+where
+\[
+S_{\text{obs}}(\phi) = \sum_{r:\,\delta_r=1} s(\phi;\delta=1, x^{\text{miss}}_r, x^{\text{out}}_r, y_r)
+\]
+is the score contribution from respondents, and the missing-unit contribution is approximated by the discrete-support expectation
+\[
+S_{\text{un}}(\phi) \approx \sum_{i:\,\delta_i=0} \sum_{j=1}^{n_1} W_{ij}(\phi)\, s(\phi;\delta=0, x^{\text{miss}}_i, x^{\text{out}}_i, y_j).
+\]
+The remainder of this section explains how the double sum in $S_{\text{un}}(\phi)$ is computed via matrix operations.
+
+The crucial observation for vectorization is that the inner conditional expectation for a non-respondent $i$ is approximated by a weighted finite-sum over the respondent support $\{y_j\}$:
+\[
+\widetilde{E}_0\{ s(\phi;\delta, x^{\text{miss}}_i, x^{\text{out}}_i, Y) \mid x^{\text{out}}_i\} \approx \sum_{j=1}^{n_1} W_{ij}(\phi)\, s(\phi;\delta=0, x^{\text{miss}}_i, x^{\text{out}}_i, y_j).
+\]
+
+Stacking the non-respondent expectations across all non-respondents gives a single matrix operation. Let
+
+- For each pair $(i,j)$ evaluate the vector-valued score s at $(\delta=0, x^{\text{miss}}_i, x^{\text{out}}_i, y_j)$. Collect these quickly by exploiting the algebraic factorization of the score (see the `s_function` implementation): many parameter-specific components are separable in $i$ and $j$ which allows creation of low-memory representations.
+
+- Denote by $S^{(0)}_{ij}$ the p-dimensional score vector at $(i,j)$. Organize these so that for each parameter index $m$ we have an $n_0\times n_1$ matrix of values $[S^{(0)}_{\bullet\bullet}]_{m}$ (parameter-wise maps). Then the non-respondent contribution to the overall score vector is
+\[
+\sum_{i=1}^{n_0} \sum_{j=1}^{n_1} W_{ij}(\phi)\, S^{(0)}_{ij} = \left[ \,\text{vec}
+\big( W \circ [S^{(0)}]_{1} \big)\, ,\, \ldots\, ,\, \text{vec}\big( W \circ [S^{(0)}]_{p} \big)\,\right]^\top
+\]
+where $\circ$ denotes elementwise multiplication and `vec` followed by an appropriate collapse (row-sum or column-sum) implements the inner summation depending on the parameter's factorization. In concrete computational terms:
+
+- For parameter components that multiply per-row (i.e. depend only on $x_i$ times a factor that is a function of $y_j$) we compute elementwise products between $W$ and a factor matrix and then row-sum across $j$ to get an $n_0\times 1$ contribution per non-respondent, and then sum across $i$.
+- For intercept-like or column-wise components, a column-sum followed by weighted multiplication suffices.
+
+In the implementation this reduces to a sequence of dense matrix operations and row/column sums rather than explicit loops over the expanded index set of length $n_0\times n_1$. This yields large speed and memory benefits for real datasets.
+
+Concise vectorized S_2 recipe (conceptual):
+
+1. Build $F$ (size $n_0\times n_1$) via `generate_conditional_density_matrix(model)`.
+2. Build $C$ (size $n_1$) via `generate_C_matrix(model)` by summing the conditional densities over respondents.
+3. For a candidate $\phi$ compute $O(\phi)$ (size $n_0\times n_1$) via `generate_Odds(model,\phi)`.
+4. Form $W(\phi)=\dfrac{O(\phi)\circ F}{\mathbf{1}_{n_0} C^\top}$ (i.e. divide each column of $O\circ F$ by the corresponding scalar $C_j$).
+5. Compute observed-score sum: $S_{\text{obs}}(\phi)=\sum_{r:\,\delta_r=1} s(\phi;\delta=1,x^{\text{miss}}_r,x^{\text{out}}_r,y_r)$ (this is small: one score vector per respondent).
+6. Compute non-respondent expected-score: use $W(\phi)$ and parameter-wise factor matrices derived from $s(\cdot)$ to compute
+  \[S_{\text{un}}(\phi)=\sum_{i=1}^{n_0}\sum_{j=1}^{n_1} W_{ij}(\phi)\, s(\phi;\delta=0,x^{\text{miss}}_i,x^{\text{out}}_i,y_j)\]
+   implemented via matrix multiplications and row/column sums.
+7. Return the total score $S_2(\phi)=S_{\text{obs}}(\phi) + S_{\text{un}}(\phi)$.
+
+The root-finder then searches for $\phi$ such that $S_2(\phi)=0$. In the package this is implemented by repeatedly forming $O(\phi)$ for the current candidate $\phi$, computing $W(\phi)$ and $S_2(\phi)$, and letting `nleqslv` perform the iteration.
+
+## Mean estimation and survey weights
+
+After the response-model parameters $\hat\phi$ are obtained the package reports a mean estimate of the target outcome using an inverse-probability reweighting form. Let respondents be indexed by $j=1,\dots,n_1$; denote by $\pi_j = \pi(x^{\text{miss}}_j,y_j;\hat\phi)$ the fitted response probabilities evaluated at each respondent (here we write $x^{\text{miss}}_j$ for the covariates used in the missingness model evaluated at respondent $j$). With design weights $w_j$ (by default $w_j\equiv 1$ for non-survey data) the point estimator computed in the implementation is
+\[
+\hat\mu = \frac{\sum_{j=1}^{n_1} w_j\, y_j / \pi_j}{\sum_{j=1}^{n_1} w_j / \pi_j}.\tag{mean-est}
+\]
+
+Notes on survey weights and $f_1$ fitting:
+
+- The conditional-density fit used to build $F$ can incorporate respondent sampling weights when provided (the implementation passes respondent weights to the density-fitting routine). Thus $f_1(\cdot\mid x;\gamma)$ may be a weighted fit when `design_weights` or a survey `design` is supplied.
+- The mean-estimate (mean-est) also uses design weights $w_j$ in both numerator and denominator as shown above. In code these are provided via `model$design_weights` and default to 1 for non-survey use.
+
+In short: survey weights enter two places — (i) the conditional-density estimation (if requested) and (ii) the final mean calculation through the weighted IPW-type ratio in (mean-est).
+
+## Arguments passed to `exptilt` (summary)
+
+The `exptilt` / `exptilt.data.frame` user-facing function accepts a number of arguments that control model specification and computation; the most important are:
+
+- `data`: a `data.frame` with outcome and covariates.
+- `formula`: a partitioned formula of the form `y ~ aux1 + aux2 | miss1 + miss2` where the left part (before `|`) lists `covariates_for_outcome` and the right part lists `covariates_for_missingness` (the package helper splits these automatically).
+- `auxiliary_means`: (optional) population or target means for auxiliary variables used for scaling.
+- `standardize`: logical, whether to standardize features before fitting.
+- `prob_model_type`: character, either `"logit"` or `"probit"` to select the response probability family.
+- `y_dens`: choice of conditional-density family; `"auto"`, `"normal"`, `"lognormal"`, or `"exponential"`.
+- `variance_method`: `"delta"` or `"bootstrap"` for variance estimation.
+- `bootstrap_reps`: number of bootstrap replications when bootstrap is used.
+- `control`: list of control parameters forwarded to the nonlinear solver (`nleqslv`).
+- `stopping_threshold`: numeric; the sup-norm threshold for early stopping of the score (see above).
+- `on_failure`: behavior on failure (`"return"` or `"error"`).
+- `supress_warnings`: logical to silence certain warnings.
+- `design_weights`: optional vector of respondent design weights (or full-sample weights which are subset internally).
+- `survey_design`: optional `survey.design` object; when provided some internal logic uses the survey path.
+- `trace_level`: integer controlling verbosity.
+- `sample_size`: integer for stratified subsampling used when data are large.
+- `outcome_label`, `user_formula`: utility arguments used for presentation and bookkeeping.
+
+These arguments appear in the `exptilt.data.frame` function signature and control how the matrices $F$, $C$, and $O$ are built and how the solver is run.
+
+## Connection to the EM viewpoint
+
+The EM-like update displayed in the theoretical notes (equation (14))
+\[\hat\phi^{(t+1)} \leftarrow \text{solve } S_2(\phi \mid \hat\phi^{(t)},\hat\gamma)=0\]
+is exactly what the implementation achieves: for a fixed conditional-density estimate $\hat\gamma$ and a current $\hat\phi^{(t)}$, the expectations for the missing units are approximated by the discrete support on observed $y_j$ and the resulting equation for $\phi$ is solved (via root-finding). The heavy-lift is performed by the matrix calculus described earlier — constructing $F$, $C$, $O$ and then computing $W$ and multiplying by the parameter-wise score factors.
+
+## Stopping criterion (maximum-norm)
+
+Practical optimization requires a convergence criterion. The implementation uses the maximum absolute component of the vector-valued score as a stopping rule. Concretely, if the solver produces a score vector $S_2(\phi)$ with
+\[\max_{m=1,\dots,p} |S_{2,m}(\phi)| < \varepsilon\]
+for a user-specified `stopping_threshold = \varepsilon`, the algorithm treats this as converged. In the code this is used as an early-exit inside the target-function passed to the nonlinear solver: when the score's sup-norm is below the threshold, a zero vector is returned to signal convergence and avoid further unnecessary computations.
+
+This choice matches the intuition that the root-finder should stop when the estimating equations are (componentwise) negligibly small.
+
+## Practical tutorial: from raw data to matrix operations (conceptual steps)
+
+1. Fit the conditional density $f_1(y\mid x;\gamma)$ using respondents and `covariates_for_outcome`. This gives a function that evaluates $f_1(y, x)$ for any $y$ and any covariate row $x$ (used for both respondents and non-respondents).
+
+2. Evaluate the conditional density at the Cartesian product of non-respondent covariates and observed respondent $y$ values to form $F$ (done by `generate_conditional_density_matrix`). This is the empirical imputation support. Think of rows as target non-respondents and columns as candidate respondent outcomes.
+
+3. Evaluate the same conditional density at respondent covariates to form the column-normalizer $C$ (done by `generate_C_matrix`) — this is simply the column-sum of densities over respondents.
+
+4. For each trial value $\phi$ of the response-model parameters, compute the odds matrix $O(\phi)$ using the separable linear predictor and link function (implemented efficiently via `outer()` in code). Combine $O$ with $F$ and normalize columns by $C$ to obtain $W(\phi)$.
+
+5. Use the vectorized `s_function` to obtain parameter-specific factor matrices for the non-respondent-imputed scores; multiply (elementwise) by $W(\phi)$ and reduce (row/column sums) to compute the non-respondent contribution to $S_2(\phi)$.
+
+6. Add the observed-respondent score and use a root-finder (e.g. `nleqslv`) to find $\phi$ with $S_2(\phi)=0$. The solver may use the maximum-norm stopping threshold described above to exit early.
+
+## Why the vectorization matters (practical remarks)
+
+- Memory: the naive expansion to an explicit dataset of size $n_0\times n_1$ would store duplicated covariate rows and blow up memory. The implemention exploits separability (intercept + $X^{\text{miss}}_i\beta_{\text{miss}}$ + $\beta_y y_j$) and vectorized R primitives (`outer`, matrix multiplications, column/row sums) to avoid large temporary allocations.
+- Speed: elementwise operations on dense matrices plus BLAS-accelerated matrix multiplication are much faster than interpreted loops in R for typical dataset sizes.
+- Clarity: organizing logic as the three matrices $F$, $C$, and $O$, followed by elementwise combination and reductions, makes the relationship between the statistical approximation and the implementation transparent and easier to reason about.
+
+## Closing notes and references
+
+This vignette mapped the implementation functions to the math in the theoretical notes and showed how the EM-like mean-score step reduces to a small set of matrix operations. The implementation follows the ideas described in Riddles et al. (2016) for exponential tilting under NMAR: fit the conditional density on respondents, approximate the missing-data expectation by a finite sum over observed $y$ values, and solve the resulting estimating equations for the missingness-model parameters.
+
+If you would like, I can produce a minimal worked numeric example (R code) that builds the matrices and demonstrates the matrix multiplications used here — implemented as small, readable functions for teaching purposes — and place it in this vignette as an optional appendix.
