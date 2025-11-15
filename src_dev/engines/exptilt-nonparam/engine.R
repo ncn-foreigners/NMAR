@@ -12,7 +12,7 @@
 #' @keywords engine
 #' @export
 exptilt_nonparam_engine <- function(
-    refusal_col,
+    refusal_col = '',
     max_iter = 100,
     tol_value = 1e-6) {
 

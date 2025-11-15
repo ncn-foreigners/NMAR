@@ -1,14 +1,14 @@
 #' @importFrom stats aggregate
 #' @exportS3Method exptilt_nonparam data.frame
-#' @keywords internal
-exptilt_nonparam.data.frame <- function(
+exptilt_nonparam.survey <- function(
     data,
     formula,
     trace_level = 0,
     refusal_col,
     max_iter = 100,
-    tol = 1e-6,
-    design_weights = NULL # Added to match S3 pattern
+    tol_value = 1e-6,
+    design_weights = NULL, # Added to match S3 pattern
+    ...
 ) {
   design_vars <- data$variables
 
@@ -20,8 +20,7 @@ exptilt_nonparam.data.frame <- function(
     trace_level = trace_level,
     refusal_col = refusal_col,
     max_iter = max_iter,
-    tol = tol,
-    design_weights = design_weights,
-    ...
+    tol_value = tol_value,
+    design_weights = design_weights
   )
 }
