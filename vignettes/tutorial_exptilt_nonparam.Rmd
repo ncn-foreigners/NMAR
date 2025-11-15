@@ -27,15 +27,7 @@ library(NMAR)
 
 ```{r}
 # Test data (Riddles 2016)
-voting_data_example <- data.frame(
-  Gender = rep(c("Male", "Male", "Male", "Male", "Female", "Female", "Female", "Female"), 1),
-  Age_group = c("20-29", "30-39", "40-49", ">=50", "20-29", "30-39", "40-49", "50+"),
-  Voted_A = c(93, 104, 146, 560, 106, 129, 170, 501),
-  Voted_B = c(115, 233, 295, 350, 159, 242, 262, 218),
-  Other = c(4, 8, 5, 3, 8, 5, 5, 7),
-  Refusal = c(28, 82, 49, 174, 62, 70, 69, 211),
-  Total = c(240, 427, 495, 1087, 335, 446, 506, 937)
-)
+head(voting)
 ```
 
 
@@ -48,7 +40,7 @@ np_em_config <- exptilt_nonparam_engine(
 
 em_formula <- Voted_A + Voted_B + Other ~ Gender | Age_group
 
-results_em_np <- nmar(formula = em_formula, data = voting_data_example, engine = np_em_config, trace_level = 0)
+results_em_np <- nmar(formula = em_formula, data = voting, engine = np_em_config, trace_level = 0)
 ```
 
 
