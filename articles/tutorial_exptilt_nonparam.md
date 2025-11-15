@@ -18,28 +18,26 @@ voting_data_example <- data.frame(
 ```
 
 ``` r
-# em_formula <- list(
-#   outcome = ~ NULL, #TODO - This part is useless
-#   covariates_outcome = ~ Gender,
-#   covariates_missingness = ~ Age_group
-# )
-em_formula <- Voted_A + Voted_B + Other ~ Gender
+np_em_config <- exptilt_nonparam_engine(
+  refusal_col = "Refusal",
+  max_iter = 100,
+  tol_value = 0.001
+)
+
+em_formula <- Voted_A + Voted_B + Other ~ Gender | Age_group
+
+results_em_np <- nmar(formula = em_formula, data = voting_data_example, engine = np_em_config, trace_level = 0)
 ```
 
 ``` r
-# # Exptilt Nonparam engine configuration
-# np_em_config <- exptilt_nonparam_engine(
-# # outcome_cols = c("Voted_A", "Voted_B", "Other"),
-#   refusal_col = "Refusal",
-#   max_iter = 100,
-#   tol_value = 1e-6
-# )
-```
-
-``` r
-# results_em_np <- nmar(formula = Voted_A + Voted_B + Other ~ Gender | Age_group, data = voting_data_example, engine = np_em_config)
-```
-
-``` r
-# print(results_em_np$processed_data)
+print(results_em_np$data_final)
+#>   Gender Age_group  Voted_A  Voted_B    Other Total
+#> 1   Male     20-29 108.4560 118.8595 12.68447   240
+#> 2   Male     30-39 137.3696 248.0971 41.53330   427
+#> 3   Male     40-49 172.4092 305.7756 16.81518   495
+#> 4   Male      >=50 705.4611 368.3589 13.18002  1087
+#> 5 Female     20-29 149.2433 166.3526 19.40414   335
+#> 6 Female     30-39 180.9255 253.0418 12.03269   446
+#> 7 Female     40-49 224.0130 271.4359 10.55110   506
+#> 8 Female       50+ 693.1421 227.4771 16.38086   937
 ```

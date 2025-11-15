@@ -7,7 +7,7 @@
 - [`exptilt_engine()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/exptilt_engine.md)
   : Exponential tilting (ET) engine for NMAR estimation
 - [`exptilt_nonparam_engine()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/exptilt_nonparam_engine.md)
-  : Nonparametric exponential tilting engine
+  : Nonparametric exponential tilting (EM) engine for NMAR
 
 ## NMAR
 

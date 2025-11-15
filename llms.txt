@@ -168,7 +168,7 @@ Research grant: [OPUS 20
 - [`exptilt_engine()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/exptilt_engine.md)
   : Exponential tilting (ET) engine for NMAR estimation
 - [`exptilt_nonparam_engine()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/exptilt_nonparam_engine.md)
-  : Nonparametric exponential tilting engine
+  : Nonparametric exponential tilting (EM) engine for NMAR
 
 ## NMAR
 
@@ -274,3 +274,6 @@ both data.frame and survey design objects
 
 - [Exponential Tilting
   Theory](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/exptilt_theory.md):
+
+- [Nonparametric Exponential Tilting
+  Theory](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/exptilt_nonparam_theory.md):

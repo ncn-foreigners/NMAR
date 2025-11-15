@@ -57,6 +57,7 @@ https://doi.org/10.1093/jssam/smv047
     <li><h6 class="dropdown-header" data-toc-skip>Theory</h6></li>
     <li><a class="dropdown-item" href="../articles/el_empirical_likelihood_theory.html">Empirical Likelihood Theory</a></li>
     <li><a class="dropdown-item" href="../articles/exptilt_theory.html">Exponential Tilting Theory</a></li>
+    <li><a class="dropdown-item" href="../articles/exptilt_nonparam_theory.html">Nonparametric Exponential Tilting Theory</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
   </ul>
@@ -104,24 +105,26 @@ https://doi.org/10.1093/jssam/smv047
 <span>  Total <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">240</span>, <span class="fl">427</span>, <span class="fl">495</span>, <span class="fl">1087</span>, <span class="fl">335</span>, <span class="fl">446</span>, <span class="fl">506</span>, <span class="fl">937</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># em_formula &lt;- list(</span></span>
-<span><span class="co">#   outcome = ~ NULL, #TODO - This part is useless</span></span>
-<span><span class="co">#   covariates_outcome = ~ Gender,</span></span>
-<span><span class="co">#   covariates_missingness = ~ Age_group</span></span>
-<span><span class="co"># )</span></span>
-<span><span class="va">em_formula</span> <span class="op">&lt;-</span> <span class="va">Voted_A</span> <span class="op">+</span> <span class="va">Voted_B</span> <span class="op">+</span> <span class="va">Other</span> <span class="op">~</span> <span class="va">Gender</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">np_em_config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/exptilt_nonparam_engine.html">exptilt_nonparam_engine</a></span><span class="op">(</span></span>
+<span>  refusal_col <span class="op">=</span> <span class="st">"Refusal"</span>,</span>
+<span>  max_iter <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  tol_value <span class="op">=</span> <span class="fl">0.001</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">em_formula</span> <span class="op">&lt;-</span> <span class="va">Voted_A</span> <span class="op">+</span> <span class="va">Voted_B</span> <span class="op">+</span> <span class="va">Other</span> <span class="op">~</span> <span class="va">Gender</span> <span class="op">|</span> <span class="va">Age_group</span></span>
+<span></span>
+<span><span class="va">results_em_np</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">em_formula</span>, data <span class="op">=</span> <span class="va">voting_data_example</span>, engine <span class="op">=</span> <span class="va">np_em_config</span>, trace_level <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># # Exptilt Nonparam engine configuration</span></span>
-<span><span class="co"># np_em_config &lt;- exptilt_nonparam_engine(</span></span>
-<span><span class="co"># # outcome_cols = c("Voted_A", "Voted_B", "Other"),</span></span>
-<span><span class="co">#   refusal_col = "Refusal",</span></span>
-<span><span class="co">#   max_iter = 100,</span></span>
-<span><span class="co">#   tol_value = 1e-6</span></span>
-<span><span class="co"># )</span></span></code></pre></div>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># results_em_np &lt;- nmar(formula = Voted_A + Voted_B + Other ~ Gender | Age_group, data = voting_data_example, engine = np_em_config)</span></span></code></pre></div>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># print(results_em_np$processed_data)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">results_em_np</span><span class="op">$</span><span class="va">data_final</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   Gender Age_group  Voted_A  Voted_B    Other Total</span></span>
+<span><span class="co">#&gt; 1   Male     20-29 108.4560 118.8595 12.68447   240</span></span>
+<span><span class="co">#&gt; 2   Male     30-39 137.3696 248.0971 41.53330   427</span></span>
+<span><span class="co">#&gt; 3   Male     40-49 172.4092 305.7756 16.81518   495</span></span>
+<span><span class="co">#&gt; 4   Male      &gt;=50 705.4611 368.3589 13.18002  1087</span></span>
+<span><span class="co">#&gt; 5 Female     20-29 149.2433 166.3526 19.40414   335</span></span>
+<span><span class="co">#&gt; 6 Female     30-39 180.9255 253.0418 12.03269   446</span></span>
+<span><span class="co">#&gt; 7 Female     40-49 224.0130 271.4359 10.55110   506</span></span>
+<span><span class="co">#&gt; 8 Female       50+ 693.1421 227.4771 16.38086   937</span></span></code></pre></div>
   </main>
 </div>
 

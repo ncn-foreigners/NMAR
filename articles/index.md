@@ -46,3 +46,6 @@ both data.frame and survey design objects
 
 - [Exponential Tilting
   Theory](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/exptilt_theory.md):
+
+- [Nonparametric Exponential Tilting
+  Theory](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/exptilt_nonparam_theory.md):
