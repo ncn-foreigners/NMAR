@@ -6,8 +6,9 @@ exptilt_nonparam.data.frame <- function(
     trace_level = 0,
     refusal_col,
     max_iter = 100,
-    tol = 1e-6,
-    design_weights = NULL # Added to match S3 pattern
+    tol_value = 1e-6,
+    design_weights = NULL, # Added to match S3 pattern
+    ...
 ) {
 
 # --- 0. CREATE VERBOSER ---
@@ -132,7 +133,7 @@ exptilt_nonparam.data.frame <- function(
 # --- 3. THE EM ALGORITHM (The "Loop") ---
   verboser("", level = 1)
   verboser("-- EM ALGORITHM --", level = 1)
-  verboser(sprintf("  Solving... (max_iter = %d, tol = %s)", max_iter, tol), level = 1)
+  verboser(sprintf("  Solving... (max_iter = %d, tol_value = %s)", max_iter, tol_value), level = 1)
 
   odds_matrix <- matrix(1.0,
                         nrow = nrow(n_y_x1_matrix),
@@ -147,7 +148,7 @@ exptilt_nonparam.data.frame <- function(
   p_hat_x1_keys <- x_to_x1_map[rownames(p_hat_matrix), "x1_key"]
 
   iter <- 0
-  diff <- tol + 1
+  diff <- tol_value + 1
 
   for (iter in 1:max_iter) {
     odds_old <- odds_matrix
@@ -169,7 +170,7 @@ exptilt_nonparam.data.frame <- function(
     odds_matrix <- m_y_x1_matrix / n_safe
 
     diff <- sum(abs(odds_matrix - odds_old), na.rm = TRUE)
-    if (diff < tol) break
+    if (diff < tol_value) break
   }
 
 # --- 4. CALCULATE FINAL m_y_x & RETURN ---
@@ -232,7 +233,7 @@ exptilt_nonparam.data.frame <- function(
     engine_params = list(
       refusal_col = refusal_col,
       max_iter = max_iter,
-      tol = tol
+      tol_value = tol_value
     ),
     fit_stats = list(
       iterations = iter,
