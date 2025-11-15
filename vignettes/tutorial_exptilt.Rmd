@@ -77,8 +77,8 @@ cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(riddles_case1$y, na.rm = T)),
 if (requireNamespace("survey", quietly = TRUE)) {
 
   library('survey')
-  surv_test_weights <- runif(nrow(x), 0.9, 1.1)
-  surv_test_data <- svydesign(ids = ~1, data = x, weights = ~surv_test_weights)
+  surv_test_weights <- runif(length(riddles_case1$y), 0.9, 1.1)
+  surv_test_data <- svydesign(ids = ~1, data = riddles_case1, weights = ~surv_test_weights)
 
   exptilt_config <- exptilt_engine(
      standardize = FALSE,
@@ -94,7 +94,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
 )
 
 
-  formula = y ~ x1
+  formula = y ~ x
   res <- nmar(formula = formula, data = riddles_case1, engine = exptilt_config)
   print(res)
 
