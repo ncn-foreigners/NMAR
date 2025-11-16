@@ -316,21 +316,13 @@ el_estimator_core <- function(missingness_design,
 
 # 7. Conditional Variance Calculation
   se_y_hat <- NA
-  vcov_unscaled <- NA
+  vcov_unscaled <- NULL
   vcov_message <- "Calculation successful"
 
 # Variance estimation header
   el_log_variance_header(verboser, variance_method, bootstrap_reps)
 
   t_var_start <- proc.time()[[3]]
-  diag_grad_source <- NA_character_
-  diag_var_yhat <- NA_real_
-  diag_var_anal2 <- NA_real_
-  diag_grad_l1 <- NA_real_
-  diag_sigma_min_eig <- NA_real_
-  diag_B_min_eig <- NA_real_
-  vcov_unscaled <- NA
-  vcov_message <- "Calculation successful"
 
   var_out <- el_compute_variance(
     y_hat = y_hat,
@@ -349,9 +341,7 @@ el_estimator_core <- function(missingness_design,
   )
   vcov_message <- var_out$message
   se_y_hat <- var_out$se
-  if (identical(variance_method, "none")) {
-    vcov_unscaled <- matrix(NA_real_, K_beta, K_beta, dimnames = list(colnames(missingness_model_matrix_unscaled), colnames(missingness_model_matrix_unscaled)))
-  }
+# EL engine does not provide a coefficient covariance matrix; vcov_unscaled remains NULL.
   variance_time <- proc.time()[[3]] - t_var_start
   el_log_variance_result(verboser, se_y_hat, variance_time)
 
@@ -379,12 +369,6 @@ el_estimator_core <- function(missingness_design,
       jacobian_condition_number = diag_pack$jacobian_condition_number,
       aux_inconsistency_max_z = aux_inconsistency_max_z,
       aux_inconsistency_cols = aux_inconsistency_cols,
-      grad_source = diag_grad_source,
-      var_y_hat_val = diag_var_yhat,
-      var_anal2 = diag_var_anal2,
-      grad_l1 = diag_grad_l1,
-      sigma_min_eig = diag_sigma_min_eig,
-      B_min_eig = diag_B_min_eig,
       min_denominator = diag_pack$denom_stats$min,
       fraction_small_denominators = diag_pack$denom_stats$p_small,
       denom_q01 = denom_q[[1]],
