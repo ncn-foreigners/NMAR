@@ -153,13 +153,6 @@
 #' nonignorable nonresponse or informative sampling. \emph{Journal of the American
 #' Statistical Association}, 97(457), 193-200.
 #'
-#' Wu, C., and Sitter, R. R. (2001). A model-calibration approach to using
-#' complete auxiliary information from survey data. \emph{Journal of the American
-#' Statistical Association}, 96(453), 185-193. Related to design-based
-#' calibration; our EL approach balances auxiliary moments through empirical
-#' likelihood constraints rather than calibration adjustments to weights.
-#'
-#'
 #' @keywords engine
 #' @export
 #' @seealso [nmar()], [weights.nmar_result()], [summary.nmar_result]
