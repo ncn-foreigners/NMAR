@@ -80,11 +80,11 @@
 #' \code{variance_method = "delta"} is requested, the estimator returns \code{NA}
 #' standard errors with a message; use \code{variance_method = "bootstrap"} for SEs.
 #'
-#' Survey designs are handled by replacing counts in QLS (2002) with design-weighted
-#' totals. In particular, the response-rate multiplier generalizes to
+#' Survey designs are handled by replacing counts in Qin, Leung, and Shao (2002) with
+#' design-weighted totals. In particular, the response-rate multiplier generalizes to
 #' \eqn{\lambda_W = \{N_\mathrm{pop}/\sum_{i:\,R_i=1} d_i - 1\}/(1 - W)}, which reduces
-#' to the QLS expression when \eqn{d_i \equiv 1}. Solver configuration uses \code{nleqslv}
-#' with an analytic Jacobian and line-search globalization. Defaults are
+#' to the Qin-Leung-Shao expression when \eqn{d_i \equiv 1}. Solver configuration uses
+#' \code{nleqslv} with an analytic Jacobian and line-search globalization. Defaults are
 #' \code{global = "qline"} and \code{xscalm = "auto"}; users can override via \code{control}.
 #' Invalid values are coerced to these defaults with a warning.
 #'
@@ -96,8 +96,8 @@
 #'
 #' \strong{Weights in results}: Calling \code{weights()} on the returned \code{nmar_result}
 #' gives respondent weights on either the probability scale (sum to 1) or the population
-#' scale (sum to \eqn{N_\mathrm{pop}}). The reported masses come from the empirical
-#' likelihood construction \eqn{a_i/D_i(\theta)} and are normalized in \code{weights()}.
+#' scale (sum to \eqn{N_\mathrm{pop}}). For the EL engine these come from the empirical
+#' likelihood construction \eqn{d_i/D_i(\theta)} and are normalized in \code{weights()}.
 #'
 #' \strong{Variance}: Analytical delta variance for EL is not implemented. Requesting
 #' \code{variance_method = "delta"} is coerced to \code{"none"} with a warning. For standard
@@ -142,16 +142,6 @@
 #' If progressr is not installed or no handlers are set, bootstrap runs silently
 #' (default behavior). Progress reporting works with all future backends and does
 #' not affect reproducibility.
-#'
-#' @return An engine object of class \code{c("nmar_engine_el","nmar_engine")}.
-#'   This is a configuration list; it is not a fit. Pass it to \link{nmar}.
-#'
-#' @seealso \link{nmar}; see the vignette "Empirical Likelihood Theory for NMAR" for derivations.
-#'
-#' @references
-#' Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
-#' nonignorable nonresponse or informative sampling. \emph{Journal of the American
-#' Statistical Association}, 97(457), 193-200.
 #'
 #' @keywords engine
 #' @export

@@ -116,7 +116,7 @@ el_build_aux_design <- function(parsed) {
   aux_matrix <- rhs$matrix
   intercept_requested <- isTRUE(attr(rhs$terms, "intercept") == 1) && el_has_explicit_intercept(aux_expr)
   aux_matrix <- el_drop_intercept_columns(aux_matrix)
-  if (intercept_requested) {
+  if (intercept_requested && ncol(aux_matrix) > 0) {
     warning("Auxiliary intercepts are ignored; + 1 has no effect.", call. = FALSE)
   }
 
@@ -193,7 +193,7 @@ el_as_formula <- function(base_formula) {
 
 el_with_formula_errors <- function(expr, context_label) {
   tryCatch(
-    expr,
+    suppressWarnings(expr),
     error = function(e) el_rethrow_data_error(e, context_label)
   )
 }

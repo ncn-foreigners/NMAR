@@ -47,8 +47,8 @@ test_that("el_resolve_auxiliaries warns on extra names in auxiliary_means and ig
   auxiliary_design_full <- model.matrix(~ X - 1, data = full)
   respondent_mask <- rep(TRUE, n)
   aux_means_supplied <- c(X = 0, EXTRA = 123)
-  expect_warning(
-    out <- NMAR:::el_resolve_auxiliaries(auxiliary_design_full, respondent_mask, auxiliary_means = aux_means_supplied),
+  out <- expect_warning(
+    NMAR:::el_resolve_auxiliaries(auxiliary_design_full, respondent_mask, auxiliary_means = aux_means_supplied),
     regexp = "Ignoring unused names in 'auxiliary_means'",
     fixed = FALSE
   )

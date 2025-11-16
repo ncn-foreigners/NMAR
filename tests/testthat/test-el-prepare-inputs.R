@@ -78,13 +78,9 @@ test_that("respondents-only data frame requires n_total", {
     fixed = FALSE
   )
   eng_with_total <- el_engine(variance_method = "none", n_total = 100)
-  expect_warning(
-    expect_s3_class(
-      nmar(Y_miss ~ 1, data = df, engine = eng_with_total),
-      "nmar_result_el"
-    ),
-    "Auxiliary intercepts are ignored",
-    fixed = FALSE
+  expect_s3_class(
+    nmar(Y_miss ~ 1, data = df, engine = eng_with_total),
+    "nmar_result_el"
   )
 })
 
@@ -113,16 +109,12 @@ test_that("el_prepare_design forbids outcome in auxiliary constraints", {
   )
 })
 
-test_that("intercept-only auxiliaries are ignored (with warning)", {
+test_that("intercept-only auxiliaries are ignored silently", {
   df <- data.frame(
     Y_miss = c(1, NA, 3, NA),
     Z = rnorm(4)
   )
-  expect_warning(
-    design <- NMAR:::el_prepare_design(Y_miss ~ 1 | Z, df),
-    "intercept",
-    fixed = FALSE
-  )
+  design <- NMAR:::el_prepare_design(Y_miss ~ 1 | Z, df)
   expect_equal(ncol(design$auxiliary_design_full), 0)
 })
 

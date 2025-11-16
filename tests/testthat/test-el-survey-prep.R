@@ -29,13 +29,13 @@ test_that("survey prep stores delta column and uses rescaled weights", {
   des <- survey::svydesign(ids = ~1, weights = ~w, data = df)
 
   n_total <- 2 * sum(weights(des))
-  res <- NMAR:::el.survey.design(
+  res <- suppressWarnings(NMAR:::el.survey.design(
     data = des,
     formula = Y_miss ~ X,
     auxiliary_means = c(X = 0),
     n_total = n_total,
     variance_method = "none"
-  )
+  ))
   des_after <- res$sample$design
   expect_true("..nmar_delta.." %in% names(des_after$variables))
   expect_equal(sum(stats::weights(res, scale = "population")), n_total)

@@ -28,7 +28,7 @@ el_rescale_survey_design_weights <- function(design, scale_factor) {
 #' @param trim_cap Numeric; cap for EL weights (Inf = no trimming).
 #' @param control List; solver control for `nleqslv(control=...)`.
 #' @param on_failure Character; "return" or "error" on solver failure.
-#' @param variance_method Character; "delta" or "bootstrap".
+#' @param variance_method Character; "delta", "bootstrap", or "none".
 #' @param bootstrap_reps Integer; reps when `variance_method = "bootstrap"`.
 #' @param n_total Optional population size used to rescale design weights; required for respondents-only designs.
 #' @param start Optional list of starting values passed to solver helpers.
@@ -44,7 +44,7 @@ el_rescale_survey_design_weights <- function(design, scale_factor) {
 #'   NA in the outcome), \code{n_total} must be provided; if auxiliaries are
 #'   requested you must also provide population auxiliary means via
 #'   \code{auxiliary_means}. Result weights are the unnormalized EL masses
-#'   \code{d_i/D_i(theta)} on this design scale;\code{weights(result, scale = "population")} sums to \code{N_pop}.
+#'   \code{d_i/D_i(theta)} on this design scale; \code{weights(result, scale = "population")} sums to \code{N_pop}.
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
 #'
