@@ -67,9 +67,6 @@ Here `linkinv`, `mu.eta`, and `d2mu.deta2` refer to the chosen response family (
 | $\hat Y$ | $\sum p_i^{\mathrm{EL}} Y_i/\sum p_i^{\mathrm{EL}}$ |
 | $F(\theta)$ | Estimating system (beta, W, and auxiliary equations) |
 | $A$ | Jacobian $\partial F/\partial \theta$ |
-| $B$ | Covariance of total score vector |
-| $g(\theta)$ | Functional mapping parameters to $\hat Y$ |
-| $\mathrm{Var}(\hat Y)$ | Delta: $\nabla g\,A^{-1}BA^{-T}\,\nabla g^T$ |
 
 ### Engines
 - Family: "logit" (default) or "probit"; both use the log-likelihood score w.r.t. $\eta$: $s_i = \partial\log w_i/\partial\eta_i = \mu_{\eta,i}/w_i$ (for respondents, $\delta_i=1$)
@@ -86,13 +83,20 @@ The paper (Qin-Leung-Shao, JASA 2002) sets EL under nonignorable response using:
 
 In our code, we adopt the same EL structure and estimating equations. We extend it to arbitrary $Z$ and $X$, and to survey designs. For uncertainty, we provide bootstrap variance (IID resampling and survey replicate-weight bootstrap). Because $\hat Y$ is a ratio-of-weights estimator, any common normalization of $p_i^{\text{EL}} \propto a_i/D_i$ cancels in $\hat Y$; only relative weights matter (the KKT multipliers $\lambda$ enforce the constraints; normalization affects only a common scale that vanishes in the ratio).
 
-### Survey-Weighted Generalization of $\lambda_W$ (QLS Eq. 10)
+### Closed-form $\lambda_W$ (QLS Eq. 10, IID path)
 
-QLS derive $\lambda_W = (N/n - 1)/(1-W)$ when $a_i \equiv 1$ and $n$ counts respondents. In survey settings, let $A_{\text{resp}} = \sum_{i:R_i=1} a_i$ be the respondent-weighted total and let $N_{\text{pop}}$ be the analysis-scale population total (either $\sum a_i$ or a user-supplied $n_{\text{total}}$). We use the weighted analogue
+QLS derive $\lambda_W = (N/n - 1)/(1-W)$ when $a_i \equiv 1$ and $n$ counts respondents. In our **IID (data-frame) path** we reuse this relation, generalized to allow arbitrary base weights $a_i$:
 
-$$\lambda_W = \frac{N_{\text{pop}}/A_{\text{resp}} - 1}{1 - W},$$
+- Let $n_{\text{resp\_weighted}} = \sum_{i:R_i=1} a_i$ be the respondent-weighted total.
+- Let $N_{\text{pop}}$ be the analysis-scale population total (either $n$ or a user-supplied `n_total`).
 
-which reduces to QLS when $a_i \equiv 1$.
+We set
+
+$$
+\lambda_W = \frac{N_{\text{pop}}/n_{\text{resp\_weighted}} - 1}{1 - W},
+$$
+
+which reduces to the original QLS formula when $a_i \equiv 1$. This closed form is used **only** in the IID path to profile out $\lambda_W$; for complex survey designs we instead treat $\lambda_W$ as a free parameter and solve for it jointly with $(\beta, W, \lambda_x)$ via the design-weighted system described in the survey extension section.
 
 ### Guarding and Numerical Stability
 
@@ -110,7 +114,7 @@ For the probit link, $s_i(\eta) = \partial\log w/\partial\eta = \phi(\eta)/\Phi(
 - QLS (5): Discrete mass form for $p_i$ with two multipliers -> Our $D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T \lambda_x$ and $p_i^{\text{EL}} \propto a_i/D_i$.
 - QLS (7): $\sum \dfrac{x_i - \bar x}{1 + \cdots} = 0$ -> Our auxiliary constraints $\sum a_i (X_i - \mu_x)/D_i = 0$.
 - QLS (8): $\sum \dfrac{w_i - W}{1 + \cdots} = 0$ -> Our $W$-equation $\sum a_i (w_i - W)/D_i = 0$.
-- QLS (10): $\hat{\lambda}_2 = (N/n - 1)/(1 - W)$ -> Our $\lambda_W = ((N_{\text{pop}}/n_{\text{resp\_weighted}}) - 1)/(1 - W)$ (design-weighted generalization).
+- QLS (10): $\hat{\lambda}_2 = (N/n - 1)/(1 - W)$ -> In the IID path we set $\lambda_W = ((N_{\text{pop}}/n_{\text{resp\_weighted}}) - 1)/(1 - W)$; in the survey path $\lambda_W$ is solved from the additional linkage equation $g_W^{(1)}$.
 - Estimator $\hat Y$ in QLS -> Our ratio $\hat Y = \sum p_i^{\mathrm{EL}} Y_i/\sum p_i^{\mathrm{EL}}$ using $p_i^{\mathrm{EL}} \propto a_i/D_i$.
 
 ### Likelihood and Profiling (sketch)
@@ -163,13 +167,15 @@ The remaining unknowns $(\beta, W, \lambda_x)$ are determined by the estimating 
 
 ### Clarification: Relationship Between $W$ and $\lambda_W$
 
-In our reparameterization, the EL multiplier for the probability constraint is expressed as:
+In the IID (data-frame) path, the EL multiplier for the probability constraint is expressed as
 
-\[\lambda_W = \frac{C}{1 - W}, \quad \text{with } C = \frac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1 \text{ and } W = \text{plogis}(z)\]
+\[
+\lambda_W = \frac{C}{1 - W}, \quad \text{with } C = \frac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1 \text{ and } W = \text{plogis}(z).
+\]
 
-Intuition: In the EL KKT system, the constraint $\sum p_i^{\text{EL}} (w_i - W) = 0$ sits alongside normalization and (optionally) auxiliary constraints. Incorporating base weights $a_i$ and the ratio between population and respondent totals induces a scaling of the multiplier linked to the mass constraint. Writing $\lambda_W$ in this scaled form keeps the parameter on a numerically stable scale and lets the derivative structure (w.r.t. $z$ via $W$) be handled cleanly. This is consistent with the EL structure when the baseline mass is $n_{\text{resp\_weighted}}$ and the "full population" target is $N_{\text{pop}}$, and it is exactly what the code uses to match the normalization implied by base weights.
+Intuition: In the EL KKT system, the constraint $\sum p_i^{\text{EL}} (w_i - W) = 0$ sits alongside normalization and (optionally) auxiliary constraints. Incorporating base weights $a_i$ and the ratio between population and respondent totals induces a scaling of the multiplier linked to the mass constraint. Writing $\lambda_W$ in this scaled form keeps the parameter on a numerically stable scale and lets the derivative structure (with respect to $z$ via $W$) be handled cleanly. This is consistent with the EL structure when the baseline mass is $n_{\text{resp\_weighted}}$ and the "full population" target is $N_{\text{pop}}$, and it is exactly what the IID code path uses to match the normalization implied by base weights.
 
-Derivation sketch (KKT): The discretized semiparametric likelihood (QLS, 2002) maximizes, over the unknown masses $\{p_i\}$ at observed points and over $(\beta, W)$,
+Derivation sketch (KKT, IID case): The discretized semiparametric likelihood (QLS, 2002) maximizes, over the unknown masses $\{p_i\}$ at observed points and over $(\beta, W)$,
 
 \[
 \ell(\beta, W, \lambda_x, \lambda_W) 
@@ -184,7 +190,7 @@ subject to the normalization and moment constraints that generate the EL denomin
 \sum_{i=1}^{n} \frac{a_i}{D_i} \,=\, n_{\text{resp\_weighted}} \equiv \sum_{i=1}^{n} a_i
 \]
 
-recovers the same estimating system (and any common normalization cancels in the ratio estimator $\hat Y = \sum p_i Y_i/\sum p_i$). Taking derivatives (KKT conditions) and using that $\partial/\partial W$ of the second and third terms produces opposing contributions, one obtains the system equivalent to QLS (7)-(10). In particular, the first-order condition w.r.t. the multiplier associated with the $W$-constraint yields, together with the derivative w.r.t. $W$, the closed form
+recovers the same estimating system (and any common normalization cancels in the ratio estimator $\hat Y = \sum p_i Y_i/\sum p_i$). Taking derivatives (KKT conditions) and using that $\partial/\partial W$ of the second and third terms produces opposing contributions, one obtains the system equivalent to QLS (7)-(10). In particular, the first-order condition with respect to the multiplier associated with the $W$-constraint yields, together with the derivative with respect to $W$, the closed form
 
 \[
 \lambda_W 
@@ -192,7 +198,14 @@ recovers the same estimating system (and any common normalization cancels in the
 \;=\; \frac{C}{1 - W},
 \]
 
-which generalizes QLS (10) to the design-weighted case ($n_{\text{resp\_weighted}} = \sum_i a_i$ and $N_{\text{pop}} = \sum_{\text{all}} a_i$). A quick derivation sketch mirrors QLS (7)-(10): the W-FOC yields $\sum_i a_i (w_i - W) / D_i = 0$; combining with the implicit normalization $\sum_i a_i / D_i = n_{\text{resp\_weighted}}$ and the binomial part for $W$ gives $\lambda_W (1-W)\, n_{\text{resp\_weighted}} = N_{\text{pop}} - n_{\text{resp\_weighted}}$, hence $\lambda_W = (N_{\text{pop}}/n_{\text{resp\_weighted}} - 1)/(1-W)$. This is the expression implemented in the estimator and used throughout the estimating equations and analytic Jacobian.
+which coincides with QLS (10) when $a_i \equiv 1$. This closed-form relationship is used in the IID EL implementation to profile out $\lambda_W$. In the **survey-design path**, by contrast, $\lambda_W$ is treated as an explicit unknown and the linkage between $W$ and $\lambda_W$ is enforced through the additional equation
+
+\[
+g_W^{(1)}(\beta, W, \lambda_W, \lambda_x)
+\;=\; \frac{T_0}{1 - W} - \lambda_W \sum_{i \in R} \frac{d_i}{D_i} = 0,
+\]
+
+where $T_0 = N_{\mathrm{pop}} - \sum_{i \in R} d_i$ and $d_i$ are the design weights. At the QLS simple-random-sampling limit (equal weights, no auxiliaries) this system reduces to the same closed-form relation.
 
 ## Estimating Equations
 
@@ -330,11 +343,11 @@ The EL constraints then include additional terms of the form
 \[
 \sum_{i\in R} d_i p_i \bigl(\mathbf{1}\{H_i = h\} - W_h\bigr) = 0
 \]
-for each nonreference stratum $h$. This forces the EL weights to reproduce the design-implied stratum shares while still adjusting within strata for NMAR. In the implementation this augmentation is performed in `el_run_core_analysis()` (see `src_dev/engines/el/impl/inputs.R`), and the resulting augmented auxiliaries flow through to `el_build_equation_system()` or `el_build_equation_system_survey()` depending on the data type.
+for each nonreference stratum $h$. This forces the EL weights to reproduce the design-implied stratum shares while still adjusting within strata for NMAR. In the implementation this augmentation is performed in `el_run_core_analysis()` (see `src_dev/engines/el/impl/inputs.R`), and the resulting augmented auxiliaries flow through to `el_build_equation_system()` or `el_build_equation_system_survey()` depending on the data type. The behavior is controlled by the logical `strata_augmentation` argument of `el_engine()` (default `TRUE`); it has an effect only when `data` is a `survey.design` with defined strata.
 
 Our survey EL implementation should be viewed as a design-weighted analogue of QLS, informed by the pseudo empirical likelihood literature (Chen and Sitter 1999; Wu 2005), rather than a verbatim implementation of any single paper.
 
-## Analytical Jacobian ($A$ Matrix, IID path)
+## Analytic Jacobian ($A$ Matrix, IID path)
 
 For the IID (data-frame) path we differentiate $F(\theta) = 0$ with respect to $\theta = (\beta, z, \lambda_x)$. Let:
 
@@ -417,25 +430,18 @@ to respect the denominator floor used for numerical stability.
 
 - Newton-Raphson (as used in our outer solve) linearizes $F(\theta)$ near the current iterate: $F(\theta + \Delta) \approx F(\theta) + A(\theta)\,\Delta$. The update $\Delta$ solves $A\,\Delta = -F$, hence a high-quality $A$ is critical for fast, stable convergence.
 
-## Variance Estimation (delta disabled)
+## Variance Estimation
 
-Analytical delta variance for the EL estimator has not been implemented in the
+Analytic delta variance for the EL estimator has not yet been implemented in the
 package. When requested via `variance_method = "delta"`, the implementation
 returns `NA` with a guidance message. We recommend `variance_method = "bootstrap"`
 for standard errors in both IID and survey settings.
-
-Implementation: The analytical delta variance for EL is disabled in the codebase.
 
 ### Solving Strategy and Initialization
 
 - Unknowns are $\theta = (\beta, z, \lambda_x)$ with $W = \mathrm{plogis}(z)$. We solve the full stacked system $F(\theta) = 0$ via Newton with the analytic Jacobian $A = \partial F/\partial\theta$ using `nleqslv`.
 - Globalization and scaling: we rely on `nleqslv`'s globalization (default `global = "qline"`, `xscalm = "auto"`) and enforce denominator positivity ($\min_i D_i \ge \varepsilon$) within equation evaluations. Optional standardization of design matrices improves conditioning.
 - Initialization: by default $\beta$ starts at zeros in the scaled space (unless the user supplies `start$beta`), and $z$ is seeded at $\mathrm{logit}(\text{observed response rate})$. An internal last-chance Broyden retry may be used if Newton fails to converge; this is not a user-facing mode.
-
-### Variance and Stability
-
-For standard errors, use bootstrap variance. Analytical delta variance for EL is
-disabled in this version; derivations are omitted.
 
 ### Practical Identifiability and Diagnostics
 
@@ -455,11 +461,12 @@ Mitigations include standardizing predictors, trimming extreme weights (`trim_ca
 
 We extend QLS's methodology to complex surveys in two complementary ways:
 
-- **Estimating equations with base weights:** All sums include the base weight $a_i$; set $a_i$ to the survey design weight for respondents. Totals $N_{\text{pop}}$ and $n_{\text{resp\_weighted}}=\sum a_i$ are computed from the design weights, which feeds into $\lambda_W = ((N_{\text{pop}}/n_{\text{resp\_weighted}}) - 1)/(1-W)$.
+- **Estimating equations with base weights:** All sums include the base weight $a_i$; set $a_i$ to the survey design weight for respondents. Totals $N_{\text{pop}}$ and $n_{\text{resp\_weighted}}=\sum a_i$ are computed from the design weights and used throughout the design-weighted system.
+- **Nonrespondent total $T_0$ in the linkage equation:** In the survey-specific system we form $T_0 = N_{\text{pop}} - n_{\text{resp\_weighted}}$ and enforce the linkage between $W$ and $\lambda_W$ through the equation $T_0/(1-W) - \lambda_W \sum d_i/D_i = 0$ rather than using the closed-form $\lambda_W = ((N_{\text{pop}}/n_{\text{resp\_weighted}}) - 1)/(1-W)$.
 
 - **Bootstrap variance via replicate weights:** For standard errors, we use bootstrap replicate-weight designs created with `svrep::as_bootstrap_design`. For each replicate, the estimator is re-fit on a reconstructed design using that replicate's weights, and `survey::svrVar` is used to compute the variance of replicate estimates with appropriate scaling.
 
-This matches the paper's guidance to adapt the likelihood/estimating framework to stratification or unequal-probability sampling while relying on standard survey resampling for uncertainty. Analytical delta variance is not implemented for EL at this time.
+This matches the paper's guidance to adapt the likelihood/estimating framework to stratification or unequal-probability sampling while relying on standard survey resampling for uncertainty. Analytic variance has not been implemented yet.
 
 Degrees-of-freedom: For confidence intervals, we use survey degrees-of-freedom (t-quantiles) when a `survey.design` is supplied; otherwise, we use normal quantiles.
 
@@ -511,19 +518,21 @@ Code mapping:
 
 ### Algorithm
 
-We solve the full stacked system $F(\theta)=0$ with Newton using the analytic Jacobian $A = \partial F/\partial \theta$ and globalization via `nleqslv`. Denominator positivity ($\min_i D_i \ge \varepsilon$), predictor standardization, and capped $\eta$ ensure numerical stability. The estimating equations remain those of Qin, Leung and Shao (2002).
+We solve the full stacked system $F(\theta)=0$ with Newton using the analytic Jacobian $A = \partial F/\partial \theta$ and globalization via `nleqslv`. Denominator positivity ($\min_i D_i \ge \varepsilon$), predictor standardization, and capped $\eta$ ensure numerical stability. The estimating equations remain those of Qin, Leung and Shao (2002) for the IID path, and a design-weighted analogue for the survey path.
 
 ```text
 Input: Z (response design), X (auxiliary design), mu_x (population means),
        a (base weights), family (logit/probit), trim_cap, tolerances.
 Initialize: beta = 0 in scaled space (or user-supplied start),
-            z = logit(observed response rate), lambda_x = 0.
+            z = logit(observed response rate), lambda_x = 0
+            (and lambda_W = 0 for survey designs).
 Repeat until convergence of F(theta) = 0:
-  1) Compute eta = Z beta, w = linkinv(eta), W = plogis(z),
-     lambda_W = ((N_pop/n_resp_weighted) - 1)/(1 - W).
+  1) Compute eta = Z beta, w = linkinv(eta), W = plogis(z).
+     - IID (data.frame): set lambda_W = ((N_pop/n_resp_weighted) - 1)/(1 - W).
+     - survey.design: use the current lambda_W component of theta.
   2) Evaluate full stacked equations using guarded denominators
      D_i = 1 + lambda_W (w_i - W) + (X_i - mu_x)^T lambda_x.
-  3) Compute analytic Jacobian A = dF/dtheta.
+  3) Compute analytic Jacobian A = dF/dtheta (if available; else numeric/Broyden).
   4) Newton step: solve A * step = -F with globalization; enforce min D_i >= eps.
   5) Update theta <- theta + step.
 Return: p_i \propto a_i / D_i and \hat{Y} = Sum p_i Y_i / Sum p_i.
@@ -562,9 +571,3 @@ This appendix summarizes the key options of the EL engine (constructor: `el_engi
 ### Diagnostics (glance/print)
 
 - `jacobian_condition_number` ($\kappa(A)$), `max_equation_residual`, denominator summaries (min, 1%/5%/median), weight concentration (max share/top-5/ESS), and trimming fraction. These help assess identification and numerical stability.
-
-### Recommended settings
-
-- Default: `variance_method = "none"`, `standardize = TRUE`.
-- With trimming or suspected weak identification: prefer `variance_method = "bootstrap"`.
-- If $A$ appears ill-conditioned: prefer `variance_method = "bootstrap"` and report diagnostics (e.g., `jacobian_condition_number`). The package does not apply ridge or pseudoinverse at runtime.

@@ -383,10 +383,12 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
     full_mat[p_dim, idx_beta] <- as.numeric(
       t(shared_weighted_Xty(missingness_model_matrix, respondent_weights, term_link_beta))
     )
-# J_link,z
+# J_link,z: d/dz[T0/(1-W) - lambda_W * S(z)]
+# First term: T0 * W / (1-W); second term: -lambda_W * dS/dz with
+# dS/dz = sum d_i * lambda_W * dW_dz * active / D_i^2.
     term_link_z_S <- lambda_W^2 * dW_dz * inv_denom_sq * active
     dS_dz <- sum(respondent_weights * term_link_z_S)
-    full_mat[p_dim, idx_z] <- T0 * W_bounded / (1 - W_bounded) + dS_dz
+    full_mat[p_dim, idx_z] <- T0 * W_bounded / (1 - W_bounded) - dS_dz
 # J_link,lambda_W
     term_dS_dlambdaW <- -active * w_minus_W * inv_denom_sq
     dS_dlambdaW <- sum(respondent_weights * term_dS_dlambdaW)
