@@ -136,6 +136,7 @@ el_run_core_analysis <- function(call,
                                  variance_method,
                                  auxiliary_means,
                                  standardize,
+                                 strata_augmentation,
                                  trim_cap,
                                  control,
                                  on_failure,
@@ -147,10 +148,12 @@ el_run_core_analysis <- function(call,
   auxiliary_design_full <- input_spec$auxiliary_design_full
   aux_means_eff <- auxiliary_means
 
-# Wu-style strata augmentation for survey designs when auxiliary means are supplied:
-# augment the auxiliary design with stratum indicators and corresponding
-# population stratum weights W_h = N_h / N_pop.
-  if (isTRUE(input_spec$is_survey) && !is.null(auxiliary_design_full)) {
+# Wu-style strata augmentation for survey designs when auxiliary means are
+# supplied: augment the auxiliary design with stratum indicators and
+# corresponding population stratum weights W_h = N_h / N_pop. This is
+# optional and controlled by strata_augmentation; it has no effect for
+# data.frame inputs or survey designs without identifiable strata.
+  if (isTRUE(strata_augmentation) && isTRUE(input_spec$is_survey) && !is.null(auxiliary_design_full)) {
     analysis_obj <- input_spec$analysis_object
     if (inherits(analysis_obj, "survey.design")) {
       strata_fac <- el_extract_strata_factor(analysis_obj)

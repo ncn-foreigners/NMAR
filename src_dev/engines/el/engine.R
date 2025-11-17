@@ -40,6 +40,11 @@
 #'   solved by Newton with an analytic Jacobian; for \code{survey.design}
 #'   inputs a design-weighted analogue is solved with an analytic Jacobian
 #'   when available or numeric/Broyden Jacobians otherwise.
+#' @param strata_augmentation logical; when \code{TRUE} (default), survey designs
+#'   with an identifiable strata structure are augmented with stratum indicators
+#'   and corresponding population shares in the auxiliary block (Wu-style
+#'   strata augmentation). Has no effect for \code{data.frame} inputs or
+#'   survey designs without strata.
 #' @param n_total numeric; optional when supplying respondents-only data (no \code{NA} in the
 #'   outcome). For \code{data.frame} inputs, set to the total number of sampled units
 #'   before filtering to respondents. For \code{survey.design} inputs, set to the total
@@ -210,6 +215,7 @@ el_engine <- function(
     bootstrap_reps = 500,
     auxiliary_means = NULL,
     control = list(),
+    strata_augmentation = TRUE,
     n_total = NULL,
     start = NULL,
     family = c("logit", "probit")) {
@@ -232,6 +238,7 @@ el_engine <- function(
     bootstrap_reps = bootstrap_reps,
     auxiliary_means = auxiliary_means,
     control = control,
+    strata_augmentation = strata_augmentation,
     n_total = n_total,
     start = start,
     family = family
@@ -266,6 +273,7 @@ validate_nmar_engine_el <- function(engine) {
 
   validator$assert_named_numeric(engine$auxiliary_means, name = "auxiliary_means", allow_null = TRUE)
   validator$assert_list(engine$control, name = "control")
+  validator$assert_logical(engine$strata_augmentation, name = "strata_augmentation")
 
   if (!is.null(engine$n_total)) validator$assert_positive_number(engine$n_total, name = "n_total", allow_infinite = FALSE)
 

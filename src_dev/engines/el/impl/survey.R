@@ -62,6 +62,9 @@ el_extract_strata_factor <- function(design) {
 #'   the first RHS (after formula expansion), including factor indicators and
 #'   transformed terms. The intercept is always excluded.
 #' @param standardize Logical; standardize predictors.
+#' @param strata_augmentation Logical; when \code{TRUE} (default), augment the
+#'   auxiliary design with stratum indicators and stratum shares when a strata
+#'   structure is present in the survey design.
 #' @param trim_cap Numeric; cap for EL weights (Inf = no trimming).
 #' @param control List; solver control for `nleqslv(control=...)`.
 #' @param on_failure Character; "return" or "error" on solver failure.
@@ -93,6 +96,7 @@ el_extract_strata_factor <- function(design) {
 #' @keywords internal
 el.survey.design <- function(data, formula,
                              auxiliary_means = NULL, standardize = TRUE,
+                             strata_augmentation = TRUE,
                              trim_cap = Inf, control = list(),
                              on_failure = c("return", "error"),
                              variance_method = c("delta", "bootstrap", "none"),
@@ -210,6 +214,7 @@ el.survey.design <- function(data, formula,
     variance_method = variance_method,
     auxiliary_means = auxiliary_means,
     standardize = standardize,
+    strata_augmentation = strata_augmentation,
     trim_cap = trim_cap,
     control = control,
     on_failure = on_failure,

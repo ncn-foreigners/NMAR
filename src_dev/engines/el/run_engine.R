@@ -8,6 +8,7 @@ run_engine.nmar_engine_el <- function(engine, formula, data, trace_level = 0) {
     formula = formula,
     auxiliary_means = engine$auxiliary_means,
     standardize = engine$standardize,
+    strata_augmentation = engine$strata_augmentation %||% TRUE,
     n_total = engine$n_total,
     start = engine$start,
     trim_cap = engine$trim_cap,
