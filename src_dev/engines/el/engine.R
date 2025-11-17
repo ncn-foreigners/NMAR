@@ -2,12 +2,16 @@
 #'
 #' Constructs a configuration object for the empirical likelihood estimator under
 #' nonignorable nonresponse (NMAR) with optional auxiliary moment constraints.
-#' The estimator solves the stacked system in \eqn{\theta = (\beta, z, \lambda_x)}
-#' with \eqn{z = \operatorname{logit}(W)} using a Newton method with analytic
-#' Jacobian and globalization via \link[nleqslv]{nleqslv}. Numerical safeguards
-#' (bounded linear predictor, link-inverse clipping, denominator floors, and
-#' stable linear algebra) improve robustness. Pass the engine to \link{nmar}
-#' together with a formula and data.
+#' For \code{data.frame} inputs (IID setting) the estimator solves a stacked
+#' system in \eqn{\theta = (\beta, z, \lambda_x)} with \eqn{z = \operatorname{logit}(W)}
+#' using a Newton method with an analytic Jacobian and globalization via
+#' \link[nleqslv]{nleqslv}. For \code{survey.design} inputs it solves a
+#' design-weighted analogue in \eqn{\theta = (\beta, z, \lambda_W, \lambda_x)}.
+#' When the response family supplies second derivatives (logit and probit) an
+#' analytic Jacobian is used; otherwise the solver falls back to numeric/Broyden
+#' Jacobians. Numerical safeguards (bounded linear predictor, link-inverse
+#' clipping, denominator floors, and stable linear algebra) improve robustness.
+#' Pass the engine to \link{nmar} together with a formula and data.
 #'
 #' @param family character; missingness (response) model family, either \code{"logit"} or \code{"probit"},
 #'   or a family object created by \code{logit_family()} / \code{probit_family()}.
@@ -32,7 +36,10 @@
 #'     \item In \code{control=}: \code{xtol}, \code{ftol}, \code{btol}, \code{maxit}, \code{trace},
 #'       \code{stepmax}, \code{delta}, \code{allowSing}
 #'   }
-#'   Unknown names are ignored. The method is Newton with an analytic Jacobian.
+#'   Unknown names are ignored. For \code{data.frame} inputs the EL system is
+#'   solved by Newton with an analytic Jacobian; for \code{survey.design}
+#'   inputs a design-weighted analogue is solved with an analytic Jacobian
+#'   when available or numeric/Broyden Jacobians otherwise.
 #' @param n_total numeric; optional when supplying respondents-only data (no \code{NA} in the
 #'   outcome). For \code{data.frame} inputs, set to the total number of sampled units
 #'   before filtering to respondents. For \code{survey.design} inputs, set to the total
@@ -56,37 +63,49 @@
 #' formula and data.
 #'
 #' @details
-#' Empirical likelihood assigns masses \eqn{m_i = d_i / D_i(\theta)} to respondents
-#' with base weights \eqn{d_i}. Following Qin, Leung, and Shao (2002, JASA 97:193-200),
-#' the denominator is
-#' \deqn{D_i(\theta) = 1 + \lambda_W\{w_i(\beta) - W\} + X_{i\cdot}^{(c)}\,\lambda_x,}
-#' where \eqn{w_i(\beta) = g(\eta_i)} with link-inverse \eqn{g}, \eqn{\eta_i = x_i^\top\beta},
-#' \eqn{W} is the (unknown) response rate, and \eqn{X^{(c)} = X - \mu_X} centers
-#' auxiliary columns at their population means. The multiplier for the response-rate
-#' equation is
-#' \deqn{\lambda_W = \{N_\mathrm{pop}/\sum_i d_i - 1\}/(1 - W),}
-#' which ensures scale coherence for both IID data (\eqn{d_i \equiv 1}) and survey
-#' designs (\eqn{d_i} are design weights). The estimating equations impose
-#' \eqn{\sum_i m_i\{w_i(\beta) - W\} = 0},
-#' \eqn{\sum_i m_i\,s_i(\beta) = 0} with \eqn{s_i(\beta) = \partial \log w_i / \partial \eta_i},
-#' and, when present, \eqn{\sum_i m_i X_{i\cdot}^{(c)} = 0}.
+#' Empirical likelihood assigns respondent masses of the form
+#' \code{m_i = d_i / D_i(theta)}, where \code{d_i} are base weights and
+#' \code{D_i(theta)} is an affine function of the response probability and
+#' auxiliary covariates. For \code{data.frame} inputs (IID setting) we follow
+#' Qin, Leung and Shao (2002): the denominator has the form
+#' \code{D_i(theta) = 1 + lambda_W (w_i - W) + (X_i - mu_x)' lambda_x}, with
+#' \code{w_i = linkinv(eta_i)}, \code{eta_i = Z_i %*% beta} and auxiliary rows
+#' \code{X_i} centered at their population means \code{mu_x}. In this IID case
+#' lambda_W has a closed form given by the QLS identity
+#' \code{lambda_W = (N_pop / sum(d_i) - 1) / (1 - W)}, and the solver works in
+#' the reduced parameterization \code{(beta, z, lambda_x)}, where \code{z = logit(W)}.
+#'
+#' For \code{survey.design} inputs we use a design-weighted analogue of the QLS
+#' system in the spirit of pseudo empirical likelihood (Chen and Sitter, 1999;
+#' Wu, 2005). The unknown parameter vector is \code{(beta, z, lambda_W, lambda_x)},
+#' and the estimating equations enforce the response-model score, a response-rate
+#' constraint and auxiliary moment constraints under the design-weighted EL masses
+#' \code{m_i = d_i / D_i(theta)}. In this survey setting lambda_W is treated as
+#' an additional unknown and solved from a design-weighted analogue of the QLS
+#' W-equation; there is no closed-form expression in general. For stratified
+#' designs the auxiliary matrix is automatically augmented with stratum indicators
+#' and corresponding population shares, following Wu-style strata augmentation,
+#' so that the EL weights preserve the design-implied stratum composition.
 #'
 #' The missingness-model score used in both equations and Jacobian is the derivative
 #' of the Bernoulli log-likelihood with respect to the linear predictor, i.e.
-#' \code{mu.eta(eta) / linkinv(eta)} (logit: \code{1 - w}; probit: Mills ratio \code{phi/Phi}).
-#' We apply a consistent guarding policy (cap \eqn{\eta}, clip \eqn{w}, floor denominators
-#' with an "active" mask in the Jacobian) to ensure numerical stability and to make the
-#' analytic Jacobian match the piecewise-smooth equations being solved. When
-#' \code{variance_method = "delta"} is requested, the estimator returns \code{NA}
-#' standard errors with a message; use \code{variance_method = "bootstrap"} for SEs.
+#' \code{mu.eta(eta) / linkinv(eta)} (logit: \code{1 - w}; probit: Mills ratio
+#' \code{phi/Phi}). Guarding (capping the linear predictor, clipping response
+#' probabilities and flooring denominators) is applied consistently in both
+#' equations and the analytic Jacobian so that the derivatives match the
+#' piecewise-smooth objective.
 #'
-#' Survey designs are handled by replacing counts in Qin, Leung, and Shao (2002) with
-#' design-weighted totals. In particular, the response-rate multiplier generalizes to
-#' \eqn{\lambda_W = \{N_\mathrm{pop}/\sum_{i:\,R_i=1} d_i - 1\}/(1 - W)}, which reduces
-#' to the Qin-Leung-Shao expression when \eqn{d_i \equiv 1}. Solver configuration uses
-#' \code{nleqslv} with an analytic Jacobian and line-search globalization. Defaults are
-#' \code{global = "qline"} and \code{xscalm = "auto"}; users can override via \code{control}.
-#' Invalid values are coerced to these defaults with a warning.
+#' For \code{data.frame} inputs the solver uses \code{nleqslv} with a Newton method
+#' and the analytic Jacobian built by \code{el_build_jacobian()}. For
+#' \code{survey.design} inputs the solver uses \code{nleqslv} with a numeric/Broyden
+#' Jacobian for the design-weighted system. In both cases the default globalization
+#' is \code{global = "qline"} and \code{xscalm = "auto"}; users can override these
+#' via the \code{control} argument. Invalid values are coerced to defaults with a
+#' warning.
+#'
+#' When \code{variance_method = "delta"} is requested, the estimator returns
+#' \code{NA} standard errors with a message; use \code{variance_method = "bootstrap"}
+#' for standard errors in both IID and survey settings.
 #'
 #' \strong{Formula syntax}: \code{nmar()} supports a partitioned right-hand side
 #' \code{y_miss ~ aux1 + aux2 | z1 + z2}. Variables left of \code{|} are auxiliaries
@@ -107,6 +126,12 @@
 #' Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical
 #' Association, 97(457), 193-200.
+#'
+#' Chen, J., and Sitter, R. R. (1999). A pseudo empirical likelihood approach for
+#' complex survey data. Biometrika, 86(2), 373-385.
+#'
+#' Wu, C. (2005). Algorithms and R codes for the pseudo empirical likelihood method
+#' in survey sampling. Canadian Journal of Statistics, 33(3), 497-509.
 #'
 #' @section Progress Reporting:
 #' When \code{variance_method = "bootstrap"}, progress reporting is available via the

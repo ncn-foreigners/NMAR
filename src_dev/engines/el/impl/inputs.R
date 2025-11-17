@@ -144,17 +144,58 @@ el_run_core_analysis <- function(call,
                                  start,
                                  trace_level,
                                  extra_user_args = list()) {
+  auxiliary_design_full <- input_spec$auxiliary_design_full
+  aux_means_eff <- auxiliary_means
+
+# Wu-style strata augmentation for survey designs when auxiliary means are supplied:
+# augment the auxiliary design with stratum indicators and corresponding
+# population stratum weights W_h = N_h / N_pop.
+  if (isTRUE(input_spec$is_survey) && !is.null(auxiliary_design_full)) {
+    analysis_obj <- input_spec$analysis_object
+    if (inherits(analysis_obj, "survey.design")) {
+      strata_fac <- el_extract_strata_factor(analysis_obj)
+      if (!is.null(strata_fac)) {
+        w_full <- input_spec$weights_full
+        if (!is.null(w_full) && length(w_full) == length(strata_fac)) {
+          N_pop <- input_spec$N_pop
+# Compute stratum weights on the analysis scale
+          strata_levels <- levels(strata_fac)
+          W_h <- vapply(strata_levels, function(lev) {
+            idx <- which(strata_fac == lev)
+            sum(w_full[idx])
+          }, numeric(1))
+          W_h <- W_h / N_pop
+# Build dummy matrix (drop one level to avoid redundancy)
+          if (length(strata_levels) > 1L) {
+            ref_level <- strata_levels[1L]
+            dummy_levels <- strata_levels[-1L]
+            strata_mat <- stats::model.matrix(~strata_fac)[, -1, drop = FALSE]
+            colnames(strata_mat) <- paste0("strata_", dummy_levels)
+# Extend auxiliary design and auxiliary means
+            n_rows <- nrow(auxiliary_design_full)
+            if (nrow(strata_mat) == n_rows) {
+              auxiliary_design_full <- cbind(auxiliary_design_full, strata_mat)
+              strata_means <- W_h[dummy_levels]
+              names(strata_means) <- paste0("strata_", dummy_levels)
+              aux_means_eff <- c(aux_means_eff, strata_means)
+            }
+          }
+        }
+      }
+    }
+  }
+
   aux_summary <- el_resolve_auxiliaries(
-    auxiliary_design_full = input_spec$auxiliary_design_full,
+    auxiliary_design_full = auxiliary_design_full,
     respondent_mask = input_spec$respondent_mask,
-    auxiliary_means = auxiliary_means,
+    auxiliary_means = aux_means_eff,
     weights_full = input_spec$weights_full
   )
 
   user_args <- c(
     list(
       formula = formula,
-      auxiliary_means = auxiliary_means,
+      auxiliary_means = aux_means_eff,
       standardize = standardize,
       trim_cap = trim_cap,
       control = control,
@@ -181,7 +222,7 @@ el_run_core_analysis <- function(call,
     user_args = user_args,
     start = start,
     trace_level = trace_level,
-    auxiliary_means = auxiliary_means
+    auxiliary_means = aux_means_eff
   )
 
   input_spec$variance_method <- variance_method

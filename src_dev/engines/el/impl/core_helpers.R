@@ -84,7 +84,10 @@ el_run_solver <- function(equation_system_func,
       W_seed <- sum(respondent_weights) / N_pop
       W_seed <- min(max(W_seed, 1e-12), 1 - 1e-12)
       z_seed <- stats::qlogis(W_seed)
-      init_perturbed <- c(init_beta_perturbed, z_seed, rep(0, K_aux))
+# Preserve generic tail structure: parameters after (beta, z) are reset to 0
+      tail_len <- max(length(init) - K_beta - 1L, 0L)
+      tail_zeros <- if (tail_len > 0L) rep(0, tail_len) else numeric(0)
+      init_perturbed <- c(init_beta_perturbed, z_seed, tail_zeros)
       nl_args$x <- init_perturbed
       solution <- do.call(nleqslv::nleqslv, nl_args)
       if (!any(is.na(solution$x)) && solution$termcd <= 2) {
@@ -114,44 +117,16 @@ el_run_solver <- function(equation_system_func,
     if (!is.null(broyden_control$maxit) && is.finite(broyden_control$maxit) && broyden_control$maxit < 5) {
       broyden_control$maxit <- 50
     }
-# Prefer the same or more conservative global for Broyden
-    nl_args_b$global <- nl_args$global %||% "qline"
-    nl_args_b$xscalm <- nl_args$xscalm %||% "auto"
     nl_args_b$control <- broyden_control
     solution <- do.call(nleqslv::nleqslv, nl_args_b)
     solver_method_used <- "Broyden"
-    if (!any(is.na(solution$x)) && solution$termcd <= 2) {
-      verboser("  [OK] Broyden method converged successfully", level = 2, type = "result")
-    }
   }
-  list(solution = solution, method = solver_method_used, used_top = list(global = nl_args$global %||% NULL, xscalm = nl_args$xscalm %||% NULL))
+
+  list(solution = solution, method = solver_method_used, used_top = list(global = top_args$global %||% NULL, xscalm = top_args$xscalm %||% NULL))
 }
 
-#' Post-solution: denominators, masses, and mean (EL)
-#'
-#' Computes EL denominators and masses and the mean estimate after the solver
-#' converges. The mean is calculated from normalized probability masses per
-#' Qin, Leung, and Shao (2002, Eq. 11). When trimming is active, the masses are
-#' capped and renormalized before computing the mean; diagnostics still report
-#' constraint sums based on untrimmed masses. Denominator floors and the
-#' guarding policy used in equations/Jacobian are applied consistently here for
-#' diagnostic coherence.
-#'
-#' @param estimates Numeric vector (beta, z, lambda) at the solution.
-#' @param missingness_model_matrix_scaled Scaled design matrix for the missingness (response) model.
-#' @param missingness_model_matrix_unscaled Unscaled design matrix for the missingness (response) model.
-#' @param auxiliary_matrix_scaled Scaled auxiliary matrix (or empty matrix).
-#' @param mu_x_scaled Vector of population means for scaled auxiliaries (or NULL).
-#' @param response_outcome Numeric vector of respondent outcomes.
-#' @param family Family object with linkinv and mu.eta.
-#' @param N_pop Numeric; population total on the analysis scale.
-#' @param respondent_weights Base weights for respondents.
-#' @param K_beta,K_aux Integers; sizes of beta and lambda.
-#' @param nmar_scaling_recipe Scaling recipe object for unscaling.
-#' @param standardize Logical; whether coefficients need unscaling.
-#' @param trim_cap Numeric; weight trimming cap (Inf = no trimming).
-#'
-#' @keywords internal
+
+
 el_post_solution <- function(estimates,
                              missingness_model_matrix_scaled,
                              missingness_model_matrix_unscaled,
@@ -166,18 +141,29 @@ el_post_solution <- function(estimates,
                              nmar_scaling_recipe,
                              standardize,
                              trim_cap,
-                             X_centered = NULL) {
+                             X_centered = NULL,
+                             lambda_W = NULL) {
   beta_hat_scaled <- estimates[1:K_beta]
   names(beta_hat_scaled) <- colnames(missingness_model_matrix_scaled)
   W_hat <- stats::plogis(estimates[K_beta + 1])
-  lambda_hat <- if (K_aux > 0) estimates[(K_beta + 2):length(estimates)] else numeric(0)
+# For survey designs the parameter vector includes lambda_W explicitly after z;
+# for IID designs lambda_W is derived from (N_pop, sum(weights)).
+  if (!is.null(lambda_W)) {
+    lambda_hat <- if (K_aux > 0) estimates[(K_beta + 3):length(estimates)] else numeric(0)
+  } else {
+    lambda_hat <- if (K_aux > 0) estimates[(K_beta + 2):length(estimates)] else numeric(0)
+  }
   eta_i_hat <- as.vector(missingness_model_matrix_scaled %*% beta_hat_scaled)
 # Clip eta consistently with equations/Jacobian for diagnostic coherence
   ETA_CAP <- get_eta_cap()
   eta_i_hat_capped <- pmax(pmin(eta_i_hat, ETA_CAP), -ETA_CAP)
   w_i_hat <- family$linkinv(eta_i_hat_capped)
-  C_const <- (N_pop / sum(respondent_weights)) - 1
-  lambda_W_hat <- el_lambda_W(C_const, W_hat)
+  if (is.null(lambda_W)) {
+    C_const <- (N_pop / sum(respondent_weights)) - 1
+    lambda_W_hat <- el_lambda_W(C_const, W_hat)
+  } else {
+    lambda_W_hat <- lambda_W
+  }
   if (K_aux > 0) {
     if (is.null(X_centered)) {
 # Fallback centering (should be provided by caller for efficiency)
@@ -192,7 +178,11 @@ el_post_solution <- function(estimates,
   masses <- el_masses(respondent_weights, dpack$denom, denom_floor, trim_cap)
   prob_mass <- masses$prob_mass
   y_hat <- el_mean(prob_mass, response_outcome)
-  beta_hat_unscaled <- if (standardize) unscale_coefficients(beta_hat_scaled, matrix(0, K_beta, K_beta), nmar_scaling_recipe)$coefficients else beta_hat_scaled
+  beta_hat_unscaled <- if (standardize) {
+    unscale_coefficients(beta_hat_scaled, matrix(0, K_beta, K_beta), nmar_scaling_recipe)$coefficients
+  } else {
+    beta_hat_scaled
+  }
   names(beta_hat_unscaled) <- colnames(missingness_model_matrix_unscaled)
   list(
     error = FALSE,
@@ -273,6 +263,9 @@ el_compute_diagnostics <- function(estimates,
   eq_residuals <- tryCatch(equation_system_func(estimates), error = function(e) rep(NA_real_, length(estimates)))
   max_eq_resid <- suppressWarnings(max(abs(eq_residuals), na.rm = TRUE))
   A_condition <- tryCatch({ kappa(analytical_jac_func(estimates)) }, error = function(e) NA_real_)
+  if (!is.finite(A_condition)) {
+    A_condition <- NA_real_
+  }
 
   denom_floor <- nmar_get_el_denom_floor()
   denom_hat <- post$denominator_hat

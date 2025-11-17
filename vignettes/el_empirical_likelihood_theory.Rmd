@@ -200,7 +200,18 @@ which generalizes QLS (10) to the design-weighted case ($n_{\text{resp\_weighted
 
 Define $w_i = \mathrm{linkinv}(\eta_i)$ and $\mu_{\eta,i} = \frac{dw}{d\eta}(\eta_i)$ (denoted `mu.eta(eta_i)` in code).
 
-Define $C = \frac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1$, with $n_{\text{resp\_weighted}} = \sum a_i$ and $N_{\text{pop}}$ known (sum of design weights for survey; $n$ for IID). Then $\lambda_W = \frac{C}{1 - W}$.
+In the **IID (data-frame) path** all base weights are $a_i \equiv 1$, so we can use the closed-form Qin-Leung-Shao (QLS) relation between $W$ and the EL multiplier for the response constraint. Writing
+\[
+C = \frac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1,\qquad
+n_{\text{resp\_weighted}} = \sum_i a_i,\qquad N_{\text{pop}} = n,
+\]
+QLS show that
+\[
+\lambda_W = \frac{C}{1 - W} = \frac{N_{\text{pop}}/n_{\text{resp\_weighted}} - 1}{1 - W}.
+\]
+Our IID implementation follows this and *profiles out* $\lambda_W$: the unknowns for the Newton solver are $(\beta, z, \lambda_x)$.
+
+In the **survey path**, base weights are general design weights $a_i = d_i$ and the corresponding QLS-style relation no longer has a simple closed form. In that case we treat $\lambda_W$ as an additional free parameter and include a separate equation linking $\lambda_W$ and $W$ (see the "Survey extension" section below).
 
 **Denominator**: $D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T \lambda_x$, with $D_i \geq \epsilon$ enforced numerically.
 
@@ -232,9 +243,100 @@ Intuition: the $\beta$-equations equate the score of the respondent log-likeliho
 
 - For logit and probit, $s_i$ is the log-likelihood score $\partial\log w_i/\partial\eta_i = \mu_{\eta,i}/w_i$ (equals $1-w_i$ for logit; behaves like $\phi/\Phi$ for probit when $w_i$ is clipped away from 0). This follows the paper's MLE derivation; EL constraints supply the nonparametric part.
 
-## Analytical Jacobian ($A$ Matrix)
+## Survey extension: design-weighted QLS system
 
-We differentiate $F(\theta) = 0$ with respect to $\theta = (\beta, z, \lambda_x)$. Let:
+The original QLS paper derives these equations under simple random sampling, where each respondent has equal weight. In practice we often work with complex survey designs and design weights $d_i \approx 1/\pi_i$, where $\pi_i$ is the inclusion probability for unit $i$. In our implementation we extend the QLS system using a **design-weighted empirical likelihood**:
+
+- For respondents $i \in R$ we use base weights $a_i = d_i$.
+- We approximate the unknown distribution of $(Y,X)$ by a discrete measure
+  \[
+  F_{\text{EL}}(A) = \sum_{i\in R} d_i p_i\,\mathbf{1}\{(y_i,x_i)\in A\},
+  \]
+  where $p_i \ge 0$ and $\sum_i d_i p_i = 1$.
+- Expectations under $F$ are represented by design-weighted sums $\sum_i d_i p_i(\cdot)$.
+
+We impose the following constraints, which are the design-weighted analogues of QLS (3):
+
+- Normalization:
+  \[
+  \sum_{i\in R} d_i p_i = 1.
+  \]
+- Response-rate constraint:
+  \[
+  \sum_{i\in R} d_i p_i \bigl(w_i(\theta) - W\bigr) = 0.
+  \]
+- Auxiliary constraints (vector case):
+  \[
+  \sum_{i\in R} d_i p_i (X_i - \mu_x) = 0.
+  \]
+
+Maximizing the design-weighted pseudo-likelihood under these constraints yields EL weights of the same tilted form as in QLS:
+\[
+p_i(\theta, W, \lambda_x, \lambda_W) \;\propto\; \frac{1}{D_i},\qquad
+D_i = 1 + \lambda_W\bigl(w_i(\theta) - W\bigr) + (X_i - \mu_x)^\top \lambda_x,
+\]
+with the proportionality constant chosen such that $\sum_i d_i p_i = 1$. In our implementation the **unnormalized EL masses** are
+\[
+m_i = \frac{d_i}{D_i},
+\]
+and the probability-scale weights are $p_i^{\mathrm{EL}} = m_i / \sum_j m_j$.
+
+The corresponding design-weighted QLS estimating system in $(\beta, W, \lambda_W, \lambda_x)$ can be written as:
+
+- Auxiliary block:
+  \[
+  g_x(\beta, W, \lambda_W, \lambda_x)
+  = \sum_{i\in R} d_i \frac{X_i - \mu_x}{D_i} = 0.
+  \]
+- Response-rate constraint:
+  \[
+  g_W^{(2)}(\beta, W, \lambda_W, \lambda_x)
+  = \sum_{i\in R} d_i \frac{w_i(\beta) - W}{D_i} = 0.
+  \]
+- Score equations for $\beta$:
+  \[
+  g_\beta(\beta, W, \lambda_W, \lambda_x)
+  = \sum_{i\in R} d_i \left[
+      \frac{\partial \log w_i(\beta)}{\partial \beta}
+      - \lambda_W \frac{1}{D_i}
+        \frac{\partial w_i(\beta)}{\partial \beta}
+    \right] = 0.
+  \]
+- Linkage between $\lambda_W$ and the nonrespondent total:
+  \[
+  g_W^{(1)}(\beta, W, \lambda_W, \lambda_x)
+  = \frac{T_0}{1 - W} - \lambda_W \sum_{i\in R} \frac{d_i}{D_i} = 0,
+  \]
+  where $T_0 = N_{\mathrm{pop}} - \sum_{i\in R} d_i$ on the analysis scale.
+
+In code this system is implemented by `el_build_equation_system_survey()` in `src_dev/engines/el/impl/equations.R`. The parameter vector is
+\[
+\theta_{\text{survey}} = (\beta, z, \lambda_W, \lambda_x),\qquad z = \operatorname{logit}(W),
+\]
+and the solver treats $\lambda_W$ as an explicit unknown. When all design weights are equal and $N_{\text{pop}}$ and the respondent count match the simple random sampling setup, this system reduces exactly to the original QLS equations (6)-(10).
+
+For survey designs we build an analytic Jacobian for this design-weighted system whenever the response family supplies a second derivative `d2mu.deta2` (logit and probit). The Jacobian structure mirrors the IID case but with the expanded parameter vector $(\beta, z, \lambda_W, \lambda_x)$ and the additional blocks for $g_W^{(1)}$ and $g_W^{(2)}$. When analytic derivatives are not available, `nleqslv` falls back to numeric/Broyden Jacobians.
+
+### Wu-style strata augmentation (survey designs)
+
+For some stratified designs, especially when the NMAR mechanism varies strongly across strata, it is important that the EL weights preserve the **stratum composition** implied by the survey design. Following ideas from Wu-style calibration, we augment the auxiliary vector with stratum indicators when a `survey.design` object is provided:
+
+- Recover a strata factor from the design (using its `strata=` call).
+- Build dummy variables for strata (dropping one reference level).
+- Compute stratum totals $N_h$ on the analysis scale from the design weights and convert to stratum shares $W_h = N_h / N_{\mathrm{pop}}$.
+- Append these stratum dummies to the auxiliary matrix $X$ and their targets $W_h$ to the auxiliary means.
+
+The EL constraints then include additional terms of the form
+\[
+\sum_{i\in R} d_i p_i \bigl(\mathbf{1}\{H_i = h\} - W_h\bigr) = 0
+\]
+for each nonreference stratum $h$. This forces the EL weights to reproduce the design-implied stratum shares while still adjusting within strata for NMAR. In the implementation this augmentation is performed in `el_run_core_analysis()` (see `src_dev/engines/el/impl/inputs.R`), and the resulting augmented auxiliaries flow through to `el_build_equation_system()` or `el_build_equation_system_survey()` depending on the data type.
+
+Our survey EL implementation should be viewed as a design-weighted analogue of QLS, informed by the pseudo empirical likelihood literature (Chen and Sitter 1999; Wu 2005), rather than a verbatim implementation of any single paper.
+
+## Analytical Jacobian ($A$ Matrix, IID path)
+
+For the IID (data-frame) path we differentiate $F(\theta) = 0$ with respect to $\theta = (\beta, z, \lambda_x)$. Let:
 
 - $\eta_i = Z_i \beta$, $w_i = \text{linkinv}(\eta_i)$, $\mu_{\eta,i} = \dfrac{dw}{d\eta}(\eta_i)$, $\mu''_i = \dfrac{d^2 w}{d\eta^2}(\eta_i)$
 - $W = \text{plogis}(z)$, $\frac{dW}{dz} = W(1 - W)$
@@ -429,7 +531,9 @@ Return: p_i \propto a_i / D_i and \hat{Y} = Sum p_i Y_i / Sum p_i.
 
 ## References
 
-- Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200. doi:10.1198/016214502753479338
+- Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
+- Chen, J., and Sitter, R. R. (1999). A pseudo empirical likelihood approach for complex survey data. Biometrika, 86(2), 373-385.
+- Wu, C. (2005). Algorithms and R codes for the pseudo empirical likelihood method in survey sampling. Canadian Journal of Statistics, 33(3), 497-509.
 
 ## Appendix: EL Engine API Reference (User-Facing)
 

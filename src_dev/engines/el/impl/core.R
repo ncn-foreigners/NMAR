@@ -25,15 +25,19 @@
 #'
 #' @details
 #' Orchestrates EL estimation for NMAR following Qin, Leung, and Shao (2002).
-#' The stacked system in \eqn{(\beta, z, \lambda_x)} with \eqn{z = \logit(W)} is
-#' solved by \code{nleqslv} using an analytic Jacobian. Numerical safeguards are
-#' applied consistently across equations, Jacobian, and post-solution weights:
-#' bounded linear predictors, probability clipping in ratios, and a small floor
-#' on denominators \eqn{D_i(\theta)} with an active-set mask in derivatives.
-#' After solving, unnormalized masses \eqn{d_i/D_i(\theta)} are formed, optional
-#' trimming may be applied (with normalization only for reporting), and optional
-#' variance is computed via bootstrap. The analytical delta method for EL is not
-#' implemented.
+#' For \code{data.frame} inputs (IID setting) the stacked system in
+#' \eqn{(\beta, z, \lambda_x)} with \eqn{z = \logit(W)} is solved by
+#' \code{nleqslv} using an analytic Jacobian. For \code{survey.design} inputs a
+#' design-weighted analogue in \eqn{(\beta, z, \lambda_W, \lambda_x)} is solved
+#' with an analytic Jacobian when the response family supplies second
+#' derivatives, or with numeric/Broyden Jacobians otherwise. Numerical
+#' safeguards are applied consistently across equations, Jacobian, and
+#' post-solution weights: bounded linear predictors, probability clipping in
+#' ratios, and a small floor on denominators \eqn{D_i(\theta)} with an
+#' active-set mask in derivatives. After solving, unnormalized masses
+#' \eqn{d_i/D_i(\theta)} are formed, optional trimming may be applied (with
+#' normalization only for reporting), and optional variance is computed via
+#' bootstrap. The analytical delta method for EL is not implemented.
 #'
 #' @keywords internal
 el_estimator_core <- function(missingness_design,
@@ -130,19 +134,51 @@ el_estimator_core <- function(missingness_design,
     }
   }
 # Build full stacked builders
-  equation_system_func <- el_build_equation_system(
-    family = family, missingness_model_matrix = missingness_model_matrix_scaled, auxiliary_matrix = auxiliary_matrix_scaled,
-    respondent_weights = respondent_weights, N_pop = N_pop, n_resp_weighted = n_resp_weighted, mu_x_scaled = mu_x_scaled
-  )
-  analytical_jac_func <- el_build_jacobian(
-    family = family, missingness_model_matrix = missingness_model_matrix_scaled, auxiliary_matrix = auxiliary_matrix_scaled,
-    respondent_weights = respondent_weights, N_pop = N_pop, n_resp_weighted = n_resp_weighted, mu_x_scaled = mu_x_scaled
-  )
+  is_survey_design <- inherits(full_data, "survey.design")
+  if (is_survey_design) {
+    equation_system_func <- el_build_equation_system_survey(
+      family = family,
+      missingness_model_matrix = missingness_model_matrix_scaled,
+      auxiliary_matrix = auxiliary_matrix_scaled,
+      respondent_weights = respondent_weights,
+      N_pop = N_pop,
+      n_resp_weighted = n_resp_weighted,
+      mu_x_scaled = mu_x_scaled
+    )
+    analytical_jac_func <- el_build_jacobian_survey(
+      family = family,
+      missingness_model_matrix = missingness_model_matrix_scaled,
+      auxiliary_matrix = auxiliary_matrix_scaled,
+      respondent_weights = respondent_weights,
+      N_pop = N_pop,
+      n_resp_weighted = n_resp_weighted,
+      mu_x_scaled = mu_x_scaled
+    )
+  } else {
+    equation_system_func <- el_build_equation_system(
+      family = family,
+      missingness_model_matrix = missingness_model_matrix_scaled,
+      auxiliary_matrix = auxiliary_matrix_scaled,
+      respondent_weights = respondent_weights,
+      N_pop = N_pop,
+      n_resp_weighted = n_resp_weighted,
+      mu_x_scaled = mu_x_scaled
+    )
+    analytical_jac_func <- el_build_jacobian(
+      family = family,
+      missingness_model_matrix = missingness_model_matrix_scaled,
+      auxiliary_matrix = auxiliary_matrix_scaled,
+      respondent_weights = respondent_weights,
+      N_pop = N_pop,
+      n_resp_weighted = n_resp_weighted,
+      mu_x_scaled = mu_x_scaled
+    )
+  }
 # 4. Solve for Parameters with a safeguarded Newton method
   K_beta <- ncol(missingness_model_matrix_scaled)
   K_aux <- ncol(auxiliary_matrix_scaled)
 
-# Build starts using a single helper
+# Build starts using a single helper (beta, z, lambda_x); lambda_W is free for survey designs.
   st <- el_build_start(
     missingness_model_matrix_scaled = missingness_model_matrix_scaled,
     auxiliary_matrix_scaled = auxiliary_matrix_scaled,
@@ -154,7 +190,12 @@ el_estimator_core <- function(missingness_design,
   init_beta <- st$init_beta
   init_z <- st$init_z
   init_lambda <- st$init_lambda
-  init <- st$init
+  if (is_survey_design) {
+    init_lambda_W <- 0
+    init <- c(unname(init_beta), init_z, init_lambda_W, unname(init_lambda))
+  } else {
+    init <- st$init
+  }
 
 # Prepare nleqslv args and control
   prep <- el_prepare_nleqslv(control)
@@ -220,7 +261,17 @@ el_estimator_core <- function(missingness_design,
 # 5. Post-processing and Point Estimate Calculation
   estimates <- solution$x
   beta_hat_scaled <- estimates[1:K_beta]
-  lambda_hat <- if (K_aux > 0) estimates[(K_beta + 2):(K_beta + 1 + K_aux)] else numeric(0)
+  if (is_survey_design) {
+    z_idx <- K_beta + 1L
+    lambda_W_idx <- K_beta + 2L
+    lambda_start_idx <- K_beta + 3L
+    lambda_hat <- if (K_aux > 0) estimates[lambda_start_idx:(lambda_start_idx + K_aux - 1L)] else numeric(0)
+    lambda_W_solved <- estimates[lambda_W_idx]
+  } else {
+    z_idx <- K_beta + 1L
+    lambda_hat <- if (K_aux > 0) estimates[(K_beta + 2):(K_beta + 1 + K_aux)] else numeric(0)
+    lambda_W_solved <- NULL
+  }
   solver_time <- proc.time()[[3]] - t_solve_start
 # Precompute centered auxiliary design once for reuse
   Xc_centered_diag <- NULL
@@ -244,7 +295,8 @@ el_estimator_core <- function(missingness_design,
     nmar_scaling_recipe = nmar_scaling_recipe,
     standardize = standardize,
     trim_cap = trim_cap,
-    X_centered = Xc_centered_diag
+    X_centered = Xc_centered_diag,
+    lambda_W = lambda_W_solved
   )
   if (post$error) {
     if (on_failure == "error") {

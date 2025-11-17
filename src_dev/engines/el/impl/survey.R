@@ -14,6 +14,43 @@ el_rescale_survey_design_weights <- function(design, scale_factor) {
   design
 }
 
+#' Extract a strata factor from a survey.design object
+#'
+#' Uses the original svydesign() call stored in the object to recreate the
+#' stratum labels as a single factor. When multiple stratification variables
+#' are supplied, their interaction is used.
+#' @keywords internal
+el_extract_strata_factor <- function(design) {
+  if (!inherits(design, "survey.design")) return(NULL)
+  dc <- try(getCall(design), silent = TRUE)
+  if (inherits(dc, "try-error") || is.null(dc)) return(NULL)
+  args <- as.list(dc)[-1L]
+  get_arg <- function(nm) if (!is.null(args[[nm]])) args[[nm]] else NULL
+  strata_expr <- get_arg("strata")
+  if (is.null(strata_expr)) strata_expr <- get_arg("strata")
+  if (is.null(strata_expr)) return(NULL)
+  vars <- design$variables
+# Coerce to formula if needed
+  strata_formula <- if (inherits(strata_expr, "formula")) {
+    strata_expr
+  } else {
+    tryCatch(stats::as.formula(strata_expr),
+      error = function(e) return(NULL)
+    )
+  }
+  if (is.null(strata_formula)) return(NULL)
+  mf <- tryCatch(
+    stats::model.frame(strata_formula, data = vars, na.action = stats::na.pass),
+    error = function(e) NULL
+  )
+  if (is.null(mf) || nrow(mf) != nrow(vars)) return(NULL)
+  if (ncol(mf) == 1L) {
+    as.factor(mf[[1L]])
+  } else {
+    interaction(mf, drop = TRUE)
+  }
+}
+
 #' Empirical likelihood for survey designs (NMAR)
 #' @description Internal method dispatched by `el()` when `data` is a `survey.design`.
 #'   Variance via bootstrap is supported. Analytical delta variance for EL is
@@ -38,13 +75,15 @@ el_rescale_survey_design_weights <- function(design, scale_factor) {
 #' @details Implements the empirical likelihood estimator with design weights.
 #'   If \code{n_total} is supplied, design weights are rescaled internally to
 #'   ensure \code{sum(weights(design))} and \code{n_total} are on the same scale;
-#'   this guarantees the response-multiplier formula uses consistent totals. If
-#'   \code{n_total} is not supplied, \code{sum(weights(design))} is used as the
-#'   population total \code{N_pop}. When respondents-only designs are used (no
-#'   NA in the outcome), \code{n_total} must be provided; if auxiliaries are
-#'   requested you must also provide population auxiliary means via
-#'   \code{auxiliary_means}. Result weights are the unnormalized EL masses
-#'   \code{d_i/D_i(theta)} on this design scale; \code{weights(result, scale = "population")} sums to \code{N_pop}.
+#'   this keeps the survey EL equations (including the response-rate block)
+#'   internally coherent. If \code{n_total} is not supplied,
+#'   \code{sum(weights(design))} is used as the population total \code{N_pop}.
+#'   When respondents-only designs are used (no NA in the outcome),
+#'   \code{n_total} must be provided; if auxiliaries are requested you must
+#'   also provide population auxiliary means via \code{auxiliary_means}.
+#'   Result weights are the unnormalized EL masses \code{d_i/D_i(theta)} on
+#'   this design scale; \code{weights(result, scale = "population")} sums to
+#'   \code{N_pop}.
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
 #'
@@ -121,9 +160,8 @@ el.survey.design <- function(data, formula,
           "  User-supplied n_total: %g\n",
           "  Design sum(weights):    %g\n",
           "  Scale factor:           %.4f\n\n",
-          "Design weights will be rescaled automatically to ensure internal coherence.\n",
-          "This ensures the Lagrange multiplier formula lambda_W = (N_pop/sum(d_i) - 1)/(1 - W)\n",
-          "uses consistent scales. Estimates remain unbiased.\n\n",
+          "Design weights will be rescaled automatically to ensure internal coherence\n",
+          "between the survey design and the EL equations that use these totals.\n\n",
           "If this is unexpected, verify that n_total and design weights are on the same scale."
         ),
         scale_mismatch_pct, n_total, design_weight_sum, scale_factor
