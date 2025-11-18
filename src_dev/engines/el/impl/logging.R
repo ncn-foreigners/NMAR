@@ -27,6 +27,11 @@ el_log_data_prep <- function(verboser, outcome_var, family_name,
   response_rate <- (n_resp_weighted / N_pop) * 100
   verboser(sprintf("  Total weighted size:      %.1f", N_pop), level = 1)
   verboser(sprintf("  Respondents (weighted):   %.1f (%.1f%%)", n_resp_weighted, response_rate), level = 1)
+  if (is_survey && is.finite(N_pop) && N_pop > 0) {
+    nonresp_mass <- N_pop - n_resp_weighted
+    frac_nonresp <- nonresp_mass / N_pop * 100
+    verboser(sprintf("  Nonrespondent mass (weighted): %.1f (%.1f%%)", nonresp_mass, frac_nonresp), level = 2)
+  }
 
   verboser("", level = 2)
   verboser("-- MODEL SPECIFICATION --", level = 2)

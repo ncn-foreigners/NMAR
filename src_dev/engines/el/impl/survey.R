@@ -1,19 +1,3 @@
-#' Rescale survey design weights in place
-#' @keywords internal
-el_rescale_survey_design_weights <- function(design, scale_factor) {
-  if (!inherits(design, "survey.design")) {
-    stop("Internal error: expected a survey.design object for weight rescaling.", call. = FALSE)
-  }
-  if (!is.finite(scale_factor) || scale_factor <= 0) {
-    stop("scale_factor must be a positive, finite numeric value.", call. = FALSE)
-  }
-  design[["prob"]] <- design[["prob"]] / scale_factor
-  if (!is.null(design[["allprob"]])) {
-    design[["allprob"]] <- design[["allprob"]] / scale_factor
-  }
-  design
-}
-
 #' Extract a strata factor from a survey.design object
 #'
 #' Uses the original svydesign() call stored in the object to recreate the
@@ -70,23 +54,22 @@ el_extract_strata_factor <- function(design) {
 #' @param on_failure Character; "return" or "error" on solver failure.
 #' @param variance_method Character; "delta", "bootstrap", or "none".
 #' @param bootstrap_reps Integer; reps when `variance_method = "bootstrap"`.
-#' @param n_total Optional population size used to rescale design weights; required for respondents-only designs.
+#' @param n_total Optional analysis-scale population size \code{N_pop}; required for respondents-only designs.
 #' @param start Optional list of starting values passed to solver helpers.
 #' @param trace_level Integer 0-3 controlling estimator logging detail.
 #' @param family Missingness (response) model family specification (defaults to logit).
 #' @param ... Passed to solver.
 #' @details Implements the empirical likelihood estimator with design weights.
-#'   If \code{n_total} is supplied, design weights are rescaled internally to
-#'   ensure \code{sum(weights(design))} and \code{n_total} are on the same scale;
-#'   this keeps the survey EL equations (including the response-rate block)
-#'   internally coherent. If \code{n_total} is not supplied,
-#'   \code{sum(weights(design))} is used as the population total \code{N_pop}.
-#'   When respondents-only designs are used (no NA in the outcome),
-#'   \code{n_total} must be provided; if auxiliaries are requested you must
-#'   also provide population auxiliary means via \code{auxiliary_means}.
-#'   Result weights are the unnormalized EL masses \code{d_i/D_i(theta)} on
-#'   this design scale; \code{weights(result, scale = "population")} sums to
-#'   \code{N_pop}.
+#'   If \code{n_total} is supplied, it is treated as the analysis-scale population
+#'   size \code{N_pop} used in the design-weighted QLS system. If \code{n_total}
+#'   is not supplied, \code{sum(weights(design))} is used as \code{N_pop}. Design
+#'   weights are not rescaled internally; the EL equations use respondent weights
+#'   and \code{N_pop} via \code{T0 = N_pop - sum(d_i)} in the linkage equation.
+#'   When respondents-only designs are used (no NA in the outcome), \code{n_total}
+#'   must be provided; if auxiliaries are requested you must also provide
+#'   population auxiliary means via \code{auxiliary_means}. Result weights are the
+#'   unnormalized EL masses \code{d_i/D_i(theta)} on this analysis scale;
+#'   \code{weights(result, scale = "population")} sums to \code{N_pop}.
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
 #'
@@ -131,60 +114,15 @@ el.survey.design <- function(data, formula,
 
   survey_ctx <- el_get_design_context(design)
 
-# Scale coherence: ensure `N_pop` and design weights remain on the same scale.
   weights_initial <- as.numeric(weights(design))
   design_weight_sum <- sum(weights_initial)
 
   if (!is.null(n_total)) {
     N_pop <- n_total
-    scale_factor <- N_pop / design_weight_sum
-    scale_mismatch_pct <- abs(scale_factor - 1) * 100
-
-# Emit warnings with severity that reflects the amount of rescaling.
-    if (scale_mismatch_pct > 10) {
-# Large mismatch (>10%) is most often a data-preparation error.
-      warning(sprintf(
-        paste0(
-          "Large scale mismatch detected (%.1f%%):\n",
-          "  User-supplied n_total: %g\n",
-          "  Design sum(weights):    %g\n",
-          "  Scale factor:           %.4f\n\n",
-          "This likely indicates a data preparation error.\n",
-          "Verify that n_total and design weights are on the same scale.\n",
-          "For example, if weights were rescaled to mean=1 for other analyses,\n",
-          "provide n_total on that same rescaled scale, not the original population size."
-        ),
-        scale_mismatch_pct, n_total, design_weight_sum, scale_factor
-      ), call. = FALSE)
-    } else if (scale_mismatch_pct > 1) {
-# Moderate rescaling (1-10%) still deserves a warning so users can confirm intent.
-      warning(sprintf(
-        paste0(
-          "Scale mismatch detected (%.1f%%):\n",
-          "  User-supplied n_total: %g\n",
-          "  Design sum(weights):    %g\n",
-          "  Scale factor:           %.4f\n\n",
-          "Design weights will be rescaled automatically to ensure internal coherence\n",
-          "between the survey design and the EL equations that use these totals.\n\n",
-          "If this is unexpected, verify that n_total and design weights are on the same scale."
-        ),
-        scale_mismatch_pct, n_total, design_weight_sum, scale_factor
-      ), call. = FALSE)
-    } else {
-# Negligible (<1%) differences usually stem from rounding, so we stay silent.
-    }
-
-    if (!isTRUE(all.equal(scale_factor, 1))) {
-      design <- el_rescale_survey_design_weights(design, scale_factor)
-    }
-    respondent_weights_full <- as.numeric(weights(design))
-
+    respondent_weights_full <- weights_initial
   } else {
-# If no population size is supplied, default to the design-weight total.
     N_pop <- design_weight_sum
     respondent_weights_full <- weights_initial
-    scale_factor <- 1.0
-    scale_mismatch_pct <- 0
   }
 
   extra_args <- list(...)
