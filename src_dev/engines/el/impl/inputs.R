@@ -148,6 +148,20 @@ el_run_core_analysis <- function(call,
   auxiliary_design_full <- input_spec$auxiliary_design_full
   aux_means_eff <- auxiliary_means
 
+# Warn when Wu-style augmentation is requested for respondents-only survey data.
+# In that setting the automatically constructed stratum shares use only respondent
+# weights, which is generally not appropriate under NMAR.
+  if (isTRUE(strata_augmentation) &&
+      isTRUE(input_spec$is_survey) &&
+      isTRUE(all(input_spec$respondent_mask))) {
+    warning(
+      "Wu-style strata augmentation with respondents-only survey data uses respondent weights ",
+      "to approximate stratum shares; this is generally not recommended. ",
+      "Consider strata_augmentation = FALSE or encoding known stratum totals via auxiliary_means.",
+      call. = FALSE
+    )
+  }
+
 # Wu-style strata augmentation for survey designs when auxiliary means are
 # supplied: augment the auxiliary design with stratum indicators and
 # corresponding population stratum weights W_h = N_h / N_pop. This is
