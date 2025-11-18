@@ -68,60 +68,23 @@
 #' formula and data.
 #'
 #' @details
-#' Empirical likelihood assigns respondent masses of the form
-#' \code{m_i = d_i / D_i(theta)}, where \code{d_i} are base weights and
-#' \code{D_i(theta)} is an affine function of the response probability and
-#' auxiliary covariates. For \code{data.frame} inputs (IID setting) we follow
-#' Qin, Leung and Shao (2002): the denominator has the form
-#' \code{D_i(theta) = 1 + lambda_W (w_i - W) + (X_i - mu_x)' lambda_x}, with
-#' \code{w_i = linkinv(eta_i)}, \code{eta_i = Z_i %*% beta} and auxiliary rows
-#' \code{X_i} centered at their population means \code{mu_x}. In this IID case
-#' lambda_W has a closed form given by the QLS identity
-#' \code{lambda_W = (N_pop / sum(d_i) - 1) / (1 - W)}, and the solver works in
-#' the reduced parameterization \code{(beta, z, lambda_x)}, where \code{z = logit(W)}.
-#'
-#' For \code{survey.design} inputs we use a design-weighted analogue of the QLS
-#' system in the spirit of pseudo empirical likelihood (Chen and Sitter, 1999;
-#' Wu, 2005). The unknown parameter vector is \code{(beta, z, lambda_W, lambda_x)},
-#' and the estimating equations enforce the response-model score, a response-rate
-#' constraint and auxiliary moment constraints under the design-weighted EL masses
-#' \code{m_i = d_i / D_i(theta)}. In this survey setting lambda_W is treated as
-#' an additional unknown and solved from a design-weighted analogue of the QLS
-#' W-equation; there is no closed-form expression in general. For stratified
-#' designs the auxiliary matrix is automatically augmented with stratum indicators
-#' and corresponding population shares, following Wu-style strata augmentation,
-#' so that the EL weights preserve the design-implied stratum composition.
-#'
-#' The missingness-model score used in both equations and Jacobian is the derivative
-#' of the Bernoulli log-likelihood with respect to the linear predictor, i.e.
-#' \code{mu.eta(eta) / linkinv(eta)} (logit: \code{1 - w}; probit: Mills ratio
-#' \code{phi/Phi}). Guarding (capping the linear predictor, clipping response
-#' probabilities and flooring denominators) is applied consistently in both
-#' equations and the analytic Jacobian so that the derivatives match the
-#' piecewise-smooth objective.
-#'
-#' For \code{data.frame} inputs the solver uses \code{nleqslv} with a Newton method
-#' and the analytic Jacobian built by \code{el_build_jacobian()}. For
-#' \code{survey.design} inputs the solver uses \code{nleqslv} with a numeric/Broyden
-#' Jacobian for the design-weighted system. In both cases the default globalization
-#' is \code{global = "qline"} and \code{xscalm = "auto"}; users can override these
-#' via the \code{control} argument. Invalid values are coerced to defaults with a
-#' warning.
-#'
-#' When \code{variance_method = "delta"} is requested, the estimator returns
-#' \code{NA} standard errors with a message; use \code{variance_method = "bootstrap"}
-#' for standard errors in both IID and survey settings.
+#' This engine implements an empirical likelihood estimator for NMAR response
+#' based on Qin, Leung and Shao (2002) for IID data, and a design-weighted
+#' analogue for complex survey designs inspired by Chen and Sitter (1999) and
+#' Wu (2005). For \code{data.frame} inputs the unknowns are \code{(beta, z, lambda_x)}
+#' with \code{z = logit(W)}, and the QLS closed-form identity is used to profile
+#' out the multiplier \code{lambda_W}. For \code{survey.design} inputs the system
+#' is extended to \code{(beta, z, lambda_W, lambda_x)} and solved with design
+#' weights and, when present, Wu-style strata augmentation in the auxiliary
+#' block. Numerical guards (capped linear predictors, clipped response
+#' probabilities, denominator floors) are applied consistently in equations and
+#' Jacobians.
 #'
 #' \strong{Formula syntax}: \code{nmar()} supports a partitioned right-hand side
 #' \code{y_miss ~ aux1 + aux2 | z1 + z2}. Variables left of \code{|} are auxiliaries
 #' (used in EL moment constraints); variables right of \code{|} are missingness-model
 #' predictors only. The outcome appears on the left-hand side and is included as a
 #' response predictor by default.
-#'
-#' \strong{Weights in results}: Calling \code{weights()} on the returned \code{nmar_result}
-#' gives respondent weights on either the probability scale (sum to 1) or the population
-#' scale (sum to \eqn{N_\mathrm{pop}}). For the EL engine these come from the empirical
-#' likelihood construction \eqn{d_i/D_i(\theta)} and are normalized in \code{weights()}.
 #'
 #' \strong{Variance}: Analytical delta variance for EL is not implemented. Requesting
 #' \code{variance_method = "delta"} is coerced to \code{"none"} with a warning. For standard
