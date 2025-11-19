@@ -70,4 +70,41 @@ test_that("survey EL constraints (including Wu strata auxiliaries) are near zero
       expect_lt(max(abs(ca[strata_idx]) / sumw), 1e-6)
     }
   }
+
+# Repeat with unequal design weights by strata to exercise design-weighted
+# Wu-style strata constraints.
+  w_by_strata <- c(a = 1, b = 2, c = 3, d = 4)
+  w_vec <- w_by_strata[as.character(strata)]
+
+  design_w <- survey::svydesign(
+    ids = ~1,
+    weights = ~w_vec,
+    strata = ~strata,
+    data = df
+  )
+
+  eng_w <- make_engine(
+    variance_method = "none",
+    auxiliary_means = aux_means,
+    standardize = TRUE,
+    trim_cap = Inf
+  )
+
+  fit_w <- nmar(Y_miss ~ X | X, data = design_w, engine = eng_w, trace_level = 0)
+  expect_true(isTRUE(fit_w$converged))
+
+  diag_w <- fit_w$diagnostics
+  sumw_w <- sum(stats::weights(design_w))
+
+  expect_lt(abs(diag_w$constraint_sum_W) / sumw_w, 1e-6)
+
+  ca_w <- diag_w$constraint_sum_aux
+  expect_true(is.numeric(ca_w))
+  if (length(ca_w) > 0) {
+    expect_lt(max(abs(ca_w) / sumw_w), 1e-6)
+    strata_idx_w <- grepl("^strata_", names(ca_w))
+    if (any(strata_idx_w)) {
+      expect_lt(max(abs(ca_w[strata_idx_w]) / sumw_w), 1e-6)
+    }
+  }
 })
