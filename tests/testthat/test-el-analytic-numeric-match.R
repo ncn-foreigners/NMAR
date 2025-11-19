@@ -12,7 +12,7 @@ test_that("analytic vs numeric Jacobian agree across links and scaling", {
 
 # Helper to check one configuration
   check_one <- function(fam, standardize) {
-    spec <- NMAR:::el_build_input_spec(
+    spec <- el_build_input_spec(
       formula = Y_miss ~ X1 + X2 | Z,
       data = df,
       weights_full = NULL,
@@ -26,15 +26,15 @@ test_that("analytic vs numeric Jacobian agree across links and scaling", {
     Z_un <- spec$missingness_design
     X_un <- spec$auxiliary_design_full[spec$respondent_mask, , drop = FALSE]
     aux_means <- setNames(rep(0, ncol(X_un)), colnames(X_un))
-    sc <- NMAR:::validate_and_apply_nmar_scaling(standardize, ncol(X_un) > 0, Z_un, X_un, aux_means, weights = rep(1, nrow(resp_df)))
+    sc <- validate_and_apply_nmar_scaling(standardize, ncol(X_un) > 0, Z_un, X_un, aux_means, weights = rep(1, nrow(resp_df)))
     Z <- sc$response_model_matrix_scaled
     Xc <- sc$auxiliary_matrix_scaled
     mu_x <- sc$mu_x_scaled
     n_resp_wt <- nrow(resp_df)
     N_pop <- nrow(dat2)
     wts <- rep(1, n_resp_wt)
-    eq_fun <- NMAR:::el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
-    jac_fun <- NMAR:::el_build_jacobian(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
+    eq_fun <- el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
+    jac_fun <- el_build_jacobian(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
 # Solve to the root using a better init and controls; allow Broyden fallback
     W0 <- sum(wts) / N_pop
     W0 <- min(max(W0, 1e-12), 1 - 1e-12)
@@ -54,8 +54,8 @@ test_that("analytic vs numeric Jacobian agree across links and scaling", {
     expect_lt(rel_diff, 1e-4)
   }
 
-  check_one(NMAR:::logit_family(), TRUE)
-  check_one(NMAR:::logit_family(), FALSE)
-  check_one(NMAR:::probit_family(), TRUE)
-  check_one(NMAR:::probit_family(), FALSE)
+  check_one(logit_family(), TRUE)
+  check_one(logit_family(), FALSE)
+  check_one(probit_family(), TRUE)
+  check_one(probit_family(), FALSE)
 })

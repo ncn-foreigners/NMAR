@@ -26,7 +26,7 @@ test_that("Trimming caps EL masses and normalization still holds", {
 # Pilot fit without trimming to estimate a cap that activates trimming
   eng0 <- make_engine(auxiliary_means = c(X = 0), variance_method = "none", standardize = TRUE, trim_cap = Inf)
   fit0 <- nmar(Y_miss ~ X, data = df, engine = eng0)
-  info0 <- NMAR:::nmar_result_get_weights_info(fit0)
+  info0 <- nmar_result_get_weights_info(fit0)
   base_masses <- as.numeric(info0$values)
   expect_true(length(base_masses) > 0)
 
@@ -38,7 +38,7 @@ test_that("Trimming caps EL masses and normalization still holds", {
   expect_true(fit$converged)
 
 # Extract trimmed (unnormalized) masses from result internals
-  info <- NMAR:::nmar_result_get_weights_info(fit)
+  info <- nmar_result_get_weights_info(fit)
   trimmed_masses <- as.numeric(info$values)
 # At least some trimming occurred
   expect_true((info$trimmed_fraction %||% 0) > 0)

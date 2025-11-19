@@ -10,11 +10,11 @@ test_that("EL probit equations/Jacobian are stable in extreme tails", {
   wts <- rep(1, n)
   N_pop <- ceiling(1.2 * n) # ensure lambda_W > 0
 
-  fam <- NMAR:::probit_family()
+  fam <- probit_family()
   n_resp_wt <- sum(wts)
   mu_x <- numeric(0)
 
-  eq <- NMAR:::el_build_equation_system(
+  eq <- el_build_equation_system(
     family = fam,
     missingness_model_matrix = X,
     auxiliary_matrix = aux,
@@ -23,7 +23,7 @@ test_that("EL probit equations/Jacobian are stable in extreme tails", {
     n_resp_weighted = n_resp_wt,
     mu_x_scaled = mu_x
   )
-  jac <- NMAR:::el_build_jacobian(
+  jac <- el_build_jacobian(
     family = fam,
     missingness_model_matrix = X,
     auxiliary_matrix = aux,

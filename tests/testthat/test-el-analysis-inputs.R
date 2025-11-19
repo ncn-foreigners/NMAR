@@ -5,7 +5,7 @@ test_that("el_build_input_spec validates weights and respondent metadata", {
   )
 
   expect_error(
-    NMAR:::el_build_input_spec(
+    el_build_input_spec(
       formula = Y_miss ~ X,
       data = df,
       weights_full = rep(1, 5),
@@ -18,7 +18,7 @@ test_that("el_build_input_spec validates weights and respondent metadata", {
     fixed = FALSE
   )
 
-  spec <- NMAR:::el_build_input_spec(
+  spec <- el_build_input_spec(
     formula = Y_miss ~ X,
     data = df,
     weights_full = NULL,
@@ -38,11 +38,11 @@ test_that("el_validate_design_spec detects tampered respondent mask", {
     Y_miss = c(1, NA, 2, NA),
     X = rnorm(4)
   )
-  design <- NMAR:::el_prepare_design(Y_miss ~ X, df)
+  design <- el_prepare_design(Y_miss ~ X, df)
   tampered <- design
   tampered$respondent_mask <- tampered$respondent_mask[-1]
   expect_error(
-    NMAR:::el_validate_design_spec(tampered, data_nrow = nrow(df), context_label = "data frame"),
+    el_validate_design_spec(tampered, data_nrow = nrow(df), context_label = "data frame"),
     "respondent mask length",
     fixed = FALSE
   )
@@ -54,7 +54,7 @@ test_that("el_build_input_spec captures iid metadata", {
     Y_miss = c(rnorm(5), NA),
     X = rnorm(6)
   )
-  spec <- NMAR:::el_build_input_spec(
+  spec <- el_build_input_spec(
     formula = Y_miss ~ X,
     data = df,
     weights_full = NULL,

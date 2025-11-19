@@ -32,7 +32,7 @@ test_that("misnamed auxiliary_means trigger an error", {
   auxiliary_design_full <- model.matrix(aux_fml, data = df)
   respondent_mask <- !is.na(df$Y_miss)
   expect_error(
-    NMAR:::el_resolve_auxiliaries(
+    el_resolve_auxiliaries(
       auxiliary_design_full,
       respondent_mask = respondent_mask,
       auxiliary_means = c(X2 = 0) # misnamed

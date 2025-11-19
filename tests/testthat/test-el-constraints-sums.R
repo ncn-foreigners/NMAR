@@ -11,7 +11,7 @@ test_that("constraint sums are near zero at solution (no trimming)", {
   diag <- fit$diagnostics
   expect_true(is.finite(diag$jacobian_condition_number) || is.na(diag$jacobian_condition_number))
 # Reconstruct components to compute raw constraint sums from stored diagnostics inputs
-  spec <- NMAR:::el_build_input_spec(
+  spec <- el_build_input_spec(
     formula = Y_miss ~ X,
     data = df,
     weights_full = NULL,
@@ -27,7 +27,7 @@ test_that("constraint sums are near zero at solution (no trimming)", {
   X_un <- spec$auxiliary_design_full[spec$respondent_mask, , drop = FALSE]
   aux_means <- if (ncol(X_un) > 0) c(X = 0) else NULL
   aux_mat <- if (ncol(X_un) > 0) X_un else matrix(nrow = nrow(Z_un), ncol = 0)
-  sc <- NMAR:::validate_and_apply_nmar_scaling(FALSE, ncol(aux_mat) > 0, Z_un, aux_mat, aux_means)
+  sc <- validate_and_apply_nmar_scaling(FALSE, ncol(aux_mat) > 0, Z_un, aux_mat, aux_means)
   Z <- sc$response_model_matrix_scaled
   Xc <- sc$auxiliary_matrix_scaled
   mu_x <- sc$mu_x_scaled
@@ -35,8 +35,8 @@ test_that("constraint sums are near zero at solution (no trimming)", {
   N_pop <- nrow(dat2)
   wts <- rep(1, length(obs_idx))
 
-  fam <- NMAR:::logit_family()
-  eq_fun <- NMAR:::el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
+  fam <- logit_family()
+  eq_fun <- el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
   beta_hat <- fit$model$coefficients
   z <- stats::qlogis(fit$model$nuisance$W_hat)
   lambda_hat <- if (!is.null(fit$model$nuisance$lambda_x)) as.numeric(fit$model$nuisance$lambda_x) else numeric(0)

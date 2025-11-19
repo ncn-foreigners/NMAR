@@ -6,7 +6,7 @@ test_that("el_resolve_auxiliaries rejects NA in full auxiliary data when means m
   )
   respondent_mask <- c(TRUE, FALSE, TRUE)
   expect_error(
-    NMAR:::el_resolve_auxiliaries(auxiliary_design_full, respondent_mask, auxiliary_means = NULL),
+    el_resolve_auxiliaries(auxiliary_design_full, respondent_mask, auxiliary_means = NULL),
     regexp = "Auxiliary variables contain NA values",
     fixed = TRUE
   )
@@ -19,7 +19,7 @@ test_that("el_resolve_auxiliaries allows NA among nonrespondents when auxiliary_
     c(X = 0)
   )
   respondent_mask <- c(TRUE, FALSE, TRUE)
-  out <- NMAR:::el_resolve_auxiliaries(
+  out <- el_resolve_auxiliaries(
     auxiliary_design_full,
     respondent_mask = respondent_mask,
     auxiliary_means = c(X = 0.5)

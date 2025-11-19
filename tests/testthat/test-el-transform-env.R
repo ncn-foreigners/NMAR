@@ -26,7 +26,7 @@ test_that("EL respects formula environment for custom auxiliary transforms", {
   df$Y_miss[!R] <- NA_real_
 
   g <- function(x) x^2 + 1
-  design <- NMAR:::el_prepare_design(Y_miss ~ g(X), df)
+  design <- el_prepare_design(Y_miss ~ g(X), df)
   expect_true("g(X)" %in% colnames(design$auxiliary_design_full))
   expect_equal(
     as.numeric(design$auxiliary_design_full[, "g(X)"]),

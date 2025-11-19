@@ -9,7 +9,7 @@ test_that("on_failure=return: inconsistent aux means yield a warning and diagnos
   df[!R, "Y_miss"] <- NA_real_
   bad_aux <- c(X1 = 10, X2 = -10)
   expect_warning(
-    fit <- NMAR:::el.data.frame(df, Y_miss ~ X1 + X2,
+    fit <- el.data.frame(df, Y_miss ~ X1 + X2,
                                  auxiliary_means = bad_aux, on_failure = "return", variance_method = "delta"),
     regexp = "Auxiliary means appear far from respondents' support"
   )

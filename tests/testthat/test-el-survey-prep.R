@@ -9,8 +9,8 @@ test_that("survey designs reuse EL prep workflow", {
   )
   design <- survey::svydesign(ids = ~1, data = df, weights = ~w)
 
-  prep <- NMAR:::el_prepare_design(Y_miss ~ X, df)
-  design_svy <- NMAR:::el_prepare_design(Y_miss ~ X, design$variables)
+  prep <- el_prepare_design(Y_miss ~ X, df)
+  design_svy <- el_prepare_design(Y_miss ~ X, design$variables)
 
   expect_equal(prep$missingness_design, design_svy$missingness_design)
   expect_equal(prep$auxiliary_design_full[prep$respondent_mask, , drop = FALSE],
@@ -29,7 +29,7 @@ test_that("survey prep stores delta column and uses rescaled weights", {
   des <- survey::svydesign(ids = ~1, weights = ~w, data = df)
 
   n_total <- 2 * sum(weights(des))
-  res <- suppressWarnings(NMAR:::el.survey.design(
+  res <- suppressWarnings(el.survey.design(
     data = des,
     formula = Y_miss ~ X,
     auxiliary_means = c(X = 0),
@@ -51,7 +51,7 @@ test_that("el_build_input_spec carries survey metadata and totals", {
   )
   des <- survey::svydesign(ids = ~1, weights = ~w, data = df)
   n_total <- sum(weights(des)) * 1.5
-  spec <- NMAR:::el_build_input_spec(
+  spec <- el_build_input_spec(
     formula = Y_miss ~ X,
     data = des$variables,
     weights_full = as.numeric(weights(des)),

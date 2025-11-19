@@ -2,7 +2,7 @@ test_that("respondents-only data.frame with auxiliaries requires auxiliary_means
   df <- data.frame(Y_miss = rnorm(50), X = rnorm(50))
 # No NAs in Y_miss => respondents-only
   expect_error(
-    NMAR:::el.data.frame(
+    el.data.frame(
       data = df,
       formula = Y_miss ~ X,
       auxiliary_means = NULL,
@@ -14,7 +14,7 @@ test_that("respondents-only data.frame with auxiliaries requires auxiliary_means
   )
 # Provide auxiliary means -> should run
   expect_s3_class(
-    NMAR:::el.data.frame(
+    el.data.frame(
       data = df,
       formula = Y_miss ~ X,
       auxiliary_means = c(X = mean(df$X)),
@@ -31,7 +31,7 @@ test_that("respondents-only survey design with auxiliaries requires auxiliary_me
   df <- data.frame(Y_miss = rnorm(60), X = rnorm(60))
   des <- survey::svydesign(ids = ~1, weights = ~1, data = df)
   expect_error(
-    NMAR:::el.survey.design(
+    el.survey.design(
       data = des,
       formula = Y_miss ~ X,
       auxiliary_means = NULL,
@@ -42,7 +42,7 @@ test_that("respondents-only survey design with auxiliaries requires auxiliary_me
     fixed = FALSE
   )
   expect_s3_class(
-    NMAR:::el.survey.design(
+    el.survey.design(
       data = des,
       formula = Y_miss ~ X,
       auxiliary_means = c(X = mean(df$X)),

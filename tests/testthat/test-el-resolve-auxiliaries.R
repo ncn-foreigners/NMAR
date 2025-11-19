@@ -8,7 +8,7 @@ test_that("el_resolve_auxiliaries works for data.frame with level drops", {
   aux_formula <- ~ f - 1
   auxiliary_design_full <- model.matrix(aux_formula, data = full)
   respondent_mask <- full$f == "A"
-  out <- NMAR:::el_resolve_auxiliaries(auxiliary_design_full, respondent_mask, auxiliary_means = NULL)
+  out <- el_resolve_auxiliaries(auxiliary_design_full, respondent_mask, auxiliary_means = NULL)
   expect_true(is.matrix(out$auxiliary_design))
   expect_true(length(out$means) >= 1)
   expect_setequal(colnames(out$auxiliary_design), names(out$means))
@@ -28,7 +28,7 @@ test_that("el_resolve_auxiliaries computes design-weighted means for survey.desi
   aux_formula <- ~ f - 1
   auxiliary_design_full <- model.matrix(aux_formula, data = des$variables)
   respondent_mask <- des$variables$f == "A"
-  out <- NMAR:::el_resolve_auxiliaries(auxiliary_design_full, respondent_mask, auxiliary_means = NULL, weights_full = weights(des))
+  out <- el_resolve_auxiliaries(auxiliary_design_full, respondent_mask, auxiliary_means = NULL, weights_full = weights(des))
   mm_full <- model.matrix(aux_formula, data = full)
   mu_expected <- as.numeric(colSums(mm_full * full$w) / sum(full$w))
   names(mu_expected) <- colnames(mm_full)
@@ -48,7 +48,7 @@ test_that("el_resolve_auxiliaries warns on extra names in auxiliary_means and ig
   respondent_mask <- rep(TRUE, n)
   aux_means_supplied <- c(X = 0, EXTRA = 123)
   out <- expect_warning(
-    NMAR:::el_resolve_auxiliaries(auxiliary_design_full, respondent_mask, auxiliary_means = aux_means_supplied),
+    el_resolve_auxiliaries(auxiliary_design_full, respondent_mask, auxiliary_means = aux_means_supplied),
     regexp = "Ignoring unused names in 'auxiliary_means'",
     fixed = FALSE
   )
