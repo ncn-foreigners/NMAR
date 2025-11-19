@@ -47,7 +47,8 @@ test_that("respondents-only survey design with auxiliaries requires auxiliary_me
       formula = Y_miss ~ X,
       auxiliary_means = c(X = mean(df$X)),
       n_total = sum(weights(des)),
-      variance_method = "none"
+      variance_method = "none",
+      strata_augmentation = FALSE
     ),
     "nmar_result_el"
   )

@@ -75,9 +75,14 @@ test_that("negative weights error is clear and informative", {
     on_failure = "error"
   )
 
-  err <- tryCatch(
-    nmar(Y ~ X, data = df, engine = eng, trace_level = 0),
-    error = function(e) e
+  err <- NULL
+  expect_warning(
+    err <- tryCatch(
+      nmar(Y ~ X, data = df, engine = eng, trace_level = 0),
+      error = function(e) e
+    ),
+    "Auxiliary means appear far from respondents' support",
+    ignore.case = TRUE
   )
 
 # May or may not error depending on solver behavior
