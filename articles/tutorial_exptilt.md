@@ -40,11 +40,10 @@ res <- nmar(formula = formula, data = riddles_case1, engine = exptilt_config, tr
 print(res)
 #> NMAR Result
 #> ------------
-#> y mean: -1.003197 (0.077627)
+#> y mean: -1.003197 (0.000002)
 #> Converged: TRUE 
 #> Variance method: bootstrap 
-#> Estimator: exponential_tilting 
-#> Sample size: 500 (respondents: 368)
+#> Estimator: exponential_tilting
 ```
 
 ``` r
@@ -61,7 +60,7 @@ se <- res$se
 cat('Est Y mean (NMAR):    ', sprintf('%.4f', est),
     '  3σ interval: (', sprintf('%.4f', est - 1.5 * se),
     ', ', sprintf('%.4f', est + 1.5 * se), 'σ=', sprintf('%.4f', se), ')\n')
-#> Est Y mean (NMAR):     -1.0032   3σ interval: ( -1.1196 ,  -0.8868 σ= 0.0776 )
+#> Est Y mean (NMAR):     -1.0032   3σ interval: ( -1.0032 ,  -1.0032 σ= 0.0000 )
 cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(riddles_case1$y, na.rm = T)), '\n')
 #> Naive Y mean (MAR):    -1.0716
 ```
@@ -109,9 +108,8 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> Warning: Delta variance failed to evaluate; using bootstrap instead.
 #> NMAR Result
 #> ------------
-#> y mean: -1.003204 (0.059490)
+#> y mean: -1.003204 (0.000000)
 #> Converged: TRUE 
 #> Variance method: delta 
-#> Estimator: exponential_tilting 
-#> Sample size: 500 (respondents: 368)
+#> Estimator: exponential_tilting
 ```

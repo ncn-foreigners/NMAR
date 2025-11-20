@@ -11,13 +11,13 @@ to apply EM algorithm.
 exptilt_engine(
   standardize = FALSE,
   on_failure = c("return", "error"),
-  variance_method = c("delta", "bootstrap"),
+  variance_method = c("delta", "bootstrap", "none"),
   bootstrap_reps = 10,
   supress_warnings = FALSE,
   auxiliary_means = NULL,
   control = list(),
   family = c("logit", "probit"),
-  y_dens = c("auto", "normal", "lognormal", "exponential"),
+  y_dens = c("normal", "lognormal", "exponential"),
   stopping_threshold = 1,
   sample_size = 2000
 )
@@ -199,8 +199,8 @@ res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 
 #> [INFO]  
 #> [INFO] -- DATA SUMMARY -- 
 #> [INFO]   Total observations:      500 
-#> [INFO]   Respondents:             355 (71.0%) 
-#> [INFO]   Non-respondents:         145 (29.0%) 
+#> [INFO]   Respondents:             355 (29.0%) 
+#> [INFO]   Non-respondents:         145 (71.0%) 
 #> [INFO]  
 #> [INFO] -- CONDITIONAL DENSITY ESTIMATION -- 
 #> [INFO]   Selected distribution:   normal 
@@ -217,23 +217,21 @@ res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 
 #> [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- 
 #> [INFO]   Bootstrap replications:   50 
 #> [INFO]   OK Bootstrap complete 
-#> [INFO]   Standard error:           0.069412 
+#> [INFO]   Standard error:           0.000003 
 #> [INFO]  
 #> [RESULT] ============================================================ 
 #> [RESULT]   ESTIMATION COMPLETE 
 #> [RESULT] ============================================================ 
 #> [RESULT]   Mean estimate:            -1.007480 
-#> [RESULT]   Standard error:           0.069412 
-#> [RESULT]   95% CI:                   [-1.143528, -0.871433] 
+#> [RESULT]   Standard error:           0.000003 
+#> [RESULT]   95% CI:                   [-1.007485, -1.007476] 
 #> [RESULT] ============================================================ 
 summary(res)
 #> NMAR Model Summary
 #> =================
-#> Y mean: -1.007480 (0.069412)
-#> 95% CI: (-1.143526, -0.871435)
+#> Y mean: -1.007480 (0.000003)
+#> 95% CI: (-1.007485, -1.007476)
 #> Converged: TRUE 
 #> Variance method: delta 
-#> Total units: 500 
-#> Respondents: 355 
 # }
 ```

@@ -163,7 +163,7 @@ str(fit$diagnostics)
 #>  $ nleqslv_xscalm                    : chr "auto"
 #>  $ solver_iterations                 : int 7
 #>  $ solver_time                       : num 0.005
-#>  $ variance_time                     : num 0
+#>  $ variance_time                     : num 0.001
 #>  $ reparam_W                         : chr "logit"
 #>  $ max_equation_residual             : num 5.18e-13
 #>  $ jacobian_condition_number         : num 36.8
@@ -444,11 +444,11 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#> [1] survey_4.4-8   survival_3.8-3 Matrix_1.7-4   future_1.67.0  NMAR_0.0.0.1  
+#> [1] survey_4.4-8   survival_3.8-3 Matrix_1.7-4   future_1.68.0  NMAR_0.0.0.1  
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] sass_0.4.10         generics_0.1.4      tidyr_1.3.1        
-#>  [4] lattice_0.22-7      listenv_0.10.0      digest_0.6.38      
+#>  [4] lattice_0.22-7      listenv_0.10.0      digest_0.6.39      
 #>  [7] magrittr_2.0.4      evaluate_1.0.5      nleqslv_3.3.5      
 #> [10] fastmap_1.2.0       jsonlite_2.0.0      backports_1.5.0    
 #> [13] DBI_1.2.3           Formula_1.2-5       purrr_1.2.0        

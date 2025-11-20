@@ -121,11 +121,10 @@ https://doi.org/10.1093/jssam/smv047
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Result</span></span>
 <span><span class="co">#&gt; ------------</span></span>
-<span><span class="co">#&gt; y mean: -1.003197 (0.077627)</span></span>
+<span><span class="co">#&gt; y mean: -1.003197 (0.000002)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: bootstrap </span></span>
-<span><span class="co">#&gt; Estimator: exponential_tilting </span></span>
-<span><span class="co">#&gt; Sample size: 500 (respondents: 368)</span></span></code></pre></div>
+<span><span class="co">#&gt; Estimator: exponential_tilting</span></span></code></pre></div>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="co">#&gt; (Intercept)           y </span></span>
@@ -138,7 +137,7 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'Est Y mean (NMAR):    '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span><span class="op">)</span>,</span>
 <span>    <span class="st">'  3σ interval: ('</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span> <span class="op">-</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="va">se</span><span class="op">)</span>,</span>
 <span>    <span class="st">', '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span> <span class="op">+</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="va">se</span><span class="op">)</span>, <span class="st">'σ='</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">se</span><span class="op">)</span>, <span class="st">')\n'</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Est Y mean (NMAR):     -1.0032   3σ interval: ( -1.1196 ,  -0.8868 σ= 0.0776 )</span></span>
+<span><span class="co">#&gt; Est Y mean (NMAR):     -1.0032   3σ interval: ( -1.0032 ,  -1.0032 σ= 0.0000 )</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'Naive Y mean (MAR):   '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">riddles_case1</span><span class="op">$</span><span class="va">y</span>, na.rm <span class="op">=</span> <span class="cn">T</span><span class="op">)</span><span class="op">)</span>, <span class="st">'\n'</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Naive Y mean (MAR):    -1.0716</span></span></code></pre></div>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
@@ -184,11 +183,10 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="co">#&gt; Warning: Delta variance failed to evaluate; using bootstrap instead.</span></span>
 <span><span class="co">#&gt; NMAR Result</span></span>
 <span><span class="co">#&gt; ------------</span></span>
-<span><span class="co">#&gt; y mean: -1.003204 (0.059490)</span></span>
+<span><span class="co">#&gt; y mean: -1.003204 (0.000000)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: delta </span></span>
-<span><span class="co">#&gt; Estimator: exponential_tilting </span></span>
-<span><span class="co">#&gt; Sample size: 500 (respondents: 368)</span></span></code></pre></div>
+<span><span class="co">#&gt; Estimator: exponential_tilting</span></span></code></pre></div>
   </main>
 </div>
 
