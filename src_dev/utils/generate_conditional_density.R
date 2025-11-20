@@ -1,4 +1,5 @@
 generate_conditional_density <- function(model) {
+
   data_df <- data.frame(y = model$y_1, model$data_for_y_obs)
 
 # if (!is.null(model$respondent_weights)) {
@@ -91,6 +92,7 @@ generate_conditional_density <- function(model) {
     mean_val <- x_mat %*% coefs[beta_names]
     dist_list[[chosen_dist]]$density(y, mean_val, coefs)
   }
+
 
   return(structure(list(
     density_model = .model,

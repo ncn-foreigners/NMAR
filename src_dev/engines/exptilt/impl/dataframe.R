@@ -4,7 +4,7 @@
 exptilt.data.frame <- function(data, formula,
                                standardize = TRUE,
                                prob_model_type = c("logit", "probit"),
-                               y_dens = c("auto", "normal", "lognormal", "exponential"),
+                               y_dens = c("normal", "lognormal", "exponential"),
                                variance_method = c("delta", "bootstrap", 'none'),
                                bootstrap_reps = 10,
                                control = list(),
