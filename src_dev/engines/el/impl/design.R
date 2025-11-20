@@ -151,11 +151,7 @@ el_build_auxiliary_matrix <- function(fml,
     stats::model.matrix(fml, data = model_frame, rhs = 1, na.action = stats::na.pass),
     error = function(e) stop(sprintf("Formula evaluation failed for data: %s", conditionMessage(e)), call. = FALSE)
   )
-  intercept_requested <- isTRUE(attr(rhs_terms, "intercept") == 1) && el_has_explicit_intercept(rhs_expr)
   aux_matrix <- el_drop_intercept_columns(aux_matrix)
-  if (intercept_requested) {
-    warning("Auxiliary intercepts are ignored; + 1 has no effect.", call. = FALSE)
-  }
 
   aux_expr_vars <- if (!is.null(rhs_expr)) all.vars(rhs_expr) else character(0)
   if (length(aux_expr_vars) > 0 && outcome_source %in% aux_expr_vars) {
@@ -224,28 +220,6 @@ el_build_missingness_matrix <- function(fml,
   }
 
   cbind(intercept_col, outcome_col, rhs_predictors)
-}
-
-#' Detect whether the RHS explicitly requests an intercept
-#'
-#' The Formula/terms machinery already controls implicit intercepts, but we
-#' warn users who add `+ 1` manually. This helper scans the parsed language tree
-#' for an explicit scalar `1` so we can emit a user-facing warning without
-#' treating `.` expansions or other implicit intercepts as explicit requests.
-#'
-#' @keywords internal
-el_has_explicit_intercept <- function(node) {
-  if (is.null(node)) return(FALSE)
-  if (is.numeric(node) && length(node) == 1L && isTRUE(all.equal(node, 1))) return(TRUE)
-  if (is.call(node)) {
-    op <- as.character(node[[1L]])
-    if (op %in% c("+", "-", "~")) {
-      for (i in 2L:length(node)) {
-        if (Recall(node[[i]])) return(TRUE)
-      }
-    }
-  }
-  FALSE
 }
 
 #' Remove `(Intercept)` columns from a model matrix

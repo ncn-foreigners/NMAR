@@ -134,16 +134,12 @@ test_that("intercept-only auxiliaries are ignored silently", {
   expect_equal(ncol(design$auxiliary_design_full), 0)
 })
 
-test_that("explicit intercept plus auxiliaries triggers a warning", {
+test_that("explicit auxiliary intercept is dropped silently", {
   df <- data.frame(
     Y_miss = c(1, NA, 3, NA),
     X = rnorm(4)
   )
-  expect_warning(
-    design <- el_process_design(Y_miss ~ 1 + X, df),
-    "Auxiliary intercepts are ignored",
-    fixed = FALSE
-  )
+  design <- el_process_design(Y_miss ~ 1 + X, df)
   expect_equal(colnames(design$auxiliary_design_full), "X")
 })
 

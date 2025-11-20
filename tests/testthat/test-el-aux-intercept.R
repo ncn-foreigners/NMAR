@@ -1,4 +1,4 @@
-test_that("EL removes auxiliary intercept (+1) with a warning", {
+test_that("EL removes auxiliary intercept (+1) silently", {
   set.seed(101)
   n <- 80
   X <- rnorm(n)
@@ -11,23 +11,11 @@ test_that("EL removes auxiliary intercept (+1) with a warning", {
 
   eng <- el_engine(variance_method = "none")
 
-# Intercept in auxiliary part should be removed with a warning, not error
-  expect_warning(
-    {
-      res1 <- nmar(Y_miss ~ X + 1, data = df, engine = eng, trace_level = 0)
-      expect_s3_class(res1, "nmar_result_el")
-    },
-    regexp = "intercept",
-    fixed = FALSE
-  )
+# Intercept in auxiliary part should be removed silently, not error
+  res1 <- nmar(Y_miss ~ X + 1, data = df, engine = eng, trace_level = 0)
+  expect_s3_class(res1, "nmar_result_el")
 
-# Also fails when partitioned with response-only predictors
-  expect_warning(
-    {
-      res2 <- nmar(Y_miss ~ X + 1 | Z, data = df, engine = eng, trace_level = 0)
-      expect_s3_class(res2, "nmar_result_el")
-    },
-    regexp = "intercept",
-    fixed = FALSE
-  )
+# Also works when partitioned with response-only predictors
+  res2 <- nmar(Y_miss ~ X + 1 | Z, data = df, engine = eng, trace_level = 0)
+  expect_s3_class(res2, "nmar_result_el")
 })

@@ -26,7 +26,8 @@
 #' @param auxiliary_means named numeric vector; population means for auxiliary
 #'   design columns. Names must match the materialized model.matrix column names
 #'   on the first RHS (after formula expansion), e.g., factor indicators like
-#'   `F_b` or transformed terms `I(X^2)`. Intercept is always excluded. Optional.
+#'   `F_b` or transformed terms `I(X^2)`. Auxiliary intercepts are always
+#'   dropped automatically, so do not supply `(Intercept)`. Optional.
 #' @param control list; optional solver control for \code{nleqslv::nleqslv()}.
 #'   Recognized fields (defaults in parentheses):
 #'   \itemize{
@@ -84,7 +85,9 @@
 #' \code{y_miss ~ aux1 + aux2 | z1 + z2}. Variables left of \code{|} are auxiliaries
 #' (used in EL moment constraints); variables right of \code{|} are missingness-model
 #' predictors only. The outcome appears on the left-hand side and is included as a
-#' response predictor by default.
+#' response predictor by default. Auxiliary design matrices are constructed with
+#' an intercept dropped automatically; missingness models always include an
+#' intercept even if the formula uses \code{-1} or \code{+0}.
 #'
 #' \strong{Variance}: Analytical delta variance for EL is not implemented. Requesting
 #' \code{variance_method = "delta"} is coerced to \code{"none"} with a warning. For standard
