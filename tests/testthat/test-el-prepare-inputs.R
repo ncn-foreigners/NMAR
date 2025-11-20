@@ -53,6 +53,22 @@ test_that("transforms that introduce NA for respondents are rejected", {
   )
 })
 
+test_that("logical and two-level factor outcomes are coerced to numeric with a warning", {
+  set.seed(42)
+  df <- data.frame(
+    Y_logical = c(TRUE, FALSE, TRUE, NA),
+    Y_factor = factor(c("a", "b", "a", NA)),
+    X = rnorm(4)
+  )
+  expect_warning(des_log <- el_process_design(Y_logical ~ X, df), "Coercing logical outcome")
+  expect_s3_class(des_log, "el_design_spec")
+  expect_type(des_log$missingness_design[, "Y_logical"], "double")
+
+  expect_warning(des_fac <- el_process_design(Y_factor ~ X, df), "Coercing two-level factor outcome")
+  expect_s3_class(des_fac, "el_design_spec")
+  expect_true("Y_factor" %in% colnames(des_fac$missingness_design))
+})
+
 test_that("response intercept is retained even when formula uses +0", {
   df <- data.frame(
     Y_miss = c(1, NA, 2, NA),

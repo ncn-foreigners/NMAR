@@ -67,6 +67,22 @@ test_that("survey prep stores delta column and uses rescaled weights", {
   expect_equal(sum(stats::weights(res, scale = "population")), n_total)
 })
 
+test_that("respondents-only survey with strata augmentation warns on shares", {
+  skip_if_not_installed("survey")
+  df <- data.frame(
+    Y_miss = c(1, 2, 3),
+    strata = factor(c("A", "B", "B")),
+    w = c(1, 1, 1)
+  )
+  des <- survey::svydesign(ids = ~1, strata = ~strata, data = df, weights = ~w)
+  eng <- el_engine(variance_method = "none", strata_augmentation = TRUE, auxiliary_means = c(), n_total = sum(weights(des)))
+  expect_warning(
+    nmar(Y_miss ~ 1, data = des, engine = eng),
+    regexp = "strata augmentation with respondents-only",
+    fixed = FALSE
+  )
+})
+
 test_that("el_build_input_spec carries survey metadata and totals", {
   skip_if_not_installed("survey")
   set.seed(321)

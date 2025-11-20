@@ -62,7 +62,19 @@ el_process_design <- function(formula, data) {
       stop(sprintf("Formula evaluation failed for data: %s", conditionMessage(e)), call. = FALSE)
     }
   )
-  if (!is.numeric(response_vector)) {
+# Coerce logical or two-level factors to numeric 0/1; otherwise require numeric
+  if (is.logical(response_vector)) {
+    warning("Coercing logical outcome to numeric 0/1.", call. = FALSE)
+    response_vector <- as.numeric(response_vector)
+  } else if (is.factor(response_vector) || is.ordered(response_vector)) {
+    levs <- levels(response_vector)
+    if (length(levs) == 2L) {
+      warning(sprintf("Coercing two-level factor outcome (%s) to numeric 0/1.", paste(levs, collapse = "/")), call. = FALSE)
+      response_vector <- as.numeric(response_vector) - 1
+    } else {
+      stop("Outcome variable must be numeric after evaluating the left-hand side.", call. = FALSE)
+    }
+  } else if (!is.numeric(response_vector)) {
     stop("Outcome variable must be numeric after evaluating the left-hand side.", call. = FALSE)
   }
   if (length(response_vector) != nrow(model_frame)) {
