@@ -146,7 +146,7 @@ el_build_auxiliary_matrix <- function(fml,
     stats::terms(rhs_formula, data = model_frame),
     error = function(e) stop(sprintf("Formula evaluation failed for data: %s", conditionMessage(e)), call. = FALSE)
   )
-  el_assert_no_offset(rhs_terms, "data", "auxiliary predictors")
+  el_assert_no_offset(rhs_terms, "auxiliary predictors")
   aux_matrix <- tryCatch(
     stats::model.matrix(fml, data = model_frame, rhs = 1, na.action = stats::na.pass),
     error = function(e) stop(sprintf("Formula evaluation failed for data: %s", conditionMessage(e)), call. = FALSE)
@@ -203,7 +203,7 @@ el_build_missingness_matrix <- function(fml,
       stats::terms(rhs_formula, data = model_frame),
       error = function(e) stop(sprintf("Formula evaluation failed for data: %s", conditionMessage(e)), call. = FALSE)
     )
-    el_assert_no_offset(rhs_terms, "data", "response predictors")
+    el_assert_no_offset(rhs_terms, "response predictors")
     if (isTRUE(attr(rhs_terms, "intercept") == 0)) {
       warning("Missingness-model intercept is required; '-1' or '+0' has no effect.", call. = FALSE)
     }
@@ -333,13 +333,13 @@ el_outcome_label <- function(expr) {
   paste(deparse(expr), collapse = " ")
 }
 
-el_validate_design_spec <- function(design, data_nrow, context_label = "data") {
+el_validate_design_spec <- function(design, data_nrow) {
   mask <- design$respondent_mask
   if (!is.logical(mask)) {
-    stop(sprintf("Internal error: respondent mask must be logical for %s.", context_label), call. = FALSE)
+    stop("Internal error: respondent mask must be logical.", call. = FALSE)
   }
   if (length(mask) != data_nrow) {
-    stop(sprintf("Internal error: respondent mask length (%d) must equal %s rows (%d).", length(mask), context_label, data_nrow), call. = FALSE)
+    stop(sprintf("Internal error: respondent mask length (%d) must equal data rows (%d).", length(mask), data_nrow), call. = FALSE)
   }
   missingness_design <- design$missingness_design
   if (!is.null(missingness_design) && nrow(missingness_design) != sum(mask)) {
@@ -351,14 +351,13 @@ el_validate_design_spec <- function(design, data_nrow, context_label = "data") {
   invisible(design)
 }
 
-el_assert_no_offset <- function(terms_obj, context_label, label) {
+el_assert_no_offset <- function(terms_obj, label) {
   if (is.null(terms_obj)) return(invisible(NULL))
   offsets <- attr(terms_obj, "offset")
   if (!is.null(offsets) && length(offsets) > 0) {
     stop(
       sprintf(
-        "Offsets (offset()) are not supported in %s for %s. Remove offset() from the formula.",
-        context_label,
+        "Offsets (offset()) are not supported for %s. Remove offset() from the formula.",
         label
       ),
       call. = FALSE

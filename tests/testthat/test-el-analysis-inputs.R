@@ -42,7 +42,7 @@ test_that("el_validate_design_spec detects tampered respondent mask", {
   tampered <- design
   tampered$respondent_mask <- tampered$respondent_mask[-1]
   expect_error(
-    el_validate_design_spec(tampered, data_nrow = nrow(df), context_label = "data frame"),
+    el_validate_design_spec(tampered, data_nrow = nrow(df)),
     "respondent mask length",
     fixed = FALSE
   )
