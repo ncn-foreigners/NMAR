@@ -1,0 +1,47 @@
+---
+title: "igor_riddles_2"
+output: html_document
+---
+
+```{r}
+set.seed(123)
+library(data.table)
+library(survey)
+stratas <- data.table(x1 = as.factor(rep(c(1, 2), each = 2)),
+                      x2 = as.factor(rep(c(1, 2), times = 2)),
+                      p_y1 = c(0.7, 0.5, 0.3, 0.4),
+                      p_y2 = c(0.3, 0.5, 0.7, 0.6),
+                      strata = 1:4,
+                      d = c(50, 100, 150, 200))
+
+pop_data <- stratas[rep(strata, d * 200), ]
+pop_data[, y := as.factor(rbinom(n = .N, prob = p_y1, size = 1) + 1)]
+pop_data[, prob := (1 + exp(-0.4 * (x1 == 2) - 0.8 * (y == 2)))^{-1}] ## response model depends on y==2
+
+n_sim <- 50
+vec <- matrix(0, nrow = n_sim, ncol = 2)
+
+for (i in 1:n_sim) {
+  set.seed(2024 + i)
+
+  sample_sim2 <- pop_data[pop_data[, .I[sample(.N, 200)], by = strata][[2]]]
+  sample_sim2[, R := rbinom(.N, 1, prob)]
+  sample_sim2[, x1_1 := as.numeric(x1 == 1)]
+  sample_sim2[, x2_1 := as.numeric(x2 == 1)]
+  sample_sim2[, y_NA_n := as.numeric(ifelse(R == 0, NA, y == 1))] ## numeric, defining y == 1 instead of y == 2 should not be an issue here
+
+  sample_sim2_svy <- svydesign(ids = ~1, weights = ~d, strata = ~ x1 + x2, data = sample_sim2)
+  sample_sim2_svy_resp <- svydesign(ids = ~1, weights = ~d, strata = ~ x1 + x2,
+                                    data = subset(sample_sim2, R == 1))
+
+  res_emplik_y1_d <- nmar(formula = y_NA_n ~ x2_1 | x1_1,
+                          data = sample_sim2_svy,
+                          engine = exptilt_engine(variance_method = 'bootstrap'), trace_level = 3)
+
+  vec[i, 1] <- weighted.mean(sample_sim2$y_NA_n, sample_sim2$d, na.rm = T)
+  vec[i, 2] <- res_emplik_y1_d$y_hat
+}
+
+summary(vec)
+```
+

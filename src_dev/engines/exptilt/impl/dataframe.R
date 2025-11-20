@@ -4,8 +4,8 @@
 exptilt.data.frame <- function(data, formula,
                                standardize = TRUE,
                                prob_model_type = c("logit", "probit"),
-                               y_dens = c("auto", "normal", "lognormal", "exponential"),
-                               variance_method = c("delta", "bootstrap"),
+                               y_dens = c("normal", "lognormal", "exponential"),
+                               variance_method = c("delta", "bootstrap", 'none'),
                                bootstrap_reps = 10,
                                control = list(),
                                stopping_threshold = 1,
@@ -20,11 +20,9 @@ exptilt.data.frame <- function(data, formula,
   y_dens <- match.arg(y_dens)
   variance_method <- match.arg(variance_method)
   on_failure <- match.arg(on_failure)
+  is_survey <- !is.null(survey_design)
 
-# f <- as.list(Formula::Formula(formula))
-# Y = Formula::model.part(f, data = data, lhs = NULL)
-# X = model.matrix(f, data = data, rhs = 1, na.action = na.pass)
-# Z = model.matrix(f, data = data, rhs = 2, na.action = na.pass)
+
   res = et_extract_formula(format(formula), data)
   Y = res$Y
   X = res$X
@@ -58,17 +56,8 @@ exptilt.data.frame <- function(data, formula,
   cols_y_observed <- as.vector(colnames(X))
   cols_delta <- as.vector(colnames(Z))
 
-# browser()
   et_validate_df(X, Y, Z)
 
-
-
-# browser()
-
-# Combine model parts. Intercept columns were already removed above by name
-# (we filtered out "(Intercept)"), so avoid positional drops which can
-# accidentally remove the first real predictor (e.g. when RHS includes the
-# LHS variable). Keep columns by name to preserve correct variable names.
 
   data <- cbind(
     as.data.frame(Y),
@@ -76,12 +65,6 @@ exptilt.data.frame <- function(data, formula,
     as.data.frame(Z)
   )
 
-
-
-
-
-# Stratified sampling for memory optimization
-# Preserve respondent/non-respondent ratio
   n_total <- nrow(data)
   respondent_idx <- which(!is.na(data[, outcome_var]))
   nonrespondent_idx <- which(is.na(data[, outcome_var]))
@@ -92,50 +75,38 @@ exptilt.data.frame <- function(data, formula,
   original_n_total <- n_total
   original_n_resp <- n_resp
   original_n_nonresp <- n_nonresp
+  if (!is_survey) {
+    design_weights <- rep(1, nrow(data))
+  }
 
   if (n_total > sample_size) {
-# Calculate stratified sample sizes
+# if(!is_survey){
     resp_ratio <- n_resp / n_total
     nonresp_ratio <- n_nonresp / n_total
 
     n_resp_sample <- round(sample_size * resp_ratio)
     n_nonresp_sample <- sample_size - n_resp_sample
 
-# Ensure we have at least some observations from each stratum
     n_resp_sample <- max(1, min(n_resp_sample, n_resp))
     n_nonresp_sample <- max(1, min(n_nonresp_sample, n_nonresp))
 
-# Sample from each stratum
     sampled_resp_idx <- sample(respondent_idx, n_resp_sample, replace = FALSE)
     sampled_nonresp_idx <- sample(nonrespondent_idx, n_nonresp_sample, replace = FALSE)
 
-# Combine sampled indices
     sampled_idx <- c(sampled_resp_idx, sampled_nonresp_idx)
 
-# Update data_subset
-    data_subset <- data[sampled_idx, , drop = FALSE]
+    data <- data[sampled_idx, , drop = FALSE]
+    design_weights <- design_weights[sampled_idx]
 
     sampling_performed <- TRUE
+# }
   }
 
-# f <- as.list(Formula::Formula(formula))
-# Y = model.part(f, data = data_subset, lhs = NULL)
-# X = model.matrix(f, data = data_subset, rhs = 1)
-# Z = model.matrix(f, data = data_subset, rhs = 2)
-#
-# outcome_var <- as.vector(colnames(Y)[1])
-# cols_y_observed <- as.vector(colnames(X))
-# cols_delta <- as.vector(colnames(Z))
 
-  data_subset <- cbind(
-    as.data.frame(Y),
-    as.data.frame(X),
-    as.data.frame(Z)
-  )
-
+  respondent_mask <- !is.na(data[, outcome_var])
 
   model <- list(
-    data = data_subset,
+    data = data,
 # required_cols = required_cols,
     col_y = outcome_var,
     cols_y_observed = cols_y_observed,
@@ -148,16 +119,15 @@ exptilt.data.frame <- function(data, formula,
     control = control,
     variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,
-
+    is_survey = is_survey,
     supress_warnings = supress_warnings,
     design_weights = design_weights,
     design = survey_design,
     formula = formula,
     trace_level = trace_level,
+    on_failure = on_failure,
     call = match.call(),
-
-
-# Sampling information
+    respondent_mask = respondent_mask,
     sample_size = sample_size,
     sampling_performed = sampling_performed,
     original_n_total = original_n_total,
@@ -177,21 +147,15 @@ exptilt.data.frame <- function(data, formula,
     probit_family()
   }
 
-# browser()
+
 
   model$original_params <- model # for bootstrap purposes, to re-run exptilt_fit_model
 
-  exptilt_fit_model(data_subset, model, on_failure = on_failure, ...)
+# browser()
+  exptilt_fit_model(data, model, ...)
 }
 
-exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ...) {
-
-  on_failure <- match.arg(on_failure)
-  model$x <- data
-  model$is_survey <- isTRUE(model$is_survey)
-  if (is.null(model$standardize)) {
-    model$standardize <- TRUE
-  }
+exptilt_fit_model <- function(data, model, ...) {
 
 # Initialize verboser if not already present
   if (is.null(model$verboser)) {
@@ -199,45 +163,28 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   }
 
   verboser <- model$verboser
-
   verboser("============================================================", level = 1, type = "step")
   verboser("  EXPTILT ESTIMATION STARTED", level = 1, type = "step")
   verboser("============================================================", level = 1, type = "step")
 
-# Show trace level info
+
   trace_msg <- sprintf("Running with trace_level = %d", model$trace_level)
   if (model$trace_level < 3) {
     trace_msg <- paste0(trace_msg, sprintf(" | For more detailed output, use trace_level = %d", model$trace_level + 1), ". Available trace_level = c(1,2,3)")
   }
   verboser(trace_msg, level = 1)
 
-# Show formula at level 1
+
   formula_str <- deparse(model$formula)
   verboser(sprintf("Formula: %s", formula_str), level = 1)
 
-
-
-# model$x_1 <- model$x[!is.na(model$x[,model$col_y]),,drop=FALSE] #observed
-# model$x_0 <- model$x[is.na(model$x[,model$col_y]),,drop=FALSE] #unobserved
-# model$y_1 <- model$x_1[,model$col_y,drop=TRUE] #observed y
-#
-# model$x_for_y_obs <- model$x_1[,model$cols_y_observed,drop=FALSE]
-# model$x_for_y_unobs <- model$x_0[,model$cols_y_observed,drop=FALSE]
-
-  respondent_mask <- !is.na(model$x[, model$col_y])
-  model$respondent_mask <- respondent_mask
-
-# Level 1: Show basic data info
-  n_total <- length(respondent_mask)
-  n_resp <- sum(respondent_mask)
-  n_nonresp <- n_total - n_resp
-  pct_nonresp <- 100 * n_nonresp / n_total
+  pct_nonresp <- 100 * model$original_n_resp / model$original_n_total
 
   verboser("", level = 1)
   verboser("-- DATA SUMMARY --", level = 1)
-  verboser(sprintf("  Total observations:      %d", n_total), level = 1)
-  verboser(sprintf("  Respondents:             %d (%.1f%%)", n_resp, 100 - pct_nonresp), level = 1)
-  verboser(sprintf("  Non-respondents:         %d (%.1f%%)", n_nonresp, pct_nonresp), level = 1)
+  verboser(sprintf("  Total observations:      %d", model$original_n_total), level = 1)
+  verboser(sprintf("  Respondents:             %d (%.1f%%)", model$original_n_resp, 100 - pct_nonresp), level = 1)
+  verboser(sprintf("  Non-respondents:         %d (%.1f%%)", model$original_n_nonresp, pct_nonresp), level = 1)
 
 # Display sampling information if sampling was performed
   if (isTRUE(model$sampling_performed)) {
@@ -250,9 +197,9 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
     verboser(sprintf("    Non-respondents:       %d (%.1f%%)",
                      model$original_n_nonresp,
                      100 * model$original_n_nonresp / model$original_n_total), level = 1)
-    verboser(sprintf("  Sampled size:            %d (sample_size=%d)", n_total, model$sample_size), level = 1)
-    verboser(sprintf("    Respondents:           %d (%.1f%%)", n_resp, 100 - pct_nonresp), level = 1)
-    verboser(sprintf("    Non-respondents:       %d (%.1f%%)", n_nonresp, pct_nonresp), level = 1)
+    verboser(sprintf("  Sampled size:            %d (sample_size=%d)", model$original_n_total, model$sample_size), level = 1)
+    verboser(sprintf("    Respondents:           %d (%.1f%%)", model$original_n_resp, 100 - pct_nonresp), level = 1)
+    verboser(sprintf("    Non-respondents:       %d (%.1f%%)", model$original_n_nonresp, pct_nonresp), level = 1)
     verboser("  Ratio preserved:         stratified sampling", level = 1)
   }
 
@@ -278,19 +225,17 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   verboser(sprintf("  Outcome density:         %s", model$y_dens), level = 2)
   verboser(sprintf("  Standardization:         %s", if (model$standardize) "enabled" else "disabled"), level = 2)
 
-  scaling_weights <- model$design_weights
 # When scaling we only want respondent rows to contribute; pass a mask so the
 # helper can zero-out nonrespondents without reallocating weights
-  weight_mask <- if (length(respondent_mask) == nrow(model$x)) respondent_mask else NULL
 
   scaling_result <- validate_and_apply_nmar_scaling(
     standardize = model$standardize,
     has_aux = F,
-    response_model_matrix_unscaled = model$x[, c(model$col_y, model$cols_delta), drop = FALSE],
-    auxiliary_matrix_unscaled = model$x[, model$cols_y_observed, drop = FALSE],
+    response_model_matrix_unscaled = model$data[, c(model$col_y, model$cols_delta), drop = FALSE],
+    auxiliary_matrix_unscaled = model$data[, model$cols_y_observed, drop = FALSE],
     mu_x_unscaled = NULL,
-    weights = scaling_weights,
-    weight_mask = weight_mask
+    weights = model$design_weights,
+    weight_mask = model$respondent_mask
   )
 
   if (model$standardize) {
@@ -302,45 +247,18 @@ exptilt_fit_model <- function(data, model, on_failure = c("return", "error"), ..
   auxiliary_matrix_scaled <- scaling_result$auxiliary_matrix_scaled
   mu_x_scaled <- scaling_result$mu_x_scaled
 
-  model$x_1 <- response_model_matrix_scaled[respondent_mask, , drop = FALSE] # observed
-  model$x_0 <- response_model_matrix_scaled[!respondent_mask, , drop = FALSE] # unobserved
-  model$y_1 <- if (nrow(model$x_1)) model$x_1[, model$col_y, drop = TRUE] else numeric(0) # observed y
-  model$x_for_y_obs <- auxiliary_matrix_scaled[respondent_mask, , drop = FALSE]
-  model$x_for_y_unobs <- auxiliary_matrix_scaled[!respondent_mask, , drop = FALSE]
-
-# Normalize design weights to respondent length
-# - For non-survey: unit weights for respondents
-# - For survey: subset analysis weights to respondent rows to avoid length mismatches
-  if (!isTRUE(model$is_survey)) {
-    model$design_weights <- rep(1, nrow(model$x_1))
-  } else {
-    if (!is.null(model$design_weights)) {
-      if (length(model$design_weights) == nrow(model$x)) {
-        model$design_weights <- model$design_weights[respondent_mask]
-      } else if (length(model$design_weights) != nrow(model$x_1)) {
-        stop(sprintf(
-          "design_weights length (%d) must match respondents (%d) or full data (%d).",
-          length(model$design_weights), nrow(model$x_1), nrow(model$x)
-        ), call. = FALSE)
-      }
-    } else {
-      model$design_weights <- rep(1, nrow(model$x_1))
-    }
-  }
+  model$data_1 <- response_model_matrix_scaled[model$respondent_mask, , drop = FALSE] # observed
+  model$data_0 <- response_model_matrix_scaled[!model$respondent_mask, , drop = FALSE] # unobserved
+  model$y_1 <- if (nrow(model$data_1)) model$data_1[, model$col_y, drop = TRUE] else numeric(0) # observed y
+  model$data_for_y_obs <- auxiliary_matrix_scaled[model$respondent_mask, , drop = FALSE]
+  model$data_for_y_unobs <- auxiliary_matrix_scaled[!model$respondent_mask, , drop = FALSE]
 
 
-# Track the current scale of feature matrices. We fit f1(.) on the scaled
-# space and compute EM steps there. After unscaling coefficients for
-# presentation we flip this flag to FALSE so downstream density evaluations
-# can re-apply the same scaling recipe to inputs as needed
   model$features_are_scaled <- TRUE
 
 
-# Smarter initialization: Use data-driven heuristics
-# (GLM doesn't work well because unobserved Y values are unknown)
-
-model$theta <- stats::runif(length(model$cols_delta) + 2, -0.1, 0.1)
-names(model$theta) <- c("(Intercept)", model$cols_delta, model$col_y)
+  model$theta <- stats::runif(length(model$cols_delta) + 2, -0.1, 0.1)
+  names(model$theta) <- c("(Intercept)", model$cols_delta, model$col_y)
 
   verboser("", level = 2)
   verboser("-- PARAMETER INITIALIZATION --", level = 2)
@@ -367,6 +285,7 @@ names(model$theta) <- c("(Intercept)", model$cols_delta, model$col_y)
       verboser(label, level = 3)
     }
   }
+
 
   verboser("", level = 1)
   verboser("-- CONDITIONAL DENSITY ESTIMATION --", level = 1)
@@ -401,16 +320,13 @@ names(model$theta) <- c("(Intercept)", model$cols_delta, model$col_y)
 
   return(exptilt_estimator_core(
     model = model,
-    respondent_mask = respondent_mask,
-    on_failure = on_failure,
     ...
   ))
 }
 
 #' @keywords internal
-exptilt_estimator_core <- function(model, respondent_mask,
-                                   on_failure = "return", ...) {
-  model$cols_required <- colnames(model$x)
+exptilt_estimator_core <- function(model, ...) {
+  model$cols_required <- colnames(model$data)
   verboser <- model$verboser
 
 # Optimized solver: Let nleqslv do its own iteration instead of manual loop
@@ -467,7 +383,9 @@ exptilt_estimator_core <- function(model, respondent_mask,
   }
 
   verboser("  Solving...", level = 1)
+# browser()
   solution <- do.call(nleqslv, nleqslv_args)
+# browser()
 
   model$theta <- solution$x
   model$loss_value <- solution$fvec
@@ -519,25 +437,22 @@ exptilt_estimator_core <- function(model, respondent_mask,
     }
   }
 
-  model$x_1 <- model$x[respondent_mask, , drop = FALSE]
-  model$x_0 <- model$x[!respondent_mask, , drop = FALSE]
-  model$y_1 <- if (nrow(model$x_1)) model$x_1[, model$col_y, drop = TRUE] else numeric(0)
+  model$data_1 <- model$data[model$respondent_mask, , drop = FALSE]
+  model$data_0 <- model$data[!model$respondent_mask, , drop = FALSE]
+  model$y_1 <- if (nrow(model$data_1)) model$data_1[, model$col_y, drop = TRUE] else numeric(0)
 
-  model$x_for_y_obs <- model$x_1[, model$cols_y_observed, drop = FALSE]
-  model$x_for_y_unobs <- model$x_0[, model$cols_y_observed, drop = FALSE]
+  model$data_for_y_obs <- model$data_1[, model$cols_y_observed, drop = FALSE]
+  model$data_for_y_unobs <- model$data_0[, model$cols_y_observed, drop = FALSE]
 # From this point the feature matrices are on the original (unscaled) space
 # density helpers will internally re-apply the scaling recipe captured during
 # model fitting so that gamma_hat remains consistent
   model$features_are_scaled <- FALSE
 
-# model$O_matrix_nieobs <- generate_Odds(model, model$theta)
-# model$f_matrix_nieobs <- generate_conditional_density_matrix(model)
-# model$C_matrix_nieobs <- generate_C_matrix(model)
 
-## VARIANCE LOGIC - Cleaned version
-
-  default_vcov <- matrix(NA_real_, nrow = length(model$theta), ncol = length(model$theta))
-  var_results <- list(var_est = NA_real_, vcov = default_vcov)
+# default_vcov <- matrix(NA_real_, nrow = length(model$theta), ncol = length(model$theta))
+  var_results <- list(var_est = NA_real_
+# , vcov = default_vcov
+                      )
   se_final <- NaN
 
 # Initialize bootstrap flag if not present
@@ -603,7 +518,7 @@ exptilt_estimator_core <- function(model, respondent_mask,
   }
 
 # Use bootstrap if delta wasn't used or failed
-  use_bootstrap <- is.nan(se_final) && !isTRUE(model$is_bootstrap_running)
+  use_bootstrap <- is.nan(se_final) && !isTRUE(model$is_bootstrap_running) && model$variance_method != "none"
 
   if (use_bootstrap) {
     verboser("", level = 1)
@@ -620,16 +535,16 @@ exptilt_estimator_core <- function(model, respondent_mask,
 
 # If 'data' is a survey.design, extract variables and weights to reuse the
 # unified data.frame path (avoids recursion and enforces consistent internals)
-      if (inherits(data, "survey.design")) {
-        design_vars <- data$variables
-        design_weights <- as.numeric(stats::weights(data))
-        bootstrap_model$is_survey <- TRUE
-        bootstrap_model$design <- data
-        bootstrap_model$design_weights <- design_weights
-        data <- design_vars
-      } else {
-        bootstrap_model$is_survey <- FALSE
-      }
+# if(model$is_survey) {
+#   # design_vars <- data$variables
+#   # design_weights <- as.numeric(stats::weights(data))
+#   # bootstrap_model$is_survey <- TRUE
+#   # bootstrap_model$design <- data
+#   # bootstrap_model$design_weights <- design_weights
+#   # data <- design_vars
+# } else {
+#   bootstrap_model$is_survey <- FALSE
+# }
 
 # Call without passing on_failure explicitly to avoid duplicate argument issues
       call_args <- list(
@@ -646,7 +561,8 @@ exptilt_estimator_core <- function(model, respondent_mask,
     }
 
     base_args <- list(
-      data = if (model$is_survey) model$design else model$data,
+# data = if (model$is_survey) model$design else model$data,
+      data = model$data,
       estimator_func = bootstrap_runner,
       point_estimate = estim_mean(model),
       bootstrap_reps = model$bootstrap_reps
@@ -655,11 +571,11 @@ exptilt_estimator_core <- function(model, respondent_mask,
 # Use the default survey_na_policy from bootstrap_variance() (strict).
 
     if (!model$is_survey) {
-      respondent_mask_guard <- respondent_mask
       base_args$resample_guard <- function(indices, data) {
-        any(respondent_mask_guard[indices])
+        any(model$respondent_mask[indices])
       }
     }
+
 
     bootstrap_results <- do.call(bootstrap_variance, base_args)
     se_final <- bootstrap_results$se
@@ -678,11 +594,12 @@ exptilt_estimator_core <- function(model, respondent_mask,
   verboser("  ESTIMATION COMPLETE", level = 1, type = "result")
   verboser("============================================================", level = 1, type = "result")
   verboser(sprintf("  Mean estimate:            %.6f", mean_estimate), level = 1, type = "result")
+  if (model$variance_method != 'none') {
   verboser(sprintf("  Standard error:           %.6f", se_final), level = 1, type = "result")
   verboser(sprintf("  95%% CI:                   [%.6f, %.6f]",
                    mean_estimate - 1.96 * se_final,
                    mean_estimate + 1.96 * se_final), level = 1, type = "result")
-
+  }
   verboser("", level = 2)
   verboser("  Response model coefficients:", level = 2)
   for (i in seq_along(model$theta)) {
@@ -702,7 +619,7 @@ exptilt_estimator_core <- function(model, respondent_mask,
     estimate = mean_estimate,
     se = se_final,
     coefficients = model$theta,
-    vcov = if (use_bootstrap) default_vcov else var_results$vcov,
+# vcov = if (use_bootstrap) default_vcov else var_results$vcov,
     model = model,
     converged = TRUE,
     weights = model$design_weights,
