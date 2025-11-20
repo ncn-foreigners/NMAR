@@ -16,7 +16,7 @@ generate_Odds.nmar_exptilt <- function(model, theta) {
 #
 # Performance gain: ~10-50x faster, ~25-30x less memory
 
-  x_mat <- as.matrix(model$x_0[, model$cols_delta, drop = FALSE])
+  x_mat <- as.matrix(model$data_0[, model$cols_delta, drop = FALSE])
   y_vec <- as.vector(model$y_1)
   n_x0 <- nrow(x_mat)
   n_y1 <- length(y_vec)
@@ -44,6 +44,5 @@ generate_Odds.nmar_exptilt <- function(model, theta) {
 
 # Compute odds = (1-p)/p for better numerical stability than 1/p - 1
   odds <- (1 - p) / p
-
   return(odds)
 }

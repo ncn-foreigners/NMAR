@@ -2,8 +2,8 @@
 estim_mean.nmar_exptilt <- function(model) {
 
 
-  x_mat <- as.matrix(model$x_1[, model$cols_delta])
-  x_aug <- cbind(1, x_mat, model$x_1[, model$col_y])
+  x_mat <- as.matrix(model$data_1[, model$cols_delta])
+  x_aug <- cbind(1, x_mat, model$data_1[, model$col_y])
   x_aug <- apply(x_aug, 2, as.numeric) # Convert each column to numeric
 
   theta <- unname(model$theta) # Remove names
@@ -15,8 +15,13 @@ estim_mean.nmar_exptilt <- function(model) {
   probabilities <- model$family$linkinv(eta)
   probabilities <- pmax(probabilities, .Machine$double.eps)
 
-  numerator <- sum(model$y_1 * model$design_weights / probabilities)
-  denominator <- sum(model$design_weights / probabilities)
+  numerator <- sum(model$y_1
+                   * model$design_weights[model$respondent_mask]
+                   / probabilities)
+  denominator <- sum(
+    1
+    * model$design_weights[model$respondent_mask]
+    / probabilities)
 
   return(numerator / denominator)
 }

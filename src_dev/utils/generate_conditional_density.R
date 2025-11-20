@@ -1,11 +1,12 @@
 generate_conditional_density <- function(model) {
-  data_df <- data.frame(y = model$y_1, model$x_for_y_obs)
+  data_df <- data.frame(y = model$y_1, model$data_for_y_obs)
 
-  if (!is.null(model$respondent_weights)) {
-    data_df$weights <- model$respondent_weights
-  }
+# if (!is.null(model$respondent_weights)) {
+#   data_df$weights <- model$respondent_weights
+# }
+  weights <- model$design_weights[model$respondent_mask]
 
-  covar_names <- colnames(model$x_for_y_obs)
+  covar_names <- colnames(model$data_for_y_obs)
   n_covars <- length(covar_names)
 
   dist_list <- list(
@@ -103,10 +104,10 @@ generate_conditional_density <- function(model) {
 generate_conditional_density_matrix <- function(model) {
   tryCatch({
     matrix(
-      outer(1:nrow(model$x_for_y_unobs), model$y_1,
-            FUN = function(i, y) model$density_fun(y, model$x_for_y_unobs[i, , drop = FALSE])),
+      outer(1:nrow(model$data_for_y_unobs), model$y_1,
+            FUN = function(i, y) model$density_fun(y, model$data_for_y_unobs[i, , drop = FALSE])),
       ncol = length(model$y_1),
-      nrow = nrow(model$x_for_y_unobs)
+      nrow = nrow(model$data_for_y_unobs)
     )
   }, error = function(e) {
     stop("Error in generate_conditional_density_matrix: ", e$message)
@@ -114,8 +115,8 @@ generate_conditional_density_matrix <- function(model) {
 }
 
 generate_C_matrix <- function(model) {
-  f_matrix_obs <- t(sapply(1:nrow(model$x_for_y_obs), function(i) {
-    model$density_fun(model$y_1, model$x_for_y_obs[i, , drop = FALSE])
+  f_matrix_obs <- t(sapply(1:nrow(model$data_for_y_obs), function(i) {
+    model$density_fun(model$y_1, model$data_for_y_obs[i, , drop = FALSE])
   }))
 
   C_vector <- colSums(f_matrix_obs)
