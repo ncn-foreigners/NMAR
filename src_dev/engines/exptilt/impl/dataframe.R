@@ -5,7 +5,7 @@ exptilt.data.frame <- function(data, formula,
                                standardize = TRUE,
                                prob_model_type = c("logit", "probit"),
                                y_dens = c("auto", "normal", "lognormal", "exponential"),
-                               variance_method = c("delta", "bootstrap"),
+                               variance_method = c("delta", "bootstrap", 'none'),
                                bootstrap_reps = 10,
                                control = list(),
                                stopping_threshold = 1,
@@ -449,8 +449,10 @@ exptilt_estimator_core <- function(model, ...) {
   model$features_are_scaled <- FALSE
 
 
-  default_vcov <- matrix(NA_real_, nrow = length(model$theta), ncol = length(model$theta))
-  var_results <- list(var_est = NA_real_, vcov = default_vcov)
+# default_vcov <- matrix(NA_real_, nrow = length(model$theta), ncol = length(model$theta))
+  var_results <- list(var_est = NA_real_
+# , vcov = default_vcov
+                      )
   se_final <- NaN
 
 # Initialize bootstrap flag if not present
@@ -516,7 +518,7 @@ exptilt_estimator_core <- function(model, ...) {
   }
 
 # Use bootstrap if delta wasn't used or failed
-  use_bootstrap <- is.nan(se_final) && !isTRUE(model$is_bootstrap_running)
+  use_bootstrap <- is.nan(se_final) && !isTRUE(model$is_bootstrap_running) && model$variance_method != "none"
 
   if (use_bootstrap) {
     verboser("", level = 1)
@@ -592,11 +594,12 @@ exptilt_estimator_core <- function(model, ...) {
   verboser("  ESTIMATION COMPLETE", level = 1, type = "result")
   verboser("============================================================", level = 1, type = "result")
   verboser(sprintf("  Mean estimate:            %.6f", mean_estimate), level = 1, type = "result")
+  if (model$variance_method != 'none') {
   verboser(sprintf("  Standard error:           %.6f", se_final), level = 1, type = "result")
   verboser(sprintf("  95%% CI:                   [%.6f, %.6f]",
                    mean_estimate - 1.96 * se_final,
                    mean_estimate + 1.96 * se_final), level = 1, type = "result")
-
+  }
   verboser("", level = 2)
   verboser("  Response model coefficients:", level = 2)
   for (i in seq_along(model$theta)) {
@@ -616,7 +619,7 @@ exptilt_estimator_core <- function(model, ...) {
     estimate = mean_estimate,
     se = se_final,
     coefficients = model$theta,
-    vcov = if (use_bootstrap) default_vcov else var_results$vcov,
+# vcov = if (use_bootstrap) default_vcov else var_results$vcov,
     model = model,
     converged = TRUE,
     weights = model$design_weights,

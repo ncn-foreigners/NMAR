@@ -114,7 +114,7 @@
 exptilt_engine <- function(
     standardize = FALSE,
     on_failure = c("return", "error"),
-    variance_method = c("delta", "bootstrap"),
+    variance_method = c("delta", "bootstrap", 'none'),
     bootstrap_reps = 10,
     supress_warnings = FALSE,
     auxiliary_means = NULL,
@@ -135,7 +135,7 @@ exptilt_engine <- function(
   validator$assert_logical(supress_warnings, name = "supress_warnings")
   validator$assert_choice(family, choices = c("logit", "probit"), name = "family")
   validator$assert_choice(y_dens, choices = c("auto", "normal", "lognormal", "exponential"), name = "y_dens")
-  validator$assert_choice(variance_method, choices = c("delta", "bootstrap"), name = "variance_method")
+  validator$assert_choice(variance_method, choices = c("delta", "bootstrap", 'none'), name = "variance_method")
   validator$assert_number(stopping_threshold, name = "stopping_threshold", min = 0, max = Inf)
   validator$assert_list(control, name = "control")
   validator$assert_positive_integer(sample_size, name = "sample_size", is.finite = TRUE)

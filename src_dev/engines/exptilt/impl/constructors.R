@@ -1,5 +1,7 @@
 #' @keywords internal
-new_nmar_result_exptilt <- function(estimate, se, coefficients, vcov, model,
+new_nmar_result_exptilt <- function(estimate, se, coefficients
+# , vcov
+                                    , model,
                                     converged = TRUE, weights = NULL,
                                     variance_message = NA_character_) {
   outcome_name <- model$col_y %||% NA_character_
@@ -50,7 +52,7 @@ new_nmar_result_exptilt <- function(estimate, se, coefficients, vcov, model,
   )
 
   coeffs_vec <- coefficients %||% NULL
-  vcov_mat <- vcov %||% NULL
+# vcov_mat <- vcov %||% NULL
 
   result <- new_nmar_result(
     estimate = estimate,
@@ -58,8 +60,8 @@ new_nmar_result_exptilt <- function(estimate, se, coefficients, vcov, model,
     se = se,
     converged = converged,
     model = list(
-      coefficients = coeffs_vec,
-      vcov = vcov_mat
+      coefficients = coeffs_vec
+# ,vcov = vcov_mat
     ),
     weights_info = list(values = weights, trimmed_fraction = NA_real_),
     sample = sample,
