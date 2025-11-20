@@ -117,6 +117,11 @@ el.survey.design <- function(data, formula,
   weights_initial <- as.numeric(weights(design))
   design_weight_sum <- sum(weights_initial)
 
+  strata_factor <- el_extract_strata_factor(design)
+  if (!is.null(strata_factor)) {
+    design$variables[["..nmar_strata_factor.."]] <- strata_factor
+  }
+
   if (!is.null(n_total)) {
     N_pop <- n_total
     respondent_weights_full <- weights_initial

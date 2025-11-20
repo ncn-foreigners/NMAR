@@ -65,3 +65,47 @@ el_resolve_auxiliaries <- function(auxiliary_design_full,
   names(mu) <- colnames(aux_resp)
   list(auxiliary_design = aux_resp, means = mu)
 }
+
+#' Strata augmentation for survey designs
+#'
+#' Augments the auxiliary design with strata dummies (dropping one level) and
+#' appends stratum-share means when weights and N_pop are available. Intended for
+#' survey workflows only.
+#'
+#' @keywords internal
+el_augment_strata_aux <- function(auxiliary_design_full,
+                                  strata_factor,
+                                  weights_full,
+                                  N_pop,
+                                  auxiliary_means) {
+  if (is.null(auxiliary_design_full) || !is.matrix(auxiliary_design_full)) {
+    return(list(mat = auxiliary_design_full, means = auxiliary_means))
+  }
+  if (is.null(strata_factor) || length(unique(strata_factor)) <= 1L) {
+    return(list(mat = auxiliary_design_full, means = auxiliary_means))
+  }
+  if (nrow(auxiliary_design_full) != length(strata_factor)) {
+    stop("Strata factor must align with auxiliary design rows.", call. = FALSE)
+  }
+  strata_levels <- levels(strata_factor)
+  if (length(strata_levels) <= 1L) {
+    return(list(mat = auxiliary_design_full, means = auxiliary_means))
+  }
+  dummy_levels <- strata_levels[-1L]
+  strata_mat <- stats::model.matrix(~strata_factor)[, -1, drop = FALSE]
+  colnames(strata_mat) <- paste0("strata_", dummy_levels)
+  mat_aug <- cbind(auxiliary_design_full, strata_mat)
+
+  means_aug <- auxiliary_means
+  if (!is.null(weights_full) && !is.null(N_pop) && is.finite(N_pop)) {
+    W_h <- vapply(strata_levels, function(lev) {
+      sum(weights_full[strata_factor == lev])
+    }, numeric(1))
+    W_h <- W_h / N_pop
+    strata_means <- W_h[dummy_levels]
+    names(strata_means) <- paste0("strata_", dummy_levels)
+    means_aug <- c(means_aug, strata_means)
+  }
+
+  list(mat = mat_aug, means = means_aug)
+}

@@ -9,13 +9,39 @@ test_that("survey designs reuse EL prep workflow", {
   )
   design <- survey::svydesign(ids = ~1, data = df, weights = ~w)
 
-  prep <- el_prepare_design(Y_miss ~ X, df)
-  design_svy <- el_prepare_design(Y_miss ~ X, design$variables)
+  prep <- el_process_design(Y_miss ~ X, df)
+  design_svy <- el_process_design(Y_miss ~ X, design$variables)
 
   expect_equal(prep$missingness_design, design_svy$missingness_design)
   expect_equal(prep$auxiliary_design_full[prep$respondent_mask, , drop = FALSE],
                design_svy$auxiliary_design_full[design_svy$respondent_mask, , drop = FALSE])
   expect_equal(prep$respondent_mask, design_svy$respondent_mask)
+})
+
+test_that("survey strata augmentation appends dummies and implied means", {
+  skip_if_not_installed("survey")
+  set.seed(123)
+  df <- data.frame(
+    Y_miss = c(1, NA, 2, NA, 3, NA),
+    X = rnorm(6),
+    strata = factor(c("A", "A", "B", "B", "B", "B"))
+  )
+  w <- c(2, 2, 3, 3, 3, 3)
+  design <- survey::svydesign(ids = ~1, strata = ~strata, data = df, weights = ~w)
+
+  eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "none", strata_augmentation = TRUE)
+  fit <- nmar(Y_miss ~ X, data = design, engine = eng)
+
+# augmented auxiliary matrix should contain strata dummies
+  aux_mat <- fit$diagnostics$auxiliary_matrix
+  expect_true(any(grepl("^strata_", colnames(aux_mat))))
+
+# implied strata means should match N_h / N_pop for non-reference levels
+  N_pop <- fit$sample$n_total
+  strata_fac <- design$variables$strata
+  W_h <- tapply(w, strata_fac, sum) / N_pop
+  strata_means_fit <- fit$diagnostics$auxiliary_means[grepl("^strata_", names(fit$diagnostics$auxiliary_means))]
+  expect_equal(unname(strata_means_fit), unname(W_h[setdiff(levels(strata_fac), levels(strata_fac)[1])]), ignore_attr = TRUE)
 })
 
 test_that("survey prep stores delta column and uses rescaled weights", {

@@ -27,7 +27,7 @@ el_build_result <- function(core_results, input_spec, call, formula, engine_name
     return(validate_nmar_result(result, "nmar_result_el"))
   }
 
-  new_nmar_result_el(
+  result <- new_nmar_result_el(
     y_hat = core_results$y_hat,
     se = core_results$se,
     weights = core_results$weights,
@@ -40,6 +40,6 @@ el_build_result <- function(core_results, input_spec, call, formula, engine_name
     fitted_values = core_results$fitted_values,
     call = call,
     formula = formula
-  ) |>
-    validate_nmar_result("nmar_result_el")
+  )
+  validate_nmar_result(result, "nmar_result_el")
 }

@@ -12,13 +12,9 @@ el_build_input_spec <- function(formula,
                                 is_survey = FALSE,
                                 design_object = NULL,
                                 auxiliary_means = NULL) {
-  context_label <- if (isTRUE(is_survey)) "survey design" else "data frame"
-  design <- el_prepare_design(
-    formula = formula,
-    data = data
-  )
-  el_validate_design_spec(design, data_nrow = nrow(data), context_label = context_label)
-  el_require_population_inputs(design, population_total_supplied, auxiliary_means, context_label)
+  design <- el_process_design(formula = formula, data = data)
+  el_validate_design_spec(design, data_nrow = nrow(data))
+  el_require_population_inputs(design, population_total_supplied, auxiliary_means)
 
   outcome_var <- design$outcome_source %||% design$outcome_var
   mask <- design$respondent_mask
@@ -59,6 +55,7 @@ el_build_input_spec <- function(formula,
     auxiliary_design_full = design$auxiliary_design_full,
     respondent_mask = mask,
     outcome_var = design$outcome_var,
+    strata_factor = design$strata_factor %||% NULL,
     analysis_object = analysis_object,
     respondent_weights = respondent_weights,
     respondent_indices = respondent_indices,
@@ -76,10 +73,9 @@ el_build_input_spec <- function(formula,
 #' population means were supplied as well.
 #'
 #' @keywords internal
-el_require_population_inputs <- function(design, population_total_supplied, auxiliary_means, context_label) {
+el_require_population_inputs <- function(design, population_total_supplied, auxiliary_means) {
   if (!isTRUE(all(design$respondent_mask))) return(invisible(NULL))
-  noun <- if (identical(context_label, "data frame")) "data" else context_label
-  message_prefix <- sprintf("Respondents-only %s detected (no NAs in outcome)", noun)
+  message_prefix <- "Respondents-only data detected (no NAs in outcome)"
   if (!isTRUE(population_total_supplied)) {
     stop(
       sprintf("%s, but 'n_total' was not provided.", message_prefix),
@@ -143,63 +139,29 @@ el_run_core_analysis <- function(call,
                                  family,
                                  bootstrap_reps,
                                  start,
-                                 trace_level,
-                                 extra_user_args = list()) {
+                                trace_level,
+                                extra_user_args = list()) {
   auxiliary_design_full <- input_spec$auxiliary_design_full
   aux_means_eff <- auxiliary_means
 
-# Warn when Wu-style augmentation is requested for respondents-only survey data.
-# In that setting the automatically constructed stratum shares use only respondent
-# weights, which is generally not appropriate under NMAR.
-  if (isTRUE(strata_augmentation) &&
-      isTRUE(input_spec$is_survey) &&
-      isTRUE(all(input_spec$respondent_mask))) {
-    warning(
-      "Wu-style strata augmentation with respondents-only survey data uses respondent weights ",
-      "to approximate stratum shares; this is generally not recommended. ",
-      "Consider strata_augmentation = FALSE or encoding known stratum totals via auxiliary_means.",
-      call. = FALSE
-    )
-  }
-
-# Wu-style strata augmentation for survey designs when auxiliary means are
-# supplied: augment the auxiliary design with stratum indicators and
-# corresponding population stratum weights W_h = N_h / N_pop. This is
-# optional and controlled by strata_augmentation; it has no effect for
-# data.frame inputs or survey designs without identifiable strata.
-  if (isTRUE(strata_augmentation) && isTRUE(input_spec$is_survey) && !is.null(auxiliary_design_full)) {
-    analysis_obj <- input_spec$analysis_object
-    if (inherits(analysis_obj, "survey.design")) {
-      strata_fac <- el_extract_strata_factor(analysis_obj)
-      if (!is.null(strata_fac)) {
-        w_full <- input_spec$weights_full
-        if (!is.null(w_full) && length(w_full) == length(strata_fac)) {
-          N_pop <- input_spec$N_pop
-# Compute stratum weights on the analysis scale
-          strata_levels <- levels(strata_fac)
-          W_h <- vapply(strata_levels, function(lev) {
-            idx <- which(strata_fac == lev)
-            sum(w_full[idx])
-          }, numeric(1))
-          W_h <- W_h / N_pop
-# Build dummy matrix (drop one level to avoid redundancy)
-          if (length(strata_levels) > 1L) {
-            ref_level <- strata_levels[1L]
-            dummy_levels <- strata_levels[-1L]
-            strata_mat <- stats::model.matrix(~strata_fac)[, -1, drop = FALSE]
-            colnames(strata_mat) <- paste0("strata_", dummy_levels)
-# Extend auxiliary design and auxiliary means
-            n_rows <- nrow(auxiliary_design_full)
-            if (nrow(strata_mat) == n_rows) {
-              auxiliary_design_full <- cbind(auxiliary_design_full, strata_mat)
-              strata_means <- W_h[dummy_levels]
-              names(strata_means) <- paste0("strata_", dummy_levels)
-              aux_means_eff <- c(aux_means_eff, strata_means)
-            }
-          }
-        }
-      }
+  if (isTRUE(strata_augmentation) && isTRUE(input_spec$is_survey)) {
+    if (isTRUE(all(input_spec$respondent_mask))) {
+      warning(
+        "Wu-style strata augmentation with respondents-only survey data uses respondent weights ",
+        "to approximate stratum shares; this is generally not recommended. ",
+        "Consider strata_augmentation = FALSE or encoding known stratum totals via auxiliary_means.",
+        call. = FALSE
+      )
     }
+    aug <- el_augment_strata_aux(
+      auxiliary_design_full = auxiliary_design_full,
+      strata_factor = input_spec$strata_factor %||% NULL,
+      weights_full = input_spec$weights_full,
+      N_pop = input_spec$N_pop,
+      auxiliary_means = aux_means_eff
+    )
+    auxiliary_design_full <- aug$mat
+    aux_means_eff <- aug$means
   }
 
   aux_summary <- el_resolve_auxiliaries(
@@ -241,6 +203,12 @@ el_run_core_analysis <- function(call,
     trace_level = trace_level,
     auxiliary_means = aux_means_eff
   )
+
+# expose augmented auxiliaries and means for diagnostics/tests
+  if (is.list(core_results$diagnostics)) {
+    core_results$diagnostics$auxiliary_means <- aux_summary$means
+    core_results$diagnostics$auxiliary_matrix <- aux_summary$auxiliary_design
+  }
 
   input_spec$variance_method <- variance_method
   el_build_result(core_results, input_spec, call, formula)
