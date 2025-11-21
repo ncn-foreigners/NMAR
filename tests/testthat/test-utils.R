@@ -15,6 +15,7 @@ test_that("trim_weights caps and redistributes mass", {
   res <- trim_weights(w, cap)
   expect_equal(max(res$weights), cap)
   expect_equal(sum(res$weights), sum(w))
+  expect_true(res$preserved_sum)
 })
 
 test_that("trim_weights warns when all mass is capped", {
@@ -22,6 +23,7 @@ test_that("trim_weights warns when all mass is capped", {
   cap <- 1
   expect_warning(res <- trim_weights(w, cap), "Cannot preserve total mass")
   expect_equal(res$weights, rep(cap, length(w)))
+  expect_false(res$preserved_sum)
 })
 
 test_that("enforce_nonneg_weights flags large negative weights", {
