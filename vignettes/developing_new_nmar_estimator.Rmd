@@ -288,7 +288,18 @@ Use these shared modules in `src_dev/shared/`:
   `survey.design`.
 - IID: resample rows and rerun the estimator.
 - Survey: convert to bootstrap replicate weights (`svrep::as_bootstrap_design`),
-  use `survey::withReplicates`, then `survey::svrVar`.
+  then feed replicate estimates and the design’s `scale`/`rscales`/`mse`
+  directly into `survey::svrVar()`.
+- Engines may pass a `resample_guard(indices, data)` in the IID case to
+  reject structurally invalid resamples (e.g., those with zero respondents).
+  Guards should be rare and simple; they condition the bootstrap on
+  “acceptable” samples and are preferable to letting the estimator crash.
+- For survey designs, `survey_na_policy` controls how failed replicates are
+  handled:
+  - `"strict"` (default): any non‑finite replicate estimate is an error.
+  - `"omit"`: failed replicates are dropped and the corresponding `rscales`
+    entries are removed before calling `svrVar()`. This yields a variance
+    conditional on “successful” replicates and should be used cautiously.
 
 ### 4) Engine boundaries and naming
 

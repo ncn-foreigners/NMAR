@@ -1,32 +1,29 @@
 #' Shared bootstrap variance helpers
-#' @description S3 generic + methods to estimate the variance of an estimator
-#'   via resampling (IID) or replicate weights (survey). Designed to be reused
-#'   across NMAR engines.
+#' @description Internal helpers to estimate the variance of a scalar estimator
+#'   via bootstrap resampling (IID data) or bootstrap replicate weights
+#'   (survey designs). Designed to be reused across NMAR engines.
 #' @details
-#'   - For `data.frame` inputs, performs i.i.d. bootstrap by resampling rows and
-#'     rerunning `estimator_func`.
-#'   - For `survey.design` inputs, converts to a bootstrap replicate-weight
-#'     design (`svrep::as_bootstrap_design`), computes replicate estimates by
-#'     rebuilding the original design with each replicate weight vector, and
-#'     then computes variance with `survey::svrVar` using the replicate scales.
-#'   `estimator_func` is typically an engine method (e.g., `el()`), and is called
-#'   with the same arguments used for the point estimate, except that the `data`
-#'   argument is replaced by the resampled data or replicate design.
+#'   - For `data.frame` inputs, performs IID bootstrap by resampling rows and
+#'     rerunning `estimator_func` on each resample, then computing the empirical
+#'     variance of the replicate estimates.
+#'   - For `survey.design` inputs, converts the design to a bootstrap
+#'     replicate-weight design with `svrep::as_bootstrap_design()`, reconstructs
+#'     the original sampling design for each replicate weight vector, and passes
+#'     the resulting replicate estimates and replicate scaling factors to
+#'     `survey::svrVar()`.
+#'
+#'   `estimator_func` is typically an engine-level estimator (for example
+#'   the EL engine) and is called with the same arguments used for the point
+#'   estimate, except that the `data` argument is replaced by the resampled data
+#'   (IID) or the replicate `survey.design` (survey).
 #'
 #' @section Progress Reporting:
-#'   If the \code{progressr} package is installed, progress reporting is available.
-#'   Enable it by setting handlers before calling the bootstrap:
-#'
-#'   \code{library(progressr)}
-#'
-#'   \code{handlers(global = TRUE)}
-#'
-#'   \code{handlers("txtprogressbar")  # or "progress", "cli", etc.}
-#'
-#'   To disable progress in simulations or batch jobs, use \code{handlers("void")}.
-#'   If progressr is not installed or no handlers are set, bootstrap runs silently
-#'   (default behavior). Progress reporting works with all future backends (sequential,
-#'   multisession, cluster, etc.) and does not affect reproducibility.
+#'   If the optional \code{progressr} package is installed, bootstrap calls
+#'   signal progress via a \code{progressr::progressor} inside
+#'   \code{progressr::with_progress()}. Users control whether progress is shown
+#'   (and how) by registering handlers with \code{progressr::handlers()}. When
+#'   \code{progressr} is not installed or no handlers are active, bootstrap runs
+#'   silently. Progress reporting is compatible with all future backends.
 #'
 #' @section Reproducibility:
 #'   For reproducible bootstrap results, always set a seed before calling
@@ -39,10 +36,11 @@
 #'                                     bootstrap_reps = 500))
 #'   }
 #'
-#'   The \code{future} package (via \code{future.seed = TRUE}) ensures each
-#'   bootstrap replicate uses an independent L'Ecuyer-CMRG random number stream
-#'   derived from this seed, guaranteeing reproducibility across all future
-#'   backends (sequential, multisession, cluster, etc.).
+#'   The \code{future} framework (via \code{future.seed = TRUE} in
+#'   \code{future.apply::future_lapply()}) ensures that each bootstrap replicate
+#'   uses an independent L'Ecuyer-CMRG random number stream derived from this
+#'   seed. This gives reproducible results across supported future backends
+#'   (sequential, multisession, cluster, and so on).
 #'
 #' @param data a `data.frame` or a `survey.design`.
 #' @param estimator_func function that returns an S3 result object; the primary
@@ -51,7 +49,7 @@
 #' @param ... passed through to `estimator_func`.
 #' @keywords internal
 bootstrap_variance <- function(data, estimator_func, point_estimate, ...) {
-# Check for replicate designs first (they don't inherit from survey.design)
+# Check for replicate designs first (they do not inherit from survey.design).
   if (inherits(data, "svyrep.design")) {
     stop(
       "Cannot bootstrap a replicate design (svyrep.design).\n  ",
@@ -82,7 +80,7 @@ bootstrap_variance.default <- function(data, estimator_func, point_estimate, ...
 #' @return a list with `se`, `variance`, and the vector of `replicates`.
 #' @keywords internal
 bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, bootstrap_reps = 500, ...) {
-# Validate bootstrap_reps
+# Validate bootstrap_reps.
   validator$assert_positive_integer(bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)
   if (bootstrap_reps < 2) {
     stop("`bootstrap_reps` must be at least 2 for variance estimation.", call. = FALSE)
@@ -90,7 +88,7 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
 
   n_obs <- nrow(data)
 
-# Validate data is non-empty
+# Validate that data is non-empty.
   if (n_obs == 0) {
     stop("Cannot bootstrap from empty data (0 rows).", call. = FALSE)
   }
@@ -99,9 +97,9 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
   est_fun <- estimator_func
   resample_guard <- NULL
   if (!is.null(dot_args$resample_guard)) {
-# Some estimators (exptilt) require the bootstrap replicate to contain at
-# least one respondent. Allow callers to supply a simple guard to reject
-# unsuitable resamples
+# Some estimators (for example exptilt) require each bootstrap replicate to
+# contain at least one respondent. Allow callers to supply a simple guard
+# that rejects unsuitable resamples.
     resample_guard <- dot_args$resample_guard
     dot_args$resample_guard <- NULL
   }
@@ -119,7 +117,8 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
         )
         if (isTRUE(guard_ok)) break
 
-# Give up after max attempts - return NA immediately
+# Give up after a fixed number of attempts and mark this replicate
+# as failed.
         if (attempts >= 20) {
           return(NA_real_)
         }
@@ -128,7 +127,7 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
       }
     }
 
-# Continue with valid resample
+# Continue with a resample that passed the guard (if any).
     bootstrap_data <- data[resample_indices, , drop = FALSE]
     call_args <- c(list(data = bootstrap_data), dot_args)
     fn_formals <- tryCatch(names(formals(est_fun)), error = function(e) character())
@@ -147,11 +146,11 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
     stop("Package 'future.apply' is required for bootstrap variance.", call. = FALSE)
   }
 
-# Use progressr if available for progress reporting (optional)
+# Use progressr if available for optional progress reporting.
   use_progress <- requireNamespace("progressr", quietly = TRUE)
 
   if (use_progress) {
-# Wrap in progressr for optional progress reporting
+# Wrap in progressr for optional progress reporting.
     lst <- progressr::with_progress({
       p <- progressr::progressor(steps = bootstrap_reps)
       future.apply::future_lapply(
@@ -165,7 +164,7 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
       )
     })
   } else {
-# No progressr available - use standard future_lapply
+# No progressr available; use standard future_lapply.
     lst <- future.apply::future_lapply(
       seq_len(bootstrap_reps),
       replicate_fn,
@@ -213,25 +212,27 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
 #'   each replicate weight vector. The supplied design must have been created
 #'   directly with [survey::svydesign()].
 #'
-#'   \strong{NA Policy:} Survey bootstrap uses a strict NA policy - if any replicate
-#'   fails to produce a finite estimate, the entire bootstrap fails with an error.
-#'   This ensures the replicate design structure is maintained for design-calibrated
-#'   variance via \code{survey::svrVar()}. In contrast, IID bootstrap allows up to
-#'   10\% failures before warning, as it uses uncalibrated \code{stats::var()}.
+#'   \strong{NA policy:} By default, survey bootstrap uses a strict NA policy:
+#'   if any replicate fails to produce a finite estimate, the entire bootstrap
+#'   fails with an error. This ensures that the full replicate design structure
+#'   is maintained for design-calibrated variance via \code{survey::svrVar()}.
+#'   In contrast, IID bootstrap allows up to 10\% failures before warning and
+#'   uses \code{stats::var()} on the successful replicates.
 #'
 #' @section Limitations:
-#'   \strong{Design Reconstruction:} Survey bootstrap currently supports only designs
-#'   created directly with \code{survey::svydesign()}. Post-hoc adjustments applied
-#'   via \code{survey::calibrate()}, \code{survey::postStratify()}, or
-#'   \code{survey::rake()} cannot be reconstructed across bootstrap replicates and
-#'   will cause the function to error.
+#'   \strong{Design reconstruction:} Survey bootstrap currently supports only
+#'   designs created directly with \code{survey::svydesign()}. Post-hoc
+#'   adjustments applied via \code{survey::calibrate()},
+#'   \code{survey::postStratify()}, or \code{survey::rake()} cannot be
+#'   reconstructed across bootstrap replicates and will cause the function to
+#'   error.
 #'
 #'   Calibrated or post-stratified designs are not supported by this bootstrap
 #'   path. Start from the original `survey::svydesign()` object prior to
 #'   calibration/post-stratification.
 #'
-#'   \strong{Supported Design Features:} The following \code{svydesign()} parameters
-#'   are preserved during reconstruction:
+#'   \strong{Supported design features:} The following \code{svydesign()}
+#'   parameters are preserved during reconstruction:
 #'   \itemize{
 #'     \item \code{ids} (or \code{id}): Sampling unit identifiers
 #'     \item \code{strata}: Stratification variables
@@ -239,21 +240,22 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
 #'     \item \code{nest}: Nested vs non-nested strata
 #'   }
 #'
-#'   The following are NOT preserved (they conflict with replicate weights):
+#'   The following are not preserved (they conflict with replicate weights):
 #'   \itemize{
 #'     \item \code{probs}: Sampling probabilities (incompatible with direct weights)
 #'     \item \code{pps}: PPS sampling specification (incompatible with direct weights)
 #'   }
 #'
-#'   \strong{Rationale:} When reconstructing designs for each replicate, we replace
-#'   the original weights with bootstrap replicate weights. Specifying both
-#'   \code{weights} and \code{probs}/\code{pps} simultaneously is undefined behavior
-#'   in \code{survey::svydesign()}. The structural design parameters (ids, strata,
-#'   fpc, nest) define the sampling topology and are preserved; the weights define
-#'   the analysis weights and are replaced.
+#'   \strong{Rationale:} When reconstructing designs for each replicate, the
+#'   original analysis weights are replaced with bootstrap replicate weights.
+#'   Specifying both \code{weights} and \code{probs}/\code{pps} simultaneously
+#'   is undefined behavior in \code{survey::svydesign()}. The structural
+#'   design parameters (ids, strata, fpc, nest) define the sampling topology
+#'   and are preserved; the weights define the analysis weights and are
+#'   replaced.
 #'
-#' @param survey_na_policy Character string specifying how to handle replicates that
-#'   fail to produce estimates. Options:
+#' @param survey_na_policy Character string specifying how to handle replicates
+#'   that fail to produce estimates. Options:
 #'   \describe{
 #'     \item{\code{"strict"}}{(default) Any failed replicate causes an error.
 #'       This ensures the full replicate design structure is maintained and
@@ -273,11 +275,11 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
     stop("Package 'survey' is required for bootstrap variance with survey objects. Please install it.", call. = FALSE)
   }
 
-# Validate survey_na_policy argument
+# Validate survey_na_policy argument.
   survey_na_policy <- match.arg(survey_na_policy)
 
-# Guard against replicate designs (svyrep.design)
-# Bootstrapping a replicate design is ill-defined (creates second-order replicates)
+# Guard against replicate designs (svyrep.design). Bootstrapping a replicate
+# design would create a second-order bootstrap and is not supported here.
   if (inherits(data, "svyrep.design")) {
     stop(
       "Cannot bootstrap a replicate design (svyrep.design).\n  ",
@@ -288,13 +290,13 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
     )
   }
 
-# Validate bootstrap_reps
+# Validate bootstrap_reps.
   validator$assert_positive_integer(bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)
   if (bootstrap_reps < 2) {
     stop("`bootstrap_reps` must be at least 2 for variance estimation.", call. = FALSE)
   }
 
-# Validate survey is non-empty
+# Validate that the survey design is non-empty.
   if (nrow(data$variables) == 0) {
     stop("Cannot bootstrap from empty survey design (0 observations).", call. = FALSE)
   }
@@ -330,9 +332,9 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
   estimator_args <- dot_args
   template_call <- nmar_extract_svydesign_call(data)
 
-# Detect calibrated or post-stratified designs
-# These adjustments cannot be reconstructed across bootstrap replicates
-# because they are stored as internal state, not in the original svydesign() call
+# Detect calibrated or post-stratified designs. These adjustments cannot be
+# reconstructed across bootstrap replicates because they are stored as
+# internal state, not in the original svydesign() call.
   if (!is.null(data$postStrata) || !is.null(data$calibration)) {
     adjustments <- c(
       if (!is.null(data$postStrata)) "post-stratification" else NULL,
@@ -347,13 +349,14 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
     )
   }
 
-# Extract replicate weights matrix from the replicate design using survey API.
-# This returns a matrix of replicate weights (one column per replicate).
-# weights() is a generic from stats; S3 dispatch calls weights.svyrep.design() from survey
+# Extract replicate weights matrix from the replicate design using the survey
+# API. This returns a matrix of replicate weights (one column per replicate).
+# weights() is a generic from stats; S3 dispatch calls weights.svyrep.design()
+# from the survey package.
   repw <- weights(rep_design, type = "analysis", rep = TRUE)
 
-# Check replicate count (may differ from request in stratified designs)
-# The variance formula is statistically valid for the actual count produced
+# Check replicate count (may differ from the requested number in stratified
+# designs). The variance formula is valid for the actual count produced.
   J_actual <- ncol(repw)
   if (J_actual != bootstrap_reps) {
     warning(sprintf(
@@ -367,20 +370,20 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
     ), call. = FALSE, immediate. = TRUE)
   }
 
-# Save variance scaling factors before freeing rep_design
-# These are needed later for survey::svrVar()
+# Save variance scaling factors before freeing rep_design; these are needed
+# when calling survey::svrVar().
   rep_scale <- rep_design$scale
   rep_rscales <- rep_design$rscales
   rep_mse <- rep_design$mse
 
-# Extract data frame only (not full survey design) to reduce serialization
+# Extract data frame only (not full survey design) to reduce serialization.
   data_vars <- data$variables
 
-# Free design object (keep repw matrix and data_vars)
+# Free design object (keep repw matrix and data_vars).
   rm(rep_design)
 
-# Define replicate evaluation function that takes replicate index
-# This allows us to iterate by index and export repw once per worker
+# Define replicate evaluation function that takes a replicate index. This
+# allows us to iterate by index and export repw once per worker.
   replicate_eval <- function(j) {
     pw <- repw[, j]
     data_subset <- data_vars
@@ -406,14 +409,14 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
     stop("Package 'future.apply' is required for bootstrap variance.", call. = FALSE)
   }
 
-# Use progressr if available for progress reporting (optional)
+# Use progressr if available for optional progress reporting.
   use_progress <- requireNamespace("progressr", quietly = TRUE)
 
-# Replicate indices (iterate by index, not by pre-split weights)
+# Replicate indices (iterate by index rather than pre-splitting weights).
   J <- seq_len(ncol(repw))
 
   if (use_progress) {
-# Wrap in progressr for optional progress reporting
+# Wrap in progressr for optional progress reporting.
     lst <- progressr::with_progress({
       p <- progressr::progressor(steps = length(J))
       future.apply::future_lapply(
@@ -438,7 +441,7 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
       )
     })
   } else {
-# No progressr available - use standard future_lapply
+# No progressr available; use standard future_lapply.
     lst <- future.apply::future_lapply(
       J,
       replicate_eval,
@@ -458,12 +461,13 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
 
   replicate_estimates <- vapply(lst, identity, numeric(1))
 
-# Handle NA replicates according to policy
+# Handle NA replicates according to the selected policy.
   if (anyNA(replicate_estimates)) {
+    total_reps <- length(replicate_estimates)
     failed_idx <- which(!is.finite(replicate_estimates))
     n_failed <- length(failed_idx)
 
-# Show pattern of failures for debugging
+# Show a compact pattern of failures for debugging.
     if (n_failed <= 10) {
       pattern_msg <- sprintf("Replicate indices: %s", paste(failed_idx, collapse = ", "))
     } else {
@@ -487,7 +491,7 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
           "  - Reduce bootstrap_reps if stratification creates small replicates\n  ",
           "  - Or set survey_na_policy = 'omit' to allow some failures"
         ),
-        n_failed, bootstrap_reps, pattern_msg
+        n_failed, total_reps, pattern_msg
       ), call. = FALSE)
     } else if (survey_na_policy == "omit") {
 # Omit policy: subset to successful replicates
@@ -501,7 +505,7 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
             "Consider: reducing bootstrap_reps, improving estimator stability,\n  ",
             "or using a non-bootstrap variance method (if available in your engine)."
           ),
-          length(keep_idx), length(replicate_estimates)
+          length(keep_idx), total_reps
         ), call. = FALSE)
       }
 
@@ -513,7 +517,7 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
           "Variance estimate may be biased if failures are associated with\n  ",
           "specific design features. Consider investigating failure pattern."
         ),
-        n_failed, length(replicate_estimates), pattern_msg, length(keep_idx)
+        n_failed, total_reps, pattern_msg, length(keep_idx)
       ), call. = FALSE, immediate. = TRUE)
 
 # Subset replicate_estimates and rep_rscales to match
@@ -565,15 +569,15 @@ nmar_extract_svydesign_call <- function(design) {
 }
 
 nmar_reconstruct_design <- function(template_call, data_subset, weight_var = "..replicate_weights..") {
-# Rebuild a fresh survey::svydesign call using the structural pieces from the
-# original call, but avoiding eval() in a deep parent frame to prevent stack
-# growth under replicate evaluation.
+# Rebuild a fresh survey::svydesign() call using the structural pieces from
+# the original call. The reconstructed design uses replicate weights in
+# place of the original analysis weights.
   tc <- template_call
-# Extract known args if present
+# Extract known arguments if present.
   args <- as.list(tc)[-1]
   get_arg <- function(nm) if (!is.null(args[[nm]])) args[[nm]] else NULL
-# Check both 'id' and 'ids' (svydesign accepts both)
-# Preserve the original parameter name used in the call
+# Check both 'id' and 'ids' (svydesign accepts both). Preserve the original
+# parameter name used in the call.
   ids_val <- get_arg("ids")
   id_val <- get_arg("id")
   id_param_name <- if (!is.null(ids_val)) "ids" else if (!is.null(id_val)) "id" else NULL
@@ -582,11 +586,11 @@ nmar_reconstruct_design <- function(template_call, data_subset, weight_var = "..
   strata <- get_arg("strata")
   fpc <- get_arg("fpc")
   nest <- get_arg("nest")
-# DO NOT extract probs/pps - they conflict with replicate weights
-# probs= and pps= are used to derive initial weights in svydesign()
-# We are replacing weights with replicate weights, so probs/pps must be excluded
+# Do not extract probs or pps; they conflict with replicate weights. The
+# initial weights derived from probs/pps are replaced by the replicate
+# weights, so probs and pps must be excluded.
 
-# Assemble call, including only non-NULL components
+# Assemble call, including only non-NULL components.
   call_list <- list(quote(survey::svydesign))
   if (!is.null(id_param_name)) {
     call_list <- c(call_list, setNames(list(id_param_val), id_param_name))
@@ -594,7 +598,7 @@ nmar_reconstruct_design <- function(template_call, data_subset, weight_var = "..
   if (!is.null(strata)) call_list <- c(call_list, list(strata = strata))
   if (!is.null(fpc)) call_list <- c(call_list, list(fpc = fpc))
   if (!is.null(nest)) call_list <- c(call_list, list(nest = nest))
-# DO NOT add probs or pps - they conflict with weights parameter
+# Do not add probs or pps; they conflict with the weights parameter.
   call_list <- c(call_list,
     list(data = quote(data_subset), weights = as.formula(paste0("~", weight_var))))
   new_call <- as.call(call_list)
