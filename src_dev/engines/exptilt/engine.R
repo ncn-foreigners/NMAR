@@ -100,10 +100,10 @@
 #' exptilt_config <- exptilt_engine(
 #'   y_dens = 'normal',
 #'   control = list(maxit = 10),
-#'   stopping_threshold = 0.01,
+#'   stopping_threshold = 0.1,
 #'   standardize = FALSE,
 #'   family = 'logit',
-#'   bootstrap_reps = 50
+#'   bootstrap_reps = 5
 #' )
 #' formula = Y ~ x1
 #' res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 1)

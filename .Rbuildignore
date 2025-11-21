@@ -22,3 +22,10 @@
 ^.venv$
 ^quadro\.html$
 ^quadro_files$
+^_pkgdown\.yml$
+^logo\.PNG$
+^pkgdown$
+^quadro$
+^quadro\.qmd$
+^docs$
+^hooks$

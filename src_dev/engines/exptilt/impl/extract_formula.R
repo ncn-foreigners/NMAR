@@ -1,3 +1,4 @@
+#' @importFrom stats formula model.frame na.pass terms
 et_extract_formula <- function(formula_str, data, allow_z_categorical = FALSE) {
 # browser()
 
