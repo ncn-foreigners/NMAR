@@ -72,6 +72,8 @@ exptilt.data.frame <- function(data, formula,
   n_nonresp <- length(nonrespondent_idx)
 
   sampling_performed <- FALSE
+# sampled_idx initially entire dataset
+  sampled_idx <- seq_len(n_total)
   original_n_total <- n_total
   original_n_resp <- n_resp
   original_n_nonresp <- n_nonresp
@@ -127,7 +129,7 @@ exptilt.data.frame <- function(data, formula,
     trace_level = trace_level,
     on_failure = on_failure,
     call = match.call(),
-    respondent_mask = respondent_mask,
+# respondent_mask = respondent_mask,
     sample_size = sample_size,
     sampling_performed = sampling_performed,
     original_n_total = original_n_total,
@@ -146,7 +148,12 @@ exptilt.data.frame <- function(data, formula,
   } else {
     probit_family()
   }
+  if (model$is_survey) {
+    tmp <- survey_design[sampled_idx, ]
+    tmp$variables <- data
+    data <- tmp
 
+  }
 
 
   model$original_params <- model # for bootstrap purposes, to re-run exptilt_fit_model
@@ -156,13 +163,18 @@ exptilt.data.frame <- function(data, formula,
 }
 
 exptilt_fit_model <- function(data, model, ...) {
+# browser()
 
-# Initialize verboser if not already present
-  if (is.null(model$verboser)) {
-    model$verboser <- create_verboser(trace_level = 0)
+  model$data <- if (model$is_survey) data$variables else data
+  model$respondent_mask <- !is.na(model$data[, model$col_y])
+  model$design_weights <- if (model$is_survey) {
+    as.numeric(stats::weights(data))
+  } else {
+    model$design_weights # 1 1 1 1 1
   }
 
   verboser <- model$verboser
+# browser()
   verboser("============================================================", level = 1, type = "step")
   verboser("  EXPTILT ESTIMATION STARTED", level = 1, type = "step")
   verboser("============================================================", level = 1, type = "step")
@@ -319,13 +331,14 @@ exptilt_fit_model <- function(data, model, ...) {
   model$C_matrix_nieobs <- generate_C_matrix(model)
 
   return(exptilt_estimator_core(
+    data = data,
     model = model,
     ...
   ))
 }
 
 #' @keywords internal
-exptilt_estimator_core <- function(model, ...) {
+exptilt_estimator_core <- function(data, model, ...) {
   model$cols_required <- colnames(model$data)
   verboser <- model$verboser
 
@@ -336,13 +349,14 @@ exptilt_estimator_core <- function(model, ...) {
   verboser("", level = 1)
   verboser("-- NONLINEAR SOLVER (nleqslv) --", level = 1)
   verboser(sprintf("  Early stopping threshold: %.4f", early_stop_threshold), level = 2)
-
+# browser()
   target_function <- function(theta) {
 # model$theta <<- theta
     O_matrix_nieobs_current <- generate_Odds(model, theta)
     result <- step_func(model, theta, O_matrix_nieobs_current)
 
 # Early stopping: if score is very small, return zero to signal convergence
+# browser()
     if (max(abs(result)) < early_stop_threshold) {
       return(rep(0, length(result)))
     }
@@ -519,7 +533,7 @@ exptilt_estimator_core <- function(model, ...) {
 
 # Use bootstrap if delta wasn't used or failed
   use_bootstrap <- is.nan(se_final) && !isTRUE(model$is_bootstrap_running) && model$variance_method != "none"
-
+# browser()
   if (use_bootstrap) {
     verboser("", level = 1)
     verboser("-- VARIANCE ESTIMATION (Bootstrap) --", level = 1)
@@ -527,7 +541,7 @@ exptilt_estimator_core <- function(model, ...) {
     bootstrap_runner <- function(data, ...) {
 # Create a copy for bootstrap with delta method and bootstrap flag
       bootstrap_model <- model$original_params
-      bootstrap_model$variance_method <- "delta"
+      bootstrap_model$variance_method <- "none"
       bootstrap_model$is_bootstrap_running <- TRUE
       bootstrap_model$verboser <- function(...) invisible(NULL)
 # bootstrap_model$verbose <- FALSE
@@ -562,7 +576,8 @@ exptilt_estimator_core <- function(model, ...) {
 
     base_args <- list(
 # data = if (model$is_survey) model$design else model$data,
-      data = model$data,
+# data=data,
+      data = data,
       estimator_func = bootstrap_runner,
       point_estimate = estim_mean(model),
       bootstrap_reps = model$bootstrap_reps
@@ -579,6 +594,7 @@ exptilt_estimator_core <- function(model, ...) {
 
     bootstrap_results <- do.call(bootstrap_variance, base_args)
     se_final <- bootstrap_results$se
+# browser()
     verboser("  OK Bootstrap complete", level = 1)
     verboser(sprintf("  Standard error:           %.6f", se_final), level = 1)
   } else if (isTRUE(model$is_bootstrap_running)) {

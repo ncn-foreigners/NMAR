@@ -90,12 +90,12 @@ if (requireNamespace("survey", quietly = TRUE)) {
      family = "logit",
      y_dens = "normal",
      variance_method = "delta",
-     stopping_threshold = 1e-5
+     stopping_threshold = 1
 )
 
 
   formula = y ~ x
-  res <- nmar(formula = formula, data = riddles_case1, engine = exptilt_config)
+  res <- nmar(formula = formula, data = surv_test_data, engine = exptilt_config, trace_level = 3)
   print(res)
 
 }
