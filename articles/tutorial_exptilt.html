@@ -121,7 +121,7 @@ https://doi.org/10.1093/jssam/smv047
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Result</span></span>
 <span><span class="co">#&gt; ------------</span></span>
-<span><span class="co">#&gt; y mean: -1.003197 (0.000002)</span></span>
+<span><span class="co">#&gt; y mean: -1.003197 (0.077627)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: bootstrap </span></span>
 <span><span class="co">#&gt; Estimator: exponential_tilting</span></span></code></pre></div>
@@ -137,7 +137,7 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'Est Y mean (NMAR):    '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span><span class="op">)</span>,</span>
 <span>    <span class="st">'  3σ interval: ('</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span> <span class="op">-</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="va">se</span><span class="op">)</span>,</span>
 <span>    <span class="st">', '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span> <span class="op">+</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="va">se</span><span class="op">)</span>, <span class="st">'σ='</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">se</span><span class="op">)</span>, <span class="st">')\n'</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Est Y mean (NMAR):     -1.0032   3σ interval: ( -1.0032 ,  -1.0032 σ= 0.0000 )</span></span>
+<span><span class="co">#&gt; Est Y mean (NMAR):     -1.0032   3σ interval: ( -1.1196 ,  -0.8868 σ= 0.0776 )</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'Naive Y mean (MAR):   '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">riddles_case1</span><span class="op">$</span><span class="va">y</span>, na.rm <span class="op">=</span> <span class="cn">T</span><span class="op">)</span><span class="op">)</span>, <span class="st">'\n'</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Naive Y mean (MAR):    -1.0716</span></span></code></pre></div>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
@@ -158,12 +158,12 @@ https://doi.org/10.1093/jssam/smv047
 <span>     family <span class="op">=</span> <span class="st">"logit"</span>,</span>
 <span>     y_dens <span class="op">=</span> <span class="st">"normal"</span>,</span>
 <span>     variance_method <span class="op">=</span> <span class="st">"delta"</span>,</span>
-<span>     stopping_threshold <span class="op">=</span> <span class="fl">1e-5</span></span>
+<span>     stopping_threshold <span class="op">=</span> <span class="fl">1</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span></span>
 <span>  <span class="va">formula</span> <span class="op">=</span> <span class="va">y</span> <span class="op">~</span> <span class="va">x</span></span>
-<span>  <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">riddles_case1</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span><span class="op">)</span></span>
+<span>  <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">surv_test_data</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span>, trace_level <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span></span>
 <span><span class="op">}</span></span>
@@ -180,10 +180,94 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="co">#&gt; The following object is masked from 'package:graphics':</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     dotchart</span></span>
-<span><span class="co">#&gt; Warning: Delta variance failed to evaluate; using bootstrap instead.</span></span>
+<span><span class="co">#&gt; [STEP-1] ============================================================ </span></span>
+<span><span class="co">#&gt; [STEP-1]   EXPTILT ESTIMATION STARTED </span></span>
+<span><span class="co">#&gt; [STEP-1] ============================================================ </span></span>
+<span><span class="co">#&gt; [INFO] Running with trace_level = 3 </span></span>
+<span><span class="co">#&gt; [INFO] Formula: y ~ x </span></span>
+<span><span class="co">#&gt; [INFO]  </span></span>
+<span><span class="co">#&gt; [INFO] -- DATA SUMMARY -- </span></span>
+<span><span class="co">#&gt; [INFO]   Total observations:      500 </span></span>
+<span><span class="co">#&gt; [INFO]   Respondents:             368 (26.4%) </span></span>
+<span><span class="co">#&gt; [INFO]   Non-respondents:         132 (73.6%) </span></span>
+<span><span class="co">#&gt; [INFO]  </span></span>
+<span><span class="co">#&gt; [INFO] -- MODEL SPECIFICATION -- </span></span>
+<span><span class="co">#&gt; [INFO]   Outcome variable:        y </span></span>
+<span><span class="co">#&gt; [INFO]   Auxiliary variables:     x </span></span>
+<span><span class="co">#&gt; [INFO]   Missingness predictors:  (intercept only) </span></span>
+<span><span class="co">#&gt; [INFO]   Response model:          logit </span></span>
+<span><span class="co">#&gt; [INFO]   Outcome density:         normal </span></span>
+<span><span class="co">#&gt; [INFO]   Standardization:         disabled </span></span>
+<span><span class="co">#&gt; [INFO]  </span></span>
+<span><span class="co">#&gt; [INFO] -- PARAMETER INITIALIZATION -- </span></span>
+<span><span class="co">#&gt; [INFO]   Number of parameters:    2 </span></span>
+<span><span class="co">#&gt; [DETAIL-3]  </span></span>
+<span><span class="co">#&gt; [INFO]   Initial values: </span></span>
+<span><span class="co">#&gt; [INFO]     (Intercept)               =  0.0481  [response model intercept] </span></span>
+<span><span class="co">#&gt; [INFO]     y                         =  0.0928  [outcome effect on response] </span></span>
+<span><span class="co">#&gt; [INFO]  </span></span>
+<span><span class="co">#&gt; [INFO] -- CONDITIONAL DENSITY ESTIMATION -- </span></span>
+<span><span class="co">#&gt; [INFO]   Selected distribution:   normal </span></span>
+<span><span class="co">#&gt; [INFO]   Density parameters:      3 </span></span>
+<span><span class="co">#&gt; [INFO]   Fitted density model summary: </span></span>
+<span><span class="co">#&gt; [INFO]  </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Call:</span></span>
+<span><span class="co">#&gt; glm(formula = formula, family = gaussian(), data = data)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Coefficients:</span></span>
+<span><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span><span class="co">#&gt; (Intercept) -1.06281    0.04866  -21.84   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; x            1.11333    0.06712   16.59   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; ---</span></span>
+<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; (Dispersion parameter for gaussian family taken to be 0.8711681)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     Null deviance: 558.57  on 367  degrees of freedom</span></span>
+<span><span class="co">#&gt; Residual deviance: 318.85  on 366  degrees of freedom</span></span>
+<span><span class="co">#&gt; AIC: 997.58</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Number of Fisher Scoring iterations: 2</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [INFO]   Computing density matrices... </span></span>
+<span><span class="co">#&gt; [INFO]  </span></span>
+<span><span class="co">#&gt; [INFO] -- NONLINEAR SOLVER (nleqslv) -- </span></span>
+<span><span class="co">#&gt; [INFO]   Early stopping threshold: 1.0000 </span></span>
+<span><span class="co">#&gt; [INFO]   Method:                   Newton </span></span>
+<span><span class="co">#&gt; [INFO]   Control parameters: </span></span>
+<span><span class="co">#&gt; [INFO]     maxit = 15 </span></span>
+<span><span class="co">#&gt; [INFO]   Solving... </span></span>
+<span><span class="co">#&gt; [INFO]  </span></span>
+<span><span class="co">#&gt; [INFO]   OK Converged </span></span>
+<span><span class="co">#&gt; [INFO]   Iterations:               3 </span></span>
+<span><span class="co">#&gt; [INFO]   Termination code:         1 </span></span>
+<span><span class="co">#&gt; [INFO]   Max |score|:              0.000000 </span></span>
+<span><span class="co">#&gt; [INFO]   Final parameter estimates (scaled): </span></span>
+<span><span class="co">#&gt; [INFO]     (Intercept)          =  0.865942  [response intercept] </span></span>
+<span><span class="co">#&gt; [INFO]     y                    = -0.159226  [outcome -&gt; response]</span></span>
+<span><span class="co">#&gt; Warning: Delta variance may be unreliable with the current sample; using</span></span>
+<span><span class="co">#&gt; bootstrap instead.</span></span>
+<span><span class="co">#&gt; [INFO]  </span></span>
+<span><span class="co">#&gt; [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- </span></span>
+<span><span class="co">#&gt; [INFO]   Bootstrap replications:   50 </span></span>
+<span><span class="co">#&gt; [INFO]   OK Bootstrap complete </span></span>
+<span><span class="co">#&gt; [INFO]   Standard error:           0.046478 </span></span>
+<span><span class="co">#&gt; [INFO]  </span></span>
+<span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
+<span><span class="co">#&gt; [RESULT]   ESTIMATION COMPLETE </span></span>
+<span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
+<span><span class="co">#&gt; [RESULT]   Mean estimate:            -1.004793 </span></span>
+<span><span class="co">#&gt; [RESULT]   Standard error:           0.046478 </span></span>
+<span><span class="co">#&gt; [RESULT]   95% CI:                   [-1.095891, -0.913696] </span></span>
+<span><span class="co">#&gt; [INFO]  </span></span>
+<span><span class="co">#&gt; [INFO]   Response model coefficients: </span></span>
+<span><span class="co">#&gt; [INFO]     (Intercept)         :  0.865942  (Intercept) </span></span>
+<span><span class="co">#&gt; [INFO]     y                   : -0.159226  (Effect of y on response prob.) </span></span>
+<span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
 <span><span class="co">#&gt; NMAR Result</span></span>
 <span><span class="co">#&gt; ------------</span></span>
-<span><span class="co">#&gt; y mean: -1.003204 (0.000000)</span></span>
+<span><span class="co">#&gt; y mean: -1.004793 (0.046478)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: delta </span></span>
 <span><span class="co">#&gt; Estimator: exponential_tilting</span></span></code></pre></div>

@@ -217,20 +217,20 @@ res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 
 #> [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- 
 #> [INFO]   Bootstrap replications:   50 
 #> [INFO]   OK Bootstrap complete 
-#> [INFO]   Standard error:           0.000017 
+#> [INFO]   Standard error:           0.074592 
 #> [INFO]  
 #> [RESULT] ============================================================ 
 #> [RESULT]   ESTIMATION COMPLETE 
 #> [RESULT] ============================================================ 
 #> [RESULT]   Mean estimate:            -0.942440 
-#> [RESULT]   Standard error:           0.000017 
-#> [RESULT]   95% CI:                   [-0.942474, -0.942406] 
+#> [RESULT]   Standard error:           0.074592 
+#> [RESULT]   95% CI:                   [-1.088640, -0.796240] 
 #> [RESULT] ============================================================ 
 summary(res)
 #> NMAR Model Summary
 #> =================
-#> Y mean: -0.942440 (0.000017)
-#> 95% CI: (-0.942474, -0.942406)
+#> Y mean: -0.942440 (0.074592)
+#> 95% CI: (-1.088638, -0.796242)
 #> Converged: TRUE 
 #> Variance method: delta 
 # }
