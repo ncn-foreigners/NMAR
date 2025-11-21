@@ -184,10 +184,10 @@ x <- res_test_data$X
 exptilt_config <- exptilt_engine(
   y_dens = 'normal',
   control = list(maxit = 10),
-  stopping_threshold = 0.01,
+  stopping_threshold = 0.1,
   standardize = FALSE,
   family = 'logit',
-  bootstrap_reps = 50
+  bootstrap_reps = 5
 )
 formula = Y ~ x1
 res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 1)
@@ -215,22 +215,22 @@ res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 
 #> Warning: Delta variance failed to evaluate; using bootstrap instead.
 #> [INFO]  
 #> [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- 
-#> [INFO]   Bootstrap replications:   50 
+#> [INFO]   Bootstrap replications:   5 
 #> [INFO]   OK Bootstrap complete 
-#> [INFO]   Standard error:           0.074592 
+#> [INFO]   Standard error:           0.091309 
 #> [INFO]  
 #> [RESULT] ============================================================ 
 #> [RESULT]   ESTIMATION COMPLETE 
 #> [RESULT] ============================================================ 
 #> [RESULT]   Mean estimate:            -0.942440 
-#> [RESULT]   Standard error:           0.074592 
-#> [RESULT]   95% CI:                   [-1.088640, -0.796240] 
+#> [RESULT]   Standard error:           0.091309 
+#> [RESULT]   95% CI:                   [-1.121405, -0.763474] 
 #> [RESULT] ============================================================ 
 summary(res)
 #> NMAR Model Summary
 #> =================
-#> Y mean: -0.942440 (0.074592)
-#> 95% CI: (-1.088638, -0.796242)
+#> Y mean: -0.942440 (0.091309)
+#> 95% CI: (-1.121402, -0.763478)
 #> Converged: TRUE 
 #> Variance method: delta 
 # }
