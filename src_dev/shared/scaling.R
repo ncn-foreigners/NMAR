@@ -7,8 +7,8 @@
 #' \itemize{
 #'   \item Provide an engine-agnostic API for standardizing design matrices and
 #'     auxiliary moments before solving.
-#'   \item Return a minimal "recipe" (per-column mean/sd) for unscaling coefficients
-#'     and covariance matrices after solving.
+#'   \item Return a minimal "recipe" (per-column mean and standard deviation)
+#'     for unscaling coefficients and covariance matrices after solving.
 #' }
 #'
 #' @section Inputs/Outputs:
@@ -35,7 +35,9 @@
 #' @section Notes:
 #' \itemize{
 #'   \item The intercept column is never scaled.
-#'   \item Columns with near-zero variance are assigned \code{sd = 1} to avoid blow-ups.
+#'   \item Columns with near-zero variance are centered but assigned
+#'     \code{sd = 1} so that the corresponding parameter is not inflated by
+#'     division by a very small standard deviation.
 #'   \item Engines may use design-weighted scaling via the \code{weights} and
 #'         \code{weight_mask} arguments.
 #' }
@@ -58,6 +60,8 @@ validate_nmar_scaling_recipe <- function(x) {
   x
 }
 
+#' Compute (possibly weighted) mean and standard deviation
+#'
 #' @keywords internal
 compute_weighted_stats <- function(values, weights = NULL) {
   values <- as.numeric(values)
@@ -84,6 +88,7 @@ compute_weighted_stats <- function(values, weights = NULL) {
     return(list(mean = mean_val, sd = sd_val))
   }
   mean_val <- sum(w * x) / w_sum
+# Population-style weighted standard deviation: sqrt(E[(X - mean)^2]).
   sd_val <- sqrt(sum(w * (x - mean_val)^2) / w_sum)
   list(mean = mean_val, sd = sd_val)
 }
@@ -131,13 +136,14 @@ create_nmar_scaling_recipe <- function(..., intercept_col = "(Intercept)", weigh
         if (warn_on_constant) {
           warning(sprintf("Column '%s' has undefined weighted moments; leaving as identity scale.", col_name), call. = FALSE)
         }
-# True no-op to avoid NA propagation
+# Use an identity transform to avoid propagating NA values.
         recipe[[col_name]] <- list(mean = 0, sd = 1)
       } else if (col_sd < tol_constant) {
         if (warn_on_constant) {
           warning(sprintf("Column '%s' is nearly constant under the scaling weights; centering to zero column.", col_name), call. = FALSE)
         }
-# Center to zero column to avoid redundant constant columns
+# Center to a zero column; coefficients on such columns are not
+# identifiable and should not be inflated by dividing by a very small sd.
         recipe[[col_name]] <- list(mean = col_mean, sd = 1)
       } else {
         recipe[[col_name]] <- list(mean = col_mean, sd = col_sd)
@@ -180,7 +186,7 @@ prepare_nmar_scaling <- function(Z_un, X_un, mu_x_un, standardize,
   if (!standardize) {
     return(list(Z = Z_un, X = X_un, mu_x = if (is.null(mu_x_un)) numeric(0) else mu_x_un, recipe = NULL))
   }
-# Row consistency
+# Check row consistency between response and auxiliary matrices.
   if (!is.null(X_un) && nrow(Z_un) != nrow(X_un)) {
     stop("`Z_un` and `X_un` must have the same number of rows.", call. = FALSE)
   }
@@ -225,17 +231,19 @@ validate_and_apply_nmar_scaling <- function(standardize, has_aux, response_model
                                             weights = NULL, weight_mask = NULL) {
   nmar_scaling_recipe <- NULL
   if (standardize) {
-# Coerce NULL auxiliaries to 0-column matrix aligned to Z rows
+# Coerce NULL auxiliaries to a 0-column matrix aligned to the response
+# matrix to simplify downstream logic.
     if (is.null(aux_matrix_unscaled)) {
       aux_matrix_unscaled <- matrix(nrow = nrow(response_model_matrix_unscaled), ncol = 0,
         dimnames = list(NULL, character()))
     }
-# Row consistency check
+# Check row consistency between response and auxiliary matrices.
     if (nrow(response_model_matrix_unscaled) != nrow(aux_matrix_unscaled)) {
       stop("Response and auxiliary matrices must have the same number of rows.", call. = FALSE)
     }
     if (has_aux) {
-# Drop any stray intercept column from auxiliary matrix before name matching
+# Drop any stray intercept column from the auxiliary matrix before
+# matching names to auxiliary means.
       if ("(Intercept)" %in% colnames(aux_matrix_unscaled)) {
         aux_matrix_unscaled <- aux_matrix_unscaled[, setdiff(colnames(aux_matrix_unscaled), "(Intercept)"), drop = FALSE]
       }
@@ -292,7 +300,7 @@ scale_coefficients <- function(beta_unscaled, recipe, columns) {
   }
   beta_unscaled <- beta_unscaled[intersect(names(beta_unscaled), columns)]
   out <- setNames(numeric(length(columns)), columns)
-# Non-intercept: multiply by sd
+# Non-intercept: multiply by sd.
   for (nm in columns) {
     if (nm == "(Intercept)") next
     if (nm %in% names(beta_unscaled)) {
@@ -300,7 +308,7 @@ scale_coefficients <- function(beta_unscaled, recipe, columns) {
       out[[nm]] <- beta_unscaled[[nm]] * sdj
     }
   }
-# Intercept: b0_scaled = b0_unscaled + sum_j b_j_unscaled * mean_j
+# Intercept: b0_scaled = b0_unscaled + sum_j b_j_unscaled * mean_j.
   b0_un <- if (!is.null(beta_unscaled[["(Intercept)"]])) beta_unscaled[["(Intercept)"]] else 0
   adj <- 0
   for (nm in columns) {
@@ -331,10 +339,12 @@ scale_aux_multipliers <- function(lambda_unscaled, recipe, columns) {
   out <- setNames(numeric(length(columns)), columns)
   for (nm in columns) {
     if (nm %in% names(lambda_unscaled)) {
-# Scaling identity: Xc_scaled = (Xc_unscaled / sd). To preserve the
-# denominator term Xc' lambda under scaling, we require
-#   Xc_un %*% lambda_un = (Xc_un/sd) %*% lambda_scaled
-# which implies lambda_scaled = sd * lambda_un.
+# Scaling identity for centered auxiliaries: if
+#   Xc_scaled = (Xc_unscaled / sd)
+# and we want to preserve the linear term Xc_unscaled %*% lambda_un
+# under scaling, then
+#   Xc_un %*% lambda_un = Xc_scaled %*% lambda_scaled
+# implies lambda_scaled = sd * lambda_un.
       sdj <- if (!is.null(recipe) && nm %in% names(recipe)) recipe[[nm]]$sd else 1
       out[[nm]] <- lambda_unscaled[[nm]] * sdj
     }
@@ -379,7 +389,8 @@ unscale_coefficients <- function(scaled_coeffs, scaled_vcov, recipe) {
   }
   unscaled_coeffs <- drop(D %*% scaled_coeffs)
   unscaled_vcov <- D %*% scaled_vcov %*% t(D)
-# Preserve attribute semantics: if input had no dimnames, do not add them
+# Preserve attribute semantics: if the input covariance had no dimnames,
+# do not add them on output.
   if (is.null(dimnames(scaled_vcov))) dimnames(unscaled_vcov) <- NULL
   list(coefficients = unscaled_coeffs, vcov = unscaled_vcov)
 }
