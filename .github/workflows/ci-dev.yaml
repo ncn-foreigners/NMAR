@@ -25,6 +25,7 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           needs: check
+          use-public-rspm: true
           extra-packages: |
             devtools
             roxygen2
@@ -78,6 +79,7 @@ jobs:
           # path: ${{ steps.build.outputs.pkg_name }}
           path: '*.tar.gz'
           retention-days: 1
+
 
 #TODO: Move this job and below one to different workflow
 #Job below chceck if RCMD checkcan build a package
@@ -141,6 +143,7 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           needs: check
+          use-public-rspm: true
           extra-packages: |
             devtools
             roxygen2
