@@ -4,6 +4,7 @@ on:
   push:
     branches: [main, package_pre-prod]
   pull_request:
+    branches: [main, package_pre-prod]
 
 name: test-coverage.yaml
 
