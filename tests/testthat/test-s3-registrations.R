@@ -28,6 +28,4 @@ test_that("nmar_result S3 generics are registered", {
 
   capture.output(print(res))
   capture.output(print(sum_obj))
-
-# expect_true(utils::isS3stdGeneric("autoplot"))
 })
