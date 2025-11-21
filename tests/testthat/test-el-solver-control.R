@@ -25,7 +25,7 @@ test_that("invalid global/xscalm are coerced to defaults", {
   df <- data.frame(Y_miss = Y)
   df$Y_miss[R == 0] <- NA_real_
   eng <- NMAR::el_engine(variance_method = 'none', control = list(global = "badvalue", xscalm = "bad"))
-  fit <- NMAR::nmar(Y_miss ~ 1, data = df, engine = eng)
+  fit <- suppressWarnings(NMAR::nmar(Y_miss ~ 1, data = df, engine = eng))
   di <- fit$diagnostics
 # Defaults when invalid: qline, auto
   expect_identical(di$nleqslv_global, "qline")

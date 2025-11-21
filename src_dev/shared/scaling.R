@@ -212,7 +212,7 @@ prepare_nmar_scaling <- function(Z_un, X_un, mu_x_un, standardize,
 #' @param standardize logical; apply standardization if TRUE.
 #' @param has_aux logical; whether the engine uses auxiliary constraints.
 #' @param response_model_matrix_unscaled response model matrix (with intercept).
-#' @param auxiliary_matrix_unscaled auxiliary matrix (no intercept) or an empty matrix.
+#' @param aux_matrix_unscaled auxiliary matrix (no intercept) or an empty matrix.
 #' @param mu_x_unscaled named auxiliary means on original scale, or NULL.
 #' @param weights Optional numeric vector used for weighted scaling.
 #' @param weight_mask Optional logical/numeric mask applied to `weights`.
@@ -221,28 +221,28 @@ prepare_nmar_scaling <- function(Z_un, X_un, mu_x_un, standardize,
 #'
 #' @keywords internal
 validate_and_apply_nmar_scaling <- function(standardize, has_aux, response_model_matrix_unscaled,
-                                            auxiliary_matrix_unscaled, mu_x_unscaled,
+                                            aux_matrix_unscaled, mu_x_unscaled,
                                             weights = NULL, weight_mask = NULL) {
   nmar_scaling_recipe <- NULL
   if (standardize) {
 # Coerce NULL auxiliaries to 0-column matrix aligned to Z rows
-    if (is.null(auxiliary_matrix_unscaled)) {
-      auxiliary_matrix_unscaled <- matrix(nrow = nrow(response_model_matrix_unscaled), ncol = 0,
+    if (is.null(aux_matrix_unscaled)) {
+      aux_matrix_unscaled <- matrix(nrow = nrow(response_model_matrix_unscaled), ncol = 0,
         dimnames = list(NULL, character()))
     }
 # Row consistency check
-    if (nrow(response_model_matrix_unscaled) != nrow(auxiliary_matrix_unscaled)) {
+    if (nrow(response_model_matrix_unscaled) != nrow(aux_matrix_unscaled)) {
       stop("Response and auxiliary matrices must have the same number of rows.", call. = FALSE)
     }
     if (has_aux) {
 # Drop any stray intercept column from auxiliary matrix before name matching
-      if ("(Intercept)" %in% colnames(auxiliary_matrix_unscaled)) {
-        auxiliary_matrix_unscaled <- auxiliary_matrix_unscaled[, setdiff(colnames(auxiliary_matrix_unscaled), "(Intercept)"), drop = FALSE]
+      if ("(Intercept)" %in% colnames(aux_matrix_unscaled)) {
+        aux_matrix_unscaled <- aux_matrix_unscaled[, setdiff(colnames(aux_matrix_unscaled), "(Intercept)"), drop = FALSE]
       }
-      if (!setequal(colnames(auxiliary_matrix_unscaled), names(mu_x_unscaled))) {
+      if (!setequal(colnames(aux_matrix_unscaled), names(mu_x_unscaled))) {
         stop("Names of `auxiliary_means` do not match the variables specified on the RHS of the formula.")
       }
-      mu_x_unscaled <- mu_x_unscaled[colnames(auxiliary_matrix_unscaled)]
+      mu_x_unscaled <- mu_x_unscaled[colnames(aux_matrix_unscaled)]
     }
     if (!is.null(weights) && length(weights) != nrow(response_model_matrix_unscaled)) {
       stop("`weights` must have the same length as the number of rows in the response matrix.", call. = FALSE)
@@ -252,12 +252,12 @@ validate_and_apply_nmar_scaling <- function(standardize, has_aux, response_model
     }
     nmar_scaling_recipe <- create_nmar_scaling_recipe(
       response_model_matrix_unscaled,
-      auxiliary_matrix_unscaled,
+      aux_matrix_unscaled,
       weights = weights,
       weight_mask = weight_mask
     )
     response_model_matrix_scaled <- apply_nmar_scaling(response_model_matrix_unscaled, nmar_scaling_recipe)
-    auxiliary_matrix_scaled <- apply_nmar_scaling(auxiliary_matrix_unscaled, nmar_scaling_recipe)
+    auxiliary_matrix_scaled <- apply_nmar_scaling(aux_matrix_unscaled, nmar_scaling_recipe)
     mu_x_scaled <- if (has_aux && !is.null(mu_x_unscaled) && length(mu_x_unscaled) > 0) {
       vapply(names(mu_x_unscaled), function(n) (mu_x_unscaled[n] - nmar_scaling_recipe[[n]]$mean) / nmar_scaling_recipe[[n]]$sd, numeric(1))
     } else {
@@ -265,7 +265,7 @@ validate_and_apply_nmar_scaling <- function(standardize, has_aux, response_model
     }
   } else {
     response_model_matrix_scaled <- response_model_matrix_unscaled
-    auxiliary_matrix_scaled <- auxiliary_matrix_unscaled
+    auxiliary_matrix_scaled <- aux_matrix_unscaled
     mu_x_scaled <- if (is.null(mu_x_unscaled)) numeric(0) else mu_x_unscaled
   }
   list(

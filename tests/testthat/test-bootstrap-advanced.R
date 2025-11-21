@@ -18,7 +18,7 @@ test_that("svyrep.design is rejected with clear error", {
 
 # Should error with informative message
   expect_error(
-    NMAR:::bootstrap_variance(
+    bootstrap_variance(
       drep, estimator,
       point_estimate = mean(apistrat$api00),
       bootstrap_reps = 10,
@@ -49,7 +49,7 @@ test_that("replicate count mismatch warns but proceeds", {
 # This test verifies we warn and proceed (not error)
   result <- tryCatch(
     suppressWarnings(
-      NMAR:::bootstrap_variance(
+      bootstrap_variance(
         dstrat, estimator,
         point_estimate = mean(apistrat$api00),
         bootstrap_reps = 200,
@@ -92,7 +92,7 @@ test_that("survey NA policy 'strict' shows detailed error", {
   future::plan(future::sequential)
 
   err <- tryCatch(
-    NMAR:::bootstrap_variance(
+    bootstrap_variance(
       dstrat, estimator,
       point_estimate = mean(apistrat$api00),
       bootstrap_reps = 10,
@@ -134,7 +134,7 @@ test_that("survey NA policy 'omit' handles failures correctly", {
   future::plan(future::sequential)
 
   expect_warning(
-    res <- NMAR:::bootstrap_variance(
+    res <- bootstrap_variance(
       dstrat, estimator,
       point_estimate = mean(apistrat$api00),
       bootstrap_reps = 15,
@@ -170,7 +170,7 @@ test_that("survey NA policy 'omit' requires at least 2 successes", {
   future::plan(future::sequential)
 
   expect_error(
-    NMAR:::bootstrap_variance(
+    bootstrap_variance(
       dstrat, estimator,
       point_estimate = mean(apistrat$api00),
       bootstrap_reps = 10,
@@ -209,7 +209,7 @@ test_that("survey NA policy 'omit' shows failure pattern", {
   warn_msg <- NULL
   res <- tryCatch(
     withCallingHandlers(
-      NMAR:::bootstrap_variance(
+      bootstrap_variance(
         dstrat, estimator,
         point_estimate = mean(apistrat$api00),
         bootstrap_reps = 20,
@@ -253,7 +253,7 @@ test_that("mathematical correctness: variance has correct properties", {
   future::plan(future::sequential)
   set.seed(424242)
 
-  res <- NMAR:::bootstrap_variance(
+  res <- bootstrap_variance(
     dstrat, estimator,
     point_estimate = mean(apistrat$api00),
     bootstrap_reps = 30,
@@ -288,7 +288,7 @@ test_that("mathematical correctness: variance has correct properties", {
   }
 
   set.seed(424242)
-  res_iid <- NMAR:::bootstrap_variance(
+  res_iid <- bootstrap_variance(
     data_iid, estimator_mean,
     point_estimate = mean(x),
     bootstrap_reps = 500,
@@ -324,7 +324,7 @@ test_that("boundary cases: minimum replicates and edge conditions", {
   future::plan(future::sequential)
 
 # Test 1: bootstrap_reps = 2 (minimum for variance calculation)
-  res_min <- NMAR:::bootstrap_variance(
+  res_min <- bootstrap_variance(
     dstrat, estimator,
     point_estimate = mean(apistrat$api00),
     bootstrap_reps = 2,
@@ -337,7 +337,7 @@ test_that("boundary cases: minimum replicates and edge conditions", {
 # Test 2: bootstrap_reps = 1 should still work but variance may be problematic
 # (svrVar should handle this, but it's an edge case)
   res_one <- tryCatch(
-    NMAR:::bootstrap_variance(
+    bootstrap_variance(
       dstrat, estimator,
       point_estimate = mean(apistrat$api00),
       bootstrap_reps = 1,
@@ -355,7 +355,7 @@ test_that("boundary cases: minimum replicates and edge conditions", {
     list(y_hat = mean(data$y), converged = TRUE)
   }
 
-  res_small <- NMAR:::bootstrap_variance(
+  res_small <- bootstrap_variance(
     small_data, estimator_simple,
     point_estimate = mean(small_data$y),
     bootstrap_reps = 10,
@@ -367,7 +367,7 @@ test_that("boundary cases: minimum replicates and edge conditions", {
 
 # Test 4: Single observation (edge case)
   single_data <- data.frame(y = 5)
-  res_single <- NMAR:::bootstrap_variance(
+  res_single <- bootstrap_variance(
     single_data, estimator_simple,
     point_estimate = 5,
     bootstrap_reps = 10,
@@ -412,7 +412,7 @@ test_that("omit policy correctly subsets rscales for mathematical correctness", 
   set.seed(999)
 
   expect_warning(
-    res <- NMAR:::bootstrap_variance(
+    res <- bootstrap_variance(
       dstrat, estimator,
       point_estimate = mean(apistrat$api00),
       bootstrap_reps = 20,
@@ -457,7 +457,7 @@ test_that("omit policy correctly subsets rscales for mathematical correctness", 
   set.seed(888)
 
   expect_warning(
-    res_random <- NMAR:::bootstrap_variance(
+    res_random <- bootstrap_variance(
       dstrat, estimator_random,
       point_estimate = mean(apistrat$api00),
       bootstrap_reps = 30,
@@ -501,7 +501,7 @@ test_that("survey NA policy default is 'strict'", {
 
 # Without specifying survey_na_policy, should default to strict and error
   err <- tryCatch(
-    NMAR:::bootstrap_variance(
+    bootstrap_variance(
       dstrat, estimator,
       point_estimate = mean(apistrat$api00),
       bootstrap_reps = 10,

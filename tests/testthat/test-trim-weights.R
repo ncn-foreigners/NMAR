@@ -2,7 +2,7 @@ test_that("trim_weights caps and preserves mass when possible", {
   w <- c(0.1, 0.2, 0.3, 10)
 # Choose cap high enough so total capacity (n*cap) >= sum(w)
   cap <- 4.0
-  out <- NMAR:::trim_weights(w, cap)
+  out <- trim_weights(w, cap)
   wt <- out$weights
 # All weights <= cap
   expect_true(all(wt <= cap + 1e-12))
@@ -16,7 +16,7 @@ test_that("trim_weights warns when mass cannot be preserved", {
   w <- c(5, 5, 5)
   cap <- 1.0
   expect_warning({
-    out <- NMAR:::trim_weights(w, cap)
+    out <- trim_weights(w, cap)
   })
   wt <- out$weights
   expect_true(all(wt <= cap + 1e-12))

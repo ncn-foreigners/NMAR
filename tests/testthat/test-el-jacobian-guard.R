@@ -10,11 +10,11 @@ test_that("EL analytic Jacobian matches numeric (no aux, logit)", {
   X <- cbind(`(Intercept)` = 1, x1 = rnorm(n))
 
 # Build objects the same way as the engine would for respondents only
-  fam <- NMAR:::logit_family()
+  fam <- logit_family()
   resp_w <- rep(1, n)
   N_pop <- ceiling(1.2 * n) # ensure lambda_W > 0
 
-  eq <- NMAR:::el_build_equation_system(
+  eq <- el_build_equation_system(
     family = fam,
     missingness_model_matrix = X,
     auxiliary_matrix = matrix(nrow = n, ncol = 0),
@@ -23,7 +23,7 @@ test_that("EL analytic Jacobian matches numeric (no aux, logit)", {
     n_resp_weighted = sum(resp_w),
     mu_x_scaled = numeric(0)
   )
-  jac <- NMAR:::el_build_jacobian(
+  jac <- el_build_jacobian(
     family = fam,
     missingness_model_matrix = X,
     auxiliary_matrix = matrix(nrow = n, ncol = 0),

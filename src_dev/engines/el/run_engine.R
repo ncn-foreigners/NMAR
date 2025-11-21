@@ -19,6 +19,10 @@ run_engine.nmar_engine_el <- function(engine, formula, data, trace_level = 0) {
     trace_level = trace_level
   )
 
+  if (inherits(data, "survey.design")) {
+    args$strata_augmentation <- engine$strata_augmentation %||% TRUE
+  }
+
 # Dispatch to EL implementation (data.frame or survey.design)
   res <- do.call(el, args)
 

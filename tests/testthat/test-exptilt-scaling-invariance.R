@@ -30,7 +30,7 @@ test_that("exptilt scaling yields near-invariant estimates (IID)", {
   obs_mask <- !is.na(dat$y)
   Z_un <- model.matrix(~ y + x1 + x2, data = dat[obs_mask, ])
   X_un <- model.matrix(~ x1 + x2 - 1, data = dat[obs_mask, ])
-  recipe <- NMAR:::create_nmar_scaling_recipe(Z_un, X_un)
+  recipe <- create_nmar_scaling_recipe(Z_un, X_un)
   dat_scaled <- dat
   for (nm in names(recipe)) {
     dat_scaled[[nm]] <- (dat_scaled[[nm]] - recipe[[nm]]$mean) / recipe[[nm]]$sd

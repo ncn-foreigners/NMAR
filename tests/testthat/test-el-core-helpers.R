@@ -4,7 +4,7 @@ test_that("el_run_solver solves toy system (Newton with analytic Jacobian)", {
   j <- function(x) diag(3)
   init <- c(0, 0, 0)
   ctrl <- list(maxit = 50)
-  out <- NMAR:::el_run_solver(
+  out <- el_run_solver(
     equation_system_func = f,
     analytical_jac_func = j,
     init = init,
@@ -30,9 +30,9 @@ test_that("el_post_solution returns sane weights and mean in trivial case", {
   aux <- matrix(nrow = n, ncol = 0)
   mu_x <- NULL
   wts <- rep(1, n)
-  fam <- NMAR:::logit_family()
+  fam <- logit_family()
   est <- c(0, 0, 0) # beta=(0,0), z=0 => W=0.5
-  out <- NMAR:::el_post_solution(
+  out <- el_post_solution(
     estimates = est,
     missingness_model_matrix_scaled = X,
     missingness_model_matrix_unscaled = X,

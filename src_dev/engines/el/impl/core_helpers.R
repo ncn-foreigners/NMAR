@@ -84,7 +84,10 @@ el_run_solver <- function(equation_system_func,
       W_seed <- sum(respondent_weights) / N_pop
       W_seed <- min(max(W_seed, 1e-12), 1 - 1e-12)
       z_seed <- stats::qlogis(W_seed)
-      init_perturbed <- c(init_beta_perturbed, z_seed, rep(0, K_aux))
+# Preserve generic tail structure: parameters after (beta, z) are reset to 0
+      tail_len <- max(length(init) - K_beta - 1L, 0L)
+      tail_zeros <- if (tail_len > 0L) rep(0, tail_len) else numeric(0)
+      init_perturbed <- c(init_beta_perturbed, z_seed, tail_zeros)
       nl_args$x <- init_perturbed
       solution <- do.call(nleqslv::nleqslv, nl_args)
       if (!any(is.na(solution$x)) && solution$termcd <= 2) {
@@ -114,44 +117,16 @@ el_run_solver <- function(equation_system_func,
     if (!is.null(broyden_control$maxit) && is.finite(broyden_control$maxit) && broyden_control$maxit < 5) {
       broyden_control$maxit <- 50
     }
-# Prefer the same or more conservative global for Broyden
-    nl_args_b$global <- nl_args$global %||% "qline"
-    nl_args_b$xscalm <- nl_args$xscalm %||% "auto"
     nl_args_b$control <- broyden_control
     solution <- do.call(nleqslv::nleqslv, nl_args_b)
     solver_method_used <- "Broyden"
-    if (!any(is.na(solution$x)) && solution$termcd <= 2) {
-      verboser("  [OK] Broyden method converged successfully", level = 2, type = "result")
-    }
   }
-  list(solution = solution, method = solver_method_used, used_top = list(global = nl_args$global %||% NULL, xscalm = nl_args$xscalm %||% NULL))
+
+  list(solution = solution, method = solver_method_used, used_top = list(global = top_args$global %||% NULL, xscalm = top_args$xscalm %||% NULL))
 }
 
-#' Post-solution: denominators, masses, and mean (EL)
-#'
-#' Computes EL denominators and masses and the mean estimate after the solver
-#' converges. The mean is calculated from normalized probability masses per
-#' Qin, Leung, and Shao (2002, Eq. 11). When trimming is active, the masses are
-#' capped and renormalized before computing the mean; diagnostics still report
-#' constraint sums based on untrimmed masses. Denominator floors and the
-#' guarding policy used in equations/Jacobian are applied consistently here for
-#' diagnostic coherence.
-#'
-#' @param estimates Numeric vector (beta, z, lambda) at the solution.
-#' @param missingness_model_matrix_scaled Scaled design matrix for the missingness (response) model.
-#' @param missingness_model_matrix_unscaled Unscaled design matrix for the missingness (response) model.
-#' @param auxiliary_matrix_scaled Scaled auxiliary matrix (or empty matrix).
-#' @param mu_x_scaled Vector of population means for scaled auxiliaries (or NULL).
-#' @param response_outcome Numeric vector of respondent outcomes.
-#' @param family Family object with linkinv and mu.eta.
-#' @param N_pop Numeric; population total on the analysis scale.
-#' @param respondent_weights Base weights for respondents.
-#' @param K_beta,K_aux Integers; sizes of beta and lambda.
-#' @param nmar_scaling_recipe Scaling recipe object for unscaling.
-#' @param standardize Logical; whether coefficients need unscaling.
-#' @param trim_cap Numeric; weight trimming cap (Inf = no trimming).
-#'
-#' @keywords internal
+
+
 el_post_solution <- function(estimates,
                              missingness_model_matrix_scaled,
                              missingness_model_matrix_unscaled,
@@ -166,18 +141,29 @@ el_post_solution <- function(estimates,
                              nmar_scaling_recipe,
                              standardize,
                              trim_cap,
-                             X_centered = NULL) {
+                             X_centered = NULL,
+                             lambda_W = NULL) {
   beta_hat_scaled <- estimates[1:K_beta]
   names(beta_hat_scaled) <- colnames(missingness_model_matrix_scaled)
   W_hat <- stats::plogis(estimates[K_beta + 1])
-  lambda_hat <- if (K_aux > 0) estimates[(K_beta + 2):length(estimates)] else numeric(0)
+# For survey designs the parameter vector includes lambda_W explicitly after z;
+# for IID designs lambda_W is derived from (N_pop, sum(weights)).
+  if (!is.null(lambda_W)) {
+    lambda_hat <- if (K_aux > 0) estimates[(K_beta + 3):length(estimates)] else numeric(0)
+  } else {
+    lambda_hat <- if (K_aux > 0) estimates[(K_beta + 2):length(estimates)] else numeric(0)
+  }
   eta_i_hat <- as.vector(missingness_model_matrix_scaled %*% beta_hat_scaled)
 # Clip eta consistently with equations/Jacobian for diagnostic coherence
   ETA_CAP <- get_eta_cap()
   eta_i_hat_capped <- pmax(pmin(eta_i_hat, ETA_CAP), -ETA_CAP)
   w_i_hat <- family$linkinv(eta_i_hat_capped)
-  C_const <- (N_pop / sum(respondent_weights)) - 1
-  lambda_W_hat <- el_lambda_W(C_const, W_hat)
+  if (is.null(lambda_W)) {
+    C_const <- (N_pop / sum(respondent_weights)) - 1
+    lambda_W_hat <- el_lambda_W(C_const, W_hat)
+  } else {
+    lambda_W_hat <- lambda_W
+  }
   if (K_aux > 0) {
     if (is.null(X_centered)) {
 # Fallback centering (should be provided by caller for efficiency)
@@ -192,7 +178,11 @@ el_post_solution <- function(estimates,
   masses <- el_masses(respondent_weights, dpack$denom, denom_floor, trim_cap)
   prob_mass <- masses$prob_mass
   y_hat <- el_mean(prob_mass, response_outcome)
-  beta_hat_unscaled <- if (standardize) unscale_coefficients(beta_hat_scaled, matrix(0, K_beta, K_beta), nmar_scaling_recipe)$coefficients else beta_hat_scaled
+  beta_hat_unscaled <- if (standardize) {
+    unscale_coefficients(beta_hat_scaled, matrix(0, K_beta, K_beta), nmar_scaling_recipe)$coefficients
+  } else {
+    beta_hat_scaled
+  }
   names(beta_hat_unscaled) <- colnames(missingness_model_matrix_unscaled)
   list(
     error = FALSE,
@@ -273,6 +263,9 @@ el_compute_diagnostics <- function(estimates,
   eq_residuals <- tryCatch(equation_system_func(estimates), error = function(e) rep(NA_real_, length(estimates)))
   max_eq_resid <- suppressWarnings(max(abs(eq_residuals), na.rm = TRUE))
   A_condition <- tryCatch({ kappa(analytical_jac_func(estimates)) }, error = function(e) NA_real_)
+  if (!is.finite(A_condition)) {
+    A_condition <- NA_real_
+  }
 
   denom_floor <- nmar_get_el_denom_floor()
   denom_hat <- post$denominator_hat
@@ -336,7 +329,7 @@ el_compute_diagnostics <- function(estimates,
 el_compute_variance <- function(y_hat,
                                 full_data,
                                 formula,
-                                user_args,
+                                N_pop,
                                 variance_method,
                                 bootstrap_reps,
                                 standardize,
@@ -356,7 +349,7 @@ el_compute_variance <- function(y_hat,
       on_failure = on_failure,
       auxiliary_means = auxiliary_means,
       control = control,
-      n_total = user_args$n_total %||% NULL,
+      n_total = N_pop %||% NULL,
       start = start,
       family = family
     )
@@ -371,7 +364,7 @@ el_compute_variance <- function(y_hat,
       estimator_func = est_closure,
       point_estimate = y_hat,
       bootstrap_reps = bootstrap_reps,
-      formula = user_args$formula %||% formula,
+      formula = formula,
       engine_args = engine_args
     )
     boot_try <- tryCatch(
@@ -386,169 +379,4 @@ el_compute_variance <- function(y_hat,
   }
 # Unknown method -> treat as none (defensive)
   list(se = NA_real_, message = sprintf("Unknown variance method '%s'", as.character(variance_method)))
-}
-
-# ---- Logging helpers -------------------------------------------------------
-
-#' Log a step banner line
-#' @keywords internal
-el_log_banner <- function(verboser, title) {
-  verboser("============================================================", level = 1, type = "step")
-  verboser(paste0("  ", title), level = 1, type = "step")
-  verboser("============================================================", level = 1, type = "step")
-}
-
-#' Log a short trace message with the chosen level
-#' @keywords internal
-el_log_trace <- function(verboser, trace_level) {
-  msg <- sprintf("Running with trace_level = %d", trace_level)
-  if (trace_level < 3) {
-    msg <- paste0(msg, sprintf(" | For more detail, use trace_level = %d", trace_level + 1))
-  }
-  verboser(msg, level = 1)
-}
-
-#' Log data prep summary
-#' @keywords internal
-el_log_data_prep <- function(verboser, outcome_var, family_name,
-                             K_beta, K_aux, aux_names,
-                             standardize, is_survey,
-                             N_pop, n_resp_weighted) {
-  verboser("", level = 1)
-  verboser("-- DATA PREPARATION --", level = 1)
-  response_rate <- (n_resp_weighted / N_pop) * 100
-  verboser(sprintf("  Total weighted size:      %.1f", N_pop), level = 1)
-  verboser(sprintf("  Respondents (weighted):   %.1f (%.1f%%)", n_resp_weighted, response_rate), level = 1)
-
-  verboser("", level = 2)
-  verboser("-- MODEL SPECIFICATION --", level = 2)
-  verboser(sprintf("  Outcome variable:         %s", outcome_var), level = 2)
-  verboser(sprintf("  Response model family:    %s", family_name %||% "<unknown>"), level = 2)
-  verboser(sprintf("  Response predictors:      %d", K_beta), level = 2)
-  if (K_aux > 0) {
-    verboser(sprintf("  Auxiliary constraints:    %d", K_aux), level = 2)
-    if (length(aux_names) > 0) verboser(sprintf("  Auxiliary variables:      %s", paste(aux_names, collapse = ", ")), level = 2)
-  } else {
-    verboser("  Auxiliary constraints:    (none)", level = 2)
-  }
-  verboser(sprintf("  Standardization:          %s", if (standardize) "enabled" else "disabled"), level = 2)
-  verboser(sprintf("  Data type:                %s", if (is_survey) "survey.design" else "data.frame"), level = 2)
-}
-
-#' Log solver configuration
-#' @keywords internal
-el_log_solver_config <- function(verboser, control_top, final_control) {
-  verboser("", level = 1)
-  verboser("-- NONLINEAR SOLVER --", level = 1)
-  verboser("  Method:                   Newton with analytic Jacobian", level = 2)
-  verboser(sprintf("  Global strategy:          %s", control_top$global %||% "qline"), level = 2)
-  verboser(sprintf("  Max iterations:           %d", final_control$maxit), level = 2)
-  verboser(sprintf("  Function tolerance:       %.2e", final_control$ftol), level = 2)
-  verboser(sprintf("  Parameter tolerance:      %.2e", final_control$xtol), level = 2)
-}
-
-#' Log starting values
-#' @keywords internal
-el_log_start_values <- function(verboser, init_beta, init_z, init_lambda) {
-  verboser("", level = 3)
-  verboser("  Starting values:", level = 3)
-  if (length(init_beta)) verboser(sprintf("    beta (response model):  %s", paste(sprintf("%.4f", init_beta), collapse = ", ")), level = 3)
-  verboser(sprintf("    z (logit response rate): %.4f", init_z), level = 3)
-  if (length(init_lambda)) verboser(sprintf("    lambda_x (auxiliary):   %s", paste(sprintf("%.4f", init_lambda), collapse = ", ")), level = 3)
-}
-
-#' Log a short solver progress note
-#' @keywords internal
-el_log_solving <- function(verboser) {
-  verboser("", level = 1)
-  verboser("Solving stacked system...", level = 1)
-}
-
-#' Log solver termination status
-#' @keywords internal
-el_log_solver_result <- function(verboser, converged_success, solution, elapsed) {
-  verboser("", level = 1)
-  verboser(if (converged_success) "[OK] Solver converged successfully" else "[FAILED] Solver failed to converge", level = 1, type = "result")
-  verboser("", level = 2)
-  verboser(sprintf("  Termination code:         %d (%s)", solution$termcd, solution$message), level = 2)
-  verboser(sprintf("  Iterations:               %d", if (!is.null(solution$iter)) solution$iter else NA), level = 2)
-  verboser(sprintf("  Solver time:              %.3f seconds", elapsed), level = 2)
-}
-
-#' Log weight diagnostics
-#' @keywords internal
-el_log_weight_diagnostics <- function(verboser, W_hat, weights, trimmed_fraction) {
-  verboser("", level = 2)
-  verboser("-- EL MASS DIAGNOSTICS --", level = 2)
-  weight_sum <- sum(weights)
-  verboser(sprintf("  Estimated response rate:  %.4f", W_hat), level = 2)
-  verboser(sprintf("  Weight sum (trimmed):     %.1f", weight_sum), level = 2)
-  verboser(sprintf("  Trimmed fraction:         %.2f%%", trimmed_fraction * 100), level = 2)
-  wr <- range(weights)
-  verboser(sprintf("  Weight range:             [%.4f, %.4f]", wr[1], wr[2]), level = 2)
-}
-
-#' Log detailed diagnostics
-#' @keywords internal
-el_log_detailed_diagnostics <- function(verboser, beta_hat_unscaled, W_hat, lambda_W_hat, lambda_hat, denominator_hat) {
-  verboser("", level = 3)
-  verboser("-- DETAILED DIAGNOSTICS --", level = 3)
-  if (length(beta_hat_unscaled)) {
-    verboser(sprintf("  beta (response model, unscaled):"), level = 3)
-    for (i in seq_along(beta_hat_unscaled)) {
-      nm <- if (!is.null(names(beta_hat_unscaled))) names(beta_hat_unscaled)[i] else paste0("beta", i)
-      verboser(sprintf("    %-25s %.6f", nm, beta_hat_unscaled[i]), level = 3)
-    }
-  }
-  verboser(sprintf("  W (response rate):        %.6f", W_hat), level = 3)
-  verboser(sprintf("  lambda_W (response multiplier): %.6f", lambda_W_hat), level = 3)
-  if (length(lambda_hat)) {
-    verboser(sprintf("  lambda_x (auxiliary multipliers):"), level = 3)
-    for (i in seq_along(lambda_hat)) {
-      nm <- if (!is.null(names(lambda_hat))) names(lambda_hat)[i] else paste0("lambda", i)
-      verboser(sprintf("    %-25s %.6f", nm, lambda_hat[i]), level = 3)
-    }
-  }
-  verboser(sprintf("  Denominator min:          %.6e", min(denominator_hat, na.rm = TRUE)), level = 3)
-  verboser(sprintf("  Denominator median:       %.6f", stats::median(denominator_hat, na.rm = TRUE)), level = 3)
-}
-
-#' Log variance header and result
-#' @keywords internal
-el_log_variance_header <- function(verboser, variance_method, bootstrap_reps) {
-  if (identical(variance_method, "none")) return(invisible(NULL))
-  verboser("", level = 1)
-  verboser("-- VARIANCE ESTIMATION --", level = 1)
-  if (identical(variance_method, "bootstrap")) {
-    verboser(sprintf("  Method:                   %s (reps = %d)", variance_method, bootstrap_reps), level = 2)
-  } else {
-    verboser(sprintf("  Method:                   %s", variance_method), level = 2)
-  }
-}
-
-#' @keywords internal
-el_log_variance_result <- function(verboser, se, elapsed) {
-  verboser("", level = 2)
-  if (is.finite(se)) {
-    verboser(sprintf("  Standard error:           %.6f", se), level = 2, type = "result")
-    verboser(sprintf("  Variance time:            %.3f seconds", elapsed), level = 2)
-  } else {
-    verboser("  Standard error:           NA (estimation failed)", level = 2, type = "result")
-  }
-}
-
-#' Log final summary
-#' @keywords internal
-el_log_final <- function(verboser, y_hat, se) {
-  verboser("", level = 1)
-  el_log_banner(verboser, "EMPIRICAL LIKELIHOOD ESTIMATION COMPLETED")
-  verboser("", level = 1)
-  verboser(sprintf("  Estimate (y_hat):         %.6f", y_hat), level = 1, type = "result")
-  if (is.finite(se)) {
-    verboser(sprintf("  Standard error:           %.6f", se), level = 1, type = "result")
-    verboser(sprintf("  95%% CI:                   [%.6f, %.6f]", y_hat - 1.96 * se, y_hat + 1.96 * se), level = 1, type = "result")
-  } else {
-    verboser("  Standard error:           NA", level = 1, type = "result")
-  }
-  verboser("", level = 1)
 }

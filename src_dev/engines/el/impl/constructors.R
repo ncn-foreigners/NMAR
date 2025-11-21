@@ -1,21 +1,19 @@
 #' Construct EL Result Object
 #' @keywords internal
 new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
-                               converged, diagnostics, input_spec,
+                               converged, diagnostics, inputs,
                                nmar_scaling_recipe, fitted_values, call,
                                formula = NULL) {
   diagnostics <- diagnostics %||% list()
-  outcome_name <- input_spec$outcome_var %||% NA_character_
+  outcome_name <- inputs$outcome_expr %||% NA_character_
   trim_fraction <- diagnostics$trimmed_fraction %||% NA_real_
+  is_svy <- inherits(inputs$analysis_data, "survey.design")
 
   sample <- list(
-# Preserve the engine-supplied analysis-scale population total (N_pop) from
-# input_spec so weights(object, scale = "population") sums to N_pop for both
-# IID and survey designs.
-    n_total = input_spec$N_pop %||% NA_integer_,
-    n_respondents = length(input_spec$respondent_indices) %||% NA_integer_,
-    is_survey = isTRUE(input_spec$is_survey),
-    design = if (isTRUE(input_spec$is_survey)) input_spec$analysis_object else NULL
+    n_total = inputs$N_pop %||% NA_integer_, # weights(object, scale='population') sums to this
+    n_respondents = sum(inputs$respondent_mask) %||% NA_integer_,
+    is_survey = isTRUE(is_svy),
+    design = if (isTRUE(is_svy)) inputs$analysis_data else NULL
   )
 
   df_val <- NA_real_
@@ -32,7 +30,7 @@ new_nmar_result_el <- function(y_hat, se, weights, coefficients, vcov,
   }
 
   inference <- list(
-    variance_method = input_spec$variance_method %||% NA_character_,
+    variance_method = inputs$variance_method %||% NA_character_,
     df = df_val,
     message = diagnostics$vcov_message %||% NA_character_
   )

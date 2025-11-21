@@ -1,11 +1,11 @@
 test_that("validate_and_apply_nmar_scaling handles weighted standardization", {
   Z <- cbind(`(Intercept)` = 1, x1 = c(1, 2, 3), x2 = c(2, 5, 6))
   weights <- c(1, 2, 3)
-  scaling <- NMAR:::validate_and_apply_nmar_scaling(
+  scaling <- validate_and_apply_nmar_scaling(
     standardize = TRUE,
     has_aux = FALSE,
     response_model_matrix_unscaled = Z,
-    auxiliary_matrix_unscaled = matrix(nrow = nrow(Z), ncol = 0),
+    aux_matrix_unscaled = matrix(nrow = nrow(Z), ncol = 0),
     mu_x_unscaled = NULL,
     weights = weights
   )
@@ -23,11 +23,11 @@ test_that("validate_and_apply_nmar_scaling handles weighted standardization", {
 test_that("validate_and_apply_nmar_scaling warns on constant predictors", {
   Z <- cbind(`(Intercept)` = 1, x1 = c(1, 1, 1), x2 = c(0, 1, 2))
   expect_warning(
-    scaling <- NMAR:::validate_and_apply_nmar_scaling(
+    scaling <- validate_and_apply_nmar_scaling(
       standardize = TRUE,
       has_aux = FALSE,
       response_model_matrix_unscaled = Z,
-      auxiliary_matrix_unscaled = matrix(nrow = nrow(Z), ncol = 0),
+      aux_matrix_unscaled = matrix(nrow = nrow(Z), ncol = 0),
       mu_x_unscaled = NULL
     ),
     "nearly constant",
@@ -42,7 +42,7 @@ test_that("unscale_coefficients warns when recipe incomplete (identity fallback)
   vcov <- diag(c(0.04, 0.01, 0.09))
   recipe <- structure(list(x1 = list(mean = 0, sd = 1)), class = "nmar_scaling_recipe")
   expect_warning(
-    res <- NMAR:::unscale_coefficients(coeffs, vcov, recipe),
+    res <- unscale_coefficients(coeffs, vcov, recipe),
     "missing entries",
     fixed = FALSE
   )

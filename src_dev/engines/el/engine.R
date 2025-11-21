@@ -2,12 +2,16 @@
 #'
 #' Constructs a configuration object for the empirical likelihood estimator under
 #' nonignorable nonresponse (NMAR) with optional auxiliary moment constraints.
-#' The estimator solves the stacked system in \eqn{\theta = (\beta, z, \lambda_x)}
-#' with \eqn{z = \operatorname{logit}(W)} using a Newton method with analytic
-#' Jacobian and globalization via \link[nleqslv]{nleqslv}. Numerical safeguards
-#' (bounded linear predictor, link-inverse clipping, denominator floors, and
-#' stable linear algebra) improve robustness. Pass the engine to \link{nmar}
-#' together with a formula and data.
+#' For \code{data.frame} inputs (IID setting) the estimator solves a stacked
+#' system in \eqn{\theta = (\beta, z, \lambda_x)} with \eqn{z = \operatorname{logit}(W)}
+#' using a Newton method with an analytic Jacobian and globalization via
+#' \link[nleqslv]{nleqslv}. For \code{survey.design} inputs it solves a
+#' design-weighted analogue in \eqn{\theta = (\beta, z, \lambda_W, \lambda_x)}.
+#' When the response family supplies second derivatives (logit and probit) an
+#' analytic Jacobian is used; otherwise the solver falls back to numeric/Broyden
+#' Jacobians. Numerical safeguards (bounded linear predictor, link-inverse
+#' clipping, denominator floors, and stable linear algebra) improve robustness.
+#' Pass the engine to \link{nmar} together with a formula and data.
 #'
 #' @param family character; missingness (response) model family, either \code{"logit"} or \code{"probit"},
 #'   or a family object created by \code{logit_family()} / \code{probit_family()}.
@@ -22,7 +26,8 @@
 #' @param auxiliary_means named numeric vector; population means for auxiliary
 #'   design columns. Names must match the materialized model.matrix column names
 #'   on the first RHS (after formula expansion), e.g., factor indicators like
-#'   `F_b` or transformed terms `I(X^2)`. Intercept is always excluded. Optional.
+#'   `F_b` or transformed terms `I(X^2)`. Auxiliary intercepts are always
+#'   dropped automatically, so do not supply `(Intercept)`. Optional.
 #' @param control list; optional solver control for \code{nleqslv::nleqslv()}.
 #'   Recognized fields (defaults in parentheses):
 #'   \itemize{
@@ -32,7 +37,15 @@
 #'     \item In \code{control=}: \code{xtol}, \code{ftol}, \code{btol}, \code{maxit}, \code{trace},
 #'       \code{stepmax}, \code{delta}, \code{allowSing}
 #'   }
-#'   Unknown names are ignored. The method is Newton with an analytic Jacobian.
+#'   Unknown names are ignored. For \code{data.frame} inputs the EL system is
+#'   solved by Newton with an analytic Jacobian; for \code{survey.design}
+#'   inputs a design-weighted analogue is solved with an analytic Jacobian
+#'   when available or numeric/Broyden Jacobians otherwise.
+#' @param strata_augmentation logical; when \code{TRUE} (default), survey designs
+#'   with an identifiable strata structure are augmented with stratum indicators
+#'   and corresponding population shares in the auxiliary block (Wu-style
+#'   strata augmentation). Has no effect for \code{data.frame} inputs or
+#'   survey designs without strata.
 #' @param n_total numeric; optional when supplying respondents-only data (no \code{NA} in the
 #'   outcome). For \code{data.frame} inputs, set to the total number of sampled units
 #'   before filtering to respondents. For \code{survey.design} inputs, set to the total
@@ -56,48 +69,25 @@
 #' formula and data.
 #'
 #' @details
-#' Empirical likelihood assigns masses \eqn{m_i = d_i / D_i(\theta)} to respondents
-#' with base weights \eqn{d_i}. Following Qin, Leung, and Shao (2002, JASA 97:193-200),
-#' the denominator is
-#' \deqn{D_i(\theta) = 1 + \lambda_W\{w_i(\beta) - W\} + X_{i\cdot}^{(c)}\,\lambda_x,}
-#' where \eqn{w_i(\beta) = g(\eta_i)} with link-inverse \eqn{g}, \eqn{\eta_i = x_i^\top\beta},
-#' \eqn{W} is the (unknown) response rate, and \eqn{X^{(c)} = X - \mu_X} centers
-#' auxiliary columns at their population means. The multiplier for the response-rate
-#' equation is
-#' \deqn{\lambda_W = \{N_\mathrm{pop}/\sum_i d_i - 1\}/(1 - W),}
-#' which ensures scale coherence for both IID data (\eqn{d_i \equiv 1}) and survey
-#' designs (\eqn{d_i} are design weights). The estimating equations impose
-#' \eqn{\sum_i m_i\{w_i(\beta) - W\} = 0},
-#' \eqn{\sum_i m_i\,s_i(\beta) = 0} with \eqn{s_i(\beta) = \partial \log w_i / \partial \eta_i},
-#' and, when present, \eqn{\sum_i m_i X_{i\cdot}^{(c)} = 0}.
-#'
-#' The missingness-model score used in both equations and Jacobian is the derivative
-#' of the Bernoulli log-likelihood with respect to the linear predictor, i.e.
-#' \code{mu.eta(eta) / linkinv(eta)} (logit: \code{1 - w}; probit: Mills ratio \code{phi/Phi}).
-#' We apply a consistent guarding policy (cap \eqn{\eta}, clip \eqn{w}, floor denominators
-#' with an "active" mask in the Jacobian) to ensure numerical stability and to make the
-#' analytic Jacobian match the piecewise-smooth equations being solved. When
-#' \code{variance_method = "delta"} is requested, the estimator returns \code{NA}
-#' standard errors with a message; use \code{variance_method = "bootstrap"} for SEs.
-#'
-#' Survey designs are handled by replacing counts in QLS (2002) with design-weighted
-#' totals. In particular, the response-rate multiplier generalizes to
-#' \eqn{\lambda_W = \{N_\mathrm{pop}/\sum_{i:\,R_i=1} d_i - 1\}/(1 - W)}, which reduces
-#' to the QLS expression when \eqn{d_i \equiv 1}. Solver configuration uses \code{nleqslv}
-#' with an analytic Jacobian and line-search globalization. Defaults are
-#' \code{global = "qline"} and \code{xscalm = "auto"}; users can override via \code{control}.
-#' Invalid values are coerced to these defaults with a warning.
+#' This engine implements an empirical likelihood estimator for NMAR response
+#' based on Qin, Leung and Shao (2002) for IID data, and a design-weighted
+#' analogue for complex survey designs inspired by Chen and Sitter (1999) and
+#' Wu (2005). For \code{data.frame} inputs the unknowns are \code{(beta, z, lambda_x)}
+#' with \code{z = logit(W)}, and the QLS closed-form identity is used to profile
+#' out the multiplier \code{lambda_W}. For \code{survey.design} inputs the system
+#' is extended to \code{(beta, z, lambda_W, lambda_x)} and solved with design
+#' weights and, when present, Wu-style strata augmentation in the auxiliary
+#' block. Numerical guards (capped linear predictors, clipped response
+#' probabilities, denominator floors) are applied consistently in equations and
+#' Jacobians.
 #'
 #' \strong{Formula syntax}: \code{nmar()} supports a partitioned right-hand side
 #' \code{y_miss ~ aux1 + aux2 | z1 + z2}. Variables left of \code{|} are auxiliaries
 #' (used in EL moment constraints); variables right of \code{|} are missingness-model
 #' predictors only. The outcome appears on the left-hand side and is included as a
-#' response predictor by default.
-#'
-#' \strong{Weights in results}: Calling \code{weights()} on the returned \code{nmar_result}
-#' gives respondent weights on either the probability scale (sum to 1) or the population
-#' scale (sum to \eqn{N_\mathrm{pop}}). The reported masses come from the empirical
-#' likelihood construction \eqn{a_i/D_i(\theta)} and are normalized in \code{weights()}.
+#' response predictor by default. Auxiliary design matrices are constructed with
+#' an intercept dropped automatically; missingness models always include an
+#' intercept even if the formula uses \code{-1} or \code{+0}.
 #'
 #' \strong{Variance}: Analytical delta variance for EL is not implemented. Requesting
 #' \code{variance_method = "delta"} is coerced to \code{"none"} with a warning. For standard
@@ -107,6 +97,12 @@
 #' Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical
 #' Association, 97(457), 193-200.
+#'
+#' Chen, J., and Sitter, R. R. (1999). A pseudo empirical likelihood approach for
+#' complex survey data. Biometrika, 86(2), 373-385.
+#'
+#' Wu, C. (2005). Algorithms and R codes for the pseudo empirical likelihood method
+#' in survey sampling. Canadian Journal of Statistics, 33(3), 497-509.
 #'
 #' @section Progress Reporting:
 #' When \code{variance_method = "bootstrap"}, progress reporting is available via the
@@ -142,23 +138,6 @@
 #' If progressr is not installed or no handlers are set, bootstrap runs silently
 #' (default behavior). Progress reporting works with all future backends and does
 #' not affect reproducibility.
-#'
-#' @return An engine object of class \code{c("nmar_engine_el","nmar_engine")}.
-#'   This is a configuration list; it is not a fit. Pass it to \link{nmar}.
-#'
-#' @seealso \link{nmar}; see the vignette "Empirical Likelihood Theory for NMAR" for derivations.
-#'
-#' @references
-#' Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
-#' nonignorable nonresponse or informative sampling. \emph{Journal of the American
-#' Statistical Association}, 97(457), 193-200.
-#'
-#' Wu, C., and Sitter, R. R. (2001). A model-calibration approach to using
-#' complete auxiliary information from survey data. \emph{Journal of the American
-#' Statistical Association}, 96(453), 185-193. Related to design-based
-#' calibration; our EL approach balances auxiliary moments through empirical
-#' likelihood constraints rather than calibration adjustments to weights.
-#'
 #'
 #' @keywords engine
 #' @export
@@ -202,6 +181,7 @@ el_engine <- function(
     bootstrap_reps = 500,
     auxiliary_means = NULL,
     control = list(),
+    strata_augmentation = TRUE,
     n_total = NULL,
     start = NULL,
     family = c("logit", "probit")) {
@@ -224,6 +204,7 @@ el_engine <- function(
     bootstrap_reps = bootstrap_reps,
     auxiliary_means = auxiliary_means,
     control = control,
+    strata_augmentation = strata_augmentation,
     n_total = n_total,
     start = start,
     family = family
@@ -258,6 +239,7 @@ validate_nmar_engine_el <- function(engine) {
 
   validator$assert_named_numeric(engine$auxiliary_means, name = "auxiliary_means", allow_null = TRUE)
   validator$assert_list(engine$control, name = "control")
+  validator$assert_logical(engine$strata_augmentation, name = "strata_augmentation")
 
   if (!is.null(engine$n_total)) validator$assert_positive_number(engine$n_total, name = "n_total", allow_infinite = FALSE)
 

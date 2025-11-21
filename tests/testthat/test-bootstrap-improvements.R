@@ -10,7 +10,7 @@ test_that("IID bootstrap is reproducible across future backends", {
 # Sequential backend
   future::plan(future::sequential)
   set.seed(424242)
-  res_seq <- NMAR:::bootstrap_variance(
+  res_seq <- bootstrap_variance(
     data, estimator, point_estimate = 0, bootstrap_reps = 50, bootstrap_cores = 1
   )
 
@@ -18,14 +18,14 @@ test_that("IID bootstrap is reproducible across future backends", {
   skip_on_cran() # Multisession can be unreliable on CRAN
   future::plan(future::multisession, workers = 2)
   set.seed(424242)
-  res_par2 <- NMAR:::bootstrap_variance(
+  res_par2 <- bootstrap_variance(
     data, estimator, point_estimate = 0, bootstrap_reps = 50
   )
 
 # Multisession backend (4 workers)
   future::plan(future::multisession, workers = 4)
   set.seed(424242)
-  res_par4 <- NMAR:::bootstrap_variance(
+  res_par4 <- bootstrap_variance(
     data, estimator, point_estimate = 0, bootstrap_reps = 50
   )
 
@@ -64,7 +64,7 @@ test_that("Survey bootstrap is reproducible across backends", {
 # Sequential baseline
   future::plan(future::sequential)
   set.seed(999)
-  res_seq1 <- NMAR:::bootstrap_variance(
+  res_seq1 <- bootstrap_variance(
     dstrat, estimator, point_estimate = mean(apistrat$api00),
     bootstrap_reps = 50, bootstrap_cores = 1
   )
@@ -72,7 +72,7 @@ test_that("Survey bootstrap is reproducible across backends", {
 # Sequential with same seed should be identical
   future::plan(future::sequential)
   set.seed(999)
-  res_seq2 <- NMAR:::bootstrap_variance(
+  res_seq2 <- bootstrap_variance(
     dstrat, estimator, point_estimate = mean(apistrat$api00),
     bootstrap_reps = 50, bootstrap_cores = 1
   )
