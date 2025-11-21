@@ -100,8 +100,3 @@ if (requireNamespace("survey", quietly = TRUE)) {
 
 }
 ```
-```{r}
-# class(res)
-se(res)
-```
-
