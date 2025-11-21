@@ -329,7 +329,7 @@ el_compute_diagnostics <- function(estimates,
 el_compute_variance <- function(y_hat,
                                 full_data,
                                 formula,
-                                user_args,
+                                N_pop,
                                 variance_method,
                                 bootstrap_reps,
                                 standardize,
@@ -349,7 +349,7 @@ el_compute_variance <- function(y_hat,
       on_failure = on_failure,
       auxiliary_means = auxiliary_means,
       control = control,
-      n_total = user_args$n_total %||% NULL,
+      n_total = N_pop %||% NULL,
       start = start,
       family = family
     )
@@ -364,7 +364,7 @@ el_compute_variance <- function(y_hat,
       estimator_func = est_closure,
       point_estimate = y_hat,
       bootstrap_reps = bootstrap_reps,
-      formula = user_args$formula %||% formula,
+      formula = formula,
       engine_args = engine_args
     )
     boot_try <- tryCatch(

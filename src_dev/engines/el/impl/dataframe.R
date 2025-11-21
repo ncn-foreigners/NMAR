@@ -78,18 +78,6 @@ el.data.frame <- function(data, formula,
     weights_full = NULL
   )
 
-  user_args <- c(
-    list(
-      formula = formula,
-      auxiliary_means = auxiliary_means,
-      standardize = standardize,
-      trim_cap = trim_cap,
-      control = control,
-      n_total = inputs$N_pop
-    ),
-    list(...)
-  )
-
   core_results <- el_estimator_core(
     missingness_design = inputs$missingness_design,
     aux_matrix = auxiliary_summary$auxiliary_design,
@@ -98,6 +86,7 @@ el.data.frame <- function(data, formula,
     analysis_data = inputs$analysis_data,
     outcome_expr = inputs$outcome_expr,
     N_pop = inputs$N_pop,
+    formula = formula,
     standardize = standardize,
     trim_cap = trim_cap,
     control = control,
@@ -105,7 +94,6 @@ el.data.frame <- function(data, formula,
     family = family,
     variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,
-    user_args = user_args,
     start = start,
     trace_level = trace_level,
     auxiliary_means = auxiliary_means

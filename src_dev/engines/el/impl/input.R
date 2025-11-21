@@ -37,6 +37,7 @@ el_prepare_inputs <- function(formula,
                               n_total = NULL,
                               design_object = NULL) {
 
+# hase 1: parse formula and outcome
   if (missing(formula)) stop("`formula` must be supplied.", call. = FALSE)
 
   fml <- Formula::as.Formula(formula)
@@ -110,7 +111,7 @@ el_prepare_inputs <- function(formula,
 
   outcome_names <- c(outcome_source, outcome_label)
 
-## RHS1: auxiliary design on full data
+# hase 2: build auxiliary (RHS1) design on full data
   rhs1_formula <- stats::formula(fml, lhs = 0, rhs = 1)
   rhs1_expr <- rhs1_formula[[2L]]
   rhs1_vars_explicit <- setdiff(all.vars(rhs1_expr), ".")
@@ -142,7 +143,7 @@ el_prepare_inputs <- function(formula,
     )
   }
 
-## RHS2: missingness predictors on respondents
+# Phase 3: build missingness (RHS2) design on respondents
   if (n_rhs_parts >= 2L) {
     rhs2_formula <- stats::formula(fml, lhs = 0, rhs = 2)
     rhs2_expr <- rhs2_formula[[2L]]
@@ -203,6 +204,7 @@ el_prepare_inputs <- function(formula,
   colnames(outcome_col) <- outcome_label
   missingness_design <- cbind(intercept_col, outcome_col, rhs2_predictors)
 
+# Phase 4: augment data with respondent indicator and weights
 # Create NMAR delta indicator column and avoid collisions with existing names
   if (length(respondent_mask) != nrow(data)) {
     stop("Internal error: respondent mask must align with data.", call. = FALSE)
@@ -225,11 +227,9 @@ el_prepare_inputs <- function(formula,
     rep(1, sum(respondent_mask))
   }
 
+# hase 5: wrap survey design (if present) and compute N_pop
   is_survey <- !is.null(design_object) && inherits(design_object, "survey.design")
   analysis_object <- if (isTRUE(is_survey)) {
-    if (is.null(design_object)) {
-      stop("Internal error: design object must be supplied for survey workflows.", call. = FALSE)
-    }
     design_object$variables <- data_aug
     design_object
   } else {

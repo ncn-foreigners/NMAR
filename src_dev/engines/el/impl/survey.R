@@ -172,23 +172,32 @@ el.survey.design <- function(data, formula,
     auxiliary_means_eff <- aug$means
   }
 
+# Detect obvious linear dependence between auxiliaries and strata dummies.
+# Redundant constraints (e.g., auxiliaries that are sums of strata indicators)
+# can lead to a rank-deficient auxiliary block and numerical instability in EL.
+  X_full <- inputs$aux_design_full
+  if (is.matrix(X_full) && ncol(X_full) > 0L) {
+    X_resp <- X_full[inputs$respondent_mask, , drop = FALSE]
+    if (nrow(X_resp) > 0L) {
+      qr_rank <- tryCatch(qr(X_resp)$rank, error = function(e) NA_integer_)
+      if (is.finite(qr_rank) && qr_rank < ncol(X_resp)) {
+        warning(
+          "Auxiliary + strata design appears rank-deficient (rank = ", qr_rank,
+          " < ", ncol(X_resp), "). ",
+          "Redundant constraints (for example, auxiliaries that are functions of strata) ",
+          "can cause instability in the empirical likelihood solver. ",
+          "Consider removing redundant auxiliaries or disabling strata_augmentation.",
+          call. = FALSE
+        )
+      }
+    }
+  }
+
   auxiliary_summary <- el_resolve_auxiliaries(
     aux_design_full = inputs$aux_design_full,
     respondent_mask = inputs$respondent_mask,
     auxiliary_means = auxiliary_means_eff,
     weights_full = weights_initial
-  )
-
-  user_args <- c(
-    list(
-      formula = formula,
-      auxiliary_means = auxiliary_means_eff,
-      standardize = standardize,
-      trim_cap = trim_cap,
-      control = control,
-      n_total = inputs$N_pop
-    ),
-    list(...)
   )
 
   core_results <- el_estimator_core(
@@ -199,6 +208,7 @@ el.survey.design <- function(data, formula,
     analysis_data = inputs$analysis_data,
     outcome_expr = inputs$outcome_expr,
     N_pop = inputs$N_pop,
+    formula = formula,
     standardize = standardize,
     trim_cap = trim_cap,
     control = control,
@@ -206,7 +216,6 @@ el.survey.design <- function(data, formula,
     family = family,
     variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,
-    user_args = user_args,
     start = start,
     trace_level = trace_level,
     auxiliary_means = auxiliary_means_eff

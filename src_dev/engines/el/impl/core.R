@@ -9,9 +9,10 @@
 #' @param aux_means Named numeric vector of auxiliary population means (aligned to columns of `aux_matrix`).
 #' @param auxiliary_means Named numeric vector of known population means supplied by the user (optional; used for diagnostics).
 #' @param respondent_weights Numeric vector of respondent weights aligned with `missingness_design` rows.
-#' @param analysis_data Data object used for logging (survey designs supply the design object).
+#' @param analysis_data Data object used for logging and variance (survey designs supply the design object).
 #' @param outcome_expr Character string identifying the outcome expression displayed in outputs.
 #' @param N_pop Population size on the analysis scale.
+#' @param formula Original model formula used for estimation.
 #' @param standardize Logical. Whether to standardize predictors during estimation.
 #' @param trim_cap Numeric. Upper bound for empirical likelihood weight trimming.
 #' @param control List of control parameters for the nonlinear equation solver.
@@ -19,7 +20,6 @@
 #' @param family List. Link function specification (typically logit).
 #' @param variance_method Character. Variance estimation method.
 #' @param bootstrap_reps Integer. Number of bootstrap replications.
-#' @param user_args List. Original user arguments for bootstrap replication.
 #'
 #' @return List containing estimation results, diagnostics, and metadata.
 #'
@@ -45,11 +45,11 @@ el_estimator_core <- function(missingness_design,
                               respondent_weights,
                               analysis_data,
                               outcome_expr,
-                              N_pop,
+                              N_pop, formula,
                               standardize, trim_cap, control,
                               on_failure, family = logit_family(),
                               variance_method, bootstrap_reps,
-                              user_args, start = NULL, trace_level = 0,
+                              start = NULL, trace_level = 0,
                               auxiliary_means = NULL) {
 
 # 0. Setup
@@ -379,8 +379,8 @@ el_estimator_core <- function(missingness_design,
   var_out <- el_compute_variance(
     y_hat = y_hat,
     full_data = analysis_data,
-    formula = user_args$formula,
-    user_args = user_args,
+    formula = formula,
+    N_pop = N_pop,
     variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,
     standardize = standardize,
