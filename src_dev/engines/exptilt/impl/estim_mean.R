@@ -23,5 +23,7 @@ estim_mean.nmar_exptilt <- function(model) {
     * model$design_weights[model$respondent_mask]
     / probabilities)
 
+  test <- numerator / denominator
+# browser()
   return(numerator / denominator)
 }

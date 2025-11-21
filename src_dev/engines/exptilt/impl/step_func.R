@@ -53,5 +53,6 @@ step_func <- function(model, theta, O_matrix_nieobs) {
 
   result_total <- result_nieobs + result_obs
 # browser()
+# browser()
   return(result_total)
 }
