@@ -11,7 +11,7 @@ estimate population means.
 
 ``` r
 el_resolve_auxiliaries(
-  auxiliary_design_full,
+  aux_design_full,
   respondent_mask,
   auxiliary_means,
   weights_full = NULL

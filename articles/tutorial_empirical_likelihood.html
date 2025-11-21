@@ -176,9 +176,9 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt; Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=500&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Missingness-model coefficients:</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -1.570694         NA      NA       NA</span></span>
-<span><span class="co">#&gt; Y_miss       0.366754         NA      NA       NA</span></span>
+<span><span class="co">#&gt;              Estimate</span></span>
+<span><span class="co">#&gt; (Intercept) -1.570694</span></span>
+<span><span class="co">#&gt; Y_miss       0.366754</span></span>
 <span><span class="co"># For confidence intervals, use bootstrap variance (see example below).</span></span></code></pre></div>
 <p>Probit family (optional):</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
@@ -202,9 +202,9 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt; Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=500&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Missingness-model coefficients:</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -0.949678         NA      NA       NA</span></span>
-<span><span class="co">#&gt; Y_miss       0.217504         NA      NA       NA</span></span></code></pre></div>
+<span><span class="co">#&gt;              Estimate</span></span>
+<span><span class="co">#&gt; (Intercept) -0.949678</span></span>
+<span><span class="co">#&gt; Y_miss       0.217504</span></span></code></pre></div>
 <p>Tidy/glance summaries, and plots:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"broom"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -234,28 +234,22 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;  [1] 0.2385382 0.2237686 0.4564170 0.1384020 0.2873926 0.2792951 0.3336042</span></span>
 <span><span class="co">#&gt;  [8] 0.3145361 0.2706197 0.2550132</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">diagnostics</span><span class="op">)</span></span>
-<span><span class="co">#&gt; List of 38</span></span>
+<span><span class="co">#&gt; List of 34</span></span>
 <span><span class="co">#&gt;  $ convergence_code                  : int 1</span></span>
 <span><span class="co">#&gt;  $ message                           : chr "Function criterion near zero"</span></span>
 <span><span class="co">#&gt;  $ vcov_message                      : chr "Variance skipped (variance_method='none')"</span></span>
 <span><span class="co">#&gt;  $ trimmed_fraction                  : num 0</span></span>
 <span><span class="co">#&gt;  $ solver_method                     : chr "Newton"</span></span>
-<span><span class="co">#&gt;  $ nleqslv_global                    : chr "qline"</span></span>
-<span><span class="co">#&gt;  $ nleqslv_xscalm                    : chr "auto"</span></span>
+<span><span class="co">#&gt;  $ nleqslv_global                    : chr NA</span></span>
+<span><span class="co">#&gt;  $ nleqslv_xscalm                    : chr NA</span></span>
 <span><span class="co">#&gt;  $ solver_iterations                 : int 7</span></span>
 <span><span class="co">#&gt;  $ solver_time                       : num 0.005</span></span>
-<span><span class="co">#&gt;  $ variance_time                     : num 0.001</span></span>
+<span><span class="co">#&gt;  $ variance_time                     : num 0</span></span>
 <span><span class="co">#&gt;  $ reparam_W                         : chr "logit"</span></span>
 <span><span class="co">#&gt;  $ max_equation_residual             : num 5.18e-13</span></span>
 <span><span class="co">#&gt;  $ jacobian_condition_number         : num 36.8</span></span>
-<span><span class="co">#&gt;  $ aux_inconsistency_max_z           : num 0.114</span></span>
-<span><span class="co">#&gt;  $ aux_inconsistency_cols            : chr "X"</span></span>
-<span><span class="co">#&gt;  $ grad_source                       : chr NA</span></span>
-<span><span class="co">#&gt;  $ var_y_hat_val                     : num NA</span></span>
-<span><span class="co">#&gt;  $ var_anal2                         : num NA</span></span>
-<span><span class="co">#&gt;  $ grad_l1                           : num NA</span></span>
-<span><span class="co">#&gt;  $ sigma_min_eig                     : num NA</span></span>
-<span><span class="co">#&gt;  $ B_min_eig                         : num NA</span></span>
+<span><span class="co">#&gt;  $ auxiliary_inconsistency_max_z     : num 0.114</span></span>
+<span><span class="co">#&gt;  $ auxiliary_inconsistency_cols      : chr "X"</span></span>
 <span><span class="co">#&gt;  $ min_denominator                   : num 0.461</span></span>
 <span><span class="co">#&gt;  $ fraction_small_denominators       : num 0</span></span>
 <span><span class="co">#&gt;  $ denom_q01                         : num 0.496</span></span>
@@ -273,7 +267,13 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;  $ sum_respondent_weights            : num 150</span></span>
 <span><span class="co">#&gt;  $ sum_unnormalized_weights_untrimmed: num 150</span></span>
 <span><span class="co">#&gt;  $ normalization_ratio               : num 1</span></span>
-<span><span class="co">#&gt;  $ max_constraint_residual           : num 5.18e-13</span></span></code></pre></div>
+<span><span class="co">#&gt;  $ max_constraint_residual           : num 5.18e-13</span></span>
+<span><span class="co">#&gt;  $ auxiliary_means                   : Named num 0</span></span>
+<span><span class="co">#&gt;   ..- attr(*, "names")= chr "X"</span></span>
+<span><span class="co">#&gt;  $ auxiliary_matrix                  : num [1:150, 1] -0.56 -0.23 1.559 -1.265 -0.687 ...</span></span>
+<span><span class="co">#&gt;   ..- attr(*, "dimnames")=List of 2</span></span>
+<span><span class="co">#&gt;   .. ..$ : chr [1:150] "1" "2" "3" "8" ...</span></span>
+<span><span class="co">#&gt;   .. ..$ : chr "X"</span></span></code></pre></div>
 <p>Bootstrap variance (keep reps small for speed). This example requires
 the optional future.apply package; the chunk runs only if it is
 available:</p>
@@ -318,9 +318,9 @@ the estimator can recover the population response rate:</p>
 <span><span class="co">#&gt; Call: nmar(Y_miss ~ X, data = &lt;data.frame: N=300&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Missingness-model coefficients:</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -1.449030         NA      NA       NA</span></span>
-<span><span class="co">#&gt; Y_miss       0.826353         NA      NA       NA</span></span></code></pre></div>
+<span><span class="co">#&gt;              Estimate</span></span>
+<span><span class="co">#&gt; (Intercept) -1.449030</span></span>
+<span><span class="co">#&gt; Y_miss       0.826353</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="response-only-predictors">Response-only predictors<a class="anchor" aria-label="anchor" href="#response-only-predictors"></a>
@@ -357,10 +357,10 @@ are not constrained as auxiliaries) by placing them to the right of
 <span><span class="co">#&gt; Call: nmar(Y_miss ~ X | Z, data = &lt;data.frame: N=400&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Missingness-model coefficients:</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -0.557563         NA      NA       NA</span></span>
-<span><span class="co">#&gt; Y_miss      -0.044005         NA      NA       NA</span></span>
-<span><span class="co">#&gt; Z            0.003693         NA      NA       NA</span></span></code></pre></div>
+<span><span class="co">#&gt;              Estimate</span></span>
+<span><span class="co">#&gt; (Intercept) -0.557563</span></span>
+<span><span class="co">#&gt; Y_miss      -0.044005</span></span>
+<span><span class="co">#&gt; Z            0.003693</span></span></code></pre></div>
 <p>Auxiliary means and formulas:</p>
 <ul>
 <li>Names of <code>auxiliary_means</code> must match the variables on
@@ -426,9 +426,9 @@ need auxiliary means.</li>
 <span><span class="co">#&gt; Call: nmar(api00_miss ~ ell, data = &lt;survey.design: N=6194.00032424927&gt;, engine = empirical_likelihood)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Missingness-model coefficients:</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error t value Pr(&gt;|t|)</span></span>
-<span><span class="co">#&gt; (Intercept)  3.231721         NA      NA       NA</span></span>
-<span><span class="co">#&gt; api00_miss  -0.005586         NA      NA       NA</span></span></code></pre></div>
+<span><span class="co">#&gt;              Estimate</span></span>
+<span><span class="co">#&gt; (Intercept)  3.231721</span></span>
+<span><span class="co">#&gt; api00_miss  -0.005586</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="practical-guidance">Practical guidance<a class="anchor" aria-label="anchor" href="#practical-guidance"></a>

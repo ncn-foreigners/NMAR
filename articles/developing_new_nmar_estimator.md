@@ -47,8 +47,8 @@ User workflow:
 1.  User creates an engine configuration (e.g., `el_engine(...)`).
 2.  User calls `nmar(formula = ..., data = ..., engine = <engine>)`.
 3.  [`nmar()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md)
-    creates an `nmar_input_spec` via `parse_nmar_spec()`, validates it
-    with `validate_nmar_args()` (using engine-specific traits), and then
+    creates an `nmar_inputs` via `parse_nmar_spec()`, validates it with
+    `validate_nmar_args()` (using engine-specific traits), and then
     dispatches to `run_engine(engine, task)` by S3.
 4.  The engine’s `run_engine.<engine_class>()` extracts what it needs
     from `task` (typically via `prepare_nmar_design()`) and passes
@@ -154,7 +154,7 @@ method.data.frame <- function(data, formula, controls = list(), ...) {
   sc <- validate_and_apply_nmar_scaling(
     standardize = TRUE, has_aux = !is.null(X_un),
     response_model_matrix_unscaled = Z_un,
-    auxiliary_matrix_unscaled = if (is.null(X_un)) matrix(nrow = nrow(Z_un), ncol = 0) else X_un,
+    aux_matrix_unscaled = if (is.null(X_un)) matrix(nrow = nrow(Z_un), ncol = 0) else X_un,
     mu_x_unscaled = mu_x
   )
 

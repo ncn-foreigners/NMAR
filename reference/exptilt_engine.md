@@ -199,8 +199,8 @@ res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 
 #> [INFO]  
 #> [INFO] -- DATA SUMMARY -- 
 #> [INFO]   Total observations:      500 
-#> [INFO]   Respondents:             355 (29.0%) 
-#> [INFO]   Non-respondents:         145 (71.0%) 
+#> [INFO]   Respondents:             348 (30.4%) 
+#> [INFO]   Non-respondents:         152 (69.6%) 
 #> [INFO]  
 #> [INFO] -- CONDITIONAL DENSITY ESTIMATION -- 
 #> [INFO]   Selected distribution:   normal 
@@ -209,7 +209,7 @@ res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 
 #> [INFO]   Solving... 
 #> [INFO]  
 #> [INFO]   OK Converged 
-#> [INFO]   Iterations:               5 
+#> [INFO]   Iterations:               6 
 #> [INFO]  
 #> [INFO] -- VARIANCE ESTIMATION (Delta Method) -- 
 #> Warning: Delta variance failed to evaluate; using bootstrap instead.
@@ -217,20 +217,20 @@ res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 
 #> [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- 
 #> [INFO]   Bootstrap replications:   50 
 #> [INFO]   OK Bootstrap complete 
-#> [INFO]   Standard error:           0.000003 
+#> [INFO]   Standard error:           0.000017 
 #> [INFO]  
 #> [RESULT] ============================================================ 
 #> [RESULT]   ESTIMATION COMPLETE 
 #> [RESULT] ============================================================ 
-#> [RESULT]   Mean estimate:            -1.007480 
-#> [RESULT]   Standard error:           0.000003 
-#> [RESULT]   95% CI:                   [-1.007485, -1.007476] 
+#> [RESULT]   Mean estimate:            -0.942440 
+#> [RESULT]   Standard error:           0.000017 
+#> [RESULT]   95% CI:                   [-0.942474, -0.942406] 
 #> [RESULT] ============================================================ 
 summary(res)
 #> NMAR Model Summary
 #> =================
-#> Y mean: -1.007480 (0.000003)
-#> 95% CI: (-1.007485, -1.007476)
+#> Y mean: -0.942440 (0.000017)
+#> 95% CI: (-0.942474, -0.942406)
 #> Converged: TRUE 
 #> Variance method: delta 
 # }

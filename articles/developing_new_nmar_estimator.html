@@ -142,7 +142,7 @@ Astonishment, and Law of Demeter?</li>
 <li>User calls
 <code>nmar(formula = ..., data = ..., engine = &lt;engine&gt;)</code>.</li>
 <li>
-<code><a href="../reference/nmar.html">nmar()</a></code> creates an <code>nmar_input_spec</code> via
+<code><a href="../reference/nmar.html">nmar()</a></code> creates an <code>nmar_inputs</code> via
 <code>parse_nmar_spec()</code>, validates it with
 <code>validate_nmar_args()</code> (using engine-specific traits), and
 then dispatches to <code>run_engine(engine, task)</code> by S3.</li>
@@ -252,7 +252,7 @@ data<a class="anchor" aria-label="anchor" href="#implmethod_dataframe-r-method-f
 <span>  <span class="va">sc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/validate_and_apply_nmar_scaling.html">validate_and_apply_nmar_scaling</a></span><span class="op">(</span></span>
 <span>    standardize <span class="op">=</span> <span class="cn">TRUE</span>, has_aux <span class="op">=</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">X_un</span><span class="op">)</span>,</span>
 <span>    response_model_matrix_unscaled <span class="op">=</span> <span class="va">Z_un</span>,</span>
-<span>    auxiliary_matrix_unscaled <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">X_un</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span>nrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">Z_un</span><span class="op">)</span>, ncol <span class="op">=</span> <span class="fl">0</span><span class="op">)</span> <span class="kw">else</span> <span class="va">X_un</span>,</span>
+<span>    aux_matrix_unscaled <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">X_un</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span>nrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">Z_un</span><span class="op">)</span>, ncol <span class="op">=</span> <span class="fl">0</span><span class="op">)</span> <span class="kw">else</span> <span class="va">X_un</span>,</span>
 <span>    mu_x_unscaled <span class="op">=</span> <span class="va">mu_x</span></span>
 <span>  <span class="op">)</span></span>
 <span></span>

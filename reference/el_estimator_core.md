@@ -9,12 +9,13 @@ variance calculation, and diagnostic computation.
 ``` r
 el_estimator_core(
   missingness_design,
-  auxiliary_matrix,
-  mu_x,
+  aux_matrix,
+  aux_means,
   respondent_weights,
-  full_data,
-  outcome_var,
+  analysis_data,
+  outcome_expr,
   N_pop,
+  formula,
   standardize,
   trim_cap,
   control,
@@ -22,7 +23,6 @@ el_estimator_core(
   family = logit_family(),
   variance_method,
   bootstrap_reps,
-  user_args,
   start = NULL,
   trace_level = 0,
   auxiliary_means = NULL
@@ -36,26 +36,26 @@ el_estimator_core(
   Respondent-side missingness (response) model design matrix
   (intercept + predictors).
 
-- auxiliary_matrix:
+- aux_matrix:
 
   Auxiliary design matrix on respondents (may have zero columns).
 
-- mu_x:
+- aux_means:
 
   Named numeric vector of auxiliary population means (aligned to columns
-  of \`auxiliary_matrix\`).
+  of \`aux_matrix\`).
 
 - respondent_weights:
 
   Numeric vector of respondent weights aligned with
   \`missingness_design\` rows.
 
-- full_data:
+- analysis_data:
 
-  Data object used for logging (survey designs supply the design
-  object).
+  Data object used for logging and variance (survey designs supply the
+  design object).
 
-- outcome_var:
+- outcome_expr:
 
   Character string identifying the outcome expression displayed in
   outputs.
@@ -63,6 +63,10 @@ el_estimator_core(
 - N_pop:
 
   Population size on the analysis scale.
+
+- formula:
+
+  Original model formula used for estimation.
 
 - standardize:
 
@@ -92,18 +96,10 @@ el_estimator_core(
 
   Integer. Number of bootstrap replications.
 
-- user_args:
-
-  List. Original user arguments for bootstrap replication.
-
 - auxiliary_means:
 
   Named numeric vector of known population means supplied by the user
   (optional; used for diagnostics).
-
-- ...:
-
-  Additional arguments passed to the solver.
 
 ## Value
 
@@ -112,12 +108,16 @@ List containing estimation results, diagnostics, and metadata.
 ## Details
 
 Orchestrates EL estimation for NMAR following Qin, Leung, and Shao
-(2002). The stacked system in \\(\beta, z, \lambda_x)\\ with \\z =
-\logit(W)\\ is solved by `nleqslv` using an analytic Jacobian. Numerical
-safeguards are applied consistently across equations, Jacobian, and
-post-solution weights: bounded linear predictors, probability clipping
-in ratios, and a small floor on denominators `D_i()` with an active-set
-mask in derivatives. After solving, unnormalized masses `d_i/D_i()` are
+(2002). For `data.frame` inputs (IID setting) the stacked system in
+\\(\beta, z, \lambda_x)\\ with \\z = \logit(W)\\ is solved by `nleqslv`
+using an analytic Jacobian. For `survey.design` inputs a design-weighted
+analogue in \\(\beta, z, \lambda_W, \lambda_x)\\ is solved with an
+analytic Jacobian when the response family supplies second derivatives,
+or with numeric/Broyden Jacobians otherwise. Numerical safeguards are
+applied consistently across equations, Jacobian, and post-solution
+weights: bounded linear predictors, probability clipping in ratios, and
+a small floor on denominators \\D_i(\theta)\\ with an active-set mask in
+derivatives. After solving, unnormalized masses \\d_i/D_i(\theta)\\ are
 formed, optional trimming may be applied (with normalization only for
 reporting), and optional variance is computed via bootstrap. The
 analytical delta method for EL is not implemented.

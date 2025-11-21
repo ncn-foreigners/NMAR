@@ -13,7 +13,7 @@ new_nmar_result_el(
   vcov,
   converged,
   diagnostics,
-  input_spec,
+  inputs,
   nmar_scaling_recipe,
   fitted_values,
   call,

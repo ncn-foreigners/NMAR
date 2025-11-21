@@ -7,7 +7,7 @@ Build EL result object (success or failure)
 ``` r
 el_build_result(
   core_results,
-  input_spec,
+  inputs,
   call,
   formula,
   engine_name = "empirical_likelihood"

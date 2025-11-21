@@ -13,6 +13,7 @@ el(
   formula,
   auxiliary_means = NULL,
   standardize = TRUE,
+  strata_augmentation = TRUE,
   trim_cap = Inf,
   control = list(),
   on_failure = c("return", "error"),
@@ -34,7 +35,9 @@ el(
 
 - formula:
 
-  Two-sided formula: NA-valued outcome on LHS; auxiliaries on RHS.
+  Two-sided formula with an NA-valued outcome on the LHS; auxiliaries on
+  the first RHS and, optionally, missingness predictors on the second
+  RHS partition.
 
 - auxiliary_means:
 
@@ -46,6 +49,12 @@ el(
 - standardize:
 
   Logical; standardize predictors.
+
+- strata_augmentation:
+
+  Logical; when `TRUE` (default), augment the auxiliary design with
+  stratum indicators and stratum shares when a strata structure is
+  present in the survey design.
 
 - trim_cap:
 
@@ -61,7 +70,7 @@ el(
 
 - variance_method:
 
-  Character; "delta" or "bootstrap".
+  Character; "delta", "bootstrap", or "none".
 
 - bootstrap_reps:
 
@@ -69,7 +78,7 @@ el(
 
 - n_total:
 
-  Optional population size used to rescale design weights; required for
+  Optional analysis-scale population size `N_pop`; required for
   respondents-only designs.
 
 - start:
@@ -95,23 +104,19 @@ el(
 ## Details
 
 Implements the empirical likelihood estimator with design weights. If
-`n_total` is supplied, design weights are rescaled internally to ensure
-`sum(weights(design))` and `n_total` are on the same scale; this
-guarantees the response-multiplier formula uses consistent totals. If
-`n_total` is not supplied, `sum(weights(design))` is used as the
-population total `N_pop`. When respondents-only designs are used (no NA
-in the outcome), `n_total` must be provided; if auxiliaries are
-requested you must also provide population auxiliary means via
-`auxiliary_means`. Result weights are the unnormalized EL masses
-`d_i/D_i(theta)` on this design
-scale;`weights(result, scale = "population")` sums to `N_pop`.
+`n_total` is supplied, it is treated as the analysis-scale population
+size `N_pop` used in the design-weighted QLS system. If `n_total` is not
+supplied, `sum(weights(design))` is used as `N_pop`. Design weights are
+not rescaled internally; the EL equations use respondent weights and
+`N_pop` via `T0 = N_pop - sum(d_i)` in the linkage equation. When
+respondents-only designs are used (no NA in the outcome), `n_total` must
+be provided; if auxiliaries are requested you must also provide
+population auxiliary means via `auxiliary_means`. Result weights are the
+unnormalized EL masses `d_i/D_i(theta)` on this analysis scale;
+`weights(result, scale = "population")` sums to `N_pop`.
 
 ## References
 
 Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data
 under nonignorable nonresponse or informative sampling. Journal of the
 American Statistical Association, 97(457), 193-200.
-
-Wu, C., and Sitter, R. R. (2001). A model-calibration approach to using
-complete auxiliary information from survey data. Journal of the American
-Statistical Association, 96(453), 185-193.

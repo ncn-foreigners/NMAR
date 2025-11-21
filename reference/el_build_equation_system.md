@@ -46,7 +46,3 @@ when \\w_i\\ is clipped.
 Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data
 under nonignorable nonresponse or informative sampling. Journal of the
 American Statistical Association, 97(457), 193-200.
-
-Wu, C., and Sitter, R. R. (2001). A model-calibration approach to using
-complete auxiliary information from survey data. Journal of the American
-Statistical Association, 96(453), 185-193.

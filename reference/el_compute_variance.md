@@ -9,7 +9,7 @@ el_compute_variance(
   y_hat,
   full_data,
   formula,
-  user_args,
+  N_pop,
   variance_method,
   bootstrap_reps,
   standardize,

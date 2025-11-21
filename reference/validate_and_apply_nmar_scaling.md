@@ -9,7 +9,7 @@ validate_and_apply_nmar_scaling(
   standardize,
   has_aux,
   response_model_matrix_unscaled,
-  auxiliary_matrix_unscaled,
+  aux_matrix_unscaled,
   mu_x_unscaled,
   weights = NULL,
   weight_mask = NULL
@@ -30,7 +30,7 @@ validate_and_apply_nmar_scaling(
 
   response model matrix (with intercept).
 
-- auxiliary_matrix_unscaled:
+- aux_matrix_unscaled:
 
   auxiliary matrix (no intercept) or an empty matrix.
 

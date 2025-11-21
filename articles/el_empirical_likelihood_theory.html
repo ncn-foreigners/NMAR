@@ -316,22 +316,6 @@ probit:
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∂</mi><mi>F</mi><mi>/</mi><mi>∂</mi><mi>θ</mi></mrow><annotation encoding="application/x-tex">\partial F/\partial \theta</annotation></semantics></math>
 </td>
 </tr>
-<tr class="even">
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>B</mi><annotation encoding="application/x-tex">B</annotation></semantics></math></td>
-<td>Covariance of total score vector</td>
-</tr>
-<tr class="odd">
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>g</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>θ</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">g(\theta)</annotation></semantics></math></td>
-<td>Functional mapping parameters to
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>Y</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat Y</annotation></semantics></math>
-</td>
-</tr>
-<tr class="even">
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">V</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi></mrow><mrow><mo stretchy="true" form="prefix">(</mo><mover><mi>Y</mi><mo accent="true">̂</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\mathrm{Var}(\hat Y)</annotation></semantics></math></td>
-<td>Delta:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∇</mi><mi>g</mi><mspace width="0.167em"></mspace><msup><mi>A</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><mi>B</mi><msup><mi>A</mi><mrow><mo>−</mo><mi>T</mi></mrow></msup><mspace width="0.167em"></mspace><mi>∇</mi><msup><mi>g</mi><mi>T</mi></msup></mrow><annotation encoding="application/x-tex">\nabla g\,A^{-1}BA^{-T}\,\nabla g^T</annotation></semantics></math>
-</td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -391,9 +375,9 @@ only relative weights matter (the KKT multipliers
 enforce the constraints; normalization affects only a common scale that
 vanishes in the ratio).</p>
 <div class="section level3">
-<h3 id="survey-weighted-generalization-of-lambda_w-qls-eq--10">Survey-Weighted Generalization of
+<h3 id="closed-form-lambda_w-qls-eq--10-iid-path">Closed-form
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>
-(QLS Eq. 10)<a class="anchor" aria-label="anchor" href="#survey-weighted-generalization-of-lambda_w-qls-eq--10"></a>
+(QLS Eq. 10, IID path)<a class="anchor" aria-label="anchor" href="#closed-form-lambda_w-qls-eq--10-iid-path"></a>
 </h3>
 <p>QLS derive
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>N</mi><mi>/</mi><mi>n</mi><mo>−</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\lambda_W = (N/n - 1)/(1-W)</annotation></semantics></math>
@@ -401,18 +385,34 @@ when
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>a</mi><mi>i</mi></msub><mo>≡</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">a_i \equiv 1</annotation></semantics></math>
 and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
-counts respondents. In survey settings, let
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>A</mi><mtext mathvariant="normal">resp</mtext></msub><mo>=</mo><msub><mo>∑</mo><mrow><mi>i</mi><mo>:</mo><msub><mi>R</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow></msub><msub><mi>a</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">A_{\text{resp}} = \sum_{i:R_i=1} a_i</annotation></semantics></math>
-be the respondent-weighted total and let
+counts respondents. In our <strong>IID (data-frame) path</strong> we
+reuse this relation, generalized to allow arbitrary base weights
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>a</mi><mi>i</mi></msub><annotation encoding="application/x-tex">a_i</annotation></semantics></math>:</p>
+<ul>
+<li>Let
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo>=</mo><msub><mo>∑</mo><mrow><mi>i</mi><mo>:</mo><msub><mi>R</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow></msub><msub><mi>a</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">n_{\text{resp\_weighted}} = \sum_{i:R_i=1} a_i</annotation></semantics></math>
+be the respondent-weighted total.</li>
+<li>Let
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><annotation encoding="application/x-tex">N_{\text{pop}}</annotation></semantics></math>
 be the analysis-scale population total (either
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>∑</mo><msub><mi>a</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\sum a_i</annotation></semantics></math>
-or a user-supplied
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>n</mi><mtext mathvariant="normal">total</mtext></msub><annotation encoding="application/x-tex">n_{\text{total}}</annotation></semantics></math>).
-We use the weighted analogue</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mfrac><mrow><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><mi>/</mi><msub><mi>A</mi><mtext mathvariant="normal">resp</mtext></msub><mo>−</mo><mn>1</mn></mrow><mrow><mn>1</mn><mo>−</mo><mi>W</mi></mrow></mfrac><mo>,</mo></mrow><annotation encoding="application/x-tex">\lambda_W = \frac{N_{\text{pop}}/A_{\text{resp}} - 1}{1 - W},</annotation></semantics></math></p>
-<p>which reduces to QLS when
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>a</mi><mi>i</mi></msub><mo>≡</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">a_i \equiv 1</annotation></semantics></math>.</p>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
+or a user-supplied <code>n_total</code>).</li>
+</ul>
+<p>We set</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mfrac><mrow><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><mi>/</mi><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo>−</mo><mn>1</mn></mrow><mrow><mn>1</mn><mo>−</mo><mi>W</mi></mrow></mfrac><mo>,</mo></mrow><annotation encoding="application/x-tex">
+\lambda_W = \frac{N_{\text{pop}}/n_{\text{resp\_weighted}} - 1}{1 - W},
+</annotation></semantics></math></p>
+<p>which reduces to the original QLS formula when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>a</mi><mi>i</mi></msub><mo>≡</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">a_i \equiv 1</annotation></semantics></math>.
+This closed form is used <strong>only</strong> in the IID path to
+profile out
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>;
+for complex survey designs we instead treat
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>
+as a free parameter and solve for it jointly with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo>,</mo><mi>W</mi><mo>,</mo><msub><mi>λ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\beta, W, \lambda_x)</annotation></semantics></math>
+via the design-weighted system described in the survey extension
+section.</p>
 </div>
 <div class="section level3">
 <h3 id="guarding-and-numerical-stability">Guarding and Numerical Stability<a class="anchor" aria-label="anchor" href="#guarding-and-numerical-stability"></a>
@@ -470,9 +470,12 @@ and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>∑</mo><msub><mi>a</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><msub><mi>D</mi><mi>i</mi></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\sum a_i (w_i - W)/D_i = 0</annotation></semantics></math>.</li>
 <li>QLS (10):
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>λ</mi><mo accent="true">̂</mo></mover><mn>2</mn></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>N</mi><mi>/</mi><mi>n</mi><mo>−</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\hat{\lambda}_2 = (N/n - 1)/(1 - W)</annotation></semantics></math>
--&gt; Our
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><mi>/</mi><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\lambda_W = ((N_{\text{pop}}/n_{\text{resp\_weighted}}) - 1)/(1 - W)</annotation></semantics></math>
-(design-weighted generalization).</li>
+-&gt; In the IID path we set
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><mi>/</mi><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\lambda_W = ((N_{\text{pop}}/n_{\text{resp\_weighted}}) - 1)/(1 - W)</annotation></semantics></math>;
+in the survey path
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>
+is solved from the additional linkage equation
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>g</mi><mi>W</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow></msubsup><annotation encoding="application/x-tex">g_W^{(1)}</annotation></semantics></math>.</li>
 <li>Estimator
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>Y</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat Y</annotation></semantics></math>
 in QLS -&gt; Our ratio
@@ -583,9 +586,11 @@ are determined by the estimating equations below.</p>
 and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math><a class="anchor" aria-label="anchor" href="#clarification-relationship-between-w-and-lambda_w"></a>
 </h3>
-<p>In our reparameterization, the EL multiplier for the probability
-constraint is expressed as:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mfrac><mi>C</mi><mrow><mn>1</mn><mo>−</mo><mi>W</mi></mrow></mfrac><mo>,</mo><mspace width="1.0em"></mspace><mrow><mtext mathvariant="normal">with </mtext><mspace width="0.333em"></mspace></mrow><mi>C</mi><mo>=</mo><mfrac><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub></mfrac><mo>−</mo><mn>1</mn><mrow><mspace width="0.333em"></mspace><mtext mathvariant="normal"> and </mtext><mspace width="0.333em"></mspace></mrow><mi>W</mi><mo>=</mo><mtext mathvariant="normal">plogis</mtext><mrow><mo stretchy="true" form="prefix">(</mo><mi>z</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\lambda_W = \frac{C}{1 - W}, \quad \text{with } C = \frac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1 \text{ and } W = \text{plogis}(z)</annotation></semantics></math></p>
+<p>In the IID (data-frame) path, the EL multiplier for the probability
+constraint is expressed as</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mfrac><mi>C</mi><mrow><mn>1</mn><mo>−</mo><mi>W</mi></mrow></mfrac><mo>,</mo><mspace width="1.0em"></mspace><mrow><mtext mathvariant="normal">with </mtext><mspace width="0.333em"></mspace></mrow><mi>C</mi><mo>=</mo><mfrac><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub></mfrac><mo>−</mo><mn>1</mn><mrow><mspace width="0.333em"></mspace><mtext mathvariant="normal"> and </mtext><mspace width="0.333em"></mspace></mrow><mi>W</mi><mo>=</mo><mtext mathvariant="normal">plogis</mtext><mrow><mo stretchy="true" form="prefix">(</mo><mi>z</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\lambda_W = \frac{C}{1 - W}, \quad \text{with } C = \frac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1 \text{ and } W = \text{plogis}(z).
+</annotation></semantics></math></p>
 <p>Intuition: In the EL KKT system, the constraint
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>∑</mo><msubsup><mi>p</mi><mi>i</mi><mtext mathvariant="normal">EL</mtext></msubsup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\sum p_i^{\text{EL}} (w_i - W) = 0</annotation></semantics></math>
 sits alongside normalization and (optionally) auxiliary constraints.
@@ -595,7 +600,7 @@ and the ratio between population and respondent totals induces a scaling
 of the multiplier linked to the mass constraint. Writing
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>
 in this scaled form keeps the parameter on a numerically stable scale
-and lets the derivative structure (w.r.t.
+and lets the derivative structure (with respect to
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>z</mi><annotation encoding="application/x-tex">z</annotation></semantics></math>
 via
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>W</mi><annotation encoding="application/x-tex">W</annotation></semantics></math>)
@@ -604,10 +609,10 @@ baseline mass is
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><annotation encoding="application/x-tex">n_{\text{resp\_weighted}}</annotation></semantics></math>
 and the “full population” target is
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><annotation encoding="application/x-tex">N_{\text{pop}}</annotation></semantics></math>,
-and it is exactly what the code uses to match the normalization implied
-by base weights.</p>
-<p>Derivation sketch (KKT): The discretized semiparametric likelihood
-(QLS, 2002) maximizes, over the unknown masses
+and it is exactly what the IID code path uses to match the normalization
+implied by base weights.</p>
+<p>Derivation sketch (KKT, IID case): The discretized semiparametric
+likelihood (QLS, 2002) maximizes, over the unknown masses
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">{</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\{p_i\}</annotation></semantics></math>
 at observed points and over
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo>,</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\beta, W)</annotation></semantics></math>,</p>
@@ -632,9 +637,9 @@ Taking derivatives (KKT conditions) and using that
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>∂</mi><mi>/</mi><mi>∂</mi><mi>W</mi></mrow><annotation encoding="application/x-tex">\partial/\partial W</annotation></semantics></math>
 of the second and third terms produces opposing contributions, one
 obtains the system equivalent to QLS (7)-(10). In particular, the
-first-order condition w.r.t. the multiplier associated with the
+first-order condition with respect to the multiplier associated with the
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>W</mi><annotation encoding="application/x-tex">W</annotation></semantics></math>-constraint
-yields, together with the derivative w.r.t.
+yields, together with the derivative with respect to
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>W</mi><annotation encoding="application/x-tex">W</annotation></semantics></math>,
 the closed form</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><mfrac><mrow><mfrac displaystyle="false"><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub></mfrac><mo>−</mo><mn>1</mn></mrow><mrow><mn>1</mn><mo>−</mo><mi>W</mi></mrow></mfrac><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><mfrac><mi>C</mi><mrow><mn>1</mn><mo>−</mo><mi>W</mi></mrow></mfrac><mo>,</mo></mrow><annotation encoding="application/x-tex">
@@ -642,22 +647,29 @@ the closed form</p>
 \;=\; \frac{\tfrac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1}{1 - W}
 \;=\; \frac{C}{1 - W},
 </annotation></semantics></math></p>
-<p>which generalizes QLS (10) to the design-weighted case
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo>=</mo><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>a</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">n_{\text{resp\_weighted}} = \sum_i a_i</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><mo>=</mo><msub><mo>∑</mo><mtext mathvariant="normal">all</mtext></msub><msub><mi>a</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">N_{\text{pop}} = \sum_{\text{all}} a_i</annotation></semantics></math>).
-A quick derivation sketch mirrors QLS (7)-(10): the W-FOC yields
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>a</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><msub><mi>D</mi><mi>i</mi></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\sum_i a_i (w_i - W) / D_i = 0</annotation></semantics></math>;
-combining with the implicit normalization
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>a</mi><mi>i</mi></msub><mi>/</mi><msub><mi>D</mi><mi>i</mi></msub><mo>=</mo><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub></mrow><annotation encoding="application/x-tex">\sum_i a_i / D_i = n_{\text{resp\_weighted}}</annotation></semantics></math>
-and the binomial part for
+<p>which coincides with QLS (10) when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>a</mi><mi>i</mi></msub><mo>≡</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">a_i \equiv 1</annotation></semantics></math>.
+This closed-form relationship is used in the IID EL implementation to
+profile out
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>.
+In the <strong>survey-design path</strong>, by contrast,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>
+is treated as an explicit unknown and the linkage between
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>W</mi><annotation encoding="application/x-tex">W</annotation></semantics></math>
-gives
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.167em"></mspace><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo>=</mo><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><mo>−</mo><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub></mrow><annotation encoding="application/x-tex">\lambda_W (1-W)\, n_{\text{resp\_weighted}} = N_{\text{pop}} - n_{\text{resp\_weighted}}</annotation></semantics></math>,
-hence
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><mi>/</mi><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo>−</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\lambda_W = (N_{\text{pop}}/n_{\text{resp\_weighted}} - 1)/(1-W)</annotation></semantics></math>.
-This is the expression implemented in the estimator and used throughout
-the Jacobian and variance calculations.</p>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>
+is enforced through the additional equation</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>g</mi><mi>W</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow></msubsup><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo>,</mo><mi>W</mi><mo>,</mo><msub><mi>λ</mi><mi>W</mi></msub><mo>,</mo><msub><mi>λ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><mfrac><msub><mi>T</mi><mn>0</mn></msub><mrow><mn>1</mn><mo>−</mo><mi>W</mi></mrow></mfrac><mo>−</mo><msub><mi>λ</mi><mi>W</mi></msub><munder><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>R</mi></mrow></munder><mfrac><msub><mi>d</mi><mi>i</mi></msub><msub><mi>D</mi><mi>i</mi></msub></mfrac><mo>=</mo><mn>0</mn><mo>,</mo></mrow><annotation encoding="application/x-tex">
+g_W^{(1)}(\beta, W, \lambda_W, \lambda_x)
+\;=\; \frac{T_0}{1 - W} - \lambda_W \sum_{i \in R} \frac{d_i}{D_i} = 0,
+</annotation></semantics></math></p>
+<p>where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mn>0</mn></msub><mo>=</mo><msub><mi>N</mi><mrow><mi mathvariant="normal">p</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">p</mi></mrow></msub><mo>−</mo><msub><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>R</mi></mrow></msub><msub><mi>d</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">T_0 = N_{\mathrm{pop}} - \sum_{i \in R} d_i</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>i</mi></msub><annotation encoding="application/x-tex">d_i</annotation></semantics></math>
+are the design weights. At the QLS simple-random-sampling limit (equal
+weights, no auxiliaries) this system reduces to the same closed-form
+relation.</p>
 </div>
 </div>
 <div class="section level2">
@@ -676,16 +688,33 @@ define
 and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mrow><mi>η</mi><mo>,</mo><mi>i</mi></mrow></msub><mo>=</mo><mfrac><mrow><mi>d</mi><mi>w</mi></mrow><mrow><mi>d</mi><mi>η</mi></mrow></mfrac><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>η</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\mu_{\eta,i} = \frac{dw}{d\eta}(\eta_i)</annotation></semantics></math>
 (denoted <code>mu.eta(eta_i)</code> in code).</p>
-<p>Define
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mo>=</mo><mfrac><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub></mfrac><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">C = \frac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1</annotation></semantics></math>,
-with
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo>=</mo><mo>∑</mo><msub><mi>a</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">n_{\text{resp\_weighted}} = \sum a_i</annotation></semantics></math>
+<p>In the <strong>IID (data-frame) path</strong> all base weights are
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>a</mi><mi>i</mi></msub><mo>≡</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">a_i \equiv 1</annotation></semantics></math>,
+so we can use the closed-form Qin-Leung-Shao (QLS) relation between
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>W</mi><annotation encoding="application/x-tex">W</annotation></semantics></math>
+and the EL multiplier for the response constraint. Writing
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mo>=</mo><mfrac><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub></mfrac><mo>−</mo><mn>1</mn><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo>=</mo><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>a</mi><mi>i</mi></msub><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><mo>=</mo><mi>n</mi><mo>,</mo></mrow><annotation encoding="application/x-tex">
+C = \frac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1,\qquad
+n_{\text{resp\_weighted}} = \sum_i a_i,\qquad N_{\text{pop}} = n,
+</annotation></semantics></math> QLS show that
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mfrac><mi>C</mi><mrow><mn>1</mn><mo>−</mo><mi>W</mi></mrow></mfrac><mo>=</mo><mfrac><mrow><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><mi>/</mi><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo>−</mo><mn>1</mn></mrow><mrow><mn>1</mn><mo>−</mo><mi>W</mi></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\lambda_W = \frac{C}{1 - W} = \frac{N_{\text{pop}}/n_{\text{resp\_weighted}} - 1}{1 - W}.
+</annotation></semantics></math> Our IID implementation follows this and
+<em>profiles out</em>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>:
+the unknowns for the Newton solver are
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo>,</mo><mi>z</mi><mo>,</mo><msub><mi>λ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\beta, z, \lambda_x)</annotation></semantics></math>.</p>
+<p>In the <strong>survey path</strong>, base weights are general design
+weights
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>a</mi><mi>i</mi></msub><mo>=</mo><msub><mi>d</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">a_i = d_i</annotation></semantics></math>
+and the corresponding QLS-style relation no longer has a simple closed
+form. In that case we treat
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>
+as an additional free parameter and include a separate equation linking
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>
 and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><annotation encoding="application/x-tex">N_{\text{pop}}</annotation></semantics></math>
-known (sum of design weights for survey;
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
-for IID). Then
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mfrac><mi>C</mi><mrow><mn>1</mn><mo>−</mo><mi>W</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">\lambda_W = \frac{C}{1 - W}</annotation></semantics></math>.</p>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>W</mi><annotation encoding="application/x-tex">W</annotation></semantics></math>
+(see the “Survey extension” section below).</p>
 <p><strong>Denominator</strong>:
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mo>+</mo><msub><mi>λ</mi><mi>W</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>+</mo><msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>X</mi><mi>i</mi></msub><mo>−</mo><msub><mi>μ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mi>T</mi></msup><msub><mi>λ</mi><mi>x</mi></msub></mrow><annotation encoding="application/x-tex">D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T \lambda_x</annotation></semantics></math>,
 with
@@ -777,11 +806,183 @@ constraints supply the nonparametric part.</li>
 </div>
 </div>
 <div class="section level2">
-<h2 id="analytical-jacobian-a-matrix">Analytical Jacobian
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>A</mi><annotation encoding="application/x-tex">A</annotation></semantics></math>
-Matrix)<a class="anchor" aria-label="anchor" href="#analytical-jacobian-a-matrix"></a>
+<h2 id="survey-extension-design-weighted-qls-system">Survey extension: design-weighted QLS system<a class="anchor" aria-label="anchor" href="#survey-extension-design-weighted-qls-system"></a>
 </h2>
-<p>We differentiate
+<p>The original QLS paper derives these equations under simple random
+sampling, where each respondent has equal weight. In practice we often
+work with complex survey designs and design weights
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mi>i</mi></msub><mo>≈</mo><mn>1</mn><mi>/</mi><msub><mi>π</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">d_i \approx 1/\pi_i</annotation></semantics></math>,
+where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>π</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\pi_i</annotation></semantics></math>
+is the inclusion probability for unit
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>.
+In our implementation we extend the QLS system using a
+<strong>design-weighted empirical likelihood</strong>:</p>
+<ul>
+<li>For respondents
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi><mo>∈</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">i \in R</annotation></semantics></math>
+we use base weights
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>a</mi><mi>i</mi></msub><mo>=</mo><msub><mi>d</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">a_i = d_i</annotation></semantics></math>.</li>
+<li>We approximate the unknown distribution of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mi>Y</mi><mo>,</mo><mi>X</mi><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(Y,X)</annotation></semantics></math>
+by a discrete measure
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>F</mi><mtext mathvariant="normal">EL</mtext></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>A</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><munder><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>R</mi></mrow></munder><msub><mi>d</mi><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mspace width="0.167em"></mspace><mn>𝟏</mn><mo stretchy="false" form="prefix">{</mo><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>,</mo><msub><mi>x</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>∈</mo><mi>A</mi><mo stretchy="false" form="postfix">}</mo><mo>,</mo></mrow><annotation encoding="application/x-tex">
+F_{\text{EL}}(A) = \sum_{i\in R} d_i p_i\,\mathbf{1}\{(y_i,x_i)\in A\},
+</annotation></semantics></math> where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>≥</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">p_i \ge 0</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>d</mi><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\sum_i d_i p_i = 1</annotation></semantics></math>.</li>
+<li>Expectations under
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>F</mi><annotation encoding="application/x-tex">F</annotation></semantics></math>
+are represented by design-weighted sums
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>d</mi><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mo>⋅</mo><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\sum_i d_i p_i(\cdot)</annotation></semantics></math>.</li>
+</ul>
+<p>We impose the following constraints, which are the design-weighted
+analogues of QLS (3):</p>
+<ul>
+<li>Normalization:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munder><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>R</mi></mrow></munder><msub><mi>d</mi><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\sum_{i\in R} d_i p_i = 1.
+</annotation></semantics></math>
+</li>
+<li>Response-rate constraint:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munder><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>R</mi></mrow></munder><msub><mi>d</mi><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mo minsize="1.2" maxsize="1.2" stretchy="false" form="prefix">(</mo><msub><mi>w</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>θ</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><mi>W</mi><mo minsize="1.2" maxsize="1.2" stretchy="false" form="postfix">)</mo><mo>=</mo><mn>0</mn><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\sum_{i\in R} d_i p_i \bigl(w_i(\theta) - W\bigr) = 0.
+</annotation></semantics></math>
+</li>
+<li>Auxiliary constraints (vector case):
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munder><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>R</mi></mrow></munder><msub><mi>d</mi><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>X</mi><mi>i</mi></msub><mo>−</mo><msub><mi>μ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mn>0</mn><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\sum_{i\in R} d_i p_i (X_i - \mu_x) = 0.
+</annotation></semantics></math>
+</li>
+</ul>
+<p>Maximizing the design-weighted pseudo-likelihood under these
+constraints yields EL weights of the same tilted form as in QLS:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>θ</mi><mo>,</mo><mi>W</mi><mo>,</mo><msub><mi>λ</mi><mi>x</mi></msub><mo>,</mo><msub><mi>λ</mi><mi>W</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mspace width="0.278em"></mspace><mo>∝</mo><mspace width="0.278em"></mspace><mfrac><mn>1</mn><msub><mi>D</mi><mi>i</mi></msub></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>D</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mo>+</mo><msub><mi>λ</mi><mi>W</mi></msub><mo minsize="1.2" maxsize="1.2" stretchy="false" form="prefix">(</mo><msub><mi>w</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>θ</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><mi>W</mi><mo minsize="1.2" maxsize="1.2" stretchy="false" form="postfix">)</mo><mo>+</mo><msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>X</mi><mi>i</mi></msub><mo>−</mo><msub><mi>μ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mi>⊤</mi></msup><msub><mi>λ</mi><mi>x</mi></msub><mo>,</mo></mrow><annotation encoding="application/x-tex">
+p_i(\theta, W, \lambda_x, \lambda_W) \;\propto\; \frac{1}{D_i},\qquad
+D_i = 1 + \lambda_W\bigl(w_i(\theta) - W\bigr) + (X_i - \mu_x)^\top \lambda_x,
+</annotation></semantics></math> with the proportionality constant
+chosen such that
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>d</mi><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\sum_i d_i p_i = 1</annotation></semantics></math>.
+In our implementation the <strong>unnormalized EL masses</strong> are
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>m</mi><mi>i</mi></msub><mo>=</mo><mfrac><msub><mi>d</mi><mi>i</mi></msub><msub><mi>D</mi><mi>i</mi></msub></mfrac><mo>,</mo></mrow><annotation encoding="application/x-tex">
+m_i = \frac{d_i}{D_i},
+</annotation></semantics></math> and the probability-scale weights are
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>p</mi><mi>i</mi><mrow><mi mathvariant="normal">E</mi><mi mathvariant="normal">L</mi></mrow></msubsup><mo>=</mo><msub><mi>m</mi><mi>i</mi></msub><mi>/</mi><msub><mo>∑</mo><mi>j</mi></msub><msub><mi>m</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">p_i^{\mathrm{EL}} = m_i / \sum_j m_j</annotation></semantics></math>.</p>
+<p>The corresponding design-weighted QLS estimating system in
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo>,</mo><mi>W</mi><mo>,</mo><msub><mi>λ</mi><mi>W</mi></msub><mo>,</mo><msub><mi>λ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\beta, W, \lambda_W, \lambda_x)</annotation></semantics></math>
+can be written as:</p>
+<ul>
+<li>Auxiliary block:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>g</mi><mi>x</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo>,</mo><mi>W</mi><mo>,</mo><msub><mi>λ</mi><mi>W</mi></msub><mo>,</mo><msub><mi>λ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><munder><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>R</mi></mrow></munder><msub><mi>d</mi><mi>i</mi></msub><mfrac><mrow><msub><mi>X</mi><mi>i</mi></msub><mo>−</mo><msub><mi>μ</mi><mi>x</mi></msub></mrow><msub><mi>D</mi><mi>i</mi></msub></mfrac><mo>=</mo><mn>0</mn><mi>.</mi></mrow><annotation encoding="application/x-tex">
+g_x(\beta, W, \lambda_W, \lambda_x)
+= \sum_{i\in R} d_i \frac{X_i - \mu_x}{D_i} = 0.
+</annotation></semantics></math>
+</li>
+<li>Response-rate constraint:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>g</mi><mi>W</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>2</mn><mo stretchy="true" form="postfix">)</mo></mrow></msubsup><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo>,</mo><mi>W</mi><mo>,</mo><msub><mi>λ</mi><mi>W</mi></msub><mo>,</mo><msub><mi>λ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><munder><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>R</mi></mrow></munder><msub><mi>d</mi><mi>i</mi></msub><mfrac><mrow><msub><mi>w</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><mi>W</mi></mrow><msub><mi>D</mi><mi>i</mi></msub></mfrac><mo>=</mo><mn>0</mn><mi>.</mi></mrow><annotation encoding="application/x-tex">
+g_W^{(2)}(\beta, W, \lambda_W, \lambda_x)
+= \sum_{i\in R} d_i \frac{w_i(\beta) - W}{D_i} = 0.
+</annotation></semantics></math>
+</li>
+<li>Score equations for
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>g</mi><mi>β</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo>,</mo><mi>W</mi><mo>,</mo><msub><mi>λ</mi><mi>W</mi></msub><mo>,</mo><msub><mi>λ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><munder><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>R</mi></mrow></munder><msub><mi>d</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">[</mo><mfrac><mrow><mi>∂</mi><mo>log</mo><msub><mi>w</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><mrow><mi>∂</mi><mi>β</mi></mrow></mfrac><mo>−</mo><msub><mi>λ</mi><mi>W</mi></msub><mfrac><mn>1</mn><msub><mi>D</mi><mi>i</mi></msub></mfrac><mfrac><mrow><mi>∂</mi><msub><mi>w</mi><mi>i</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><mrow><mi>∂</mi><mi>β</mi></mrow></mfrac><mo stretchy="true" form="postfix">]</mo></mrow><mo>=</mo><mn>0</mn><mi>.</mi></mrow><annotation encoding="application/x-tex">
+g_\beta(\beta, W, \lambda_W, \lambda_x)
+= \sum_{i\in R} d_i \left[
+    \frac{\partial \log w_i(\beta)}{\partial \beta}
+    - \lambda_W \frac{1}{D_i}
+      \frac{\partial w_i(\beta)}{\partial \beta}
+  \right] = 0.
+</annotation></semantics></math>
+</li>
+<li>Linkage between
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>
+and the nonrespondent total:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>g</mi><mi>W</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow></msubsup><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo>,</mo><mi>W</mi><mo>,</mo><msub><mi>λ</mi><mi>W</mi></msub><mo>,</mo><msub><mi>λ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mfrac><msub><mi>T</mi><mn>0</mn></msub><mrow><mn>1</mn><mo>−</mo><mi>W</mi></mrow></mfrac><mo>−</mo><msub><mi>λ</mi><mi>W</mi></msub><munder><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>R</mi></mrow></munder><mfrac><msub><mi>d</mi><mi>i</mi></msub><msub><mi>D</mi><mi>i</mi></msub></mfrac><mo>=</mo><mn>0</mn><mo>,</mo></mrow><annotation encoding="application/x-tex">
+g_W^{(1)}(\beta, W, \lambda_W, \lambda_x)
+= \frac{T_0}{1 - W} - \lambda_W \sum_{i\in R} \frac{d_i}{D_i} = 0,
+</annotation></semantics></math> where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mn>0</mn></msub><mo>=</mo><msub><mi>N</mi><mrow><mi mathvariant="normal">p</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">p</mi></mrow></msub><mo>−</mo><msub><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>R</mi></mrow></msub><msub><mi>d</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">T_0 = N_{\mathrm{pop}} - \sum_{i\in R} d_i</annotation></semantics></math>
+on the analysis scale.</li>
+</ul>
+<p>In code this system is implemented by
+<code><a href="../reference/el_build_equation_system_survey.html">el_build_equation_system_survey()</a></code> in
+<code>src_dev/engines/el/impl/equations.R</code>. The parameter vector
+is
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>θ</mi><mtext mathvariant="normal">survey</mtext></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo>,</mo><mi>z</mi><mo>,</mo><msub><mi>λ</mi><mi>W</mi></msub><mo>,</mo><msub><mi>λ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo><mspace width="2.0em"></mspace><mi>z</mi><mo>=</mo><mo>logit</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo></mrow><annotation encoding="application/x-tex">
+\theta_{\text{survey}} = (\beta, z, \lambda_W, \lambda_x),\qquad z = \operatorname{logit}(W),
+</annotation></semantics></math> and the solver treats
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>
+as an explicit unknown. When all design weights are equal and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><annotation encoding="application/x-tex">N_{\text{pop}}</annotation></semantics></math>
+and the respondent count match the simple random sampling setup, this
+system reduces exactly to the original QLS equations (6)-(10).</p>
+<p>For survey designs we build an analytic Jacobian for this
+design-weighted system whenever the response family supplies a second
+derivative <code>d2mu.deta2</code> (logit and probit). The Jacobian
+structure mirrors the IID case but with the expanded parameter vector
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo>,</mo><mi>z</mi><mo>,</mo><msub><mi>λ</mi><mi>W</mi></msub><mo>,</mo><msub><mi>λ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\beta, z, \lambda_W, \lambda_x)</annotation></semantics></math>
+and the additional blocks for
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>g</mi><mi>W</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow></msubsup><annotation encoding="application/x-tex">g_W^{(1)}</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>g</mi><mi>W</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>2</mn><mo stretchy="true" form="postfix">)</mo></mrow></msubsup><annotation encoding="application/x-tex">g_W^{(2)}</annotation></semantics></math>.
+When analytic derivatives are not available, <code>nleqslv</code> falls
+back to numeric/Broyden Jacobians.</p>
+<div class="section level3">
+<h3 id="wu-style-strata-augmentation-survey-designs">Wu-style strata augmentation (survey designs)<a class="anchor" aria-label="anchor" href="#wu-style-strata-augmentation-survey-designs"></a>
+</h3>
+<p>For some stratified designs, especially when the NMAR mechanism
+varies strongly across strata, it is important that the EL weights
+preserve the <strong>stratum composition</strong> implied by the survey
+design. Following ideas from Wu-style calibration, we augment the
+auxiliary vector with stratum indicators when a
+<code>survey.design</code> object is provided:</p>
+<ul>
+<li>Recover a strata factor from the design (using its
+<code>strata=</code> call).</li>
+<li>Build dummy variables for strata (dropping one reference
+level).</li>
+<li>Compute stratum totals
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>N</mi><mi>h</mi></msub><annotation encoding="application/x-tex">N_h</annotation></semantics></math>
+on the analysis scale from the design weights and convert to stratum
+shares
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>W</mi><mi>h</mi></msub><mo>=</mo><msub><mi>N</mi><mi>h</mi></msub><mi>/</mi><msub><mi>N</mi><mrow><mi mathvariant="normal">p</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">p</mi></mrow></msub></mrow><annotation encoding="application/x-tex">W_h = N_h / N_{\mathrm{pop}}</annotation></semantics></math>.</li>
+<li>Append these stratum dummies to the auxiliary matrix
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>X</mi><annotation encoding="application/x-tex">X</annotation></semantics></math>
+and their targets
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>W</mi><mi>h</mi></msub><annotation encoding="application/x-tex">W_h</annotation></semantics></math>
+to the auxiliary means.</li>
+</ul>
+<p>The EL constraints then include additional terms of the form
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munder><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>R</mi></mrow></munder><msub><mi>d</mi><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mo minsize="1.2" maxsize="1.2" stretchy="false" form="prefix">(</mo><mn>𝟏</mn><mo stretchy="false" form="prefix">{</mo><msub><mi>H</mi><mi>i</mi></msub><mo>=</mo><mi>h</mi><mo stretchy="false" form="postfix">}</mo><mo>−</mo><msub><mi>W</mi><mi>h</mi></msub><mo minsize="1.2" maxsize="1.2" stretchy="false" form="postfix">)</mo><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">
+\sum_{i\in R} d_i p_i \bigl(\mathbf{1}\{H_i = h\} - W_h\bigr) = 0
+</annotation></semantics></math> for each nonreference stratum
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>h</mi><annotation encoding="application/x-tex">h</annotation></semantics></math>.
+This forces the EL weights to reproduce the design-implied stratum
+shares while still adjusting within strata for NMAR. In the
+implementation this augmentation is performed in the survey entry point
+(<code>src_dev/engines/el/impl/survey.R</code>) before auxiliary means
+are resolved, and the resulting augmented auxiliaries flow through to
+<code><a href="../reference/el_build_equation_system.html">el_build_equation_system()</a></code> or
+<code><a href="../reference/el_build_equation_system_survey.html">el_build_equation_system_survey()</a></code> depending on the data
+type. The behavior is controlled by the logical
+<code>strata_augmentation</code> argument of <code><a href="../reference/el_engine.html">el_engine()</a></code>
+(default <code>TRUE</code>); it has an effect only when
+<code>data</code> is a <code>survey.design</code> with defined
+strata.</p>
+<p>Our survey EL implementation should be viewed as a design-weighted
+analogue of QLS, informed by the pseudo empirical likelihood literature
+(Chen and Sitter 1999; Wu 2005), rather than a verbatim implementation
+of any single paper.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="analytic-jacobian-a-matrix-iid-path">Analytic Jacobian
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>A</mi><annotation encoding="application/x-tex">A</annotation></semantics></math>
+Matrix, IID path)<a class="anchor" aria-label="anchor" href="#analytic-jacobian-a-matrix-iid-path"></a>
+</h2>
+<p>For the IID (data-frame) path we differentiate
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>F</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>θ</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">F(\theta) = 0</annotation></semantics></math>
 with respect to
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>θ</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>β</mi><mo>,</mo><mi>z</mi><mo>,</mo><msub><mi>λ</mi><mi>x</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\theta = (\beta, z, \lambda_x)</annotation></semantics></math>.
@@ -888,8 +1089,13 @@ In compact matrix form:</p>
 <p><strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>J</mi><mrow><mi>λ</mi><mi>λ</mi></mrow></msub><annotation encoding="application/x-tex">J_{\lambda\lambda}</annotation></semantics></math>
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi><mo>×</mo><mi>L</mi></mrow><annotation encoding="application/x-tex">L \times L</annotation></semantics></math>)</strong>:
 <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><mrow><mi>∂</mi><mi>H</mi></mrow><mrow><mi>∂</mi><msub><mi>λ</mi><mi>x</mi></msub></mrow></mfrac><mo>=</mo><mo>−</mo><msubsup><mi>X</mi><mtext mathvariant="normal">centered</mtext><mi>T</mi></msubsup><mo>diag</mo><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>a</mi><mi>i</mi></msub><mspace width="0.167em"></mspace><msubsup><mtext mathvariant="normal">inv</mtext><mi>i</mi><mn>2</mn></msubsup><mo stretchy="true" form="postfix">)</mo></mrow><msub><mi>X</mi><mtext mathvariant="normal">centered</mtext></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">\frac{\partial H}{\partial \lambda_x} = -X_{\text{centered}}^T \operatorname{diag}(a_i\,\text{inv}_i^2) X_{\text{centered}}.</annotation></semantics></math></p>
-<p>These are exactly what <code>el_build_jacobian</code> computes
-(<code>src_dev/engines/el/impl/jacobian.R</code>).</p>
+<p>These expressions match the unguarded analytic derivatives; in the
+code (<code>src_dev/engines/el/impl/jacobian.R</code>), any terms
+involving derivatives of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><msub><mi>D</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">1/D_i</annotation></semantics></math>
+are additionally multiplied by the active mask
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>𝟙</mn><mo stretchy="false" form="prefix">{</mo><msubsup><mi>D</mi><mi>i</mi><mtext mathvariant="normal">raw</mtext></msubsup><mo>&gt;</mo><mi>δ</mi><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\mathbb{1}\{D_i^{\text{raw}} &gt; \delta\}</annotation></semantics></math>
+to respect the denominator floor used for numerical stability.</p>
 </div>
 <div class="section level3">
 <h3 id="why-analytic-a-helps">Why Analytic A Helps<a class="anchor" aria-label="anchor" href="#why-analytic-a-helps"></a>
@@ -910,16 +1116,14 @@ is critical for fast, stable convergence.</li>
 </div>
 </div>
 <div class="section level2">
-<h2 id="variance-estimation-delta-disabled">Variance Estimation (delta disabled)<a class="anchor" aria-label="anchor" href="#variance-estimation-delta-disabled"></a>
+<h2 id="variance-estimation">Variance Estimation<a class="anchor" aria-label="anchor" href="#variance-estimation"></a>
 </h2>
-<p>Analytical delta variance for the EL estimator has not been
+<p>Analytic delta variance for the EL estimator has not yet been
 implemented in the package. When requested via
 <code>variance_method = "delta"</code>, the implementation returns
 <code>NA</code> with a guidance message. We recommend
 <code>variance_method = "bootstrap"</code> for standard errors in both
 IID and survey settings.</p>
-<p>Implementation: The analytical delta variance for EL is disabled in
-the codebase.</p>
 <div class="section level3">
 <h3 id="solving-strategy-and-initialization">Solving Strategy and Initialization<a class="anchor" aria-label="anchor" href="#solving-strategy-and-initialization"></a>
 </h3>
@@ -949,13 +1153,6 @@ is seeded at
 An internal last-chance Broyden retry may be used if Newton fails to
 converge; this is not a user-facing mode.</li>
 </ul>
-</div>
-<div class="section level3">
-<h3 id="variance-and-stability">Variance and Stability<a class="anchor" aria-label="anchor" href="#variance-and-stability"></a>
-</h3>
-<p>For standard errors, use bootstrap variance. Analytical delta
-variance for EL is disabled in this version; derivations are
-omitted.</p>
 </div>
 <div class="section level3">
 <h3 id="practical-identifiability-and-diagnostics">Practical Identifiability and Diagnostics<a class="anchor" aria-label="anchor" href="#practical-identifiability-and-diagnostics"></a>
@@ -1017,7 +1214,19 @@ to the survey design weight for respondents. Totals
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><annotation encoding="application/x-tex">N_{\text{pop}}</annotation></semantics></math>
 and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo>=</mo><mo>∑</mo><msub><mi>a</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">n_{\text{resp\_weighted}}=\sum a_i</annotation></semantics></math>
-are computed from the design weights, which feeds into
+are computed from the design weights and used throughout the
+design-weighted system.</p></li>
+<li><p><strong>Nonrespondent total
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>T</mi><mn>0</mn></msub><annotation encoding="application/x-tex">T_0</annotation></semantics></math>
+in the linkage equation:</strong> In the survey-specific system we form
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mn>0</mn></msub><mo>=</mo><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><mo>−</mo><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub></mrow><annotation encoding="application/x-tex">T_0 = N_{\text{pop}} - n_{\text{resp\_weighted}}</annotation></semantics></math>
+and enforce the linkage between
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>W</mi><annotation encoding="application/x-tex">W</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>W</mi></msub><annotation encoding="application/x-tex">\lambda_W</annotation></semantics></math>
+through the equation
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mn>0</mn></msub><mi>/</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><msub><mi>λ</mi><mi>W</mi></msub><mo>∑</mo><msub><mi>d</mi><mi>i</mi></msub><mi>/</mi><msub><mi>D</mi><mi>i</mi></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">T_0/(1-W) - \lambda_W \sum d_i/D_i = 0</annotation></semantics></math>
+rather than using the closed-form
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mi>W</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>N</mi><mtext mathvariant="normal">pop</mtext></msub><mi>/</mi><msub><mi>n</mi><mtext mathvariant="normal">resp_weighted</mtext></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>−</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\lambda_W = ((N_{\text{pop}}/n_{\text{resp\_weighted}}) - 1)/(1-W)</annotation></semantics></math>.</p></li>
 <li><p><strong>Bootstrap variance via replicate weights:</strong> For
 standard errors, we use bootstrap replicate-weight designs created with
@@ -1028,8 +1237,8 @@ of replicate estimates with appropriate scaling.</p></li>
 </ul>
 <p>This matches the paper’s guidance to adapt the likelihood/estimating
 framework to stratification or unequal-probability sampling while
-relying on standard survey resampling for uncertainty. Analytical delta
-variance is not implemented for EL at this time.</p>
+relying on standard survey resampling for uncertainty. Analytic variance
+has not been implemented yet.</p>
 <p>Degrees-of-freedom: For confidence intervals, we use survey
 degrees-of-freedom (t-quantiles) when a <code>survey.design</code> is
 supplied; otherwise, we use normal quantiles.</p>
@@ -1200,17 +1409,20 @@ and globalization via <code>nleqslv</code>. Denominator positivity
 predictor standardization, and capped
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>η</mi><annotation encoding="application/x-tex">\eta</annotation></semantics></math>
 ensure numerical stability. The estimating equations remain those of
-Qin, Leung and Shao (2002).</p>
+Qin, Leung and Shao (2002) for the IID path, and a design-weighted
+analogue for the survey path.</p>
 <pre class="text"><code>Input: Z (response design), X (auxiliary design), mu_x (population means),
        a (base weights), family (logit/probit), trim_cap, tolerances.
 Initialize: beta = 0 in scaled space (or user-supplied start),
-            z = logit(observed response rate), lambda_x = 0.
+            z = logit(observed response rate), lambda_x = 0
+            (and lambda_W = 0 for survey designs).
 Repeat until convergence of F(theta) = 0:
-  1) Compute eta = Z beta, w = linkinv(eta), W = plogis(z),
-     lambda_W = ((N_pop/n_resp_weighted) - 1)/(1 - W).
+  1) Compute eta = Z beta, w = linkinv(eta), W = plogis(z).
+     - IID (data.frame): set lambda_W = ((N_pop/n_resp_weighted) - 1)/(1 - W).
+     - survey.design: use the current lambda_W component of theta.
   2) Evaluate full stacked equations using guarded denominators
      D_i = 1 + lambda_W (w_i - W) + (X_i - mu_x)^T lambda_x.
-  3) Compute analytic Jacobian A = dF/dtheta.
+  3) Compute analytic Jacobian A = dF/dtheta (if available; else numeric/Broyden).
   4) Newton step: solve A * step = -F with globalization; enforce min D_i &gt;= eps.
   5) Update theta &lt;- theta + step.
 Return: p_i \propto a_i / D_i and \hat{Y} = Sum p_i Y_i / Sum p_i.</code></pre>
@@ -1222,8 +1434,12 @@ Return: p_i \propto a_i / D_i and \hat{Y} = Sum p_i Y_i / Sum p_i.</code></pre>
 <ul>
 <li>Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data
 under nonignorable nonresponse or informative sampling. Journal of the
-American Statistical Association, 97(457), 193-200. <a href="doi:10.1198/016214502753479338" class="uri">doi:10.1198/016214502753479338</a>
-</li>
+American Statistical Association, 97(457), 193-200.</li>
+<li>Chen, J., and Sitter, R. R. (1999). A pseudo empirical likelihood
+approach for complex survey data. Biometrika, 86(2), 373-385.</li>
+<li>Wu, C. (2005). Algorithms and R codes for the pseudo empirical
+likelihood method in survey sampling. Canadian Journal of Statistics,
+33(3), 497-509.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -1300,20 +1516,6 @@ decrease for speed.</li>
 <code>max_equation_residual</code>, denominator summaries (min,
 1%/5%/median), weight concentration (max share/top-5/ESS), and trimming
 fraction. These help assess identification and numerical stability.</li>
-</ul>
-</div>
-<div class="section level3">
-<h3 id="recommended-settings">Recommended settings<a class="anchor" aria-label="anchor" href="#recommended-settings"></a>
-</h3>
-<ul>
-<li>Default: <code>variance_method = "none"</code>,
-<code>standardize = TRUE</code>.</li>
-<li>With trimming or suspected weak identification: prefer
-<code>variance_method = "bootstrap"</code>.</li>
-<li>If A appears ill-conditioned or delta returns NA: prefer
-<code>variance_method = "bootstrap"</code> and report diagnostics (e.g.,
-<code>jacobian_condition_number</code>). The package does not apply
-ridge or pseudoinverse at runtime.</li>
 </ul>
 </div>
 </div>

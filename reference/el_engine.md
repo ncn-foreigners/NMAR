@@ -2,10 +2,15 @@
 
 Constructs a configuration object for the empirical likelihood estimator
 under nonignorable nonresponse (NMAR) with optional auxiliary moment
-constraints. The estimator solves the stacked system in \\\theta =
-(\beta, z, \lambda_x)\\ with \\z = \operatorname{logit}(W)\\ using a
-Newton method with analytic Jacobian and globalization via
-[nleqslv](https://rdrr.io/pkg/nleqslv/man/nleqslv.html). Numerical
+constraints. For `data.frame` inputs (IID setting) the estimator solves
+a stacked system in \\\theta = (\beta, z, \lambda_x)\\ with \\z =
+\operatorname{logit}(W)\\ using a Newton method with an analytic
+Jacobian and globalization via
+[nleqslv](https://rdrr.io/pkg/nleqslv/man/nleqslv.html). For
+`survey.design` inputs it solves a design-weighted analogue in \\\theta
+= (\beta, z, \lambda_W, \lambda_x)\\. When the response family supplies
+second derivatives (logit and probit) an analytic Jacobian is used;
+otherwise the solver falls back to numeric/Broyden Jacobians. Numerical
 safeguards (bounded linear predictor, link-inverse clipping, denominator
 floors, and stable linear algebra) improve robustness. Pass the engine
 to
@@ -23,6 +28,7 @@ el_engine(
   bootstrap_reps = 500,
   auxiliary_means = NULL,
   control = list(),
+  strata_augmentation = TRUE,
   n_total = NULL,
   start = NULL,
   family = c("logit", "probit")
@@ -59,7 +65,8 @@ el_engine(
   named numeric vector; population means for auxiliary design columns.
   Names must match the materialized model.matrix column names on the
   first RHS (after formula expansion), e.g., factor indicators like
-  \`F_b\` or transformed terms \`I(X^2)\`. Intercept is always excluded.
+  \`F_b\` or transformed terms \`I(X^2)\`. Auxiliary intercepts are
+  always dropped automatically, so do not supply \`(Intercept)\`.
   Optional.
 
 - control:
@@ -75,8 +82,18 @@ el_engine(
   - In `control=`: `xtol`, `ftol`, `btol`, `maxit`, `trace`, `stepmax`,
     `delta`, `allowSing`
 
-  Unknown names are ignored. The method is Newton with an analytic
-  Jacobian.
+  Unknown names are ignored. For `data.frame` inputs the EL system is
+  solved by Newton with an analytic Jacobian; for `survey.design` inputs
+  a design-weighted analogue is solved with an analytic Jacobian when
+  available or numeric/Broyden Jacobians otherwise.
+
+- strata_augmentation:
+
+  logical; when `TRUE` (default), survey designs with an identifiable
+  strata structure are augmented with stratum indicators and
+  corresponding population shares in the auxiliary block (Wu-style
+  strata augmentation). Has no effect for `data.frame` inputs or survey
+  designs without strata.
 
 - n_total:
 
@@ -119,46 +136,19 @@ Users rarely access fields directly; instead, pass the engine to
 [`nmar()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md)
 together with a formula and data.
 
-An engine object of class `c("nmar_engine_el","nmar_engine")`. This is a
-configuration list; it is not a fit. Pass it to
-[nmar](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md).
-
 ## Details
 
-Empirical likelihood assigns masses \\m_i = d_i / D_i(\theta)\\ to
-respondents with base weights \\d_i\\. Following Qin, Leung, and Shao
-(2002, JASA 97:193-200), the denominator is \$\$D_i(\theta) = 1 +
-\lambda_W\\w_i(\beta) - W\\ + X\_{i\cdot}^{(c)}\\\lambda_x,\$\$ where
-\\w_i(\beta) = g(\eta_i)\\ with link-inverse \\g\\, \\\eta_i =
-x_i^\top\beta\\, \\W\\ is the (unknown) response rate, and \\X^{(c)} =
-X - \mu_X\\ centers auxiliary columns at their population means. The
-multiplier for the response-rate equation is \$\$\lambda_W =
-\\N\_\mathrm{pop}/\sum_i d_i - 1\\/(1 - W),\$\$ which ensures scale
-coherence for both IID data (\\d_i \equiv 1\\) and survey designs
-(\\d_i\\ are design weights). The estimating equations impose \\\sum_i
-m_i\\w_i(\beta) - W\\ = 0\\, \\\sum_i m_i\\s_i(\beta) = 0\\ with
-\\s_i(\beta) = \partial \log w_i / \partial \eta_i\\, and, when present,
-\\\sum_i m_i X\_{i\cdot}^{(c)} = 0\\.
-
-The missingness-model score used in both equations and Jacobian is the
-derivative of the Bernoulli log-likelihood with respect to the linear
-predictor, i.e. `mu.eta(eta) / linkinv(eta)` (logit: `1 - w`; probit:
-Mills ratio `phi/Phi`). We apply a consistent guarding policy (cap
-\\\eta\\, clip \\w\\, floor denominators with an "active" mask in the
-Jacobian) to ensure numerical stability and to make the analytic
-Jacobian match the piecewise-smooth equations being solved. When
-`variance_method = "delta"` is requested, the estimator returns `NA`
-standard errors with a message; use `variance_method = "bootstrap"` for
-SEs.
-
-Survey designs are handled by replacing counts in QLS (2002) with
-design-weighted totals. In particular, the response-rate multiplier
-generalizes to \\\lambda_W = \\N\_\mathrm{pop}/\sum\_{i:\\R_i=1} d_i -
-1\\/(1 - W)\\, which reduces to the QLS expression when \\d_i \equiv
-1\\. Solver configuration uses `nleqslv` with an analytic Jacobian and
-line-search globalization. Defaults are `global = "qline"` and
-`xscalm = "auto"`; users can override via `control`. Invalid values are
-coerced to these defaults with a warning.
+This engine implements an empirical likelihood estimator for NMAR
+response based on Qin, Leung and Shao (2002) for IID data, and a
+design-weighted analogue for complex survey designs inspired by Chen and
+Sitter (1999) and Wu (2005). For `data.frame` inputs the unknowns are
+`(beta, z, lambda_x)` with `z = logit(W)`, and the QLS closed-form
+identity is used to profile out the multiplier `lambda_W`. For
+`survey.design` inputs the system is extended to
+`(beta, z, lambda_W, lambda_x)` and solved with design weights and, when
+present, Wu-style strata augmentation in the auxiliary block. Numerical
+guards (capped linear predictors, clipped response probabilities,
+denominator floors) are applied consistently in equations and Jacobians.
 
 **Formula syntax**:
 [`nmar()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md)
@@ -166,15 +156,9 @@ supports a partitioned right-hand side `y_miss ~ aux1 + aux2 | z1 + z2`.
 Variables left of `|` are auxiliaries (used in EL moment constraints);
 variables right of `|` are missingness-model predictors only. The
 outcome appears on the left-hand side and is included as a response
-predictor by default.
-
-**Weights in results**: Calling
-[`weights()`](https://rdrr.io/r/stats/weights.html) on the returned
-`nmar_result` gives respondent weights on either the probability scale
-(sum to 1) or the population scale (sum to \\N\_\mathrm{pop}\\). The
-reported masses come from the empirical likelihood construction
-\\a_i/D_i(\theta)\\ and are normalized in
-[`weights()`](https://rdrr.io/r/stats/weights.html).
+predictor by default. Auxiliary design matrices are constructed with an
+intercept dropped automatically; missingness models always include an
+intercept even if the formula uses `-1` or `+0`.
 
 **Variance**: Analytical delta variance for EL is not implemented.
 Requesting `variance_method = "delta"` is coerced to `"none"` with a
@@ -221,21 +205,14 @@ Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data
 under nonignorable nonresponse or informative sampling. Journal of the
 American Statistical Association, 97(457), 193-200.
 
-Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data
-under nonignorable nonresponse or informative sampling. *Journal of the
-American Statistical Association*, 97(457), 193-200.
+Chen, J., and Sitter, R. R. (1999). A pseudo empirical likelihood
+approach for complex survey data. Biometrika, 86(2), 373-385.
 
-Wu, C., and Sitter, R. R. (2001). A model-calibration approach to using
-complete auxiliary information from survey data. *Journal of the
-American Statistical Association*, 96(453), 185-193. Related to
-design-based calibration; our EL approach balances auxiliary moments
-through empirical likelihood constraints rather than calibration
-adjustments to weights.
+Wu, C. (2005). Algorithms and R codes for the pseudo empirical
+likelihood method in survey sampling. Canadian Journal of Statistics,
+33(3), 497-509.
 
 ## See also
-
-[nmar](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md);
-see the vignette "Empirical Likelihood Theory for NMAR" for derivations.
 
 \[nmar()\], \[weights.nmar_result()\], \[summary.nmar_result\]
 
@@ -266,9 +243,9 @@ summary(fit)
 #> Call: nmar(Y_miss ~ X, data = <data.frame: N=200>, engine = empirical_likelihood)
 #> 
 #> Missingness-model coefficients:
-#>              Estimate Std. Error z value Pr(>|z|)
-#> (Intercept) -2.535301         NA      NA       NA
-#> Y_miss       0.987603         NA      NA       NA
+#>              Estimate
+#> (Intercept) -2.535301
+#> Y_miss       0.987603
 
 # Response-only predictors can be placed to the right of `|`:
 df2 <- data.frame(Y_miss = Y, X = X, Z = Z)
@@ -311,8 +288,8 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> Call: nmar(Y_miss ~ X, data = <survey.design: N=200>, engine = empirical_likelihood)
 #> 
 #> Missingness-model coefficients:
-#>              Estimate Std. Error t value Pr(>|t|)
-#> (Intercept) -2.535301         NA      NA       NA
-#> Y_miss       0.987603         NA      NA       NA
+#>              Estimate
+#> (Intercept) -2.535301
+#> Y_miss       0.987603
 # }
 ```

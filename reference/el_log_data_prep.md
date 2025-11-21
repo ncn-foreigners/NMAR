@@ -11,7 +11,7 @@ el_log_data_prep(
   family_name,
   K_beta,
   K_aux,
-  aux_names,
+  auxiliary_names,
   standardize,
   is_survey,
   N_pop,

@@ -66,6 +66,7 @@
 <span>  <span class="va">formula</span>,</span>
 <span>  auxiliary_means <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  standardize <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  strata_augmentation <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  trim_cap <span class="op">=</span> <span class="cn">Inf</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  on_failure <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"return"</span>, <span class="st">"error"</span><span class="op">)</span>,</span>
@@ -88,7 +89,9 @@
 
 
 <dt id="arg-formula">formula<a class="anchor" aria-label="anchor" href="#arg-formula"></a></dt>
-<dd><p>Two-sided formula: NA-valued outcome on LHS; auxiliaries on RHS.</p></dd>
+<dd><p>Two-sided formula with an NA-valued outcome on the LHS;
+auxiliaries on the first RHS and, optionally, missingness predictors on
+the second RHS partition.</p></dd>
 
 
 <dt id="arg-auxiliary-means">auxiliary_means<a class="anchor" aria-label="anchor" href="#arg-auxiliary-means"></a></dt>
@@ -100,6 +103,12 @@ transformed terms. The intercept is always excluded.</p></dd>
 
 <dt id="arg-standardize">standardize<a class="anchor" aria-label="anchor" href="#arg-standardize"></a></dt>
 <dd><p>Logical; standardize predictors.</p></dd>
+
+
+<dt id="arg-strata-augmentation">strata_augmentation<a class="anchor" aria-label="anchor" href="#arg-strata-augmentation"></a></dt>
+<dd><p>Logical; when <code>TRUE</code> (default), augment the
+auxiliary design with stratum indicators and stratum shares when a strata
+structure is present in the survey design.</p></dd>
 
 
 <dt id="arg-trim-cap">trim_cap<a class="anchor" aria-label="anchor" href="#arg-trim-cap"></a></dt>
@@ -115,7 +124,7 @@ transformed terms. The intercept is always excluded.</p></dd>
 
 
 <dt id="arg-variance-method">variance_method<a class="anchor" aria-label="anchor" href="#arg-variance-method"></a></dt>
-<dd><p>Character; "delta" or "bootstrap".</p></dd>
+<dd><p>Character; "delta", "bootstrap", or "none".</p></dd>
 
 
 <dt id="arg-bootstrap-reps">bootstrap_reps<a class="anchor" aria-label="anchor" href="#arg-bootstrap-reps"></a></dt>
@@ -123,7 +132,7 @@ transformed terms. The intercept is always excluded.</p></dd>
 
 
 <dt id="arg-n-total">n_total<a class="anchor" aria-label="anchor" href="#arg-n-total"></a></dt>
-<dd><p>Optional population size used to rescale design weights; required for respondents-only designs.</p></dd>
+<dd><p>Optional analysis-scale population size <code>N_pop</code>; required for respondents-only designs.</p></dd>
 
 
 <dt id="arg-start">start<a class="anchor" aria-label="anchor" href="#arg-start"></a></dt>
@@ -149,23 +158,21 @@ transformed terms. The intercept is always excluded.</p></dd>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Implements the empirical likelihood estimator with design weights.
-  If <code>n_total</code> is supplied, design weights are rescaled internally to
-  ensure <code>sum(weights(design))</code> and <code>n_total</code> are on the same scale;
-  this guarantees the response-multiplier formula uses consistent totals. If
-  <code>n_total</code> is not supplied, <code>sum(weights(design))</code> is used as the
-  population total <code>N_pop</code>. When respondents-only designs are used (no
-  NA in the outcome), <code>n_total</code> must be provided; if auxiliaries are
-  requested you must also provide population auxiliary means via
-  <code>auxiliary_means</code>. Result weights are the unnormalized EL masses
-  <code>d_i/D_i(theta)</code> on this design scale;<code>weights(result, scale = "population")</code> sums to <code>N_pop</code>.</p>
+  If <code>n_total</code> is supplied, it is treated as the analysis-scale population
+  size <code>N_pop</code> used in the design-weighted QLS system. If <code>n_total</code>
+  is not supplied, <code>sum(weights(design))</code> is used as <code>N_pop</code>. Design
+  weights are not rescaled internally; the EL equations use respondent weights
+  and <code>N_pop</code> via <code>T0 = N_pop - sum(d_i)</code> in the linkage equation.
+  When respondents-only designs are used (no NA in the outcome), <code>n_total</code>
+  must be provided; if auxiliaries are requested you must also provide
+  population auxiliary means via <code>auxiliary_means</code>. Result weights are the
+  unnormalized EL masses <code>d_i/D_i(theta)</code> on this analysis scale;
+  <code>weights(result, scale = "population")</code> sums to <code>N_pop</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.</p>
-<p>Wu, C., and Sitter, R. R. (2001). A model-calibration approach to using complete
-auxiliary information from survey data. Journal of the American Statistical Association,
-96(453), 185-193.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

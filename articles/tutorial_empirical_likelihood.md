@@ -87,9 +87,9 @@ summary(fit)
 #> Call: nmar(Y_miss ~ X, data = <data.frame: N=500>, engine = empirical_likelihood)
 #> 
 #> Missingness-model coefficients:
-#>              Estimate Std. Error z value Pr(>|z|)
-#> (Intercept) -1.570694         NA      NA       NA
-#> Y_miss       0.366754         NA      NA       NA
+#>              Estimate
+#> (Intercept) -1.570694
+#> Y_miss       0.366754
 # For confidence intervals, use bootstrap variance (see example below).
 ```
 
@@ -116,9 +116,9 @@ summary(fit_probit)
 #> Call: nmar(Y_miss ~ X, data = <data.frame: N=500>, engine = empirical_likelihood)
 #> 
 #> Missingness-model coefficients:
-#>              Estimate Std. Error z value Pr(>|z|)
-#> (Intercept) -0.949678         NA      NA       NA
-#> Y_miss       0.217504         NA      NA       NA
+#>              Estimate
+#> (Intercept) -0.949678
+#> Y_miss       0.217504
 ```
 
 Tidy/glance summaries, and plots:
@@ -153,28 +153,22 @@ fitted(fit)[1:10]
 #>  [1] 0.2385382 0.2237686 0.4564170 0.1384020 0.2873926 0.2792951 0.3336042
 #>  [8] 0.3145361 0.2706197 0.2550132
 str(fit$diagnostics)
-#> List of 38
+#> List of 34
 #>  $ convergence_code                  : int 1
 #>  $ message                           : chr "Function criterion near zero"
 #>  $ vcov_message                      : chr "Variance skipped (variance_method='none')"
 #>  $ trimmed_fraction                  : num 0
 #>  $ solver_method                     : chr "Newton"
-#>  $ nleqslv_global                    : chr "qline"
-#>  $ nleqslv_xscalm                    : chr "auto"
+#>  $ nleqslv_global                    : chr NA
+#>  $ nleqslv_xscalm                    : chr NA
 #>  $ solver_iterations                 : int 7
 #>  $ solver_time                       : num 0.005
-#>  $ variance_time                     : num 0.001
+#>  $ variance_time                     : num 0
 #>  $ reparam_W                         : chr "logit"
 #>  $ max_equation_residual             : num 5.18e-13
 #>  $ jacobian_condition_number         : num 36.8
-#>  $ aux_inconsistency_max_z           : num 0.114
-#>  $ aux_inconsistency_cols            : chr "X"
-#>  $ grad_source                       : chr NA
-#>  $ var_y_hat_val                     : num NA
-#>  $ var_anal2                         : num NA
-#>  $ grad_l1                           : num NA
-#>  $ sigma_min_eig                     : num NA
-#>  $ B_min_eig                         : num NA
+#>  $ auxiliary_inconsistency_max_z     : num 0.114
+#>  $ auxiliary_inconsistency_cols      : chr "X"
 #>  $ min_denominator                   : num 0.461
 #>  $ fraction_small_denominators       : num 0
 #>  $ denom_q01                         : num 0.496
@@ -193,6 +187,12 @@ str(fit$diagnostics)
 #>  $ sum_unnormalized_weights_untrimmed: num 150
 #>  $ normalization_ratio               : num 1
 #>  $ max_constraint_residual           : num 5.18e-13
+#>  $ auxiliary_means                   : Named num 0
+#>   ..- attr(*, "names")= chr "X"
+#>  $ auxiliary_matrix                  : num [1:150, 1] -0.56 -0.23 1.559 -1.265 -0.687 ...
+#>   ..- attr(*, "dimnames")=List of 2
+#>   .. ..$ : chr [1:150] "1" "2" "3" "8" ...
+#>   .. ..$ : chr "X"
 ```
 
 Bootstrap variance (keep reps small for speed). This example requires
@@ -240,9 +240,9 @@ summary(fit_resp)
 #> Call: nmar(Y_miss ~ X, data = <data.frame: N=300>, engine = empirical_likelihood)
 #> 
 #> Missingness-model coefficients:
-#>              Estimate Std. Error z value Pr(>|z|)
-#> (Intercept) -1.449030         NA      NA       NA
-#> Y_miss       0.826353         NA      NA       NA
+#>              Estimate
+#> (Intercept) -1.449030
+#> Y_miss       0.826353
 ```
 
 ## Response-only predictors
@@ -280,10 +280,10 @@ summary(fit_resp_only)
 #> Call: nmar(Y_miss ~ X | Z, data = <data.frame: N=400>, engine = empirical_likelihood)
 #> 
 #> Missingness-model coefficients:
-#>              Estimate Std. Error z value Pr(>|z|)
-#> (Intercept) -0.557563         NA      NA       NA
-#> Y_miss      -0.044005         NA      NA       NA
-#> Z            0.003693         NA      NA       NA
+#>              Estimate
+#> (Intercept) -0.557563
+#> Y_miss      -0.044005
+#> Z            0.003693
 ```
 
 Auxiliary means and formulas:
@@ -350,9 +350,9 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> Call: nmar(api00_miss ~ ell, data = <survey.design: N=6194.00032424927>, engine = empirical_likelihood)
 #> 
 #> Missingness-model coefficients:
-#>              Estimate Std. Error t value Pr(>|t|)
-#> (Intercept)  3.231721         NA      NA       NA
-#> api00_miss  -0.005586         NA      NA       NA
+#>              Estimate
+#> (Intercept)  3.231721
+#> api00_miss  -0.005586
 ```
 
 ## Practical guidance
