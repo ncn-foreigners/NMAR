@@ -5,12 +5,12 @@
 #' and diagnostic computation.
 #'
 #' @param missingness_design Respondent-side missingness (response) model design matrix (intercept + predictors).
-#' @param auxiliary_matrix Auxiliary design matrix on respondents (may have zero columns).
-#' @param mu_x Named numeric vector of auxiliary population means (aligned to columns of `auxiliary_matrix`).
+#' @param aux_matrix Auxiliary design matrix on respondents (may have zero columns).
+#' @param aux_means Named numeric vector of auxiliary population means (aligned to columns of `aux_matrix`).
 #' @param auxiliary_means Named numeric vector of known population means supplied by the user (optional; used for diagnostics).
 #' @param respondent_weights Numeric vector of respondent weights aligned with `missingness_design` rows.
-#' @param full_data Data object used for logging (survey designs supply the design object).
-#' @param outcome_var Character string identifying the outcome expression displayed in outputs.
+#' @param analysis_data Data object used for logging (survey designs supply the design object).
+#' @param outcome_expr Character string identifying the outcome expression displayed in outputs.
 #' @param N_pop Population size on the analysis scale.
 #' @param standardize Logical. Whether to standardize predictors during estimation.
 #' @param trim_cap Numeric. Upper bound for empirical likelihood weight trimming.
@@ -41,10 +41,10 @@
 #'
 #' @keywords internal
 el_estimator_core <- function(missingness_design,
-                              auxiliary_matrix, mu_x,
+                              aux_matrix, aux_means,
                               respondent_weights,
-                              full_data,
-                              outcome_var,
+                              analysis_data,
+                              outcome_expr,
                               N_pop,
                               standardize, trim_cap, control,
                               on_failure, family = logit_family(),
@@ -57,13 +57,13 @@ el_estimator_core <- function(missingness_design,
   if (!is.matrix(missingness_design)) {
     stop("Internal error: missingness_design must be a matrix.", call. = FALSE)
   }
-  if (is.null(auxiliary_matrix)) {
-    auxiliary_matrix <- matrix(nrow = nrow(missingness_design), ncol = 0)
+  if (is.null(aux_matrix)) {
+    aux_matrix <- matrix(nrow = nrow(missingness_design), ncol = 0)
   }
-  if (is.null(mu_x)) {
-    mu_x <- numeric(0)
+  if (is.null(aux_means)) {
+    aux_means <- numeric(0)
   }
-  has_aux <- ncol(auxiliary_matrix) > 0
+  has_aux <- ncol(aux_matrix) > 0
 
 # Create verboser for verbose output
   verboser <- create_verboser(trace_level)
@@ -73,13 +73,13 @@ el_estimator_core <- function(missingness_design,
 
 # 1. Data Preparation
   missingness_model_matrix_unscaled <- missingness_design
-  auxiliary_matrix_unscaled <- auxiliary_matrix
-  mu_x_unscaled <- mu_x
-  K_aux <- if (has_aux) ncol(auxiliary_matrix_unscaled) else 0
+  aux_matrix_unscaled <- aux_matrix
+  mu_x_unscaled <- aux_means
+  K_aux <- if (has_aux) ncol(aux_matrix_unscaled) else 0
 # Derive the respondent outcomes from the unscaled missingness design
-# The outcome column is named by outcome_var
-  if (!is.null(outcome_var) && outcome_var %in% colnames(missingness_model_matrix_unscaled)) {
-    response_outcome <- missingness_model_matrix_unscaled[, outcome_var]
+# The outcome column is named by outcome_expr
+  if (!is.null(outcome_expr) && outcome_expr %in% colnames(missingness_model_matrix_unscaled)) {
+    response_outcome <- missingness_model_matrix_unscaled[, outcome_expr]
   } else {
     stop("Internal error: outcome column not found in missingness design.", call. = FALSE)
   }
@@ -89,13 +89,13 @@ el_estimator_core <- function(missingness_design,
   K_beta <- ncol(missingness_model_matrix_unscaled)
   el_log_data_prep(
     verboser = verboser,
-    outcome_var = outcome_var,
+    outcome_var = outcome_expr,
     family_name = family$name %||% "<unknown>",
     K_beta = K_beta,
     K_aux = K_aux,
-    aux_names = if (K_aux > 0) colnames(auxiliary_matrix_unscaled) else character(0),
+    auxiliary_names = if (K_aux > 0) colnames(aux_matrix_unscaled) else character(0),
     standardize = standardize,
-    is_survey = inherits(full_data, "survey.design"),
+    is_survey = inherits(analysis_data, "survey.design"),
     N_pop = N_pop,
     n_resp_weighted = n_resp_weighted
   )
@@ -105,7 +105,7 @@ el_estimator_core <- function(missingness_design,
     standardize = standardize,
     has_aux = has_aux,
     response_model_matrix_unscaled = missingness_model_matrix_unscaled,
-    auxiliary_matrix_unscaled = auxiliary_matrix_unscaled,
+    aux_matrix_unscaled = aux_matrix_unscaled,
     mu_x_unscaled = mu_x_unscaled,
     weights = respondent_weights
   )
@@ -118,23 +118,23 @@ el_estimator_core <- function(missingness_design,
   n_resp_weighted <- sum(respondent_weights)
 
 # Heuristic inconsistency check for user-supplied auxiliary means
-  aux_inconsistency_max_z <- NA_real_
-  aux_inconsistency_cols <- character(0)
+  auxiliary_inconsistency_max_z <- NA_real_
+  auxiliary_inconsistency_cols <- character(0)
   if (has_aux && !is.null(auxiliary_means)) {
     thr <- getOption("nmar.el_aux_z_threshold", 8)
     if (!is.numeric(thr) || length(thr) != 1L || !is.finite(thr) || thr <= 0) thr <- 8
-    chk <- el_check_aux_inconsistency_matrix(auxiliary_matrix_unscaled, provided_means = auxiliary_means, threshold = thr)
-    aux_inconsistency_max_z <- chk$max_z
-    aux_inconsistency_cols <- chk$cols
-    if (is.finite(aux_inconsistency_max_z) && aux_inconsistency_max_z > thr) {
+    chk <- el_check_auxiliary_inconsistency_matrix(aux_matrix_unscaled, provided_means = auxiliary_means)
+    auxiliary_inconsistency_max_z <- chk$max_z
+    auxiliary_inconsistency_cols <- chk$cols
+    if (is.finite(auxiliary_inconsistency_max_z) && auxiliary_inconsistency_max_z > thr) {
       warning(sprintf(
         "Auxiliary means appear far from respondents' support (max |z| = %.2f, threshold = %.2f). Proceeding; see diagnostics.",
-        aux_inconsistency_max_z, thr
+        auxiliary_inconsistency_max_z, thr
       ), call. = FALSE)
     }
   }
 # Build full stacked builders
-  is_survey_design <- inherits(full_data, "survey.design")
+  is_survey_design <- inherits(analysis_data, "survey.design")
   if (is_survey_design) {
     equation_system_func <- el_build_equation_system_survey(
       family = family,
@@ -249,8 +249,8 @@ el_estimator_core <- function(missingness_design,
         diagnostics = list(
           convergence_code = solution$termcd,
           message = solution$message,
-          aux_inconsistency_max_z = aux_inconsistency_max_z,
-          aux_inconsistency_cols = aux_inconsistency_cols
+          auxiliary_inconsistency_max_z = auxiliary_inconsistency_max_z,
+          auxiliary_inconsistency_cols = auxiliary_inconsistency_cols
         ),
         nmar_scaling_recipe = nmar_scaling_recipe
       ))
@@ -378,7 +378,7 @@ el_estimator_core <- function(missingness_design,
 
   var_out <- el_compute_variance(
     y_hat = y_hat,
-    full_data = full_data,
+    full_data = analysis_data,
     formula = user_args$formula,
     user_args = user_args,
     variance_method = variance_method,
@@ -419,8 +419,8 @@ el_estimator_core <- function(missingness_design,
       reparam_W = "logit",
       max_equation_residual = diag_pack$max_equation_residual,
       jacobian_condition_number = diag_pack$jacobian_condition_number,
-      aux_inconsistency_max_z = aux_inconsistency_max_z,
-      aux_inconsistency_cols = aux_inconsistency_cols,
+      auxiliary_inconsistency_max_z = auxiliary_inconsistency_max_z,
+      auxiliary_inconsistency_cols = auxiliary_inconsistency_cols,
       min_denominator = diag_pack$denom_stats$min,
       fraction_small_denominators = diag_pack$denom_stats$p_small,
       denom_q01 = denom_q[[1]],

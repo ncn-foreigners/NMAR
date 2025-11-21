@@ -11,6 +11,18 @@ make_iid_nmar <- function(n = 200, alpha = 0.4, include_z = FALSE, seed = 1L) {
   df
 }
 
+make_el_test_data <- function(n = 100) {
+  set.seed(123)
+  X <- rnorm(n)
+  Z <- rnorm(n)
+  Y <- 1 + 0.5 * X + 0.3 * Z + rnorm(n)
+  p <- plogis(-0.3 + 0.4 * scale(Y)[, 1] + 0.2 * Z)
+  R <- runif(n) < p
+  df <- data.frame(Y_miss = Y, X = X, Z = Z)
+  df$Y_miss[!R] <- NA_real_
+  df
+}
+
 make_engine <- function(variance_method = c("delta", "bootstrap", "none"),
                         family = c("logit", "probit"),
                         standardize = TRUE,

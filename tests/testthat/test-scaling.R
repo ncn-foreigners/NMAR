@@ -5,7 +5,7 @@ test_that("validate_and_apply_nmar_scaling handles weighted standardization", {
     standardize = TRUE,
     has_aux = FALSE,
     response_model_matrix_unscaled = Z,
-    auxiliary_matrix_unscaled = matrix(nrow = nrow(Z), ncol = 0),
+    aux_matrix_unscaled = matrix(nrow = nrow(Z), ncol = 0),
     mu_x_unscaled = NULL,
     weights = weights
   )
@@ -27,7 +27,7 @@ test_that("validate_and_apply_nmar_scaling warns on constant predictors", {
       standardize = TRUE,
       has_aux = FALSE,
       response_model_matrix_unscaled = Z,
-      auxiliary_matrix_unscaled = matrix(nrow = nrow(Z), ncol = 0),
+      aux_matrix_unscaled = matrix(nrow = nrow(Z), ncol = 0),
       mu_x_unscaled = NULL
     ),
     "nearly constant",

@@ -343,7 +343,7 @@ The EL constraints then include additional terms of the form
 \[
 \sum_{i\in R} d_i p_i \bigl(\mathbf{1}\{H_i = h\} - W_h\bigr) = 0
 \]
-for each nonreference stratum $h$. This forces the EL weights to reproduce the design-implied stratum shares while still adjusting within strata for NMAR. In the implementation this augmentation is performed in `el_run_core_analysis()` (see `src_dev/engines/el/impl/inputs.R`), and the resulting augmented auxiliaries flow through to `el_build_equation_system()` or `el_build_equation_system_survey()` depending on the data type. The behavior is controlled by the logical `strata_augmentation` argument of `el_engine()` (default `TRUE`); it has an effect only when `data` is a `survey.design` with defined strata.
+for each nonreference stratum $h$. This forces the EL weights to reproduce the design-implied stratum shares while still adjusting within strata for NMAR. In the implementation this augmentation is performed in the survey entry point (`src_dev/engines/el/impl/survey.R`) before auxiliary means are resolved, and the resulting augmented auxiliaries flow through to `el_build_equation_system()` or `el_build_equation_system_survey()` depending on the data type. The behavior is controlled by the logical `strata_augmentation` argument of `el_engine()` (default `TRUE`); it has an effect only when `data` is a `survey.design` with defined strata.
 
 Our survey EL implementation should be viewed as a design-weighted analogue of QLS, informed by the pseudo empirical likelihood literature (Chen and Sitter 1999; Wu 2005), rather than a verbatim implementation of any single paper.
 

@@ -19,7 +19,7 @@ el_log_trace <- function(verboser, trace_level) {
 #' Log data prep summary
 #' @keywords internal
 el_log_data_prep <- function(verboser, outcome_var, family_name,
-                             K_beta, K_aux, aux_names,
+                             K_beta, K_aux, auxiliary_names,
                              standardize, is_survey,
                              N_pop, n_resp_weighted) {
   verboser("", level = 1)
@@ -36,11 +36,11 @@ el_log_data_prep <- function(verboser, outcome_var, family_name,
   verboser("", level = 2)
   verboser("-- MODEL SPECIFICATION --", level = 2)
   verboser(sprintf("  Outcome variable:         %s", outcome_var), level = 2)
-  verboser(sprintf("  Response model family:    %s", family_name %||% "<unknown>"), level = 2)
-  verboser(sprintf("  Response predictors:      %d", K_beta), level = 2)
+  verboser(sprintf("  Missingness model family: %s", family_name %||% "<unknown>"), level = 2)
+  verboser(sprintf("  Missingness predictors:   %d", K_beta), level = 2)
   if (K_aux > 0) {
     verboser(sprintf("  Auxiliary constraints:    %d", K_aux), level = 2)
-    if (length(aux_names) > 0) verboser(sprintf("  Auxiliary variables:      %s", paste(aux_names, collapse = ", ")), level = 2)
+    if (length(auxiliary_names) > 0) verboser(sprintf("  Auxiliary variables:      %s", paste(auxiliary_names, collapse = ", ")), level = 2)
   } else {
     verboser("  Auxiliary constraints:    (none)", level = 2)
   }

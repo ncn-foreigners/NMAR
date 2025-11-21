@@ -9,12 +9,12 @@ test_that("survey designs reuse EL prep workflow", {
   )
   design <- survey::svydesign(ids = ~1, data = df, weights = ~w)
 
-  prep <- el_process_design(Y_miss ~ X, df)
-  design_svy <- el_process_design(Y_miss ~ X, design$variables)
+  prep <- el_prepare_inputs(Y_miss ~ X, df)
+  design_svy <- el_prepare_inputs(Y_miss ~ X, design$variables)
 
   expect_equal(prep$missingness_design, design_svy$missingness_design)
-  expect_equal(prep$auxiliary_design_full[prep$respondent_mask, , drop = FALSE],
-               design_svy$auxiliary_design_full[design_svy$respondent_mask, , drop = FALSE])
+  expect_equal(prep$aux_design_full[prep$respondent_mask, , drop = FALSE],
+               design_svy$aux_design_full[design_svy$respondent_mask, , drop = FALSE])
   expect_equal(prep$respondent_mask, design_svy$respondent_mask)
 })
 
@@ -83,7 +83,7 @@ test_that("respondents-only survey with strata augmentation warns on shares", {
   )
 })
 
-test_that("el_build_input_spec carries survey metadata and totals", {
+test_that("el_prepare_inputs carries survey metadata and totals", {
   skip_if_not_installed("survey")
   set.seed(321)
   df <- data.frame(
@@ -93,19 +93,33 @@ test_that("el_build_input_spec carries survey metadata and totals", {
   )
   des <- survey::svydesign(ids = ~1, weights = ~w, data = df)
   n_total <- sum(weights(des)) * 1.5
-  spec <- el_build_input_spec(
+  spec <- el_prepare_inputs(
     formula = Y_miss ~ X,
     data = des$variables,
-    weights_full = as.numeric(weights(des)),
-    population_total = n_total,
-    population_total_supplied = TRUE,
-    is_survey = TRUE,
-    design_object = des,
-    auxiliary_means = c(X = 0)
+    weights = as.numeric(weights(des)),
+    n_total = n_total,
+    design_object = des
   )
-  expect_true(spec$is_survey)
-  expect_s3_class(spec$analysis_object, "survey.design")
-  expect_true("..nmar_delta.." %in% names(spec$analysis_object$variables))
+  expect_s3_class(spec$analysis_data, "survey.design")
+  expect_true("..nmar_delta.." %in% names(spec$analysis_data$variables))
   expect_equal(spec$N_pop, n_total)
   expect_equal(sum(spec$respondent_weights), sum(spec$respondent_mask * weights(des)))
+})
+
+test_that("survey strata extraction supports interactions", {
+  skip_if_not_installed("survey")
+  set.seed(404)
+  df <- data.frame(
+    Y_miss = c(1, NA, 2, NA, 3),
+    A = factor(c("a", "a", "b", "b", "b")),
+    B = factor(c("x", "y", "x", "y", "y")),
+    w = c(1, 2, 3, 4, 5)
+  )
+  des <- survey::svydesign(ids = ~1, strata = ~ A + B, data = df, weights = ~w)
+  eng <- el_engine(variance_method = "none")
+  fit <- nmar(Y_miss ~ 1, data = des, engine = eng)
+# Interaction of A and B should be used for augmentation; expect strata_ levels
+  aug_means <- fit$diagnostics$auxiliary_means
+  strata_terms <- names(aug_means)[grepl("^strata_", names(aug_means))]
+  expect_true(length(strata_terms) > 0)
 })

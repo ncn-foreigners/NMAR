@@ -14,8 +14,8 @@ test_that("on_failure=return: inconsistent aux means yield a warning and diagnos
     regexp = "Auxiliary means appear far from respondents' support"
   )
 # Soft diagnostics fields must exist
-  expect_true("aux_inconsistency_max_z" %in% names(fit$diagnostics))
-  expect_true("aux_inconsistency_cols" %in% names(fit$diagnostics))
+  expect_true("auxiliary_inconsistency_max_z" %in% names(fit$diagnostics))
+  expect_true("auxiliary_inconsistency_cols" %in% names(fit$diagnostics))
 })
 
 test_that("trimming caps weights and sets trimmed_fraction > 0", {

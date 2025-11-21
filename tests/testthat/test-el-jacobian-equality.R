@@ -8,20 +8,17 @@ test_that("analytic Jacobian matches numeric Jacobian at solution (logit and pro
   )
   expect_type(fit$converged, "logical")
 
-  spec <- el_build_input_spec(
+  spec <- el_prepare_inputs(
     formula = Y_miss ~ X,
     data = df,
-    weights_full = NULL,
-    population_total = NULL,
-    is_survey = FALSE,
-    design_object = NULL,
-    auxiliary_means = NULL
+    weights = NULL,
+    n_total = NULL
   )
-  dat2 <- if (inherits(spec$analysis_object, "survey.design")) spec$analysis_object$variables else spec$analysis_object
-  obs_idx <- spec$respondent_indices
+  dat2 <- spec$analysis_data
+  obs_idx <- which(spec$respondent_mask)
   resp_df <- dat2[obs_idx, ]
   Z_un <- spec$missingness_design
-  X_un <- spec$auxiliary_design_full[spec$respondent_mask, , drop = FALSE]
+  X_un <- spec$aux_design_full[spec$respondent_mask, , drop = FALSE]
   aux_means <- if (ncol(X_un) > 0) setNames(rep(0, ncol(X_un)), colnames(X_un)) else NULL
   aux_mat <- if (ncol(X_un) > 0) X_un else matrix(nrow = nrow(Z_un), ncol = 0)
   sc <- validate_and_apply_nmar_scaling(FALSE, ncol(aux_mat) > 0, Z_un, aux_mat, aux_means)

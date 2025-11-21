@@ -40,7 +40,9 @@ el_extract_strata_factor <- function(design) {
 #'   Variance via bootstrap is supported. Analytical delta variance for EL is
 #'   not implemented and returns NA when requested.
 #' @param data A `survey.design` created with [survey::svydesign()].
-#' @param formula Two-sided formula: NA-valued outcome on LHS; auxiliaries on RHS.
+#' @param formula Two-sided formula with an NA-valued outcome on the LHS;
+#'   auxiliaries on the first RHS and, optionally, missingness predictors on
+#'   the second RHS partition.
 #' @param auxiliary_means Named numeric vector of population means for auxiliary
 #'   design columns. Names must match the materialized `model.matrix` columns on
 #'   the first RHS (after formula expansion), including factor indicators and
@@ -115,33 +117,20 @@ el.survey.design <- function(data, formula,
   survey_ctx <- el_get_design_context(design)
 
   weights_initial <- as.numeric(weights(design))
-  design_weight_sum <- sum(weights_initial)
 
   strata_factor <- el_extract_strata_factor(design)
   if (!is.null(strata_factor)) {
     design$variables[["..nmar_strata_factor.."]] <- strata_factor
   }
+  respondent_weights_full <- weights_initial
 
-  if (!is.null(n_total)) {
-    N_pop <- n_total
-    respondent_weights_full <- weights_initial
-  } else {
-    N_pop <- design_weight_sum
-    respondent_weights_full <- weights_initial
-  }
-
-  extra_args <- list(...)
-
-  input_spec <- tryCatch(
-    el_build_input_spec(
+  inputs <- tryCatch(
+    el_prepare_inputs(
       formula = formula,
       data = design$variables,
-      weights_full = respondent_weights_full,
-      population_total = N_pop,
-      population_total_supplied = !is.null(n_total),
-      is_survey = TRUE,
-      design_object = design,
-      auxiliary_means = auxiliary_means
+      weights = respondent_weights_full,
+      n_total = n_total,
+      design_object = design
     ),
     error = function(e) {
       msg <- conditionMessage(e)
@@ -150,21 +139,84 @@ el.survey.design <- function(data, formula,
     }
   )
 
-  el_run_core_analysis(
-    call = cl,
-    formula = formula,
-    input_spec = input_spec,
-    variance_method = variance_method,
-    auxiliary_means = auxiliary_means,
+  respondents_only <- isTRUE(all(inputs$respondent_mask))
+  has_aux <- is.matrix(inputs$aux_design_full) && ncol(inputs$aux_design_full) > 0L
+  if (respondents_only && is.null(n_total)) {
+    stop("Respondents-only data detected (no NAs in outcome), but 'n_total' was not provided.", call. = FALSE)
+  }
+  if (respondents_only && has_aux && is.null(auxiliary_means)) {
+    stop(
+      "Respondents-only data with auxiliary constraints requires auxiliary_means. Provide population auxiliary means via auxiliary_means=.",
+      call. = FALSE
+    )
+  }
+
+  auxiliary_means_eff <- auxiliary_means
+  if (isTRUE(strata_augmentation) && !is.null(strata_factor) && length(unique(strata_factor)) > 1L) {
+    if (isTRUE(all(inputs$respondent_mask))) {
+      warning(
+        "Wu-style strata augmentation with respondents-only survey data uses respondent weights ",
+        "to approximate stratum shares; this is generally not recommended. ",
+        "Consider strata_augmentation = FALSE or encoding known stratum totals via auxiliary_means.",
+        call. = FALSE
+      )
+    }
+    aug <- el_augment_strata_aux(
+      aux_design_full = inputs$aux_design_full,
+      strata_factor = strata_factor %||% NULL,
+      weights_full = weights_initial,
+      N_pop = inputs$N_pop,
+      auxiliary_means = auxiliary_means_eff
+    )
+    inputs$aux_design_full <- aug$mat
+    auxiliary_means_eff <- aug$means
+  }
+
+  auxiliary_summary <- el_resolve_auxiliaries(
+    aux_design_full = inputs$aux_design_full,
+    respondent_mask = inputs$respondent_mask,
+    auxiliary_means = auxiliary_means_eff,
+    weights_full = weights_initial
+  )
+
+  user_args <- c(
+    list(
+      formula = formula,
+      auxiliary_means = auxiliary_means_eff,
+      standardize = standardize,
+      trim_cap = trim_cap,
+      control = control,
+      n_total = inputs$N_pop
+    ),
+    list(...)
+  )
+
+  core_results <- el_estimator_core(
+    missingness_design = inputs$missingness_design,
+    aux_matrix = auxiliary_summary$auxiliary_design,
+    aux_means = auxiliary_summary$means,
+    respondent_weights = inputs$respondent_weights,
+    analysis_data = inputs$analysis_data,
+    outcome_expr = inputs$outcome_expr,
+    N_pop = inputs$N_pop,
     standardize = standardize,
-    strata_augmentation = strata_augmentation,
     trim_cap = trim_cap,
     control = control,
     on_failure = on_failure,
     family = family,
+    variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,
+    user_args = user_args,
     start = start,
     trace_level = trace_level,
-    extra_user_args = extra_args
+    auxiliary_means = auxiliary_means_eff
   )
+
+  if (is.list(core_results$diagnostics)) {
+    core_results$diagnostics$auxiliary_means <- auxiliary_summary$means
+    core_results$diagnostics$auxiliary_matrix <- auxiliary_summary$auxiliary_design
+  }
+
+  inputs$variance_method <- variance_method
+  el_build_result(core_results, inputs, cl, formula)
 }
