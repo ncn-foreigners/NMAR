@@ -2,8 +2,8 @@
 title: "Nonparametric Exponential Tilting Theory"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{EXPTILT: Nonparametric EM Method}
-  %\VignetteEngine{knitr::rmd}
+  %\VignetteIndexEntry{exptilt_nonparam_theory}
+  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 

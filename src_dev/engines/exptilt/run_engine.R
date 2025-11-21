@@ -30,10 +30,10 @@ estim_mean <- function(model) {
 estim_var <- function(model) {
   UseMethod("estim_var", model)
 }
-generate_Odds <- function(model, ...) {
+generate_Odds <- function(model, theta) {
   UseMethod("generate_Odds", model)
 }
-s_function <- function(model, ...) {
+s_function <- function(model, delta, x, theta) {
   UseMethod("s_function", model)
 }
 # validate_df <- function(model, covariate_outcome, covariates_aux, covariates_missingness,X,Y,Z) {

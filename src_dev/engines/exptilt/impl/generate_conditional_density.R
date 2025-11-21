@@ -98,8 +98,7 @@ generate_conditional_density <- function(model) {
     density_model = .model,
     density_function = density_fun,
     chosen_distribution = chosen_dist,
-    num_of_coefs = length(coefs),
-    aic_comparison = if (exists("aics")) aics else NULL
+    num_of_coefs = length(coefs)
   ), class = "nmar_density_response"))
 }
 
