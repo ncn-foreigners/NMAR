@@ -1,6 +1,6 @@
 # test_that("s_function matches analytic score for logit", {
 #   model <- list(
-#     family = NMAR:::logit_family(),
+#     family = logit_family(),
 #     y_1 = c(0.2, -0.1, 0.5)
 #   )
 #   class(model) <- "nmar_exptilt"
@@ -10,7 +10,7 @@
 #   theta <- c(`(Intercept)` = 0.1, x1 = -0.2, x2 = 0.3, y = 0.4)
 #   delta <- c(1, 0, 1)
 #
-#   score_pkg <- NMAR:::s_function.nmar_exptilt(model, delta = delta, x = x, theta = theta)
+#   score_pkg <- s_function.nmar_exptilt(model, delta = delta, x = x, theta = theta)
 #
 #   design_mat <- cbind(1, x, model$y_1)
 #   eta <- as.vector(design_mat %*% theta)
@@ -23,7 +23,7 @@
 #
 # test_that("s_function matches analytic score for probit", {
 #   model <- list(
-#     family = NMAR:::probit_family(),
+#     family = probit_family(),
 #     y_1 = c(-0.3, 1.1)
 #   )
 #   class(model) <- "nmar_exptilt"
@@ -33,7 +33,7 @@
 #   theta <- c(`(Intercept)` = -0.1, x1 = 0.4, x2 = -0.2, y = 0.3)
 #   delta <- c(1, 0)
 #
-#   score_pkg <- NMAR:::s_function.nmar_exptilt(model, delta = delta, x = x, theta = theta)
+#   score_pkg <- s_function.nmar_exptilt(model, delta = delta, x = x, theta = theta)
 #
 #   design_mat <- cbind(1, x, model$y_1)
 #   eta <- as.vector(design_mat %*% theta)
@@ -59,7 +59,7 @@
 #     x_for_y_obs = as.matrix(data.frame(x1 = c(0.2, -0.3, 0.4), x2 = c(0.5, -0.6, 0.7))),
 #     x_for_y_unobs = as.matrix(data.frame(x1 = c(-0.4, 0.8), x2 = c(0.1, -0.2))),
 #     theta = c(`(Intercept)` = 0.3, x1 = -0.2, x2 = 0.1, y = 0.4),
-#     family = NMAR:::logit_family(),
+#     family = logit_family(),
 #     respondent_weights = rep(1, 3),
 #     nonrespondent_weights = rep(1, 2),
 #     y_dens = "normal"
@@ -68,7 +68,7 @@
 #
 #   model$prob_model_type <- "logit"
 #   model$density_fun <- function(y, x) stats::dnorm(y, mean = 0, sd = 1)
-#   model$O_matrix_nieobs <- NMAR:::generate_Odds.nmar_exptilt(model)
+#   model$O_matrix_nieobs <- generate_Odds.nmar_exptilt(model)
 #   n_non <- nrow(model$x_for_y_unobs)
 #   n_resp <- length(model$y_1)
 #   model$f_matrix_nieobs <- matrix(0, nrow = n_non, ncol = n_resp)
@@ -105,7 +105,7 @@
 #   class(model) <- "nmar_exptilt"
 #
 #   model$prob_model_type <- "logit"
-#   odds_logit <- NMAR:::generate_Odds.nmar_exptilt(model)
+#   odds_logit <- generate_Odds.nmar_exptilt(model)
 #   n_non <- nrow(model$x_0)
 #   n_resp <- length(model$y_1)
 #   i_indices <- rep(seq_len(n_non), each = n_resp)
@@ -122,7 +122,7 @@
 #   expect_equal(odds_logit, odds_manual, tolerance = 1e-10)
 #
 #   model$prob_model_type <- "probit"
-#   odds_probit <- NMAR:::generate_Odds.nmar_exptilt(model)
+#   odds_probit <- generate_Odds.nmar_exptilt(model)
 #   odds_vec_probit <- numeric(length(i_indices))
 #   for (idx in seq_along(i_indices)) {
 #     i <- i_indices[idx]

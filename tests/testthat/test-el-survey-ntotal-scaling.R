@@ -1,4 +1,4 @@
-test_that("Survey weights normalization matches user-supplied n_total (mismatch triggers warning)", {
+test_that("EL survey uses user-supplied n_total as N_pop without rescaling weights", {
   skip_if_not_installed("survey")
   set.seed(9201)
   N <- 600
@@ -14,14 +14,10 @@ test_that("Survey weights normalization matches user-supplied n_total (mismatch 
   d2 <- base_w / mean(base_w) # still 1s here, but keep structure
   des <- survey::svydesign(ids = ~1, weights = ~d2, data = df)
 
-# Supply n_total that differs from sum(weights(design)) to trigger rescaling
+# Supply n_total that differs from sum(weights(design)).
   n_total <- N * 2 # mismatch by 100%
   eng <- el_engine(auxiliary_means = c(x = mean(df$x)), variance_method = "none", standardize = TRUE, n_total = n_total)
-  expect_warning(
-    fit <- nmar(y_miss ~ x, data = des, engine = eng, trace_level = 0),
-    regexp = "Scale mismatch detected|Large scale mismatch",
-    fixed = FALSE
-  )
+  fit <- nmar(y_miss ~ x, data = des, engine = eng, trace_level = 0)
 
 # Population weights from the result must sum to the supplied n_total
   wN <- weights(fit, scale = "population")

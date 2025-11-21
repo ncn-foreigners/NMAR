@@ -1,7 +1,7 @@
 test_that("estimating equations solved to tight tolerance (max residual small)", {
   set.seed(3402)
   df <- make_iid_nmar(n = 300, alpha = 0.5, seed = 3402)
-  fit <- NMAR:::el.data.frame(df, Y_miss ~ X,
+  fit <- el.data.frame(df, Y_miss ~ X,
     auxiliary_means = c(X = 0), standardize = TRUE,
     trim_cap = Inf, variance_method = "none"
   )

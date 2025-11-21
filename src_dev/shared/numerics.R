@@ -44,17 +44,6 @@ nmar_get_el_denom_floor <- function() {
   if (!is.numeric(val) || length(val) != 1L || !is.finite(val) || val <= 0) 1e-8 else val
 }
 
-#' Numeric gradient helper
-#' @description Thin wrapper around numDeriv::grad for internal use across engines.
-#' @param x Numeric vector at which to evaluate the gradient.
-#' @param func Function mapping numeric vector to scalar; receives `x`.
-#'
-#' @keywords internal
-grad_numeric <- function(x, func) {
-  s <- nmar_get_numeric_settings()
-  numDeriv::grad(func = func, x = x, method.args = list(d = s$grad_d, eps = s$grad_eps))
-}
-
 #' Weighted linear algebra helpers
 #'
 #' @keywords internal

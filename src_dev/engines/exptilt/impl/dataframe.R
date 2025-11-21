@@ -244,7 +244,7 @@ exptilt_fit_model <- function(data, model, ...) {
     standardize = model$standardize,
     has_aux = F,
     response_model_matrix_unscaled = model$data[, c(model$col_y, model$cols_delta), drop = FALSE],
-    auxiliary_matrix_unscaled = model$data[, model$cols_y_observed, drop = FALSE],
+    aux_matrix_unscaled = model$data[, model$cols_y_observed, drop = FALSE],
     mu_x_unscaled = NULL,
     weights = model$design_weights,
     weight_mask = model$respondent_mask

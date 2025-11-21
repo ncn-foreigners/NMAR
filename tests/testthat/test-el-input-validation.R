@@ -1,15 +1,3 @@
-make_el_test_data <- function(n = 100) {
-  set.seed(123)
-  X <- rnorm(n)
-  Z <- rnorm(n)
-  Y <- 1 + 0.5 * X + 0.3 * Z + rnorm(n)
-  p <- plogis(-0.3 + 0.4 * scale(Y)[, 1] + 0.2 * Z)
-  R <- runif(n) < p
-  df <- data.frame(Y_miss = Y, X = X, Z = Z)
-  df$Y_miss[!R] <- NA_real_
-  df
-}
-
 test_that("el engine accepts valid inputs", {
   df <- make_el_test_data()
   el_base <- nmar(
@@ -56,13 +44,13 @@ test_that("el engine rejects faulty inputs", {
       data = base_df,
       formula = Y_miss ~ W,
       response_predictors = NULL,
-      message = "Formula evaluation failed"
+      message = "object 'W' not found"
     ),
     list(
       name = "missing response predictor",
       data = base_df,
       formula = Y_miss ~ X | W,
-      message = "Formula evaluation failed"
+      message = "object 'W' not found"
     ),
     list(
       name = "non numeric outcome",

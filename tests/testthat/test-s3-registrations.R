@@ -1,7 +1,7 @@
 skip_if_not_installed("generics")
 
 make_test_result <- function() {
-  NMAR:::new_nmar_result(
+  new_nmar_result(
     estimate = 1.2,
     se = 0.05,
     converged = TRUE,

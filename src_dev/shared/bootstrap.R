@@ -482,7 +482,7 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
           "Survey bootstrap uses strict NA policy (survey_na_policy='strict').\n\n  ",
           "Troubleshooting:\n  ",
           "  - Check if estimator converges reliably on full design\n  ",
-          "  - Try variance_method = 'delta' instead\n  ",
+          "  - If your engine supports a non-bootstrap variance method, consider switching to it\n  ",
           "  - Increase solver tolerances (control = list(xtol = 1e-6))\n  ",
           "  - Reduce bootstrap_reps if stratification creates small replicates\n  ",
           "  - Or set survey_na_policy = 'omit' to allow some failures"
@@ -499,7 +499,7 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
             "Too few successful survey bootstrap replicates (%d/%d succeeded).\n  ",
             "At least 2 finite estimates required for variance calculation.\n  ",
             "Consider: reducing bootstrap_reps, improving estimator stability,\n  ",
-            "or using variance_method = 'delta' instead."
+            "or using a non-bootstrap variance method (if available in your engine)."
           ),
           length(keep_idx), length(replicate_estimates)
         ), call. = FALSE)

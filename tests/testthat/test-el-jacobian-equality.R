@@ -2,29 +2,26 @@ test_that("analytic Jacobian matches numeric Jacobian at solution (logit and pro
   skip_if_not_installed("numDeriv")
   df <- make_iid_nmar(n = 200, alpha = 0.5, seed = 3401)
 # Fit once (logit default) to get a stable solution near the root
-  fit <- NMAR:::el.data.frame(df, Y_miss ~ X,
+  fit <- el.data.frame(df, Y_miss ~ X,
     auxiliary_means = c(X = 0), standardize = TRUE,
     variance_method = "none"
   )
   expect_type(fit$converged, "logical")
 
-  spec <- NMAR:::el_build_input_spec(
+  spec <- el_prepare_inputs(
     formula = Y_miss ~ X,
     data = df,
-    weights_full = NULL,
-    population_total = NULL,
-    is_survey = FALSE,
-    design_object = NULL,
-    auxiliary_means = NULL
+    weights = NULL,
+    n_total = NULL
   )
-  dat2 <- if (inherits(spec$analysis_object, "survey.design")) spec$analysis_object$variables else spec$analysis_object
-  obs_idx <- spec$respondent_indices
+  dat2 <- spec$analysis_data
+  obs_idx <- which(spec$respondent_mask)
   resp_df <- dat2[obs_idx, ]
   Z_un <- spec$missingness_design
-  X_un <- spec$auxiliary_design_full[spec$respondent_mask, , drop = FALSE]
+  X_un <- spec$aux_design_full[spec$respondent_mask, , drop = FALSE]
   aux_means <- if (ncol(X_un) > 0) setNames(rep(0, ncol(X_un)), colnames(X_un)) else NULL
   aux_mat <- if (ncol(X_un) > 0) X_un else matrix(nrow = nrow(Z_un), ncol = 0)
-  sc <- NMAR:::validate_and_apply_nmar_scaling(FALSE, ncol(aux_mat) > 0, Z_un, aux_mat, aux_means)
+  sc <- validate_and_apply_nmar_scaling(FALSE, ncol(aux_mat) > 0, Z_un, aux_mat, aux_means)
   Z <- sc$response_model_matrix_scaled
   Xc <- sc$auxiliary_matrix_scaled
   mu_x <- sc$mu_x_scaled
@@ -37,9 +34,9 @@ test_that("analytic Jacobian matches numeric Jacobian at solution (logit and pro
   lambda_hat <- if (!is.null(fit$model$nuisance$lambda_x)) as.numeric(fit$model$nuisance$lambda_x) else numeric(0)
   theta <- c(as.numeric(beta_hat), z, lambda_hat)
 
-  for (fam in list(NMAR:::logit_family(), NMAR:::probit_family())) {
-    eq_fun <- NMAR:::el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
-    jac_fun <- NMAR:::el_build_jacobian(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
+  for (fam in list(logit_family(), probit_family())) {
+    eq_fun <- el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
+    jac_fun <- el_build_jacobian(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
     J_num <- numDeriv::jacobian(eq_fun, theta)
     J_ana <- jac_fun(theta)
     denom <- max(1e-8, norm(J_num, type = "F"))
