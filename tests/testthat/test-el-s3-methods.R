@@ -7,7 +7,7 @@ test_that("tidy/glance produce expected shapes", {
   td <- tidy(fit)
   gl <- glance(fit)
   expect_true(is.data.frame(td) && nrow(td) >= 1)
-  expect_true(all(c("y_hat", "std.error") %in% names(td)))
+  expect_true(all(c("estimate", "std.error") %in% names(td)))
   expect_true(is.data.frame(gl) && nrow(gl) == 1)
   expect_true(all(c("y_hat", "std.error", "converged") %in% names(gl)))
 })

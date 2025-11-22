@@ -28,4 +28,7 @@ test_that("nmar_result S3 generics are registered", {
 
   capture.output(print(res))
   capture.output(print(sum_obj))
+
+# se() generic should dispatch to the parent method
+  expect_identical(se(res), nmar_result_get_se(res))
 })
