@@ -1,0 +1,102 @@
+---
+title: "Exponential Tilting"
+description: |
+  Minsun Kim Riddles, Jae Kwang Kim, Jongho Im <br>
+  A Propensity-score-adjustment Method for Nonignorable Nonresponse <br>
+  https://doi.org/10.1093/jssam/smv047
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{tutorial_exptilt}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(NMAR)
+```
+
+
+
+
+```{r}
+set.seed(1108)
+head(riddles_case1)
+```
+
+
+```{r}
+y_original <- riddles_case1$y_true # to compare with true values
+```
+
+
+
+```{r}
+# Exptilt engine configuration
+exptilt_config <- exptilt_engine(
+  y_dens = 'normal',
+  control = list(maxit = 10),
+  stopping_threshold = 0.01,
+  standardize = FALSE,
+  family = 'logit',
+  bootstrap_reps = 50,
+  variance_method = 'bootstrap'
+)
+
+formula = y ~x
+res <- nmar(formula = formula, data = riddles_case1, engine = exptilt_config, trace_level = 0)
+```
+
+```{r}
+print(res)
+```
+
+```{r}
+coef(res)
+```
+
+
+```{r}
+cat('True Y mean:          ', sprintf('%.4f', mean(y_original)), '\n')
+est <- as.numeric(res$y_hat)
+se <- res$se
+cat('Est Y mean (NMAR):    ', sprintf('%.4f', est),
+    '  3σ interval: (', sprintf('%.4f', est - 1.5 * se),
+    ', ', sprintf('%.4f', est + 1.5 * se), 'σ=', sprintf('%.4f', se), ')\n')
+cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(riddles_case1$y, na.rm = T)), '\n')
+```
+
+```{r}
+# if survey is installed
+if (requireNamespace("survey", quietly = TRUE)) {
+
+  library('survey')
+  surv_test_weights <- runif(length(riddles_case1$y), 0.9, 1.1)
+  surv_test_data <- svydesign(ids = ~1, data = riddles_case1, weights = ~surv_test_weights)
+
+  exptilt_config <- exptilt_engine(
+     standardize = FALSE,
+     on_failure = "error",
+     bootstrap_reps = 50,
+     supress_warnings = FALSE,
+     auxiliary_means = NULL,
+     control = list(maxit = 15, method = "Newton"),
+     family = "logit",
+     y_dens = "normal",
+     variance_method = "delta",
+     stopping_threshold = 1
+)
+
+
+  formula = y ~ x
+  res <- nmar(formula = formula, data = surv_test_data, engine = exptilt_config, trace_level = 3)
+  print(res)
+
+}
+```
