@@ -101,8 +101,22 @@ nmar_format_call_line <- function(x) {
   } else {
     "<formula>"
   }
-# Data descriptor (avoid printing the object itself)
-  n_str <- if (is.finite(sample$n_total)) paste0("N=", sample$n_total) else "N=?"
+# Data descriptor (avoid printing the object itself). Display N using a
+# rounded/cleaned representation to avoid showing floating-point noise.
+  N_raw <- sample$n_total
+  if (is.finite(N_raw)) {
+# Treat N as integer when it is very close to one, using a relative
+# tolerance to avoid spurious decimals from floating-point arithmetic.
+    if (abs(N_raw - round(N_raw)) < 1e-6 * max(1, abs(N_raw))) {
+      n_str <- paste0("N=", as.integer(round(N_raw)))
+    } else {
+      formatted <- formatC(N_raw, digits = 6, format = "fg", flag = "#")
+      formatted <- sub("^\\s+", "", formatted)
+      n_str <- paste0("N=", formatted)
+    }
+  } else {
+    n_str <- "N=?"
+  }
   data_desc <- if (isTRUE(sample$is_survey)) paste0("<survey.design: ", n_str, ">") else paste0("<data.frame: ", n_str, ">")
 # Engine label
   eng <- meta$engine_name %||% "nmar_engine"
