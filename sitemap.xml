@@ -14,14 +14,13 @@
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/index.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/news/index.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/apply_nmar_scaling.html</loc></url>
-<url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/autoplot.html</loc></url>
-<url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/autoplot.nmar_result.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/bootstrap_variance.data.frame.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/bootstrap_variance.default.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/bootstrap_variance.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/bootstrap_variance.survey.design.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/coef.nmar_result.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/coef.summary_nmar_result.html</loc></url>
+<url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/compute_weighted_stats.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/confint.nmar_result.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/confint.summary_nmar_result.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/constraint_summaries.html</loc></url>
@@ -96,7 +95,6 @@
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_result_s3_parent.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_scaling_infra.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_validator_helpers.html</loc></url>
-<url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/plot.nmar_result.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/polish_households.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/prepare_nmar_scaling.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/print.nmar_engine.html</loc></url>
@@ -112,7 +110,7 @@
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/sanitize_nleqslv_control.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/scale_aux_multipliers.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/scale_coefficients.html</loc></url>
-<url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/se.nmar_result.html</loc></url>
+<url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/se.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/shared_weighted_gram.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/summary.nmar_result.html</loc></url>
 <url><loc>https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/summary.nmar_result_el.html</loc></url>

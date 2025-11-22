@@ -21,7 +21,6 @@ Key features:
 - Rich S3 surface: [`summary()`](https://rdrr.io/r/base/summary.html),
   [`confint()`](https://rdrr.io/r/stats/confint.html), `tidy()`,
   `glance()`,
-  [`plot()`](https://rdrr.io/r/graphics/plot.default.html)/[`autoplot()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/autoplot.md).
 
 ### Quick start
 
@@ -121,7 +120,7 @@ summary(fit_probit)
 #> Y_miss       0.217504
 ```
 
-Tidy/glance summaries, and plots:
+Tidy/glance summaries:
 
 ``` r
 if (requireNamespace("broom", quietly = TRUE)) {
@@ -134,9 +133,6 @@ if (requireNamespace("broom", quietly = TRUE)) {
 #> 1            none                  36.83019           5.17808e-13
 #>   min_denominator fraction_small_denominators nobs nobs_resp is_survey
 #> 1       0.4613402                           0  500       150     FALSE
-
-# plot(fit, which = "weights")
-# plot(fit, which = "fitted")
 ```
 
 Outputs and diagnostics at a glance (probability-scale weights sum to 1;
@@ -162,7 +158,7 @@ str(fit$diagnostics)
 #>  $ nleqslv_global                    : chr NA
 #>  $ nleqslv_xscalm                    : chr NA
 #>  $ solver_iterations                 : int 7
-#>  $ solver_time                       : num 0.006
+#>  $ solver_time                       : num 0.005
 #>  $ variance_time                     : num 0
 #>  $ reparam_W                         : chr "logit"
 #>  $ max_equation_residual             : num 5.18e-13

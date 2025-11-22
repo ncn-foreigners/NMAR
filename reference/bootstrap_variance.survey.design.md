@@ -66,17 +66,18 @@ This path constructs a replicate-weight design using
 design for each replicate weight vector. The supplied design must have
 been created directly with \[survey::svydesign()\].
 
-**NA Policy:** Survey bootstrap uses a strict NA policy - if any
-replicate fails to produce a finite estimate, the entire bootstrap fails
-with an error. This ensures the replicate design structure is maintained
-for design-calibrated variance via
+**NA policy:** By default, survey bootstrap uses a strict NA policy: if
+any replicate fails to produce a finite estimate, the entire bootstrap
+fails with an error. This ensures that the full replicate design
+structure is maintained for design-calibrated variance via
 [`survey::svrVar()`](https://rdrr.io/pkg/survey/man/svrVar.html). In
-contrast, IID bootstrap allows up to 10% failures before warning, as it
-uses uncalibrated [`stats::var()`](https://rdrr.io/r/stats/cor.html).
+contrast, IID bootstrap allows up to 10% failures before warning and
+uses [`stats::var()`](https://rdrr.io/r/stats/cor.html) on the
+successful replicates.
 
 ## Limitations
 
-**Design Reconstruction:** Survey bootstrap currently supports only
+**Design reconstruction:** Survey bootstrap currently supports only
 designs created directly with
 [`survey::svydesign()`](https://rdrr.io/pkg/survey/man/svydesign.html).
 Post-hoc adjustments applied via
@@ -90,7 +91,7 @@ Calibrated or post-stratified designs are not supported by this
 bootstrap path. Start from the original \`survey::svydesign()\` object
 prior to calibration/post-stratification.
 
-**Supported Design Features:** The following `svydesign()` parameters
+**Supported design features:** The following `svydesign()` parameters
 are preserved during reconstruction:
 
 - `ids` (or `id`): Sampling unit identifiers
@@ -101,14 +102,14 @@ are preserved during reconstruction:
 
 - `nest`: Nested vs non-nested strata
 
-The following are NOT preserved (they conflict with replicate weights):
+The following are not preserved (they conflict with replicate weights):
 
 - `probs`: Sampling probabilities (incompatible with direct weights)
 
 - `pps`: PPS sampling specification (incompatible with direct weights)
 
-**Rationale:** When reconstructing designs for each replicate, we
-replace the original weights with bootstrap replicate weights.
+**Rationale:** When reconstructing designs for each replicate, the
+original analysis weights are replaced with bootstrap replicate weights.
 Specifying both `weights` and `probs`/`pps` simultaneously is undefined
 behavior in
 [`survey::svydesign()`](https://rdrr.io/pkg/survey/man/svydesign.html).

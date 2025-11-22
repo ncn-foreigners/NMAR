@@ -5,7 +5,6 @@ Returns the standard error of the primary mean estimate.
 ## Usage
 
 ``` r
-# S3 method for class 'nmar_result'
 se(object, ...)
 ```
 

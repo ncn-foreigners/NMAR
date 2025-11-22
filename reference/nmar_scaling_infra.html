@@ -62,8 +62,8 @@ estimation engines to ensure consistent, numerically stable behavior.</p>
 
 <ul><li><p>Provide an engine-agnostic API for standardizing design matrices and
     auxiliary moments before solving.</p></li>
-<li><p>Return a minimal "recipe" (per-column mean/sd) for unscaling coefficients
-    and covariance matrices after solving.</p></li>
+<li><p>Return a minimal "recipe" (per-column mean and standard deviation)
+    for unscaling coefficients and covariance matrices after solving.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="inputs-outputs">Inputs/Outputs<a class="anchor" aria-label="anchor" href="#inputs-outputs"></a></h2>
@@ -98,7 +98,9 @@ estimation engines to ensure consistent, numerically stable behavior.</p>
 
 
 <ul><li><p>The intercept column is never scaled.</p></li>
-<li><p>Columns with near-zero variance are assigned <code>sd = 1</code> to avoid blow-ups.</p></li>
+<li><p>Columns with near-zero variance are centered but assigned
+    <code>sd = 1</code> so that the corresponding parameter is not inflated by
+    division by a very small standard deviation.</p></li>
 <li><p>Engines may use design-weighted scaling via the <code>weights</code> and
         <code>weight_mask</code> arguments.</p></li>
 </ul></div>

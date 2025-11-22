@@ -58,7 +58,7 @@
   : Default fitted values for NMAR results
 - [`formula(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/formula.nmar_result.md)
   : Default formula for NMAR results
-- [`se(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/se.nmar_result.md)
+- [`se()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/se.md)
   : Extract standard error for NMAR results
 - [`vcov(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/vcov.nmar_result.md)
   : Variance-covariance for base NMAR results

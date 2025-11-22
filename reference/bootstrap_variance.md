@@ -1,8 +1,8 @@
 # Shared bootstrap variance helpers
 
-S3 generic + methods to estimate the variance of an estimator via
-resampling (IID) or replicate weights (survey). Designed to be reused
-across NMAR engines.
+Internal helpers to estimate the variance of a scalar estimator via
+bootstrap resampling (IID data) or bootstrap replicate weights (survey
+designs). Designed to be reused across NMAR engines.
 
 ## Usage
 
@@ -31,33 +31,33 @@ bootstrap_variance(data, estimator_func, point_estimate, ...)
 
 ## Details
 
-\- For \`data.frame\` inputs, performs i.i.d. bootstrap by resampling
-rows and rerunning \`estimator_func\`. - For \`survey.design\` inputs,
-converts to a bootstrap replicate-weight design
-(\`svrep::as_bootstrap_design\`), computes replicate estimates by
-rebuilding the original design with each replicate weight vector, and
-then computes variance with \`survey::svrVar\` using the replicate
-scales. \`estimator_func\` is typically an engine method (e.g.,
-\`el()\`), and is called with the same arguments used for the point
+\- For \`data.frame\` inputs, performs IID bootstrap by resampling rows
+and rerunning \`estimator_func\` on each resample, then computing the
+empirical variance of the replicate estimates. - For \`survey.design\`
+inputs, converts the design to a bootstrap replicate-weight design with
+\`svrep::as_bootstrap_design()\`, reconstructs the original sampling
+design for each replicate weight vector, and passes the resulting
+replicate estimates and replicate scaling factors to
+\`survey::svrVar()\`.
+
+\`estimator_func\` is typically an engine-level estimator (for example
+the EL engine) and is called with the same arguments used for the point
 estimate, except that the \`data\` argument is replaced by the resampled
-data or replicate design.
+data (IID) or the replicate \`survey.design\` (survey).
 
 ## Progress Reporting
 
-If the `progressr` package is installed, progress reporting is
-available. Enable it by setting handlers before calling the bootstrap:
-
-[`library(progressr)`](https://progressr.futureverse.org)
-
-`handlers(global = TRUE)`
-
-`handlers("txtprogressbar") # or "progress", "cli", etc.`
-
-To disable progress in simulations or batch jobs, use
-`handlers("void")`. If progressr is not installed or no handlers are
-set, bootstrap runs silently (default behavior). Progress reporting
-works with all future backends (sequential, multisession, cluster, etc.)
-and does not affect reproducibility.
+If the optional `progressr` package is installed, bootstrap calls signal
+progress via a
+[`progressr::progressor`](https://progressr.futureverse.org/reference/progressor.html)
+inside
+[`progressr::with_progress()`](https://progressr.futureverse.org/reference/with_progress.html).
+Users control whether progress is shown (and how) by registering
+handlers with
+[`progressr::handlers()`](https://progressr.futureverse.org/reference/handlers.html).
+When `progressr` is not installed or no handlers are active, bootstrap
+runs silently. Progress reporting is compatible with all future
+backends.
 
 ## Reproducibility
 
@@ -70,7 +70,9 @@ estimation function:
                                         bootstrap_reps = 500))
       
 
-The `future` package (via `future.seed = TRUE`) ensures each bootstrap
-replicate uses an independent L'Ecuyer-CMRG random number stream derived
-from this seed, guaranteeing reproducibility across all future backends
-(sequential, multisession, cluster, etc.).
+The `future` framework (via `future.seed = TRUE` in
+[`future.apply::future_lapply()`](https://future.apply.futureverse.org/reference/future_lapply.html))
+ensures that each bootstrap replicate uses an independent L'Ecuyer-CMRG
+random number stream derived from this seed. This gives reproducible
+results across supported future backends (sequential, multisession,
+cluster, and so on).

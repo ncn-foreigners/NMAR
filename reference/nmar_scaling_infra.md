@@ -9,8 +9,8 @@ behavior.
 - Provide an engine-agnostic API for standardizing design matrices and
   auxiliary moments before solving.
 
-- Return a minimal "recipe" (per-column mean/sd) for unscaling
-  coefficients and covariance matrices after solving.
+- Return a minimal "recipe" (per-column mean and standard deviation) for
+  unscaling coefficients and covariance matrices after solving.
 
 ## Inputs/Outputs
 
@@ -47,8 +47,9 @@ behavior.
 
 - The intercept column is never scaled.
 
-- Columns with near-zero variance are assigned `sd = 1` to avoid
-  blow-ups.
+- Columns with near-zero variance are centered but assigned `sd = 1` so
+  that the corresponding parameter is not inflated by division by a very
+  small standard deviation.
 
 - Engines may use design-weighted scaling via the `weights` and
   `weight_mask` arguments.

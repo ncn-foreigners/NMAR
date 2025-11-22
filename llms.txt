@@ -94,11 +94,11 @@ formula = y ~ x
 res <- nmar(formula = formula, data = riddles_case1, engine = exptilt_config, trace_level = 0)
 print(coef(res))
 #> (Intercept)           y 
-#>  0.53613806 -0.09840558
+#>   0.5332934  -0.1015842
 print(res)
 #> NMAR Result
 #> ------------
-#> y mean: -1.005733 (0.078754)
+#> y mean: -1.003619 (0.050019)
 #> Converged: TRUE 
 #> Variance method: bootstrap 
 #> Estimator: exponential_tilting
@@ -179,7 +179,7 @@ Research grant: [OPUS 20
   : Default fitted values for NMAR results
 - [`formula(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/formula.nmar_result.md)
   : Default formula for NMAR results
-- [`se(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/se.nmar_result.md)
+- [`se()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/se.md)
   : Extract standard error for NMAR results
 - [`vcov(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/vcov.nmar_result.md)
   : Variance-covariance for base NMAR results

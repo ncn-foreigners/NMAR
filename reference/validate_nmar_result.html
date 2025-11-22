@@ -63,8 +63,34 @@ presence of optional components without defensive checks.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">validate_nmar_result</span><span class="op">(</span><span class="va">x</span>, <span class="va">class_name</span><span class="op">)</span></span></code></pre></div>
     </div>
 
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>This helper is the single authority on the `nmar_result` schema. It expects
+a list that already carries class <code>c(class_name, "nmar_result")</code> and
+at least a primary estimate stored in <code>y_hat</code>. All other components are
+optional; when they are <code>NULL</code> or missing, the validator supplies safe
+defaults:</p><ul><li><p>Core scalars: <code>se</code> (numeric, default <code>NA_real_</code>),
+    <code>estimate_name</code> (character, default <code>NA_character_</code>),
+    <code>converged</code> (logical, default <code>NA</code>).</p></li>
+<li><p><code>model</code>: list with <code>coefficients</code> and <code>vcov</code>, both
+    defaulting to <code>NULL</code>.</p></li>
+<li><p><code>weights_info</code>: list with <code>values</code> (default <code>NULL</code>) and
+    <code>trimmed_fraction</code> (default <code>NA_real_</code>).</p></li>
+<li><p><code>sample</code>: list with <code>n_total</code>, <code>n_respondents</code>,
+    <code>is_survey</code>, and <code>design</code>, defaulted to missing/empty values.</p></li>
+<li><p><code>inference</code>: list with <code>variance_method</code>, <code>df</code>, and
+    <code>message</code>, all defaulted to missing values.</p></li>
+<li><p><code>diagnostics</code>, <code>meta</code>, and <code>extra</code>: defaulted to empty
+    lists, with <code>meta</code> carrying <code>engine_name</code>, <code>call</code>, and
+    <code>formula</code> when unset.</p></li>
+</ul><p>Engine constructors should normally call <code><a href="new_nmar_result.html">new_nmar_result()</a></code> rather than
+invoking this function directly. <code><a href="new_nmar_result.html">new_nmar_result()</a></code> attaches classes and
+funnels all objects through <code>validate_nmar_result()</code> so downstream S3
+methods can assume a consistent structure.</p>
+    </div>
 
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

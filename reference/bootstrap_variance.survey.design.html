@@ -86,8 +86,8 @@ estimate is extracted via `$y_hat` and convergence via `$converged`.</p></dd>
 
 
 <dt id="arg-survey-na-policy">survey_na_policy<a class="anchor" aria-label="anchor" href="#arg-survey-na-policy"></a></dt>
-<dd><p>Character string specifying how to handle replicates that
-fail to produce estimates. Options:</p><dl><dt><code>"strict"</code></dt>
+<dd><p>Character string specifying how to handle replicates
+that fail to produce estimates. Options:</p><dl><dt><code>"strict"</code></dt>
 <dd><p>(default) Any failed replicate causes an error.
     This ensures the full replicate design structure is maintained and
     is required for proper calibration-based variance.</p></dd>
@@ -115,37 +115,40 @@ fail to produce estimates. Options:</p><dl><dt><code>"strict"</code></dt>
   [svrep::as_bootstrap_design()] and rebuilds the original sampling design for
   each replicate weight vector. The supplied design must have been created
   directly with [survey::svydesign()].</p>
-<p><strong>NA Policy:</strong> Survey bootstrap uses a strict NA policy - if any replicate
-  fails to produce a finite estimate, the entire bootstrap fails with an error.
-  This ensures the replicate design structure is maintained for design-calibrated
-  variance via <code><a href="https://rdrr.io/pkg/survey/man/svrVar.html" class="external-link">survey::svrVar()</a></code>. In contrast, IID bootstrap allows up to
-  10% failures before warning, as it uses uncalibrated <code><a href="https://rdrr.io/r/stats/cor.html" class="external-link">stats::var()</a></code>.</p>
+<p><strong>NA policy:</strong> By default, survey bootstrap uses a strict NA policy:
+  if any replicate fails to produce a finite estimate, the entire bootstrap
+  fails with an error. This ensures that the full replicate design structure
+  is maintained for design-calibrated variance via <code><a href="https://rdrr.io/pkg/survey/man/svrVar.html" class="external-link">survey::svrVar()</a></code>.
+  In contrast, IID bootstrap allows up to 10% failures before warning and
+  uses <code><a href="https://rdrr.io/r/stats/cor.html" class="external-link">stats::var()</a></code> on the successful replicates.</p>
     </div>
     <div class="section level2">
     <h2 id="limitations">Limitations<a class="anchor" aria-label="anchor" href="#limitations"></a></h2>
 
 
-<p><strong>Design Reconstruction:</strong> Survey bootstrap currently supports only designs
-  created directly with <code><a href="https://rdrr.io/pkg/survey/man/svydesign.html" class="external-link">survey::svydesign()</a></code>. Post-hoc adjustments applied
-  via <code><a href="https://rdrr.io/pkg/survey/man/calibrate.html" class="external-link">survey::calibrate()</a></code>, <code><a href="https://rdrr.io/pkg/survey/man/postStratify.html" class="external-link">survey::postStratify()</a></code>, or
-  <code><a href="https://rdrr.io/pkg/survey/man/rake.html" class="external-link">survey::rake()</a></code> cannot be reconstructed across bootstrap replicates and
-  will cause the function to error.</p>
+<p><strong>Design reconstruction:</strong> Survey bootstrap currently supports only
+  designs created directly with <code><a href="https://rdrr.io/pkg/survey/man/svydesign.html" class="external-link">survey::svydesign()</a></code>. Post-hoc
+  adjustments applied via <code><a href="https://rdrr.io/pkg/survey/man/calibrate.html" class="external-link">survey::calibrate()</a></code>,
+  <code><a href="https://rdrr.io/pkg/survey/man/postStratify.html" class="external-link">survey::postStratify()</a></code>, or <code><a href="https://rdrr.io/pkg/survey/man/rake.html" class="external-link">survey::rake()</a></code> cannot be
+  reconstructed across bootstrap replicates and will cause the function to
+  error.</p>
 <p>Calibrated or post-stratified designs are not supported by this bootstrap
   path. Start from the original `survey::svydesign()` object prior to
   calibration/post-stratification.</p>
-<p><strong>Supported Design Features:</strong> The following <code>svydesign()</code> parameters
-  are preserved during reconstruction:</p><ul><li><p><code>ids</code> (or <code>id</code>): Sampling unit identifiers</p></li>
+<p><strong>Supported design features:</strong> The following <code>svydesign()</code>
+  parameters are preserved during reconstruction:</p><ul><li><p><code>ids</code> (or <code>id</code>): Sampling unit identifiers</p></li>
 <li><p><code>strata</code>: Stratification variables</p></li>
 <li><p><code>fpc</code>: Finite population correction</p></li>
 <li><p><code>nest</code>: Nested vs non-nested strata</p></li>
-</ul><p>The following are NOT preserved (they conflict with replicate weights):</p><ul><li><p><code>probs</code>: Sampling probabilities (incompatible with direct weights)</p></li>
+</ul><p>The following are not preserved (they conflict with replicate weights):</p><ul><li><p><code>probs</code>: Sampling probabilities (incompatible with direct weights)</p></li>
 <li><p><code>pps</code>: PPS sampling specification (incompatible with direct weights)</p></li>
-</ul><p><strong>Rationale:</strong> When reconstructing designs for each replicate, we replace
-  the original weights with bootstrap replicate weights. Specifying both
-  <code>weights</code> and <code>probs</code>/<code>pps</code> simultaneously is undefined behavior
-  in <code><a href="https://rdrr.io/pkg/survey/man/svydesign.html" class="external-link">survey::svydesign()</a></code>. The structural design parameters (ids, strata,
-  fpc, nest) define the sampling topology and are preserved; the weights define
-  the analysis weights and are replaced.</p>
+</ul><p><strong>Rationale:</strong> When reconstructing designs for each replicate, the
+  original analysis weights are replaced with bootstrap replicate weights.
+  Specifying both <code>weights</code> and <code>probs</code>/<code>pps</code> simultaneously
+  is undefined behavior in <code><a href="https://rdrr.io/pkg/survey/man/svydesign.html" class="external-link">survey::svydesign()</a></code>. The structural
+  design parameters (ids, strata, fpc, nest) define the sampling topology
+  and are preserved; the weights define the analysis weights and are
+  replaced.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

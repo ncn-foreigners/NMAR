@@ -330,9 +330,13 @@ the standard layout:</p>
 <code>diagnostics</code>, <code>meta</code>, <code>extra</code>.</li>
 </ul>
 <p>Populate these components directly; do not add extra top-level
-aliases such as <code>y_hat</code> or <code>data_info</code>. Call
-<code><a href="../reference/validate_nmar_result.html">validate_nmar_result()</a></code> before returning to ensure the
-structure is complete.</p>
+aliases such as <code>y_hat</code> or <code>data_info</code>. The
+<code><a href="../reference/new_nmar_result.html">new_nmar_result()</a></code> helper will attach the engine-specific
+class, add the parent <code>"nmar_result"</code> class, and route the
+object through <code><a href="../reference/validate_nmar_result.html">validate_nmar_result()</a></code> so missing pieces are
+filled with safe defaults. You rarely need to call
+<code><a href="../reference/validate_nmar_result.html">validate_nmar_result()</a></code> directly unless constructing an
+object by hand.</p>
 <p>Minimal constructor example (inside
 <code>src_dev/engines/&lt;method&gt;/impl/constructors.R</code>):</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
@@ -366,7 +370,7 @@ structure is complete.</p>
 <span>    extra <span class="op">=</span> <span class="va">extra</span>,</span>
 <span>    class <span class="op">=</span> <span class="st">"nmar_result_method"</span></span>
 <span>  <span class="op">)</span></span>
-<span>  <span class="fu"><a href="../reference/validate_nmar_result.html">validate_nmar_result</a></span><span class="op">(</span><span class="va">result</span>, <span class="st">"nmar_result_method"</span><span class="op">)</span></span>
+<span>  <span class="va">result</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level4">
@@ -431,9 +435,28 @@ Jacobians.</li>
 <code>data.frame</code> and <code>survey.design</code>.</li>
 <li>IID: resample rows and rerun the estimator.</li>
 <li>Survey: convert to bootstrap replicate weights
-(<code><a href="https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html" class="external-link">svrep::as_bootstrap_design</a></code>), use
-<code><a href="https://rdrr.io/pkg/survey/man/withReplicates.html" class="external-link">survey::withReplicates</a></code>, then
-<code><a href="https://rdrr.io/pkg/survey/man/svrVar.html" class="external-link">survey::svrVar</a></code>.</li>
+(<code><a href="https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html" class="external-link">svrep::as_bootstrap_design</a></code>), then feed replicate estimates
+and the design’s
+<code>scale</code>/<code>rscales</code>/<code>mse</code> directly into
+<code><a href="https://rdrr.io/pkg/survey/man/svrVar.html" class="external-link">survey::svrVar()</a></code>.</li>
+<li>Engines may pass a <code>resample_guard(indices, data)</code> in the
+IID case to reject structurally invalid resamples (e.g., those with zero
+respondents). Guards should be rare and simple; they condition the
+bootstrap on “acceptable” samples and are preferable to letting the
+estimator crash.</li>
+<li>For survey designs, <code>survey_na_policy</code> controls how
+failed replicates are handled:
+<ul>
+<li>
+<code>"strict"</code> (default): any non‑finite replicate estimate
+is an error.</li>
+<li>
+<code>"omit"</code>: failed replicates are dropped and the
+corresponding <code>rscales</code> entries are removed before calling
+<code>svrVar()</code>. This yields a variance conditional on
+“successful” replicates and should be used cautiously.</li>
+</ul>
+</li>
 </ul>
 </div>
 <div class="section level4">
@@ -448,11 +471,145 @@ Engines must depend only on <code>src_dev/shared/</code> and their own
 and avoid accidental reuse.</li>
 <li>The parent S3 class <code>nmar_result</code> provides default
 methods (<code>estimate</code>, <code>vcov</code>, <code>confint</code>,
-<code>tidy</code>, <code>glance</code>,
-<code>plot</code>/<code>autoplot</code>, <code>coef</code>,
+<code>tidy</code>, <code>glance</code>, <code>coef</code>,
 <code>fitted</code>, <code>weights</code>, <code>formula</code>).
 Implement child print/summary only if you need extra presentation.</li>
 </ul>
+</div>
+<div class="section level4">
+<h4 id="developer-notes-nmar_result-schema-and-conventions">Developer notes: <code>nmar_result</code> schema and
+conventions<a class="anchor" aria-label="anchor" href="#developer-notes-nmar_result-schema-and-conventions"></a>
+</h4>
+<p>All NMAR engines should construct result objects via
+<code><a href="../reference/new_nmar_result.html">new_nmar_result()</a></code> (or a thin engine wrapper such as
+<code><a href="../reference/new_nmar_result_el.html">new_nmar_result_el()</a></code>). The shared parent class has the
+following schema:</p>
+<ul>
+<li>Scalars:
+<ul>
+<li>
+<code>y_hat</code>: numeric scalar primary estimand (e.g., adjusted
+mean).</li>
+<li>
+<code>estimate_name</code>: label for the estimand (usually the
+outcome variable name).</li>
+<li>
+<code>se</code>: numeric scalar standard error (may be
+<code>NA_real_</code> if unavailable).</li>
+<li>
+<code>converged</code>: logical flag indicating solver success.</li>
+</ul>
+</li>
+<li>Lists:
+<ul>
+<li>
+<code>model</code>: list with
+<ul>
+<li>
+<code>coefficients</code>: missingness-model coefficients (or
+<code>NULL</code>),</li>
+<li>
+<code>vcov</code>: covariance matrix for <code>coefficients</code>
+(or <code>NULL</code>),</li>
+<li>engine-specific extras such as <code>nuisance</code>.</li>
+</ul>
+</li>
+<li>
+<code>weights_info</code>: list with
+<ul>
+<li>
+<code>values</code>: unnormalised analysis weights or masses on the
+engine’s scale,</li>
+<li>
+<code>trimmed_fraction</code>: fraction of mass trimmed (numeric,
+<code>NA_real_</code> when not used).</li>
+</ul>
+</li>
+<li>
+<code>sample</code>: list with
+<ul>
+<li>
+<code>n_total</code>: population size on the analysis scale,</li>
+<li>
+<code>n_respondents</code>: number of respondents,</li>
+<li>
+<code>is_survey</code>: logical; <code>TRUE</code> for survey
+designs,</li>
+<li>
+<code>design</code>: underlying <code>survey.design</code> object
+when applicable.</li>
+</ul>
+</li>
+<li>
+<code>inference</code>: list with
+<ul>
+<li>
+<code>variance_method</code>: label such as <code>"none"</code> or
+<code>"bootstrap"</code>,</li>
+<li>
+<code>df</code>: degrees of freedom for t-based inference (numeric,
+may be <code>NA_real_</code>),</li>
+<li>
+<code>message</code>: variance-related notes (character, may be
+<code>NA_character_</code>).</li>
+</ul>
+</li>
+<li>
+<code>diagnostics</code>: list for engine-specific diagnostics
+(Jacobian condition numbers, equation residuals, denominator summaries,
+and so on).</li>
+<li>
+<code>meta</code>: list with
+<ul>
+<li>
+<code>engine_name</code>: short engine label (for printing),</li>
+<li>
+<code>call</code>: outer <code><a href="../reference/nmar.html">nmar()</a></code> call,</li>
+<li>
+<code>formula</code>: estimation formula.</li>
+</ul>
+</li>
+<li>
+<code>extra</code>: list for any additional engine-specific objects
+(for example <code>nmar_scaling_recipe</code>, fitted probabilities, or
+cached raw structures).</li>
+</ul>
+</li>
+</ul>
+<p><code><a href="../reference/validate_nmar_result.html">validate_nmar_result()</a></code> is the single authority on this
+schema; it normalises and type-checks objects so that parent S3 methods
+can rely on the presence and shape of these fields. Engine constructors
+supply whatever information they have and let the validator back-fill
+missing components with safe defaults.</p>
+<p>Two conventions are important for engines that want to reuse the
+parent methods:</p>
+<ul>
+<li><p><strong>Weights:</strong> if you want <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code> to
+return analysis weights, store unnormalised masses in
+<code>weights_info$values</code> and the population size in
+<code>sample$n_total</code>. The shared
+<code><a href="../reference/weights.nmar_result.html">weights.nmar_result()</a></code> method then returns probability
+weights (<code>scale = "probability"</code>) and population weights
+(<code>scale = "population"</code>) that satisfy the documented sum
+relationships (up to numerical precision), even under trimming. Engines
+that use a different weighting concept can either map into this
+convention or provide an engine-specific
+<code>weights.nmar_result_&lt;method&gt;()</code>.</p></li>
+<li><p><strong>Inference:</strong> parent methods
+(<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code>tidy()</code>, <code>glance()</code>,
+<code>coef(summary())</code>, <code>confint(summary())</code>) use
+<code>inference$df</code> together with <code>sample$is_survey</code> to
+decide between t- and normal-based quantiles. Engines that provide
+design-based degrees of freedom should populate <code>df</code>; those
+that do not can leave it as <code>NA_real_</code>, in which case
+normal-based inference is used.</p></li>
+</ul>
+<p>As long as a new engine adheres to these conventions and calls
+<code><a href="../reference/new_nmar_result.html">new_nmar_result()</a></code>, it automatically inherits a consistent
+interface for <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>,
+<code>tidy()</code>, <code>glance()</code>, <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code>,
+<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code><a href="https://rdrr.io/r/stats/formula.html" class="external-link">formula()</a></code>,
+<code><a href="../reference/se.html">se()</a></code>, <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, and <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>.</p>
 </div>
 </div>
 </div>
