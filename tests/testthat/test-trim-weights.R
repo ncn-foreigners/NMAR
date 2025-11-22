@@ -8,6 +8,7 @@ test_that("trim_weights caps and preserves mass when possible", {
   expect_true(all(wt <= cap + 1e-12))
 # Mass preserved because cap is not binding overall
   expect_equal(sum(wt), sum(w), tolerance = 1e-10)
+  expect_true(out$preserved_sum)
 # Fraction at cap should be 1/length(w) in this simple case (only the big one)
   expect_equal(out$trimmed_fraction, 1 / length(w))
 })
@@ -24,4 +25,27 @@ test_that("trim_weights warns when mass cannot be preserved", {
   expect_lt(sum(wt), sum(w))
 # All are at cap
   expect_equal(out$trimmed_fraction, 1)
+  expect_false(out$preserved_sum)
+})
+
+test_that("trim_weights handles empty weight vector", {
+  w <- numeric(0)
+  cap <- 1
+  out <- trim_weights(w, cap)
+  expect_equal(out$weights, w)
+  expect_equal(out$total_before, 0)
+  expect_equal(out$total_after, 0)
+  expect_equal(out$trimmed_fraction, 0)
+  expect_true(out$preserved_sum)
+})
+
+test_that("trim_weights handles all-zero weights", {
+  w <- c(0, 0, 0)
+  cap <- 1
+  out <- trim_weights(w, cap)
+  expect_equal(out$weights, w)
+  expect_equal(out$total_before, 0)
+  expect_equal(out$total_after, 0)
+  expect_equal(out$trimmed_fraction, 0)
+  expect_true(out$preserved_sum)
 })

@@ -25,7 +25,7 @@ el_build_result <- function(core_results, inputs, call, formula, engine_name = "
       extra = list(nmar_scaling_recipe = core_results$nmar_scaling_recipe),
       class = "nmar_result_el"
     )
-    return(validate_nmar_result(result, "nmar_result_el"))
+    return(result)
   }
 
   result <- new_nmar_result_el(
@@ -42,5 +42,5 @@ el_build_result <- function(core_results, inputs, call, formula, engine_name = "
     call = call,
     formula = formula
   )
-  validate_nmar_result(result, "nmar_result_el")
+  result
 }

@@ -56,10 +56,11 @@ confint.nmar_result <- function(object, parm, level = 0.95, ...) {
   se <- nmar_result_get_se(object)
   nm <- nmar_result_get_estimate_name(object)
   est <- nmar_result_get_estimate(object)
-  if (!is.finite(se)) {
-    return(matrix(c(NA_real_, NA_real_), nrow = 1, dimnames = list(nm, c("2.5 %", "97.5 %"))))
-  }
   alpha <- 1 - level
+  col_names <- paste0(format(100 * c(alpha / 2, 1 - alpha / 2)), " %")
+  if (!is.finite(se)) {
+    return(matrix(c(NA_real_, NA_real_), nrow = 1, dimnames = list(nm, col_names)))
+  }
   inference <- nmar_result_get_inference(object)
   sample <- nmar_result_get_sample(object)
   if (isTRUE(sample$is_survey) && is.finite(inference$df)) {
@@ -69,7 +70,7 @@ confint.nmar_result <- function(object, parm, level = 0.95, ...) {
   }
   ci <- as.numeric(est) + c(-1, 1) * crit * se
   m <- matrix(ci, nrow = 1)
-  colnames(m) <- paste0(format(100 * c(alpha / 2, 1 - alpha / 2)), " %")
+  colnames(m) <- col_names
   rownames(m) <- nm
   m
 }
@@ -97,7 +98,7 @@ tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
   if (is.finite(se)) ci <- as.numeric(est + c(-1, 1) * crit * se)
   rows <- list(data.frame(
     term = nm,
-    y_hat = as.numeric(est),
+    estimate = as.numeric(est),
     std.error = se,
     conf.low = ci[1],
     conf.high = ci[2],
@@ -128,7 +129,7 @@ tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
     }
     rows[[2]] <- data.frame(
       term = beta_names,
-      y_hat = beta_vec,
+      estimate = beta_vec,
       std.error = se_beta,
       statistic = stat,
       p.value = pval,
@@ -156,6 +157,7 @@ glance.nmar_result <- function(x, ...) {
   inference <- nmar_result_get_inference(x)
   sample <- nmar_result_get_sample(x)
   diagnostics <- nmar_result_get_diagnostics(x)
+  weights_info <- nmar_result_get_weights_info(x)
   if (isTRUE(sample$is_survey) && is.finite(inference$df)) {
     crit <- stats::qt(0.975, df = inference$df)
   } else {
@@ -169,7 +171,7 @@ glance.nmar_result <- function(x, ...) {
     conf.low = ci[1],
     conf.high = ci[2],
     converged = isTRUE(x$converged),
-    trimmed_fraction = diagnostics$trimmed_fraction %||% NA_real_,
+    trimmed_fraction = weights_info$trimmed_fraction %||% diagnostics$trimmed_fraction %||% NA_real_,
     variance_method = inference$variance_method,
     jacobian_condition_number = diagnostics$jacobian_condition_number %||% NA_real_,
     max_equation_residual = diagnostics$max_equation_residual %||% NA_real_,
@@ -181,103 +183,6 @@ glance.nmar_result <- function(x, ...) {
     is_survey = isTRUE(sample$is_survey),
     check.names = FALSE
   )
-}
-
-#' Base plotting for NMAR results
-#' @description Quick base plots for weights, fitted probabilities, constraints or diagnostics.
-#' @param x An object of class `nmar_result`.
-#' @param which Which plot: one of `"weights"`, `"fitted"`, `"constraints"`, `"diagnostics"`.
-#' @param ... Ignored.
-#' @keywords internal
-plot.nmar_result <- function(x, which = c("weights", "fitted", "constraints", "diagnostics"), ...) {
-  which <- match.arg(which)
-  op <- graphics::par(no.readonly = TRUE)
-  on.exit(graphics::par(op), add = TRUE)
-  weights_info <- nmar_result_get_weights_info(x)
-  diagnostics <- nmar_result_get_diagnostics(x)
-  if (which == "weights") {
-    w <- as.numeric(weights_info$values)
-    w <- w[is.finite(w)]
-    if (length(w) < 2) {
-      message("No weights available to plot.")
-      return(invisible(x))
-    }
-    br <- max(2L, ceiling(sqrt(length(w))))
-    graphics::hist(w, breaks = br, main = "NMAR weights (respondents)", xlab = "weight", col = "gray")
-    graphics::abline(v = max(w), col = "firebrick", lty = 2)
-    tr <- weights_info$trimmed_fraction
-    if (length(tr) == 1 && is.finite(tr)) graphics::mtext(sprintf("trimmed_fraction = %.2f%%", 100 * tr), side = 3, cex = 0.8)
-  } else if (which == "fitted") {
-    fv <- as.numeric(fitted(x))
-    fv <- fv[is.finite(fv)]
-    if (length(fv) < 2) {
-      message("No fitted values available to plot.")
-      return(invisible(x))
-    }
-    br <- max(2L, ceiling(sqrt(length(fv))))
-    graphics::hist(fv, breaks = br, main = "Fitted response probabilities (respondents)", xlab = "p_hat", col = "gray")
-  } else if (which == "constraints") {
-    vals <- c(eqW = diagnostics$constraint_sum_W %||% NA_real_)
-    if (!is.null(diagnostics$constraint_sum_aux) && length(diagnostics$constraint_sum_aux) > 0) vals <- c(vals, diagnostics$constraint_sum_aux)
-    graphics::barplot(as.numeric(vals), names.arg = names(vals), main = "Constraint sums at solution", ylab = "sum", las = 2)
-    graphics::abline(h = 0, col = "darkgray")
-  } else if (which == "diagnostics") {
-    graphics::plot.new()
-    txt <- c(
-      sprintf("converged: %s", isTRUE(x$converged)),
-      sprintf("variance_method: %s", (nmar_result_get_inference(x)$variance_method)),
-      sprintf("Jacobian cond: %s", format(diagnostics$jacobian_condition_number %||% NA_real_, digits = 3)),
-      sprintf("Max eq residual: %s", format(diagnostics$max_equation_residual %||% NA_real_, digits = 3)),
-      sprintf("Min denominator: %s (frac<1e-6: %.2f%%)", format(diagnostics$min_denominator %||% NA_real_, digits = 3), 100 * (diagnostics$fraction_small_denominators %||% 0)),
-      sprintf("Trimmed fraction: %.2f%%", 100 * (weights_info$trimmed_fraction %||% 0)),
-      NULL
-    )
-    txt <- txt[!vapply(txt, is.null, logical(1))]
-    graphics::text(0.02, 0.95, adj = c(0, 1), labels = paste(unlist(txt), collapse = "\n"), cex = 0.9)
-  }
-  invisible(x)
-}
-
-#' ggplot2 autoplot generic
-#' @description Generic for autoplot; methods provide plotting for NMAR results.
-#' @param object An object.
-#' @param ... Passed to methods.
-#' @keywords internal
-autoplot <- function(object, ...) UseMethod("autoplot")
-
-#' Default ggplot2 autoplot for NMAR results
-#' @description Quick ggplot2 visualizations for result objects.
-#' @param object An object of class `nmar_result` or a subclass.
-#' @param type One of "weights", "fitted", or "constraints".
-#' @param ... Ignored.
-#' @return A `ggplot` object.
-#' @keywords internal
-autoplot.nmar_result <- function(object, type = c("weights", "fitted", "constraints"), ...) {
-  type <- match.arg(type)
-  if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 is required for autoplot.nmar_result", call. = FALSE)
-  diagnostics <- nmar_result_get_diagnostics(object)
-  if (type == "weights") {
-    w <- stats::weights(object)
-    df <- data.frame(w = as.numeric(w))
-    ggplot2::ggplot(df, ggplot2::aes(x = w)) +
-      ggplot2::geom_histogram(color = "white", fill = "gray") +
-      ggplot2::labs(title = "NMAR weights", x = "weight")
-  } else if (type == "fitted") {
-    fv <- stats::fitted(object)
-    df <- data.frame(p = as.numeric(fv))
-    ggplot2::ggplot(df, ggplot2::aes(x = p)) +
-      ggplot2::geom_histogram(color = "white", fill = "gray") +
-      ggplot2::labs(title = "Fitted response probabilities", x = "p_hat")
-  } else {
-    vals <- c(eqW = diagnostics$constraint_sum_W %||% NA_real_)
-    if (!is.null(diagnostics$constraint_sum_aux) && length(diagnostics$constraint_sum_aux) > 0) vals <- c(vals, diagnostics$constraint_sum_aux)
-    df <- data.frame(term = names(vals), value = as.numeric(vals))
-    ggplot2::ggplot(df, ggplot2::aes(x = term, y = value)) +
-      ggplot2::geom_col(fill = "gray") +
-      ggplot2::geom_hline(yintercept = 0, color = "darkgray") +
-      ggplot2::labs(title = "Constraint sums", x = NULL, y = "sum") +
-      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
-  }
 }
 
 #' Default coefficients for NMAR results
@@ -325,22 +230,32 @@ fitted.nmar_result <- function(object, ...) {
 #' @param ... Additional arguments (ignored).
 #'
 #' @details
-#' NMAR engines store unnormalized respondent masses \eqn{\tilde w_i} on the
-#' analysis scale. For the empirical likelihood (EL) engine these are
-#' \eqn{\tilde w_i = d_i / D_i(\theta)} as in Qin, Leung, and Shao (2002);
-#' exponential tilting engines store the corresponding tilted masses. This
-#' helper standardizes those masses into probability and population weights.
+#' By convention, NMAR engines that expose analysis weights store unnormalized
+#' respondent masses \eqn{\tilde w_i} on the analysis scale in the
+#' \code{weights_info$values} component, and record the population size
+#' \eqn{N_\mathrm{pop}} in \code{sample$n_total}. For the empirical likelihood
+#' (EL) engine these masses are \eqn{\tilde w_i = d_i / D_i(\theta)} as in Qin,
+#' Leung, and Shao (2002); exponential tilting engines may store the
+#' corresponding tilted masses.
 #'
-#' \strong{Mathematical guarantees} (enforced by construction, even with trimming):
+#' When an engine follows this convention, this helper standardizes those
+#' masses into probability and population weights with the following properties
+#' (up to floating-point error, and even under trimming):
 #' \itemize{
-#'   \item \code{sum(weights(object, scale = "probability")) = 1} (within machine precision);
-#'   \item \code{sum(weights(object, scale = "population")) = N_pop} (within machine precision);
-#'   \item \code{weights(object, "population") = N_pop * weights(object, "probability")} (exact up to floating-point rounding).
+#'   \item \code{sum(weights(object, scale = "probability")) = 1};
+#'   \item \code{sum(weights(object, scale = "population")) = N_pop};
+#'   \item \code{weights(object, "population") = N_pop * weights(object, "probability")}.
 #' }
+#'
+#' Engines that use different internal weighting schemes can either map their
+#' weights into this convention (by populating \code{weights_info$values} and
+#' \code{sample$n_total} accordingly) or provide engine-specific methods
+#' \code{weights.nmar_result_<method>()} if a different interpretation is
+#' required.
 #'
 #' \strong{Trimming effects}:
 #' When \code{trim_cap < Inf} and trimming is active, the stored unnormalized
-#' masses \eqn{\tilde w_i} no longer satisfy the empirical-likelihood identity
+#' masses \eqn{\tilde w_i} may no longer satisfy identities such as
 #' \eqn{\sum_i \tilde w_i = \sum_i d_i}. This helper always renormalizes the
 #' stored masses via
 #' \deqn{w_i = N_\mathrm{pop} \tilde w_i / \sum_j \tilde w_j,}
@@ -360,11 +275,11 @@ fitted.nmar_result <- function(object, ...) {
 #'
 #' # Probability weights (default): sum to 1
 #' w_prob <- weights(res)
-#' sum(w_prob) # Exactly 1.0
+#' sum(w_prob) # 1 (up to numerical precision)
 #'
 #' # Population weights: sum to N_pop
 #' w_pop <- weights(res, scale = "population")
-#' sum(w_pop) # Exactly nrow(df) for IID data
+#' sum(w_pop) # nrow(df) for IID data
 #'
 #' # Relationship (exact up to floating-point error):
 #' all.equal(w_pop, nrow(df) * w_prob)
@@ -429,7 +344,7 @@ weights.nmar_result <- function(object,
       ), call. = FALSE)
     }
 
-# CRITICAL FIX: This formula guarantees sum = N_pop even with trimming
+# This formula guarantees sum = N_pop even with trimming
     weights_out <- N_pop * w_unnorm / sum_w
   }
 
@@ -463,12 +378,13 @@ formula.nmar_result <- function(x, ...) {
 #' @param ... Ignored.
 #' @return Numeric scalar.
 #' @keywords result_param
+#' @export
+se <- function(object, ...) {
+  UseMethod("se")
+}
+
 #' @exportS3Method se nmar_result
 se.nmar_result <- function(object, ...) nmar_result_get_se(object)
-
-se <- function(...) {
-  UseMethod("se", ...)
-}
 
 
 

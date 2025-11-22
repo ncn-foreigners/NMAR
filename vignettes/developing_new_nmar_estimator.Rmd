@@ -209,8 +209,11 @@ Call `new_nmar_result()` inside your constructor so the object carries class
   `diagnostics`, `meta`, `extra`.
 
 Populate these components directly; do not add extra top-level aliases such as
-`y_hat` or `data_info`. Call `validate_nmar_result()` before returning to ensure
-the structure is complete.
+`y_hat` or `data_info`. The `new_nmar_result()` helper will attach the
+engine-specific class, add the parent `"nmar_result"` class, and route the
+object through `validate_nmar_result()` so missing pieces are filled with safe
+defaults. You rarely need to call `validate_nmar_result()` directly unless
+constructing an object by hand.
 
 Minimal constructor example (inside `src_dev/engines/<method>/impl/constructors.R`):
 
@@ -245,7 +248,7 @@ new_nmar_result_method <- function(estimate, se,
     extra = extra,
     class = "nmar_result_method"
   )
-  validate_nmar_result(result, "nmar_result_method")
+  result
 }
 ```
 
@@ -288,10 +291,86 @@ Use these shared modules in `src_dev/shared/`:
   `survey.design`.
 - IID: resample rows and rerun the estimator.
 - Survey: convert to bootstrap replicate weights (`svrep::as_bootstrap_design`),
-  use `survey::withReplicates`, then `survey::svrVar`.
+  then feed replicate estimates and the design’s `scale`/`rscales`/`mse`
+  directly into `survey::svrVar()`.
+- Engines may pass a `resample_guard(indices, data)` in the IID case to
+  reject structurally invalid resamples (e.g., those with zero respondents).
+  Guards should be rare and simple; they condition the bootstrap on
+  “acceptable” samples and are preferable to letting the estimator crash.
+- For survey designs, `survey_na_policy` controls how failed replicates are
+  handled:
+  - `"strict"` (default): any non‑finite replicate estimate is an error.
+  - `"omit"`: failed replicates are dropped and the corresponding `rscales`
+    entries are removed before calling `svrVar()`. This yields a variance
+    conditional on “successful” replicates and should be used cautiously.
 
 ### 4) Engine boundaries and naming
 
 - Do not call helpers from other engines’ `impl/` folders. Engines must depend only on `src_dev/shared/` and their own `src_dev/engines/<method>/impl/`.
 - Prefix engine‑specific helpers with `<method>_` (e.g., `el_...` for empirical likelihood) to signal ownership and avoid accidental reuse.
-- The parent S3 class `nmar_result` provides default methods (`estimate`, `vcov`, `confint`, `tidy`, `glance`, `plot`/`autoplot`, `coef`, `fitted`, `weights`, `formula`). Implement child print/summary only if you need extra presentation.
+- The parent S3 class `nmar_result` provides default methods (`estimate`, `vcov`, `confint`, `tidy`, `glance`, `coef`, `fitted`, `weights`, `formula`). Implement child print/summary only if you need extra presentation.
+
+### Developer notes: `nmar_result` schema and conventions
+
+All NMAR engines should construct result objects via `new_nmar_result()` (or a
+thin engine wrapper such as `new_nmar_result_el()`). The shared parent class
+has the following schema:
+
+- Scalars:
+  - `y_hat`: numeric scalar primary estimand (e.g., adjusted mean).
+  - `estimate_name`: label for the estimand (usually the outcome variable name).
+  - `se`: numeric scalar standard error (may be `NA_real_` if unavailable).
+  - `converged`: logical flag indicating solver success.
+- Lists:
+  - `model`: list with
+    - `coefficients`: missingness-model coefficients (or `NULL`),
+    - `vcov`: covariance matrix for `coefficients` (or `NULL`),
+    - engine-specific extras such as `nuisance`.
+  - `weights_info`: list with
+    - `values`: unnormalised analysis weights or masses on the engine’s scale,
+    - `trimmed_fraction`: fraction of mass trimmed (numeric, `NA_real_` when not used).
+  - `sample`: list with
+    - `n_total`: population size on the analysis scale,
+    - `n_respondents`: number of respondents,
+    - `is_survey`: logical; `TRUE` for survey designs,
+    - `design`: underlying `survey.design` object when applicable.
+  - `inference`: list with
+    - `variance_method`: label such as `"none"` or `"bootstrap"`,
+    - `df`: degrees of freedom for t-based inference (numeric, may be `NA_real_`),
+    - `message`: variance-related notes (character, may be `NA_character_`).
+  - `diagnostics`: list for engine-specific diagnostics (Jacobian condition
+    numbers, equation residuals, denominator summaries, and so on).
+  - `meta`: list with
+    - `engine_name`: short engine label (for printing),
+    - `call`: outer `nmar()` call,
+    - `formula`: estimation formula.
+  - `extra`: list for any additional engine-specific objects (for example
+    `nmar_scaling_recipe`, fitted probabilities, or cached raw structures).
+
+`validate_nmar_result()` is the single authority on this schema; it normalises
+and type-checks objects so that parent S3 methods can rely on the presence and
+shape of these fields. Engine constructors supply whatever information they
+have and let the validator back-fill missing components with safe defaults.
+
+Two conventions are important for engines that want to reuse the parent methods:
+
+- **Weights:** if you want `weights()` to return analysis weights, store
+  unnormalised masses in `weights_info$values` and the population size in
+  `sample$n_total`. The shared `weights.nmar_result()` method then returns
+  probability weights (`scale = "probability"`) and population weights
+  (`scale = "population"`) that satisfy the documented sum relationships
+  (up to numerical precision), even under trimming. Engines that use a
+  different weighting concept can either map into this convention or provide
+  an engine-specific `weights.nmar_result_<method>()`.
+
+- **Inference:** parent methods (`confint()`, `tidy()`, `glance()`,
+  `coef(summary())`, `confint(summary())`) use `inference$df` together with
+  `sample$is_survey` to decide between t- and normal-based quantiles. Engines
+  that provide design-based degrees of freedom should populate `df`; those
+  that do not can leave it as `NA_real_`, in which case normal-based inference
+  is used.
+
+As long as a new engine adheres to these conventions and calls `new_nmar_result()`,
+it automatically inherits a consistent interface for `vcov()`, `confint()`,
+`tidy()`, `glance()`, `coef()`, `fitted()`, `weights()`, `formula()`,
+`se()`, `summary()`, and `print()`.

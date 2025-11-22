@@ -31,7 +31,6 @@ Suggests:
     MASS,
     svrep,
     broom,
-    ggplot2,
     progressr,
     future,
     future.apply,

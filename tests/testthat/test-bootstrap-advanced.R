@@ -380,6 +380,32 @@ test_that("boundary cases: minimum replicates and edge conditions", {
   expect_true(res_single$variance < 1e-10)
 })
 
+test_that("IID resample_guard integrates with failure handling", {
+  set.seed(123)
+  df <- data.frame(y = c(1, 2, 3, 4, 5))
+
+  estimator_mean <- function(data, ...) {
+    list(y_hat = mean(data$y), converged = TRUE)
+  }
+
+# Guard that rejects all resamples; every replicate will hit max attempts and return NA
+  always_reject_guard <- function(indices, data) {
+    FALSE
+  }
+
+  expect_error(
+    bootstrap_variance(
+      df,
+      estimator_func = estimator_mean,
+      point_estimate = mean(df$y),
+      bootstrap_reps = 10,
+      resample_guard = always_reject_guard
+    ),
+    "All bootstrap replicates failed",
+    fixed = TRUE
+  )
+})
+
 test_that("omit policy correctly subsets rscales for mathematical correctness", {
   skip_if_not_installed("survey")
   skip_if_not_installed("svrep")

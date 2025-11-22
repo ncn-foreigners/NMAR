@@ -7,7 +7,6 @@ thrash/
 inst/doc
 /doc/
 /Meta/
-tests/testthat/Rplots.pdf
 man/
 Meta/
 NAMESPACE

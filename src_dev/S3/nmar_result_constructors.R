@@ -1,67 +1,54 @@
 #' Construct Result Object (parent helper)
 #'
-#' Builds a normalized `nmar_result` list using the modern schema.
+#' Builds an `nmar_result` list using the shared schema and validates it.
 #' Engines must pass named fields; no legacy positional signature is supported.
+#'
+#' @details
+#' Engine-level constructors should call this helper with named arguments rather
+#' than assembling result lists by hand. At minimum, engines should supply
+#' \code{estimate} (numeric scalar) and \code{converged} (logical). All other
+#' fields are optional:
+#' \itemize{
+#'   \item \code{estimate_name}: label for the primary estimand (defaults to
+#'     \code{NA_character_} if omitted).
+#'   \item \code{se}: standard error for the primary estimand (defaults to
+#'     \code{NA_real_} when not available).
+#'   \item \code{model}, \code{weights_info}, \code{sample}, \code{inference},
+#'     \code{diagnostics}, \code{meta}, \code{extra}: lists that may be partially
+#'     specified or \code{NULL}; \code{validate_nmar_result()} will back-fill
+#'     missing subfields with safe defaults.
+#'   \item \code{class}: engine-specific result subclass name, e.g.
+#'     \code{"nmar_result_el"}; it is combined with the parent class
+#'     \code{"nmar_result"}.
+#' }
+#'
+#' Calling \code{new_nmar_result()} ensures that every engine returns objects
+#' that satisfy the shared schema and are immediately compatible with parent
+#' S3 methods such as \code{vcov()}, \code{confint()}, \code{tidy()},
+#' \code{glance()}, and \code{weights()}.
 #'
 #' @keywords internal
 new_nmar_result <- function(...) {
   dots <- list(...)
 
-  y_hat <- dots$estimate
-  se <- dots$se
-  estimate_name <- dots$estimate_name %||% NA_character_
-  converged <- dots$converged
-  model <- dots$model %||% list()
-  weights_info <- dots$weights_info %||% list()
-  sample <- dots$sample %||% list()
-  inference <- dots$inference %||% list()
-  diagnostics <- dots$diagnostics %||% list()
-  meta <- dots$meta %||% list()
-  extra <- dots$extra %||% list()
   class_name <- dots$class %||% "nmar_result"
 
-# Normalize components
-  if (!is.list(model)) model <- list()
-  if (is.null(model$coefficients)) model$coefficients <- NULL
-  if (is.null(model$vcov)) model$vcov <- NULL
-
-  if (!is.list(weights_info)) weights_info <- list()
-  if (is.null(weights_info$values)) weights_info$values <- NULL
-  if (is.null(weights_info$trimmed_fraction)) weights_info$trimmed_fraction <- NA_real_
-
-  sample_defaults <- list(n_total = NA_integer_, n_respondents = NA_integer_, is_survey = FALSE, design = NULL)
-  if (!is.list(sample)) sample <- list()
-  for (nm in names(sample_defaults)) if (is.null(sample[[nm]])) sample[[nm]] <- sample_defaults[[nm]]
-
-  inference_defaults <- list(
-    variance_method = NA_character_,
-    df = NA_real_,
-    message = NA_character_
-  )
-  if (!is.list(inference)) inference <- list()
-  for (nm in names(inference_defaults)) if (is.null(inference[[nm]])) inference[[nm]] <- inference_defaults[[nm]]
-
-  meta_defaults <- list(engine_name = NA_character_, call = NULL, formula = NULL)
-  if (!is.list(meta)) meta <- list()
-  for (nm in names(meta_defaults)) if (is.null(meta[[nm]])) meta[[nm]] <- meta_defaults[[nm]]
-
-  if (!is.list(diagnostics)) diagnostics <- list()
-  if (!is.list(extra)) extra <- list()
-
   result <- list(
-    y_hat = y_hat,
-    estimate_name = estimate_name,
-    se = se,
-    converged = converged,
-    model = model,
-    weights_info = weights_info,
-    sample = sample,
-    inference = inference,
-    diagnostics = diagnostics,
-    meta = meta,
-    extra = extra
+    y_hat = dots$estimate,
+    estimate_name = dots$estimate_name,
+    se = dots$se,
+    converged = dots$converged,
+    model = dots$model,
+    weights_info = dots$weights_info,
+    sample = dots$sample,
+    inference = dots$inference,
+    diagnostics = dots$diagnostics,
+    meta = dots$meta,
+    extra = dots$extra
   )
-  structure(result, class = c(class_name, "nmar_result"))
+
+  class(result) <- c(class_name, "nmar_result")
+  validate_nmar_result(result, class_name)
 }
 
 # Fallback definition for the `%||%` helper used across the S3 stack
