@@ -37,7 +37,7 @@ el_prepare_inputs <- function(formula,
                               n_total = NULL,
                               design_object = NULL) {
 
-# hase 1: parse formula and outcome
+# Phase 1: parse formula and outcome
   if (missing(formula)) stop("`formula` must be supplied.", call. = FALSE)
 
   fml <- Formula::as.Formula(formula)
@@ -227,7 +227,7 @@ el_prepare_inputs <- function(formula,
     rep(1, sum(respondent_mask))
   }
 
-# hase 5: wrap survey design (if present) and compute N_pop
+# Phase 5: wrap survey design (if present) and compute N_pop
   is_survey <- !is.null(design_object) && inherits(design_object, "survey.design")
   analysis_object <- if (isTRUE(is_survey)) {
     design_object$variables <- data_aug

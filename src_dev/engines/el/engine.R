@@ -14,7 +14,10 @@
 #' Pass the engine to \link{nmar} together with a formula and data.
 #'
 #' @param family character; missingness (response) model family, either \code{"logit"} or \code{"probit"},
-#'   or a family object created by \code{logit_family()} / \code{probit_family()}.
+#'   or a family object created by \code{logit_family()} / \code{probit_family()}. Advanced users may pass
+#'   a custom family object, a list with components \code{name}, \code{linkinv}, \code{mu.eta},
+#'   \code{score_eta}, and optionally \code{d2mu.deta2}. See \code{logit_family()} and
+#'   \code{probit_family()} for templates.
 #' @param standardize logical; standardize predictors. Default \code{TRUE}.
 #' @param trim_cap numeric; cap for EL weights (\code{Inf} = no trimming).
 #' @param on_failure character; \code{"return"} or \code{"error"} on solver failure.
@@ -78,14 +81,20 @@
 #' block. Numerical guards (capped linear predictors, clipped response
 #' probabilities, denominator floors) are applied consistently in equations and
 #' Jacobians.
+#' Trimming via \code{trim_cap} is applied only after solving the EL system to
+#' the unnormalized masses \eqn{m_i = d_i / D_i}; the estimating equations and
+#' Jacobian are always evaluated with untrimmed masses.
 #'
-#' \strong{Formula syntax}: \code{nmar()} supports a partitioned right-hand side
+#' \strong{Formula syntax and data constraints}: \code{nmar()} supports a partitioned right-hand side
 #' \code{y_miss ~ aux1 + aux2 | z1 + z2}. Variables left of \code{|} are auxiliaries
 #' (used in EL moment constraints); variables right of \code{|} are missingness-model
 #' predictors only. The outcome appears on the left-hand side and is included as a
-#' response predictor by default. Auxiliary design matrices are constructed with
-#' an intercept dropped automatically; missingness models always include an
-#' intercept even if the formula uses \code{-1} or \code{+0}.
+#' response predictor by default; the outcome (or its LHS expression) is not allowed
+#' on the RHS. Auxiliary design matrices are constructed with an intercept dropped
+#' automatically; missingness models always include an intercept even if the formula
+#' uses \code{-1} or \code{+0}. When the outcome has no missing values (respondents-only
+#' data), \code{n_total} must be supplied; if auxiliaries are present, \code{auxiliary_means}
+#' must also be supplied.
 #'
 #' \strong{Variance}: The EL engine supports bootstrap standard errors via
 #' \code{variance_method = "bootstrap"} or can skip variance with
