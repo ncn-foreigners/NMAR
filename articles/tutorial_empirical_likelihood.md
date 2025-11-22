@@ -343,7 +343,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> Variance notes: Variance skipped (variance_method='none') 
 #> Total units: 6194 
 #> Respondents: 65 
-#> Call: nmar(api00_miss ~ ell, data = <survey.design: N=6194.00032424927>, engine = empirical_likelihood)
+#> Call: nmar(api00_miss ~ ell, data = <survey.design: N=6194>, engine = empirical_likelihood)
 #> 
 #> Missingness-model coefficients:
 #>              Estimate
