@@ -2,9 +2,9 @@
 # Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
 on:
   push:
-    branches: [main, package_pre-prod]
+    branches: [main, package-pre_prod]
   pull_request:
-    branches: [main, package_pre-prod]
+    branches: [main, package-pre_prod]
 
 name: test-coverage.yaml
 
