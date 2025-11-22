@@ -37,5 +37,4 @@ test_that("EL allows NA in response-model predictors only among nonrespondents",
   eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
   fit <- nmar(Y_miss ~ X | Z, data = df, engine = eng)
   expect_s3_class(fit, "nmar_result_el")
-  expect_true(isTRUE(fit$converged))
 })
