@@ -94,11 +94,11 @@ formula = y ~ x
 res <- nmar(formula = formula, data = riddles_case1, engine = exptilt_config, trace_level = 0)
 print(coef(res))
 #> (Intercept)           y 
-#>   0.5331962  -0.1022696
+#>  0.53613806 -0.09840558
 print(res)
 #> NMAR Result
 #> ------------
-#> y mean: -1.003201 (0.068018)
+#> y mean: -1.005733 (0.078754)
 #> Converged: TRUE 
 #> Variance method: bootstrap 
 #> Estimator: exponential_tilting
