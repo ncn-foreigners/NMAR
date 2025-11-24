@@ -7,16 +7,23 @@ format:
     highlight-style: a11y
     height: 1080
     width: 1920    
-    scrollable: true  # Add this line
+    scrollable: true
+    html-math-method: mathjax
 editor: visual
 ---
 
-## NMAR - A novel `R Package`
-### Estimation under Nonignorable Nonresponse in Official Surveys
+## NMAR: An R Package for Estimation under Nonignorable Nonresponse in Sample Surveys
+
+::: hidden
+$$\everymath{\displaystyle}$$
+:::
+
+### Tackling Nonignorable Missingness in Official Surveys with R
+
 <hr>
 
-
 #### National Science Centre grant Poland (OPUS 20 grant no. 2020/39/B/HS4/00941)
+
 <br>
 
 #### dr Maciej Beręsewicz (Poznan University of Business and Economics),<br> Igor Kołodziej (WUT - Faculty of Mathematics),<br> Mateusz Iwaniuk (WUT - Faculty of Mathematics)
@@ -25,14 +32,13 @@ editor: visual
 
 > NMAR - Not Missing At Random
 
-<div style="text-align: right;">
+::: {style="text-align: right;"}
 <img src="./logo.PNG" alt="Logo" style="height: 550px;position:fixed;right:50px;bottom:100px"/>
-</div>
+:::
 
-## NMAR assumptions:
+## Motivation: The Challenge of Nonignorable Nonresponse (NMAR)
 
-1.  **Missing Data Structure**\
-    We have $Y$ which contains NaNs. Each observation $x_i$ has its own $\delta_i$ which is 0 or 1:
+1.  **Missing Data Structure**: We are interesting in estimating the mean of $Y$ which is subject to missingness. Each observation $y_i$ has its corresponding respone indicator $\delta_i$:
 
 > $$
 > \delta_i = \begin{cases} 
@@ -41,17 +47,15 @@ editor: visual
 > \end{cases}
 > $$
 
-2.  **Outcome Mechanism**\
-    We have at least one column which affects $Y$ value:
+2.  **Outcome Mechanism**: Having a set of auxiliary covariates $X_1$, we model
 
-    > $Y, \delta \sim X_1$
+$$\mathbb{P}(Y \mid X_1) \text{, or nonparametric } F(Y, X_1)$$
 
-3.  **Response Mechanism**\
-    Optionally we have columns which affect $Y$ visibility **but not** $Y$:
+3.  **Response Mechanism**: The missingness of $Y$ depends on $Y$ itself, and perhaps on other covariates $X_2$
 
-    > $\delta \sim X_2$
-    
-**Note**: In general, $X_1 \cap X_2 = \emptyset$, but this depends on the specific method implementation and assumptions.
+$$P(\delta=1\mid Y, X_2) \neq P(\delta=1\mid X_2)$$
+
+**Note**: The sets of auxiliary and response model covariates may or may not overlap depending the method.
 
 ## Practical Example: Salary Survey
 
@@ -63,87 +67,112 @@ editor: visual
 
 **Outcome Mechanism** :
 
-> $Y, \delta \sim \text{experience} + \text{education}$
+> $Y \sim \text{experience} + \text{education}$
 
 <br>
 
 **Response Mechanism**:
 
-If we assume gender affects response likelihood but not salary value itself)
+Assuming that apart from salary, it is also affected by age
 
-> $\delta \sim \text{gender}$
+> $\delta \sim Y + \text{age}$
 
-## But does it work?
-<div style="text-align: center;">
-<img src="./quadro/boxplots.png" alt="Simulation Results" style="width: 70%;"/>
-</div>
-> NMAR estimators are closer to true population mean compared to MAR (Naive) estimators
+## The Case of the Missing Salaries
 
 
-
-
-## Exponential tilting approach
-### A Propensity-score-adjustment Method For Nonignorable Nonresponse (Aka `Exponential Tilting`)
-
-#### Minsun Kim Riddles<br> Jae Kwang Kim<br> Jongho Im
-
-<hr>
-
-<br><br><br><br>
-
--   Author of this paper gained PhD for their solution
--   I will highlight **overview concept** rather than go in details\
--   It took me few weeks to understand it, thus I am not able to explain this in 3 minutes 🤫
-
-<br>
-
-<br>
-
-## Method Steps
-
-::: {style="font-size: 30px;"}
-### 1. Estimate Observed Distribution
-
-> $$
-> \hat{f}_1(y) = f(y | X_1, \delta = 1)
-> $$
-
-### 2. Compute Score Components
-
-<!-- > $$ -->
-
-<!-- S_{\text{obs}} = \sum_{j:\delta_j=1} s(y_j, X_{1j}) -->
-
-<!-- $$ -->
-
-<!-- $$ -->
-
-<!-- S_{\text{mis}} = \sum_{j:\delta_j=0} \sum_i w_{ij} \cdot s(y_i, X_{1i}) -->
-
-<!-- $$ -->
-
-> $S_{\text{obs}} = \sum_{j:\delta_j=1} s(y_j, X_{1j})$, \quad $S_{\text{mis}} = \sum_{j:\delta_j=1} \sum_{i:\delta_i=0} w_{ij} \cdot s(y_j, X_{1i})$
-
-where $w_{ij}$ depends on $\hat{f}_1$ and odds ratio
-
-### 3. Solve Final Equation
-
-> $$
-> S_{\text{total}} = S_{\text{obs}} + S_{\text{mis}} = 0
-> $$
-
-### 4. Estimate Population Mean
-
-> $$
-> \mathbb{E}[Y] = \hat{\theta} = \frac{\sum_{i:\delta_i=1} \frac{1}{\pi_i(\hat{\boldsymbol{\phi}}_p)} y_i}{\sum_{i:\delta_i=1} \frac{1}{\pi_i(\hat{\boldsymbol{\phi}}_p)}}
-> $$
-
-### Key Insight:
-
-We never fill in missing values - we reweight observed data to represent the entire population!
+::: {style="text-align: center;"}
+<img src="./quadro/nmar_boxplot.png" alt="Simulation Results" style="width: 70%;"/>
 :::
 
-## NMAR Package Demonstration
+> NMAR estimators are closer to true population mean compared to MAR estimators, naive sample mean is badly biased.
+
+## Exponential Tilting - Riddles et al (2016) (1/2)
+
+### Assumptions
+
+- Estimate density of observed data: $f(y|X_1, \delta = 1)$, e.g., salary $\sim$ experience + education
+- Use response model (logit/probit) to estimate $\pi(x_{1i}, y_i; \phi) = P(\delta_i = 1 | X_{2i}, y_i)$ based on $y$ (e.g. salary), $X_2$ (e.g., age), and intercept
+
+### 1. Estimate Observed Distribution
+
+$$
+\hat{f}_1(y) = f(y|X_1, \delta = 1; \gamma)
+$$
+
+### 2. Define score function
+
+$$
+S_{\text{obs}} = \sum_{j:\delta_j=1} s(y_j, X_{1j}) = \sum_{j:\delta_j=1} \left[ \frac{\delta_j - \pi(X_{1j}, y_j; \phi)}{\pi(X_{1j}, y_j; \phi)\{1-\pi(X_{1j}, y_j; \phi)\}} \frac{\partial \pi(X_{1j}, y_j; \phi)}{\partial \phi} \right]
+$$
+
+$$
+S_{\text{mis}} = \sum_{j:\delta_j=1} \sum_{i:\delta_i=0} w_{ji} \cdot s(y_j, X_{1i}) = \sum_{j:\delta_j=1} \sum_{i:\delta_i=0} w_{ji} \cdot \left[ \frac{\delta_i - \pi(X_{1i}, y_j; \phi)}{\pi(X_{1i}, y_j; \phi)\{1-\pi(X_{1i}, y_j; \phi)\}} \frac{\partial \pi(X_{1i}, y_j; \phi)}{\partial \phi} \right]
+$$
+
+## Exponential Tilting - Riddles et al (2016) (2/2)
+
+### 3. Calculate weights
+
+$$
+w_{ji}^*(\phi, \gamma) = \frac{\frac{O(\mathbf{x}_{1i}, y_j; \phi) f_1(y_j|\mathbf{x}_i; \gamma)}{\sum_m f_m(y_j|\mathbf{x}_i; \gamma)}}{\sum_{k:\delta_k=1} \frac{O(\mathbf{x}_{1i}, y_k; \phi) f_1(y_k|\mathbf{x}_i; \gamma)}{\sum_m f_m(y_k|\mathbf{x}_i; \gamma)}}
+$$
+
+### 4. Solve Final Equation
+
+$$
+S_{\text{total}} = S_{\text{obs}} + S_{\text{mis}} = 0
+$$
+
+### 5. Estimate Population Mean
+
+$$
+\mathbb{E}[Y] = \hat{\theta} = \frac{\sum_{i:\delta_i=1} \frac{1}{\pi_i(\hat{\phi}_p)} y_i}{\sum_{i:\delta_i=1} \frac{1}{\pi_i(\hat{\phi}_p)}}
+$$
+
+## Empirical Likelihood: Core Idea (1/2)
+
+**Based on Qin, Leung & Shao (JASA, 2002).**
+Model only the **response mechanism**; keep the outcome distribution **nonparametric**.
+
+$$
+w(y, x; \beta) = P(\delta = 1 \mid Y=y, X=x) \quad (\text{e.g., logit/probit}), \qquad W = \iint w(y, x; \beta) \, dF(y, x).
+$$
+
+**Profile out $F$** (for fixed $(\beta, W)$) by placing masses $p_i$ on respondents $(y_i, x_i)$ and enforcing:
+
+* $\sum p_i = 1$ (probability)
+* $\sum p_i \{ w(y_i, x_i; \beta) - W \} = 0$ (response rate)
+* $\sum p_i (x_i - \mu_x) = 0$ (auxiliaries, if available)
+
+This yields the EL **weights**
+
+$$
+p_i = \frac{1}{n} \frac{1}{1 + \lambda_W (w(y_i, x_i; \beta) - W) + (x_i - \mu_x)^\top \lambda_x}.
+$$
+
+## Empirical Likelihood: Mean Estimate (2/2)
+
+
+
+$$
+\hat{\mu}_Y = \sum_{i:\delta_i=1} p_i y_i
+$$
+
+### How are the weights obtained?
+
+Profile out $F$ and solve the estimating equations for $(\beta, W, \lambda_W, \lambda_x)$, plug back into the formula for $p_i$.
+
+### Survey sampling?
+
+Can be extended to survey sampling by incorporating the design weights into the likelihood and augumenting auxiliary constraints with stratum indicators.
+
+### Properties
+
+* Consistent if the response model $w(y, x; \beta)$ is correctly specified.
+* Asymptotically normal (under regularity conditions).
+* Auxiliaries improve efficiency.
+
+## NMAR Package in Action
 
 ```{r}
 #| echo: false
@@ -201,16 +230,17 @@ y_original <- res_test_data$Y_original # to compare with true values
 #| message: false
 #| warning: false
 exptilt_config <- exptilt_engine(
-  y_dens = 'normal',
-  control = list(maxit = 10),
-  stopping_threshold = 0.01,
-  standardize = FALSE,
-  family = 'logit',
-  bootstrap_reps = 20,
-  variance_method = 'bootstrap'
+    standardize = FALSE, #Common
+    on_failure = "return", # Common
+    variance_method = "bootstrap", #Common
+    bootstrap_reps = 20, # Common
+    control = list(), # Common
+    family = "logit", # Common
+    y_dens = "normal",
+    stopping_threshold = 1
 )
 formula = Y ~ x1 + x2
-res <- nmar(formula = formula, data = x, engine = exptilt_config, response_predictors = NULL)
+res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level=0)
 ```
 
 ```{r}
@@ -239,3 +269,17 @@ cat('Est Y mean (NMAR):    ', sprintf('%.4f', est),
     ', ', sprintf('%.4f', est + 1.5 * se), 'σ=', sprintf('%.4f', se), ')\n')
 cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(x[!is.na(x$Y), 'Y'])), '\n')
 ```
+
+## Future Work and Challenges
+
+-   Large-scale data handling
+-   Further numerical performance and stability tweaks
+-   Analytical variance calculation
+-   Bootstrap parallelization
+-   Extension to new estimation approaches
+
+## References
+
+-   Qin, Leung, Shao, 2002
+-   Kim & Riddles 2012
+-   Riddles, Kim & Im 2016
