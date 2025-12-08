@@ -72,9 +72,7 @@ Here `linkinv`, `mu.eta`, and `d2mu.deta2` refer to the chosen response family (
 | $A$ | Jacobian $\partial F/\partial \theta$ |
 
 ### Engines
-- Family: "logit" (default) or "probit". Conceptually the score with respect to the linear predictor is
-  $s_i = \partial\log w_i/\partial\eta_i = \mu_{\eta,i}/w_i$. In the implementation we use numerically stable
-  formulas: for logit, $s_i = 1 - w_i$; for probit, $s_i = \phi(\eta_i)/\Phi(\eta_i)$ computed in the log domain.
+- Family: "logit" (default) or "probit". For respondents ($R_i = 1$), the score with respect to $\eta$ is $s_i = \partial\log w_i/\partial\eta_i = \mu_{\eta,i}/w_i$ (equals $1 - w_i$ for logit and $\phi(\eta_i)/\Phi(\eta_i)$ for probit). In code we compute these using stable log-domain formulas for probit and clip probabilities away from 0 and 1 when they appear in ratios.
 - Scaling: optional standardization of design matrices and $\mu_x$ via `nmar_scaling_recipe`
 
 ## Data and Interface Constraints
@@ -401,6 +399,8 @@ Define $\text{inv}_i = 1 / D_i$ and the scalar term driving $\beta$-equations:
 
 $$T_i = s_i - \lambda_W \mu_{\eta,i} \text{inv}_i,\quad s_i = \frac{\mu_{\eta,i}}{w_i}.$$
 
+For the logit and probit families we use simpler closed-form derivatives of $s_i$ in code: for logit, $ds_i/d\eta_i = -\mu_{\eta,i}$ (because $s_i = 1 - w_i$); for probit, $ds_i/d\eta_i = -(\eta_i r_i + r_i^2)$ with $r_i = \phi(\eta_i)/\Phi(\eta_i)$ the Mills ratio. The expression above is kept as the generic fallback for other families.
+
 ### Compute Its Derivatives
 
 Using $\,\mu'_{\eta,i} = d\mu_{\eta,i}/d\eta_i = \mathrm{d2mu\,deta2}(\eta_i)$ and $\,dw_i/d\eta_i = \mu_{\eta,i}$,
@@ -466,9 +466,10 @@ to respect the denominator floor used for numerical stability.
 ## Variance Estimation
 
 Analytic delta variance for the EL estimator has not yet been implemented in the
-package. When requested via `variance_method = "delta"`, the implementation
-returns `NA` with a guidance message. We recommend `variance_method = "bootstrap"`
-for standard errors in both IID and survey settings.
+package. When `variance_method = "delta"` is requested, `el_engine()` coerces it
+to `"none"` (with a warning) and variance is skipped (`se = NA_real_` with an
+explanatory message). We recommend `variance_method = "bootstrap"` for standard
+errors in both IID and survey settings.
 
 ### Solving Strategy and Initialization
 
@@ -549,7 +550,7 @@ Code mapping:
   - Build EL weights, mean, and diagnostics.
 - Jacobian: `el_build_jacobian(...)` in `src_dev/engines/el/impl/jacobian.R` returns analytic A whenever family supplies `d2mu.deta2` (logit, probit).
 - Variance: Bootstrap variance is implemented in `src_dev/shared/bootstrap.R`.
-- S3 result: `src_dev/engines/el/s3.R` provides print/tidy/glance and accessors.
+- S3 result: `src_dev/engines/el/s3.R` defines EL-specific print and summary methods (`print.nmar_result_el`, `summary.nmar_result_el`). Generic methods such as `tidy()`, `glance()`, `weights()`, and `coef()` are defined for the parent `nmar_result` class in `src_dev/S3/nmar_result_methods.R`.
 
 ### Practical Notes
 
@@ -597,8 +598,7 @@ This appendix summarizes the key options of the EL engine (constructor: `el_engi
     for probit in the estimating equations.
 
 - **standardize** (default: TRUE)
-  - Standardize $Z$/$X$ (and $\mu_x$) using a `nmar_scaling_recipe` for numerical stability, using base
-    weights when present. Coefficients (and any available vcov) are unscaled after solving.
+  - Standardize $Z$/$X$ (and $\mu_x$) using a `nmar_scaling_recipe` for numerical stability. Coefficients are unscaled after solving; the EL engine does not currently provide a coefficient covariance matrix (`vcov` is `NULL`).
 
 - **trim_cap** (default: Inf)
   - Caps EL weights and redistributes mass. Trimming is applied only after solving the EL system to the
