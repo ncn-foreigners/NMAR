@@ -62,62 +62,26 @@ el_build_jacobian <- function(family, missingness_model_matrix, auxiliary_matrix
     d_lambda_W_dWb <- C_const / (1 - W_bounded)^2
     d_lambda_W_dTheta <- d_lambda_W_dWb * dWb_dTheta
     eta_raw <- as.vector(missingness_model_matrix %*% beta_vec)
-    eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
-    w_i <- family$linkinv(eta_i)
-    mu_eta_i <- family$mu.eta(eta_i)
-    d2mu_eta2_i <- family$d2mu.deta2(eta_i)
+    eta_state <- el_core_eta_state(family, eta_raw, ETA_CAP)
+    eta_i <- eta_state$eta
+    w_i <- eta_state$w
+    mu_eta_i <- eta_state$mu_eta
+    d2mu_eta2_i <- eta_state$d2mu
     X_centered <- if (K_aux > 0) X_centered_base else NULL
 # QLS Eq. (5): Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
-    denominator <- 1 + lambda_W * (w_i - W_bounded)
-    if (K_aux > 0) denominator <- denominator + as.vector(X_centered %*% lambda_x)
-    denom_floor <- nmar_get_el_denom_floor()
-# Active mask for max(Di, floor) kink: derivative is zero when clamped
-    active <- as.numeric(denominator > denom_floor)
-    denominator <- pmax(denominator, denom_floor)
-    inv_denom <- 1 / denominator
-    inv_denom_sq <- inv_denom^2
+    Xc_lambda <- if (K_aux > 0) as.vector(X_centered %*% lambda_x) else 0
+    dpack <- el_denominator(lambda_W, W_bounded, Xc_lambda, w_i, nmar_get_el_denom_floor())
+    denominator <- dpack$denom
+    inv_denom <- dpack$inv
+    inv_denom_sq <- dpack$inv_sq
+    active <- dpack$active
     dden_dTheta <- active * (d_lambda_W_dTheta * (w_i - W_bounded) - lambda_W * dWb_dTheta)
     dden_deta <- active * (lambda_W * mu_eta_i)
-# Score wrt eta for delta=1: use numerically stable family score where available
-    w_i_clipped <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
-    is_logit <- !is.null(family$name) && identical(family$name, "logit")
-    is_probit <- !is.null(family$name) && identical(family$name, "probit")
-    mills_ratio <- NULL
-    if (is_logit) {
-# For logit, s_eta = mu_eta / w = 1 - w, computed stably from w
-      s_eta_i <- 1 - w_i_clipped
-    } else if (is_probit) {
-# For probit, s_eta = phi/Phi (Mills ratio); compute in log-domain
-      log_phi <- stats::dnorm(eta_i, log = TRUE)
-      log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
-      mills_ratio <- exp(log_phi - log_Phi)
-      s_eta_i <- mills_ratio
-    } else if (!is.null(family$score_eta)) {
-# Fallback to family-provided stable score if present
-      s_eta_i <- family$score_eta(eta_i, 1)
-    } else {
-# Generic fallback
-      s_eta_i <- mu_eta_i / w_i_clipped
-    }
+# Score wrt eta and its derivative (via shared core helper)
+    s_eta_i <- eta_state$s_eta
+    ds_eta_deta <- eta_state$ds_eta_deta
 # beta block term (QLS Eq. 9)
     beta_eq_term <- s_eta_i - lambda_W * mu_eta_i * inv_denom
-# Derivative wrt eta of s_eta := d/deta(mu_eta / w) with link-specific stable forms
-    if (is_logit) {
-# s_eta = 1 - w  => d/deta(s_eta) = -dw/deta = -mu_eta
-      ds_eta_deta <- -mu_eta_i
-    } else if (is_probit) {
-# s_eta = r = phi/Phi (Mills ratio)
-# r' = -eta * r - r^2
-      if (is.null(mills_ratio)) {
-        log_phi <- stats::dnorm(eta_i, log = TRUE)
-        log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
-        mills_ratio <- exp(log_phi - log_Phi)
-      }
-      ds_eta_deta <- -(eta_i * mills_ratio + mills_ratio^2)
-    } else {
-# Generic fallback: d/deta(mu/w) = (d2mu * w - mu^2) / w^2
-      ds_eta_deta <- (d2mu_eta2_i * w_i_clipped - mu_eta_i^2) / (w_i_clipped^2)
-    }
 # Respect denominator floor: terms depending on d(1/Di)/deta vanish when clamped
     d_betaeq_deta <- ds_eta_deta - lambda_W * d2mu_eta2_i * inv_denom + active * (lambda_W^2) * (mu_eta_i^2) * inv_denom_sq
     d_betaeq_dTheta <- -d_lambda_W_dTheta * mu_eta_i * inv_denom + lambda_W * mu_eta_i * inv_denom_sq * dden_dTheta
@@ -243,48 +207,22 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
     W_bounded <- W
     dW_dz <- if (W > 1e-12 && W < 1 - 1e-12) W * (1 - W) else 0
     eta_raw <- as.vector(missingness_model_matrix %*% beta_vec)
-    eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
-    w_i <- family$linkinv(eta_i)
-    mu_eta_i <- family$mu.eta(eta_i)
-    d2mu_eta2_i <- family$d2mu.deta2(eta_i)
+    eta_state <- el_core_eta_state(family, eta_raw, ETA_CAP)
+    eta_i <- eta_state$eta
+    w_i <- eta_state$w
+    mu_eta_i <- eta_state$mu_eta
+    d2mu_eta2_i <- eta_state$d2mu
     X_centered <- if (K_aux > 0) X_centered_base else NULL
-    denom_raw <- 1 + lambda_W * (w_i - W_bounded)
-    if (K_aux > 0) denom_raw <- denom_raw + as.vector(X_centered %*% lambda_x)
-    denom_floor <- nmar_get_el_denom_floor()
-    active <- as.numeric(denom_raw > denom_floor)
-    denominator <- pmax(denom_raw, denom_floor)
-    inv_denom <- 1 / denominator
-    inv_denom_sq <- inv_denom^2
+    Xc_lambda <- if (K_aux > 0) as.vector(X_centered %*% lambda_x) else 0
+    dpack <- el_denominator(lambda_W, W_bounded, Xc_lambda, w_i, nmar_get_el_denom_floor())
+    denominator <- dpack$denom
+    inv_denom <- dpack$inv
+    inv_denom_sq <- dpack$inv_sq
+    active <- dpack$active
 
 # Score wrt eta and its derivative (same pattern as IID Jacobian)
-    w_i_clipped <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
-    is_logit <- !is.null(family$name) && identical(family$name, "logit")
-    is_probit <- !is.null(family$name) && identical(family$name, "probit")
-    mills_ratio <- NULL
-    if (is_logit) {
-      s_eta_i <- 1 - w_i_clipped
-    } else if (is_probit) {
-      log_phi <- stats::dnorm(eta_i, log = TRUE)
-      log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
-      mills_ratio <- exp(log_phi - log_Phi)
-      s_eta_i <- mills_ratio
-    } else if (!is.null(family$score_eta)) {
-      s_eta_i <- family$score_eta(eta_i, 1)
-    } else {
-      s_eta_i <- mu_eta_i / w_i_clipped
-    }
-    if (is_logit) {
-      ds_eta_deta <- -mu_eta_i
-    } else if (is_probit) {
-      if (is.null(mills_ratio)) {
-        log_phi <- stats::dnorm(eta_i, log = TRUE)
-        log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
-        mills_ratio <- exp(log_phi - log_Phi)
-      }
-      ds_eta_deta <- -(eta_i * mills_ratio + mills_ratio^2)
-    } else {
-      ds_eta_deta <- (d2mu_eta2_i * w_i_clipped - mu_eta_i^2) / (w_i_clipped^2)
-    }
+    s_eta_i <- eta_state$s_eta
+    ds_eta_deta <- eta_state$ds_eta_deta
 
 # Precompute some terms
     w_minus_W <- w_i - W_bounded

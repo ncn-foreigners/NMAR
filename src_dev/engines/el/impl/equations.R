@@ -50,24 +50,10 @@ el_build_equation_system <- function(family, missingness_model_matrix, auxiliary
 # QLS Eq. (10): lambda_W = (N/n - 1) / (1 - W)
     lambda_W <- el_lambda_W(C_const, W_bounded)
     eta_raw <- as.vector(missingness_model_matrix %*% beta_vec)
-    eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
-    w_i <- family$linkinv(eta_i)
-    mu_eta_i <- family$mu.eta(eta_i)
-# Unified score w.r.t. eta for delta=1: prefer numerically stable family score
-    w_i_clipped <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
-    if (!is.null(family$name) && identical(family$name, "logit")) {
-# For logit, s_eta = 1 - w
-      s_eta_i <- 1 - w_i_clipped
-    } else if (!is.null(family$name) && identical(family$name, "probit")) {
-# For probit, use Mills ratio in log domain
-      log_phi <- stats::dnorm(eta_i, log = TRUE)
-      log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
-      s_eta_i <- exp(log_phi - log_Phi)
-    } else if (!is.null(family$score_eta)) {
-      s_eta_i <- family$score_eta(eta_i, 1)
-    } else {
-      s_eta_i <- mu_eta_i / w_i_clipped
-    }
+    eta_state <- el_core_eta_state(family, eta_raw, ETA_CAP)
+    w_i <- eta_state$w
+    mu_eta_i <- eta_state$mu_eta
+    s_eta_i <- eta_state$s_eta
 # QLS Eq. (5): Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
     Xc_lambda <- if (K_aux > 0) as.vector(X_centered %*% lambda_x) else 0
     dpack <- el_denominator(lambda_W, W_bounded, Xc_lambda, w_i, nmar_get_el_denom_floor())
@@ -139,22 +125,10 @@ el_build_equation_system_survey <- function(family, missingness_model_matrix, au
     W <- min(max(W, 1e-12), 1 - 1e-12)
     W_bounded <- W
     eta_raw <- as.vector(missingness_model_matrix %*% beta_vec)
-    eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
-    w_i <- family$linkinv(eta_i)
-    mu_eta_i <- family$mu.eta(eta_i)
-# Stable score w.r.t eta
-    w_i_clipped <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
-    if (!is.null(family$name) && identical(family$name, "logit")) {
-      s_eta_i <- 1 - w_i_clipped
-    } else if (!is.null(family$name) && identical(family$name, "probit")) {
-      log_phi <- stats::dnorm(eta_i, log = TRUE)
-      log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
-      s_eta_i <- exp(log_phi - log_Phi)
-    } else if (!is.null(family$score_eta)) {
-      s_eta_i <- family$score_eta(eta_i, 1)
-    } else {
-      s_eta_i <- mu_eta_i / w_i_clipped
-    }
+    eta_state <- el_core_eta_state(family, eta_raw, ETA_CAP)
+    w_i <- eta_state$w
+    mu_eta_i <- eta_state$mu_eta
+    s_eta_i <- eta_state$s_eta
 # Denominator Di = 1 + lambda_W (w_i - W) + (X_centered %*% lambda_x)
     Xc_lambda <- if (K_aux > 0) as.vector(X_centered %*% lambda_x) else 0
     dpack <- el_denominator(lambda_W, W_bounded, Xc_lambda, w_i, denom_floor)
