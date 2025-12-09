@@ -1,6 +1,6 @@
 Package: NMAR
 Type: Package
-Title: Not Missing at Random
+Title: Estimation under Nonignorable Nonresponse
 Version: 0.0.0.1
 Maintainer: Maciej Beręsewicz <Maciej.Beresewicz@ue.poznan.pl>
 Author: Maciej Beręsewicz [aut, cre],
@@ -10,7 +10,7 @@ Authors@R: c(
     person("Maciej", "Beręsewicz", email = "Maciej.Beresewicz@ue.poznan.pl", role = c("aut", "cre")),
     person("Igor", "Kołodziej", email = "igor.kolodziej@proton.me", role = "aut"),
     person("Mateusz", "Iwaniuk", email = "mateusz.iwaniuk11@gmail.com", role = "aut"))
-Description: A set of statistical functions to estimate the population parameters of data subject to Not Missing At Random (NMAR) mechanisms using advanced statistical methods.
+Description: Methods for estimating population means and related statistics when outcomes are subject to Not Missing At Random (NMAR) nonresponse. The main interface, 'nmar()', supports both independent samples and complex survey designs.
 License: MIT + file LICENSE
 URL: https://github.com/ncn-foreigners/NMAR, https://ncn-foreigners.ue.poznan.pl/NMAR/index.html
 BugReports: https://github.com/ncn-foreigners/NMAR/issues
