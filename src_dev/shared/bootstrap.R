@@ -81,7 +81,7 @@ bootstrap_variance.default <- function(data, estimator_func, point_estimate, ...
 #' @keywords internal
 bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, bootstrap_reps = 500, ...) {
 # Validate bootstrap_reps.
-  validator$assert_positive_integer(bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)
+  validator_assert_positive_integer(bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)
   if (bootstrap_reps < 2) {
     stop("`bootstrap_reps` must be at least 2 for variance estimation.", call. = FALSE)
   }
@@ -291,7 +291,7 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
   }
 
 # Validate bootstrap_reps.
-  validator$assert_positive_integer(bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)
+  validator_assert_positive_integer(bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)
   if (bootstrap_reps < 2) {
     stop("`bootstrap_reps` must be at least 2 for variance estimation.", call. = FALSE)
   }

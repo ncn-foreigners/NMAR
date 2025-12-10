@@ -15,7 +15,7 @@
 #' @keywords internal
 create_verboser <- function(trace_level = 0) {
 # Validate inputs
-  validator$assert_choice(trace_level, choices = 0:3, name = "trace_level")
+  validator_assert_choice(trace_level, choices = 0:3, name = "trace_level")
 
   if (trace_level == 0) {
 # Return a no-op function when trace_level is 0 (silent mode)
