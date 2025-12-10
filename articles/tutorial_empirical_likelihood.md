@@ -158,7 +158,7 @@ str(fit$diagnostics)
 #>  $ nleqslv_global                    : chr NA
 #>  $ nleqslv_xscalm                    : chr NA
 #>  $ solver_iterations                 : int 7
-#>  $ solver_time                       : num 0.006
+#>  $ solver_time                       : num 0.005
 #>  $ variance_time                     : num 0
 #>  $ reparam_W                         : chr "logit"
 #>  $ max_equation_residual             : num 5.18e-13
@@ -450,16 +450,16 @@ sessionInfo()
 #> [13] DBI_1.2.3           Formula_1.2-5       purrr_1.2.0        
 #> [16] codetools_0.2-20    textshaping_1.0.4   jquerylib_0.1.4    
 #> [19] cli_3.6.5           mitools_2.4         rlang_1.1.6        
-#> [22] parallelly_1.45.1   future.apply_1.20.0 splines_4.5.2      
-#> [25] cachem_1.1.0        yaml_2.3.10         tools_4.5.2        
+#> [22] parallelly_1.45.1   future.apply_1.20.1 splines_4.5.2      
+#> [25] cachem_1.1.0        yaml_2.3.12         tools_4.5.2        
 #> [28] parallel_4.5.2      dplyr_1.1.4         globals_0.18.0     
-#> [31] broom_1.0.10        vctrs_0.6.5         R6_2.6.1           
+#> [31] broom_1.0.11        vctrs_0.6.5         R6_2.6.1           
 #> [34] lifecycle_1.0.4     fs_1.6.6            htmlwidgets_1.6.4  
 #> [37] ragg_1.5.0          pkgconfig_2.0.3     desc_1.4.3         
 #> [40] pkgdown_2.2.0       progressr_0.18.0    pillar_1.11.1      
 #> [43] bslib_0.9.0         Rcpp_1.1.0          glue_1.8.0         
 #> [46] systemfonts_1.3.1   xfun_0.54           tibble_3.3.0       
-#> [49] tidyselect_1.2.1    knitr_1.50          htmltools_0.5.8.1  
+#> [49] tidyselect_1.2.1    knitr_1.50          htmltools_0.5.9    
 #> [52] rmarkdown_2.30      compiler_4.5.2
 ```
 

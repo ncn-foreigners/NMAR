@@ -74,7 +74,7 @@ Create the following files under `src_dev/engines/<method>/`:
 ``` r
 method_engine <- function(...) {
 # Validate controls using validate_arguments.R as in exptilt.
-  validator$assert_choice(family, choices = c("logit", "probit"), name = "family")
+  validator_assert_choice(family, choices = c("logit", "probit"), name = "family")
 
   engine <- list(...)
   class(engine) <- c("nmar_engine_method", "nmar_engine")
