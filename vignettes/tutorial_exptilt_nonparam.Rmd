@@ -1,0 +1,51 @@
+---
+title: "Exponential Tilting (Nonparametric)"
+description: |
+  Minsun Kim Riddles, Jae Kwang Kim, Jongho Im <br>
+  A Propensity-score-adjustment Method for Nonignorable Nonresponse <br>
+  Appendix 2 <br>
+  https://doi.org/10.1093/jssam/smv047
+  
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{tutorial_exptilt_nonparam}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(NMAR)
+```
+
+
+```{r}
+# Test data (Riddles 2016)
+head(voting)
+```
+
+
+```{r}
+np_em_config <- exptilt_nonparam_engine(
+  refusal_col = "Refusal",
+  max_iter = 100,
+  tol_value = 0.001
+)
+
+em_formula <- Voted_A + Voted_B + Other ~ Gender | Age_group
+
+results_em_np <- nmar(formula = em_formula, data = voting, engine = np_em_config, trace_level = 0)
+```
+
+
+```{r}
+print(results_em_np$data_final)
+```
+
+

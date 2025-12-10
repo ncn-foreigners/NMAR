@@ -1,0 +1,61 @@
+url: https://ncn-foreigners.ue.poznan.pl/NMAR/index.html
+template:
+  bootstrap: 5
+  light-switch: true
+
+
+
+navbar:
+  structure:
+    left: [reference, articles, news]
+    right: [search,github]
+
+
+articles:
+  - title: Estimators
+    desc: >
+      Step-by-step tutorials for using estimators in nmar package including both data.frame and survey design objects
+    navbar: Tutorials
+    contents:
+      # - Empirical Likelihood
+      # - Exponential Tilting
+      # - Exponential Tilting (Nonparametric)
+      - tutorial_empirical_likelihood
+      - tutorial_exptilt
+      - tutorial_exptilt_nonparam
+  - title: Developer
+    # desc: >
+    #   Guide to develop new estimators in nmar package
+    contents:
+      - developing_new_nmar_estimator
+  - title: Theory
+    # desc: >
+    #   Theoretical background of estimators
+    navbar: Theory
+    contents:
+      - el_empirical_likelihood_theory
+      - exptilt_theory
+      - exptilt_nonparam_theory
+
+
+
+reference:
+  - title: Engines
+    contents:
+      - has_keyword("engine")
+  - title: NMAR
+    contents:
+      - has_keyword("nmar")
+  - title: Result analysis
+    contents:
+      - has_keyword("result_view")
+  - title: Engine analysis
+    contents:
+      - has_keyword("engine_view")
+  - title: Result params
+    contents:
+      - has_keyword("result_param")
+  - title: Datasets
+    contents:
+      - has_keyword("dataset")
+
