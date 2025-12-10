@@ -183,8 +183,8 @@ jobs:
 
           git checkout --orphan package-pre_prod_tmp
           git add -A
-          git commit -m "Production release from CI: ${{ github.sha }}"
-          git push --force origin package-pre_prod_tmp:package-pre_prod
+          git commit -m "Release from CI: ${{ github.sha }}"
+          git push origin package-pre_prod_tmp:package-pre_prod
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
