@@ -3,13 +3,8 @@
 #' This module provides a set of internal helper functions for argument validation.
 #' The functions are designed to throw a clear error message if a validation check fails.
 #'
-#' @keywords internal
-validator <- new.env()
 
-#' Validation helpers for NMAR (internal)
-#' @name nmar_validator_helpers
-#' @keywords internal
-NULL
+
 
 #' Checks if a value is a single positive number.
 #'
@@ -30,7 +25,7 @@ is_positive <- function(x) {
 #' @return Returns nothing on success, stops with an error on failure.
 #' @rdname nmar_validator_helpers
 #' @noRd
-validator$assert_choice <- function(x, choices, name) {
+validator_assert_choice <- function(x, choices, name) {
   if (!x %in% choices) {
     stop(
       paste0(
@@ -44,7 +39,7 @@ validator$assert_choice <- function(x, choices, name) {
 
 #' @rdname nmar_validator_helpers
 #' @noRd
-validator$assert_list <- function(x, name) {
+validator_assert_list <- function(x, name) {
   if (!is.list(x)) {
     stop(paste0("Argument '", name, "' must be a list."), call. = FALSE)
   }
@@ -59,7 +54,7 @@ validator$assert_list <- function(x, name) {
 #' @return Returns nothing on success, stops with an error on failure.
 #' @rdname nmar_validator_helpers
 #' @noRd
-validator$assert_number <- function(x, name, min = -Inf, max = Inf) {
+validator_assert_number <- function(x, name, min = -Inf, max = Inf) {
   if (!is.numeric(x) || any(x < min) || any(x > max)) {
     stop(
       paste0(
@@ -72,7 +67,7 @@ validator$assert_number <- function(x, name, min = -Inf, max = Inf) {
 
 #' @rdname nmar_validator_helpers
 #' @noRd
-validator$assert_positive_number <- function(x, name, allow_infinite = FALSE) {
+validator_assert_positive_number <- function(x, name, allow_infinite = FALSE) {
   if (!is.numeric(x) || length(x) != 1L || is.na(x)) {
     stop(paste0("Argument '", name, "' must be a single numeric value."), call. = FALSE)
   }
@@ -92,7 +87,7 @@ validator$assert_positive_number <- function(x, name, allow_infinite = FALSE) {
 #' @return Returns nothing on success. Stops with a clear error on failure.
 #' @rdname nmar_validator_helpers
 #' @noRd
-validator$assert_positive_integer <- function(x, name, is.finite = TRUE) {
+validator_assert_positive_integer <- function(x, name, is.finite = TRUE) {
   if (!is.numeric(x) || x != as.integer(x)) {
     stop(paste0("Argument '", name, "' must be an integer. Value is ", x, "."))
   }
@@ -113,7 +108,7 @@ validator$assert_positive_integer <- function(x, name, is.finite = TRUE) {
 #' @return Returns nothing on success, stops with an error on failure.
 #' @rdname nmar_validator_helpers
 #' @noRd
-validator$assert_logical <- function(x, name) {
+validator_assert_logical <- function(x, name) {
   if (!is.logical(x)) {
     stop(
       paste0(
@@ -125,7 +120,7 @@ validator$assert_logical <- function(x, name) {
 
 #' @rdname nmar_validator_helpers
 #' @noRd
-validator$assert_scalar_numeric <- function(x, name, allow_na = FALSE, finite = TRUE) {
+validator_assert_scalar_numeric <- function(x, name, allow_na = FALSE, finite = TRUE) {
   ok_type <- is.numeric(x) && length(x) == 1L
   ok_na <- allow_na || (!is.na(x))
   ok_fin <- (!finite) || is.finite(x) || (allow_na && is.na(x))
@@ -137,7 +132,7 @@ validator$assert_scalar_numeric <- function(x, name, allow_na = FALSE, finite = 
 
 #' @rdname nmar_validator_helpers
 #' @noRd
-validator$assert_scalar_character <- function(x, name, allow_na = FALSE, non_empty = TRUE) {
+validator_assert_scalar_character <- function(x, name, allow_na = FALSE, non_empty = TRUE) {
   ok_type <- is.character(x) && length(x) == 1L
   ok_na <- allow_na || (!is.na(x))
   ok_ne <- (!non_empty) || (nzchar(x))
@@ -150,7 +145,7 @@ validator$assert_scalar_character <- function(x, name, allow_na = FALSE, non_emp
 
 #' @rdname nmar_validator_helpers
 #' @noRd
-validator$assert_scalar_logical <- function(x, name) {
+validator_assert_scalar_logical <- function(x, name) {
   if (!(is.logical(x) && length(x) == 1L && !is.na(x))) {
     stop(paste0("Argument '", name, "' must be a logical scalar (TRUE/FALSE)."), call. = FALSE)
   }
@@ -158,7 +153,7 @@ validator$assert_scalar_logical <- function(x, name) {
 
 #' @rdname nmar_validator_helpers
 #' @noRd
-validator$assert_matrix_ncol <- function(X, expected, name) {
+validator_assert_matrix_ncol <- function(X, expected, name) {
   if (!is.matrix(X)) {
     stop(paste0("Argument '", name, "' must be a matrix."), call. = FALSE)
   }
@@ -169,7 +164,7 @@ validator$assert_matrix_ncol <- function(X, expected, name) {
 
 #' @rdname nmar_validator_helpers
 #' @noRd
-validator$assert_formula_two_sided <- function(fml, name) {
+validator_assert_formula_two_sided <- function(fml, name) {
   if (!inherits(fml, "formula") || length(fml) != 3L) {
     stop(paste0("'", name, "' must be a two-sided formula."), call. = FALSE)
   }
@@ -177,7 +172,7 @@ validator$assert_formula_two_sided <- function(fml, name) {
 
 #' @rdname nmar_validator_helpers
 #' @noRd
-validator$assert_data_frame_or_survey <- function(x, name) {
+validator_assert_data_frame_or_survey <- function(x, name) {
   if (!inherits(x, c("data.frame", "survey.design"))) {
     stop(paste0("'", name, "' must be a data.frame or survey.design object."), call. = FALSE)
   }
@@ -185,7 +180,7 @@ validator$assert_data_frame_or_survey <- function(x, name) {
 
 #' @rdname nmar_validator_helpers
 #' @noRd
-validator$assert_named_numeric <- function(x, name, allow_null = TRUE) {
+validator_assert_named_numeric <- function(x, name, allow_null = TRUE) {
   if (is.null(x)) {
     if (allow_null) return(invisible(TRUE))
     stop(paste0("Argument '", name, "' must be a named numeric vector (not NULL)."), call. = FALSE)

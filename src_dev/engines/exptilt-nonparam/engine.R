@@ -88,8 +88,8 @@ exptilt_nonparam_engine <- function(
     max_iter = 100,
     tol_value = 1e-6) {
 
-  validator$assert_positive_integer(max_iter, name = "max_iter")
-  validator$assert_number(tol_value, name = "tol_value", min = 0, max = Inf)
+  validator_assert_positive_integer(max_iter, name = "max_iter")
+  validator_assert_number(tol_value, name = "tol_value", min = 0, max = Inf)
 
   engine <- list(
     refusal_col = refusal_col,

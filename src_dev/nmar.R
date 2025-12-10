@@ -35,7 +35,7 @@
 nmar <- function(formula, data, engine, trace_level = 0) {
   stopifnot(inherits(engine, "nmar_engine"))
 
-  validator$assert_choice(trace_level, choices = 0:3, name = "trace_level")
+  validator_assert_choice(trace_level, choices = 0:3, name = "trace_level")
   validate_data(data)
 
 # Dispatch to engine

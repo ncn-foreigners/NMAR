@@ -229,19 +229,19 @@ new_nmar_engine_el <- function(engine) {
 #' Validate EL Engine Settings
 #' @keywords internal
 validate_nmar_engine_el <- function(engine) {
-  validator$assert_list(engine, name = "engine")
-  validator$assert_logical(engine$standardize, name = "standardize")
+  validator_assert_list(engine, name = "engine")
+  validator_assert_logical(engine$standardize, name = "standardize")
 
-  validator$assert_positive_number(engine$trim_cap, name = "trim_cap", allow_infinite = TRUE)
-  validator$assert_positive_integer(engine$bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)
-  validator$assert_choice(engine$on_failure, choices = c("return", "error"), name = "on_failure")
-  validator$assert_choice(engine$variance_method, choices = c("delta", "bootstrap", "none"), name = "variance_method")
+  validator_assert_positive_number(engine$trim_cap, name = "trim_cap", allow_infinite = TRUE)
+  validator_assert_positive_integer(engine$bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)
+  validator_assert_choice(engine$on_failure, choices = c("return", "error"), name = "on_failure")
+  validator_assert_choice(engine$variance_method, choices = c("delta", "bootstrap", "none"), name = "variance_method")
 
-  validator$assert_named_numeric(engine$auxiliary_means, name = "auxiliary_means", allow_null = TRUE)
-  validator$assert_list(engine$control, name = "control")
-  validator$assert_logical(engine$strata_augmentation, name = "strata_augmentation")
+  validator_assert_named_numeric(engine$auxiliary_means, name = "auxiliary_means", allow_null = TRUE)
+  validator_assert_list(engine$control, name = "control")
+  validator_assert_logical(engine$strata_augmentation, name = "strata_augmentation")
 
-  if (!is.null(engine$n_total)) validator$assert_positive_number(engine$n_total, name = "n_total", allow_infinite = FALSE)
+  if (!is.null(engine$n_total)) validator_assert_positive_number(engine$n_total, name = "n_total", allow_infinite = FALSE)
 
   fam <- engine$family
   if (!is.list(fam) || is.null(fam$name) || !is.function(fam$linkinv) || !is.function(fam$mu.eta) || !is.function(fam$score_eta)) {
