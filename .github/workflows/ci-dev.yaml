@@ -174,19 +174,49 @@ jobs:
           rm -f build_r_folder.R
           echo "Production environment ready."
 
-      - name: Commit and push to pre_prod branch
+      - name: Commit and push to pre_prod (Safe & History Preserving)
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add -A
+          # Create a temporary folder for the new clean code
+          mkdir -p ../new_package_content
+          # Copy everything from current directory (current build) to temp, excluding .git
+          rsync -av --exclude='.git' . ../new_package_content/
 
-          git checkout --orphan package-pre_prod_tmp
+          # heckout the pre-prod branch into a clean separate directory
+          mkdir -p ../target_branch_dir
+          cd ../target_branch_dir
+          git init
+          git remote add origin https://github.com/${{ github.repository }}.git
+
+          if git ls-remote --exit-code --heads origin package-pre_prod; then
+            echo "Branch exists, fetching..."
+            git fetch origin package-pre_prod
+            git checkout package-pre_prod
+
+            # WIPE the old content (Preserving .git)
+            # This deletes all files in the target branch state
+            find . -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} +
+          else
+            echo "Branch does not exist, creating new..."
+            git checkout --orphan package-pre_prod
+          fi
+
+          # FILL with new content
+          # Copy the new files we prepared in step 1
+          cp -a ../new_package_content/. .
+
+          # Commit and Push
           git add -A
-          git commit -m "Release from CI: ${{ github.sha }}"
-          git push origin package-pre_prod_tmp:package-pre_prod
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Only commit if there are changes
+          if ! git diff --cached --quiet; then
+            git commit -m "Release from CI: ${{ github.sha }}"
+            # Now we can standard push because we are on top of old history
+            git push origin package-pre_prod
+          else
+            echo "No changes detected, skipping push."
+          fi
 
 
       - name: Install dependencies
