@@ -45,7 +45,7 @@ exptilt_config <- exptilt_engine(
   stopping_threshold = 0.01,
   standardize = FALSE,
   family = 'logit',
-  bootstrap_reps = 50,
+  bootstrap_reps = 5,
   variance_method = 'bootstrap'
 )
 
@@ -83,13 +83,13 @@ if (requireNamespace("survey", quietly = TRUE)) {
   exptilt_config <- exptilt_engine(
      standardize = FALSE,
      on_failure = "error",
-     bootstrap_reps = 50,
+     bootstrap_reps = 5,
      supress_warnings = FALSE,
      auxiliary_means = NULL,
      control = list(maxit = 15, method = "Newton"),
      family = "logit",
      y_dens = "normal",
-     variance_method = "delta",
+     variance_method = "bootstrap",
      stopping_threshold = 1
 )
 

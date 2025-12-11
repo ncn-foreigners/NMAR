@@ -6,7 +6,7 @@
 #'
 #' @param standardize logical; standardize predictors. Default \code{TRUE}.
 #' @param on_failure character; \code{"return"} or \code{"error"} on solver failure
-#' @param variance_method character; one of \code{"delta"}, \code{"bootstrap"}, or \code{"none"}.
+#' @param variance_method character; one of  \code{"bootstrap"}, or \code{"none"}.
 #' @param bootstrap_reps integer; number of bootstrap replicates when
 #'   \code{variance_method = "bootstrap"}.
 #' @param supress_warnings Logical; suppress variance-related warnings.
@@ -114,7 +114,7 @@
 exptilt_engine <- function(
     standardize = FALSE,
     on_failure = c("return", "error"),
-    variance_method = c("delta", "bootstrap", 'none'),
+    variance_method = c("bootstrap", 'none'),
     bootstrap_reps = 10,
     supress_warnings = FALSE,
     auxiliary_means = NULL,
@@ -135,7 +135,7 @@ exptilt_engine <- function(
   validator_assert_logical(supress_warnings, name = "supress_warnings")
   validator_assert_choice(family, choices = c("logit", "probit"), name = "family")
   validator_assert_choice(y_dens, choices = c("normal", "lognormal", "exponential"), name = "y_dens")
-  validator_assert_choice(variance_method, choices = c("delta", "bootstrap", 'none'), name = "variance_method")
+  validator_assert_choice(variance_method, choices = c("bootstrap", 'none'), name = "variance_method")
   validator_assert_number(stopping_threshold, name = "stopping_threshold", min = 0, max = Inf)
   validator_assert_list(control, name = "control")
   validator_assert_positive_integer(sample_size, name = "sample_size", is.finite = TRUE)

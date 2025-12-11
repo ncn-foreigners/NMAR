@@ -7,7 +7,7 @@
 exptilt_engine(
   standardize = FALSE,
   on_failure = c("return", "error"),
-  variance_method = c("delta", "bootstrap", "none"),
+  variance_method = c("bootstrap", "none"),
   bootstrap_reps = 10,
   supress_warnings = FALSE,
   auxiliary_means = NULL,
@@ -23,7 +23,7 @@ exptilt_engine(
 
 \item{on_failure}{character; \code{"return"} or \code{"error"} on solver failure}
 
-\item{variance_method}{character; one of \code{"delta"}, \code{"bootstrap"}, or \code{"none"}.}
+\item{variance_method}{character; one of  \code{"bootstrap"}, or \code{"none"}.}
 
 \item{bootstrap_reps}{integer; number of bootstrap replicates when
 \code{variance_method = "bootstrap"}.}
