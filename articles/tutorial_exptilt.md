@@ -28,7 +28,7 @@ exptilt_config <- exptilt_engine(
   stopping_threshold = 0.01,
   standardize = FALSE,
   family = 'logit',
-  bootstrap_reps = 50,
+  bootstrap_reps = 5,
   variance_method = 'bootstrap'
 )
 
@@ -40,7 +40,7 @@ res <- nmar(formula = formula, data = riddles_case1, engine = exptilt_config, tr
 print(res)
 #> NMAR Result
 #> ------------
-#> y mean: -1.003197 (0.077627)
+#> y mean: -1.003197 (0.039987)
 #> Converged: TRUE 
 #> Variance method: bootstrap 
 #> Estimator: exponential_tilting
@@ -60,7 +60,7 @@ se <- res$se
 cat('Est Y mean (NMAR):    ', sprintf('%.4f', est),
     '  3σ interval: (', sprintf('%.4f', est - 1.5 * se),
     ', ', sprintf('%.4f', est + 1.5 * se), 'σ=', sprintf('%.4f', se), ')\n')
-#> Est Y mean (NMAR):     -1.0032   3σ interval: ( -1.1196 ,  -0.8868 σ= 0.0776 )
+#> Est Y mean (NMAR):     -1.0032   3σ interval: ( -1.0632 ,  -0.9432 σ= 0.0400 )
 cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(riddles_case1$y, na.rm = T)), '\n')
 #> Naive Y mean (MAR):    -1.0716
 ```
@@ -76,13 +76,13 @@ if (requireNamespace("survey", quietly = TRUE)) {
   exptilt_config <- exptilt_engine(
      standardize = FALSE,
      on_failure = "error",
-     bootstrap_reps = 50,
+     bootstrap_reps = 5,
      supress_warnings = FALSE,
      auxiliary_means = NULL,
      control = list(maxit = 15, method = "Newton"),
      family = "logit",
      y_dens = "normal",
-     variance_method = "delta",
+     variance_method = "bootstrap",
      stopping_threshold = 1
 )
 
@@ -170,21 +170,19 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> [INFO]   Max |score|:              0.000000 
 #> [INFO]   Final parameter estimates (scaled): 
 #> [INFO]     (Intercept)          =  0.865942  [response intercept] 
-#> [INFO]     y                    = -0.159226  [outcome -> response]
-#> Warning: Delta variance may be unreliable with the current sample; using
-#> bootstrap instead.
+#> [INFO]     y                    = -0.159226  [outcome -> response] 
 #> [INFO]  
 #> [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- 
-#> [INFO]   Bootstrap replications:   50 
+#> [INFO]   Bootstrap replications:   5 
 #> [INFO]   OK Bootstrap complete 
-#> [INFO]   Standard error:           0.046478 
+#> [INFO]   Standard error:           0.054672 
 #> [INFO]  
 #> [RESULT] ============================================================ 
 #> [RESULT]   ESTIMATION COMPLETE 
 #> [RESULT] ============================================================ 
 #> [RESULT]   Mean estimate:            -1.004793 
-#> [RESULT]   Standard error:           0.046478 
-#> [RESULT]   95% CI:                   [-1.095891, -0.913696] 
+#> [RESULT]   Standard error:           0.054672 
+#> [RESULT]   95% CI:                   [-1.111949, -0.897637] 
 #> [INFO]  
 #> [INFO]   Response model coefficients: 
 #> [INFO]     (Intercept)         :  0.865942  (Intercept) 
@@ -192,8 +190,8 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> [RESULT] ============================================================ 
 #> NMAR Result
 #> ------------
-#> y mean: -1.004793 (0.046478)
+#> y mean: -1.004793 (0.054672)
 #> Converged: TRUE 
-#> Variance method: delta 
+#> Variance method: bootstrap 
 #> Estimator: exponential_tilting
 ```

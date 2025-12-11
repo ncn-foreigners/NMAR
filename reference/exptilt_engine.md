@@ -11,7 +11,7 @@ to apply EM algorithm.
 exptilt_engine(
   standardize = FALSE,
   on_failure = c("return", "error"),
-  variance_method = c("delta", "bootstrap", "none"),
+  variance_method = c("bootstrap", "none"),
   bootstrap_reps = 10,
   supress_warnings = FALSE,
   auxiliary_means = NULL,
@@ -35,7 +35,7 @@ exptilt_engine(
 
 - variance_method:
 
-  character; one of `"delta"`, `"bootstrap"`, or `"none"`.
+  character; one of `"bootstrap"`, or `"none"`.
 
 - bootstrap_reps:
 
@@ -211,9 +211,6 @@ res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 
 #> [INFO]   OK Converged 
 #> [INFO]   Iterations:               6 
 #> [INFO]  
-#> [INFO] -- VARIANCE ESTIMATION (Delta Method) -- 
-#> Warning: Delta variance failed to evaluate; using bootstrap instead.
-#> [INFO]  
 #> [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- 
 #> [INFO]   Bootstrap replications:   5 
 #> [INFO]   OK Bootstrap complete 
@@ -232,6 +229,6 @@ summary(res)
 #> Y mean: -0.942440 (0.091309)
 #> 95% CI: (-1.121402, -0.763478)
 #> Converged: TRUE 
-#> Variance method: delta 
+#> Variance method: bootstrap 
 # }
 ```

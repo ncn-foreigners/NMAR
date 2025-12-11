@@ -63,7 +63,7 @@ The estimator solves \(S_2(\boldsymbol{\phi}, \hat{\boldsymbol{\gamma}}) = 0,\) 
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">exptilt_engine</span><span class="op">(</span></span>
 <span>  standardize <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  on_failure <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"return"</span>, <span class="st">"error"</span><span class="op">)</span>,</span>
-<span>  variance_method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"delta"</span>, <span class="st">"bootstrap"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
+<span>  variance_method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"bootstrap"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
 <span>  bootstrap_reps <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  supress_warnings <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  auxiliary_means <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -88,7 +88,7 @@ The estimator solves \(S_2(\boldsymbol{\phi}, \hat{\boldsymbol{\gamma}}) = 0,\) 
 
 
 <dt id="arg-variance-method">variance_method<a class="anchor" aria-label="anchor" href="#arg-variance-method"></a></dt>
-<dd><p>character; one of <code>"delta"</code>, <code>"bootstrap"</code>, or <code>"none"</code>.</p></dd>
+<dd><p>character; one of  <code>"bootstrap"</code>, or <code>"none"</code>.</p></dd>
 
 
 <dt id="arg-bootstrap-reps">bootstrap_reps<a class="anchor" aria-label="anchor" href="#arg-bootstrap-reps"></a></dt>
@@ -238,9 +238,6 @@ A Propensity-score-adjustment Method for Nonignorable Nonresponse
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   OK Converged </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Iterations:               6 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] -- VARIANCE ESTIMATION (Delta Method) -- </span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Delta variance failed to evaluate; using bootstrap instead.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Bootstrap replications:   5 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   OK Bootstrap complete </span>
@@ -259,7 +256,7 @@ A Propensity-score-adjustment Method for Nonignorable Nonresponse
 <span class="r-out co"><span class="r-pr">#&gt;</span> Y mean: -0.942440 (0.091309)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 95% CI: (-1.121402, -0.763478)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Converged: TRUE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Variance method: delta </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Variance method: bootstrap </span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
