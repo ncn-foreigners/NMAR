@@ -99,5 +99,3 @@ print.summary_nmar_result_el <- function(x, ...) {
   }
   invisible(x)
 }
-
-## Engine-specific methods beyond parent defaults are not required here.
