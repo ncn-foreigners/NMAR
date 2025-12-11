@@ -83,7 +83,7 @@ library(NMAR, quietly = T)
 exptilt_config <- exptilt_engine(
   y_dens = 'normal',
   family = 'probit', # or logit
-  variance_method = 'bootstrap', # or delta
+  variance_method = 'bootstrap', # or none
   bootstrap_reps = 10
 )
 

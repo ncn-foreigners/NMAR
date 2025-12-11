@@ -13,7 +13,7 @@
 #' @param trim_cap Numeric; cap for EL weights (`Inf` = no trimming).
 #' @param control List; optional solver control parameters for `nleqslv(control=...)`.
 #' @param on_failure Character; one of `"return"` or `"error"` on solver failure.
-#' @param variance_method Character; one of `"delta"`, `"bootstrap"`, or `"none"`.
+#' @param variance_method Character; one of `"bootstrap"` or `"none"`.
 #' @param bootstrap_reps Integer; number of bootstrap reps if `variance_method = "bootstrap"`.
 #' @param n_total Optional integer population size. When the outcome contains
 #'   at least one `NA`, `n_total` defaults to `nrow(data)`; when respondents-only
@@ -41,7 +41,7 @@ el.data.frame <- function(data, formula,
                           auxiliary_means = NULL, standardize = TRUE,
                           trim_cap = Inf, control = list(),
                           on_failure = c("return", "error"),
-                          variance_method = c("delta", "bootstrap", "none"),
+                          variance_method = c("bootstrap", "none"),
                           bootstrap_reps = 500,
                           n_total = NULL, start = NULL, trace_level = 0,
                           family = logit_family(), ...) {
@@ -49,7 +49,6 @@ el.data.frame <- function(data, formula,
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
   variance_method <- match.arg(variance_method)
-  if (identical(variance_method, "delta")) variance_method <- "none"
 
   inputs <- el_prepare_inputs(
     formula = formula,
