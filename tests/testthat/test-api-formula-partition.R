@@ -63,7 +63,7 @@ test_that("Engines accept parentheses and transforms in RHS partitions", {
     NA
   )
 # ET with simple pattern (no overlap: response-only depends on Z1 and its transform)
-  eng_et <- exptilt_engine(y_dens = "normal", variance_method = "delta", standardize = FALSE)
+  eng_et <- exptilt_engine(y_dens = "normal", variance_method = "none", standardize = FALSE)
   expect_error(
     nmar(Y_miss ~ (X1 + X2) | (Z1 + I(Z1^2)), data = df, engine = eng_et),
     NA
