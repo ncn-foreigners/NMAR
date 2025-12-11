@@ -18,9 +18,7 @@
 #' @param standardize logical; standardize predictors. Default \code{TRUE}.
 #' @param trim_cap numeric; cap for EL weights (\code{Inf} = no trimming).
 #' @param on_failure character; \code{"return"} or \code{"error"} on solver failure.
-#' @param variance_method character; one of \code{"delta"}, \code{"bootstrap"}, or \code{"none"}.
-#'   The analytical delta method for EL is currently not implemented; when
-#'   \code{"delta"} is supplied it is coerced to \code{"none"} with a warning.
+#' @param variance_method character; one of \code{"bootstrap"} or \code{"none"}.
 #' @param bootstrap_reps integer; number of bootstrap replicates when
 #'   \code{variance_method = "bootstrap"}.
 #' @param auxiliary_means named numeric vector; population means for auxiliary
@@ -89,9 +87,9 @@
 #' an intercept dropped automatically; missingness models always include an
 #' intercept even if the formula uses \code{-1} or \code{+0}.
 #'
-#' \strong{Variance}: Analytical delta variance for EL is not implemented. Requesting
-#' \code{variance_method = "delta"} is coerced to \code{"none"} with a warning. For standard
-#' errors in both IID and survey settings, use \code{variance_method = "bootstrap"}.
+#' \strong{Variance}: The EL engine supports bootstrap standard errors via
+#' \code{variance_method = "bootstrap"} or can skip variance with
+#' \code{variance_method = "none"}.
 #'
 #' @references
 #' Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
@@ -177,7 +175,7 @@ el_engine <- function(
     standardize = TRUE,
     trim_cap = Inf,
     on_failure = c("return", "error"),
-    variance_method = c("delta", "bootstrap", "none"),
+    variance_method = c("bootstrap", "none"),
     bootstrap_reps = 500,
     auxiliary_means = NULL,
     control = list(),
@@ -211,10 +209,6 @@ el_engine <- function(
   )
 # Validate and coerce unsupported variance modes upfront
   validate_nmar_engine_el(engine)
-  if (identical(engine$variance_method, "delta")) {
-    warning("Empirical likelihood 'delta' variance is not implemented; using variance_method='none'.", call. = FALSE)
-    engine$variance_method <- "none"
-  }
   new_nmar_engine_el(engine)
 }
 
@@ -235,7 +229,7 @@ validate_nmar_engine_el <- function(engine) {
   validator_assert_positive_number(engine$trim_cap, name = "trim_cap", allow_infinite = TRUE)
   validator_assert_positive_integer(engine$bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)
   validator_assert_choice(engine$on_failure, choices = c("return", "error"), name = "on_failure")
-  validator_assert_choice(engine$variance_method, choices = c("delta", "bootstrap", "none"), name = "variance_method")
+  validator_assert_choice(engine$variance_method, choices = c("bootstrap", "none"), name = "variance_method")
 
   validator_assert_named_numeric(engine$auxiliary_means, name = "auxiliary_means", allow_null = TRUE)
   validator_assert_list(engine$control, name = "control")

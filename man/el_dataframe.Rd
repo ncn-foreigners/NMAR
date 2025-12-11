@@ -13,7 +13,7 @@
   trim_cap = Inf,
   control = list(),
   on_failure = c("return", "error"),
-  variance_method = c("delta", "bootstrap", "none"),
+  variance_method = c("bootstrap", "none"),
   bootstrap_reps = 500,
   n_total = NULL,
   start = NULL,
@@ -41,7 +41,7 @@ transformed terms. The intercept is always excluded.}
 
 \item{on_failure}{Character; one of `"return"` or `"error"` on solver failure.}
 
-\item{variance_method}{Character; one of `"delta"`, `"bootstrap"`, or `"none"`.}
+\item{variance_method}{Character; one of `"bootstrap"` or `"none"`.}
 
 \item{bootstrap_reps}{Integer; number of bootstrap reps if `variance_method = "bootstrap"`.}
 

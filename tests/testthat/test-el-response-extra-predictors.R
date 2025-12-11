@@ -10,7 +10,7 @@ test_that("response_predictors can include non-auxiliary variables", {
     standardize = FALSE,
     trim_cap = Inf,
     on_failure = "return",
-    variance_method = "delta"
+    variance_method = "none"
   )
 
   expect_s3_class(res, "nmar_result_el")

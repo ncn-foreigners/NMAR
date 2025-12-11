@@ -93,7 +93,7 @@ library(NMAR, quietly = T)
 exptilt_config <- exptilt_engine(
   y_dens = 'normal',
   family = 'probit', # or logit
-  variance_method = 'bootstrap', # or delta
+  variance_method = 'bootstrap', # or none
   bootstrap_reps = 10
 )
 
@@ -101,11 +101,11 @@ formula = y ~ x
 res <- nmar(formula = formula, data = riddles_case1, engine = exptilt_config, trace_level = 0)
 print(coef(res))
 #> (Intercept)           y 
-#>   0.5329819  -0.1026509
+#>   0.5330629  -0.1026477
 print(res)
 #> NMAR Result
 #> ------------
-#> y mean: -1.002957 (0.048529)
+#> y mean: -1.002964 (0.054898)
 #> Converged: TRUE 
 #> Variance method: bootstrap 
 #> Estimator: exponential_tilting

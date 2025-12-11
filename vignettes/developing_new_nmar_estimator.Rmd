@@ -184,8 +184,7 @@ Follow EL’s `el.survey.design` pattern:
 - Get respondent base weights via `weights(resp_design)` and set `N_pop <- sum(weights(design))`.
 - For survey designs that require design-based variance, you may compute the
   covariance of score totals via `svytotal(~ scores, design)` followed by
-  `vcov()`. For EL, analytical delta variance is disabled; use bootstrap
-  variance instead.
+  `vcov()`.
 
 ### 6) `impl/<method>_equations.R` / `impl/<method>_jacobian.R` (optional)
 
@@ -195,9 +194,6 @@ math here (e.g., likelihood, gradients, constraints).
 
 ### 7) `impl/<method>_variance.R`
 
-- If applicable for your method, assemble $A = \\partial F/\\partial \\theta$, $B = Var(\\sum scores)$ and the gradient
-  of the functional $g(\\theta)$ for an analytical delta variance. For EL, analytical
-  delta variance is currently disabled and the engine returns NA when requested.
 - Add an option to use shared bootstrap variance helpers (`bootstrap_variance()`) for IID or survey designs.
 
 ### 8) `impl/<method>_constructors.R`

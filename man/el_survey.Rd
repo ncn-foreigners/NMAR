@@ -14,7 +14,7 @@
   trim_cap = Inf,
   control = list(),
   on_failure = c("return", "error"),
-  variance_method = c("delta", "bootstrap", "none"),
+  variance_method = c("bootstrap", "none"),
   bootstrap_reps = 500,
   n_total = NULL,
   start = NULL,
@@ -47,7 +47,7 @@ structure is present in the survey design.}
 
 \item{on_failure}{Character; "return" or "error" on solver failure.}
 
-\item{variance_method}{Character; "delta", "bootstrap", or "none".}
+\item{variance_method}{Character; "bootstrap" or "none".}
 
 \item{bootstrap_reps}{Integer; reps when `variance_method = "bootstrap"`.}
 
@@ -66,8 +66,6 @@ structure is present in the survey design.}
 }
 \description{
 Internal method dispatched by `el()` when `data` is a `survey.design`.
-  Variance via bootstrap is supported. Analytical delta variance for EL is
-  not implemented and returns NA when requested.
 }
 \details{
 Implements the empirical likelihood estimator with design weights.

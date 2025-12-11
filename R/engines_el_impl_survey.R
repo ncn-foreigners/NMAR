@@ -37,8 +37,6 @@ el_extract_strata_factor <- function(design) {
 
 #' Empirical likelihood for survey designs (NMAR)
 #' @description Internal method dispatched by `el()` when `data` is a `survey.design`.
-#'   Variance via bootstrap is supported. Analytical delta variance for EL is
-#'   not implemented and returns NA when requested.
 #' @param data A `survey.design` created with [survey::svydesign()].
 #' @param formula Two-sided formula with an NA-valued outcome on the LHS;
 #'   auxiliaries on the first RHS and, optionally, missingness predictors on
@@ -54,7 +52,7 @@ el_extract_strata_factor <- function(design) {
 #' @param trim_cap Numeric; cap for EL weights (Inf = no trimming).
 #' @param control List; solver control for `nleqslv(control=...)`.
 #' @param on_failure Character; "return" or "error" on solver failure.
-#' @param variance_method Character; "delta", "bootstrap", or "none".
+#' @param variance_method Character; "bootstrap" or "none".
 #' @param bootstrap_reps Integer; reps when `variance_method = "bootstrap"`.
 #' @param n_total Optional analysis-scale population size \code{N_pop}; required for respondents-only designs.
 #' @param start Optional list of starting values passed to solver helpers.
@@ -84,7 +82,7 @@ el.survey.design <- function(data, formula,
                              strata_augmentation = TRUE,
                              trim_cap = Inf, control = list(),
                              on_failure = c("return", "error"),
-                             variance_method = c("delta", "bootstrap", "none"),
+                             variance_method = c("bootstrap", "none"),
                              bootstrap_reps = 500,
                              n_total = NULL, start = NULL, trace_level = 0,
                              family = logit_family(), ...) {
@@ -92,8 +90,6 @@ el.survey.design <- function(data, formula,
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
   variance_method <- match.arg(variance_method)
-# Coerce unsupported variance modes to "none"; nmar() already warned at dispatch time.
-  if (identical(variance_method, "delta")) variance_method <- "none"
 
 
   design <- data

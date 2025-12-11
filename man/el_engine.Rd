@@ -8,7 +8,7 @@ el_engine(
   standardize = TRUE,
   trim_cap = Inf,
   on_failure = c("return", "error"),
-  variance_method = c("delta", "bootstrap", "none"),
+  variance_method = c("bootstrap", "none"),
   bootstrap_reps = 500,
   auxiliary_means = NULL,
   control = list(),
@@ -25,9 +25,7 @@ el_engine(
 
 \item{on_failure}{character; \code{"return"} or \code{"error"} on solver failure.}
 
-\item{variance_method}{character; one of \code{"delta"}, \code{"bootstrap"}, or \code{"none"}.
-The analytical delta method for EL is currently not implemented; when
-\code{"delta"} is supplied it is coerced to \code{"none"} with a warning.}
+\item{variance_method}{character; one of \code{"bootstrap"} or \code{"none"}.}
 
 \item{bootstrap_reps}{integer; number of bootstrap replicates when
 \code{variance_method = "bootstrap"}.}
@@ -119,9 +117,9 @@ response predictor by default. Auxiliary design matrices are constructed with
 an intercept dropped automatically; missingness models always include an
 intercept even if the formula uses \code{-1} or \code{+0}.
 
-\strong{Variance}: Analytical delta variance for EL is not implemented. Requesting
-\code{variance_method = "delta"} is coerced to \code{"none"} with a warning. For standard
-errors in both IID and survey settings, use \code{variance_method = "bootstrap"}.
+\strong{Variance}: The EL engine supports bootstrap standard errors via
+\code{variance_method = "bootstrap"} or can skip variance with
+\code{variance_method = "none"}.
 }
 \section{Progress Reporting}{
 

@@ -10,7 +10,7 @@ test_that("on_failure=return: inconsistent aux means yield a warning and diagnos
   bad_aux <- c(X1 = 10, X2 = -10)
   expect_warning(
     fit <- el.data.frame(df, Y_miss ~ X1 + X2,
-                                 auxiliary_means = bad_aux, on_failure = "return", variance_method = "delta"),
+                                 auxiliary_means = bad_aux, on_failure = "return", variance_method = "none"),
     regexp = "Auxiliary means appear far from respondents' support"
   )
 # Soft diagnostics fields must exist
