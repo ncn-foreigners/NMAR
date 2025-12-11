@@ -37,7 +37,7 @@
 #' active-set mask in derivatives. After solving, unnormalized masses
 #' \eqn{d_i/D_i(\theta)} are formed, optional trimming may be applied (with
 #' normalization only for reporting), and optional variance is computed via
-#' bootstrap. The analytical delta method for EL is not implemented.
+#' bootstrap when \code{variance_method = "bootstrap"}.
 #'
 #' @keywords internal
 el_estimator_core <- function(missingness_design,
