@@ -288,9 +288,8 @@ survey.design<a class="anchor" aria-label="anchor" href="#implmethod_survey-r-me
 and set <code>N_pop &lt;- sum(weights(design))</code>.</li>
 <li>For survey designs that require design-based variance, you may
 compute the covariance of score totals via
-<code>svytotal(~ scores, design)</code> followed by <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>.
-For EL, analytical delta variance is disabled; use bootstrap variance
-instead.</li>
+<code>svytotal(~ scores, design)</code> followed by
+<code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>.</li>
 </ul>
 </div>
 <div class="section level4">
@@ -306,11 +305,6 @@ constraints).</p>
 <h4 id="implmethod_variance-r">7) <code>impl/&lt;method&gt;_variance.R</code><a class="anchor" aria-label="anchor" href="#implmethod_variance-r"></a>
 </h4>
 <ul>
-<li>If applicable for your method, assemble <span class="math inline">$A
-= \\partial F/\\partial \\theta$</span>, <span class="math inline">$B =
-Var(\\sum scores)$</span> and the gradient of the functional <span class="math inline">$g(\\theta)$</span> for an analytical delta
-variance. For EL, analytical delta variance is currently disabled and
-the engine returns NA when requested.</li>
 <li>Add an option to use shared bootstrap variance helpers
 (<code><a href="../reference/bootstrap_variance.html">bootstrap_variance()</a></code>) for IID or survey designs.</li>
 </ul>

@@ -91,7 +91,7 @@ Pass the engine to <a href="nmar.html">nmar</a> together with a formula and data
 <span>  standardize <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  trim_cap <span class="op">=</span> <span class="cn">Inf</span>,</span>
 <span>  on_failure <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"return"</span>, <span class="st">"error"</span><span class="op">)</span>,</span>
-<span>  variance_method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"delta"</span>, <span class="st">"bootstrap"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
+<span>  variance_method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"bootstrap"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
 <span>  bootstrap_reps <span class="op">=</span> <span class="fl">500</span>,</span>
 <span>  auxiliary_means <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -119,9 +119,7 @@ Pass the engine to <a href="nmar.html">nmar</a> together with a formula and data
 
 
 <dt id="arg-variance-method">variance_method<a class="anchor" aria-label="anchor" href="#arg-variance-method"></a></dt>
-<dd><p>character; one of <code>"delta"</code>, <code>"bootstrap"</code>, or <code>"none"</code>.
-The analytical delta method for EL is currently not implemented; when
-<code>"delta"</code> is supplied it is coerced to <code>"none"</code> with a warning.</p></dd>
+<dd><p>character; one of <code>"bootstrap"</code> or <code>"none"</code>.</p></dd>
 
 
 <dt id="arg-bootstrap-reps">bootstrap_reps<a class="anchor" aria-label="anchor" href="#arg-bootstrap-reps"></a></dt>
@@ -209,9 +207,9 @@ predictors only. The outcome appears on the left-hand side and is included as a
 response predictor by default. Auxiliary design matrices are constructed with
 an intercept dropped automatically; missingness models always include an
 intercept even if the formula uses <code>-1</code> or <code>+0</code>.</p>
-<p><strong>Variance</strong>: Analytical delta variance for EL is not implemented. Requesting
-<code>variance_method = "delta"</code> is coerced to <code>"none"</code> with a warning. For standard
-errors in both IID and survey settings, use <code>variance_method = "bootstrap"</code>.</p>
+<p><strong>Variance</strong>: The EL engine supports bootstrap standard errors via
+<code>variance_method = "bootstrap"</code> or can skip variance with
+<code>variance_method = "none"</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="progress-reporting">Progress Reporting<a class="anchor" aria-label="anchor" href="#progress-reporting"></a></h2>

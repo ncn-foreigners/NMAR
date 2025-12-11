@@ -1,8 +1,7 @@
 # Empirical likelihood for survey designs (NMAR)
 
 Internal method dispatched by \`el()\` when \`data\` is a
-\`survey.design\`. Variance via bootstrap is supported. Analytical delta
-variance for EL is not implemented and returns NA when requested.
+\`survey.design\`.
 
 ## Usage
 
@@ -17,7 +16,7 @@ el(
   trim_cap = Inf,
   control = list(),
   on_failure = c("return", "error"),
-  variance_method = c("delta", "bootstrap", "none"),
+  variance_method = c("bootstrap", "none"),
   bootstrap_reps = 500,
   n_total = NULL,
   start = NULL,
@@ -70,7 +69,7 @@ el(
 
 - variance_method:
 
-  Character; "delta", "bootstrap", or "none".
+  Character; "bootstrap" or "none".
 
 - bootstrap_reps:
 

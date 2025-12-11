@@ -24,7 +24,7 @@ el_engine(
   standardize = TRUE,
   trim_cap = Inf,
   on_failure = c("return", "error"),
-  variance_method = c("delta", "bootstrap", "none"),
+  variance_method = c("bootstrap", "none"),
   bootstrap_reps = 500,
   auxiliary_means = NULL,
   control = list(),
@@ -51,9 +51,7 @@ el_engine(
 
 - variance_method:
 
-  character; one of `"delta"`, `"bootstrap"`, or `"none"`. The
-  analytical delta method for EL is currently not implemented; when
-  `"delta"` is supplied it is coerced to `"none"` with a warning.
+  character; one of `"bootstrap"` or `"none"`.
 
 - bootstrap_reps:
 
@@ -160,10 +158,9 @@ predictor by default. Auxiliary design matrices are constructed with an
 intercept dropped automatically; missingness models always include an
 intercept even if the formula uses `-1` or `+0`.
 
-**Variance**: Analytical delta variance for EL is not implemented.
-Requesting `variance_method = "delta"` is coerced to `"none"` with a
-warning. For standard errors in both IID and survey settings, use
-`variance_method = "bootstrap"`.
+**Variance**: The EL engine supports bootstrap standard errors via
+`variance_method = "bootstrap"` or can skip variance with
+`variance_method = "none"`.
 
 ## Progress Reporting
 

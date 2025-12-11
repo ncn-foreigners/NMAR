@@ -119,5 +119,5 @@ weights: bounded linear predictors, probability clipping in ratios, and
 a small floor on denominators \\D_i(\theta)\\ with an active-set mask in
 derivatives. After solving, unnormalized masses \\d_i/D_i(\theta)\\ are
 formed, optional trimming may be applied (with normalization only for
-reporting), and optional variance is computed via bootstrap. The
-analytical delta method for EL is not implemented.
+reporting), and optional variance is computed via bootstrap when
+`variance_method = "bootstrap"`.

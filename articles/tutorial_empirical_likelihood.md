@@ -158,7 +158,7 @@ str(fit$diagnostics)
 #>  $ nleqslv_global                    : chr NA
 #>  $ nleqslv_xscalm                    : chr NA
 #>  $ solver_iterations                 : int 7
-#>  $ solver_time                       : num 0.005
+#>  $ solver_time                       : num 0.006
 #>  $ variance_time                     : num 0
 #>  $ reparam_W                         : chr "logit"
 #>  $ max_equation_residual             : num 5.18e-13
