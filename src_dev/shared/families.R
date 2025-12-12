@@ -1,27 +1,36 @@
 #' Response model families
+#'
+#' Small family objects used by NMAR engines to compute response probabilities
+#' and derivatives for Bernoulli response models with different links (logit,
+#' probit).
+#'
+#' A family object is a list with components:
+#' \describe{
+#'   \item{\code{name}}{Character identifier, e.g. \code{"logit"}.}
+#'   \item{\code{linkinv(eta)}}{Mean function returning \code{p = P(R = 1 | eta)}.}
+#'   \item{\code{mu.eta(eta)}}{First derivative \code{dp/deta}.}
+#'   \item{\code{d2mu.deta2(eta)}}{Second derivative \code{d^2p/deta^2} (optional).}
+#'   \item{\code{score_eta(eta, delta)}}{Score with respect to \code{eta} for a
+#'     Bernoulli log-likelihood. For respondents (\code{delta = 1}), this reduces
+#'     to \code{mu.eta(eta) / linkinv(eta)}.}
+#' }
+#'
+#' These functions let engines switch links without changing their estimating
+#' equations. The EL engine follows Qin, Leung, and Shao (2002).
+#'
+#' @section Numerical stability:
+#'   Probit score calculations use log-domain ratios in the tails to compute the
+#'   Mills ratio \code{phi/Phi} without underflow. Engines should clip
+#'   probabilities away from 0 and 1 when forming ratios.
+#'
 #' @name nmar_response_families
-#' @description Small family objects used by NMAR engines to compute response
-#'   probabilities and derivatives in a link-agnostic way (logit/probit).
-#' @details A family object is a list with components:
-#'   - `name`: character identifier (e.g., "logit", "probit").
-#'   - `linkinv(eta)`: mean function (Bernoulli), returns `p = P(R=1 | eta)`.
-#'   - `mu.eta(eta)`: derivative `dp/deta`.
-#'   - `d2mu.deta2(eta)`: second derivative `d^2p/deta^2` (used by analytic Jacobian).
-#'   - `score_eta(eta, delta)`: score of the Bernoulli log-likelihood w.r.t. `eta`.
-#'     For respondents (delta=1), this reduces to `mu.eta(eta)/linkinv(eta)` and is
-#'     used in the EL estimating equations. Engines may ignore `delta`.
-#'   These functions allow engines to switch between links without changing the
-#'   estimating system. See Qin, Leung and Shao (2002) for the EL system.
-#' @section Stability:
-#'   - Logit: numerically well behaved for a wide range of eta; clip `p` away
-#'     from 0/1 when forming ratios.
-#'   - Probit: compute `phi/Phi` via a stable log-ratio in tails to avoid 0/0.
-#' @name response_families
 #' @keywords internal
 #' @noRd
 NULL
 
-#' Logit family functions (link and derivatives)
+#' Construct a logit response family bundle
+#' @return A list with components \code{name}, \code{linkinv}, \code{mu.eta},
+#'   \code{d2mu.deta2}, and \code{score_eta}.
 #' @keywords internal
 logit_family <- function() {
   list(
@@ -44,7 +53,9 @@ logit_family <- function() {
   )
 }
 
-#' Probit family functions (link and derivatives)
+#' Construct a probit response family bundle
+#' @return A list with components \code{name}, \code{linkinv}, \code{mu.eta},
+#'   \code{d2mu.deta2}, and \code{score_eta}.
 #' @keywords internal
 probit_family <- function() {
   list(
@@ -58,7 +69,7 @@ probit_family <- function() {
       n <- length(eta)
       if (!n) return(numeric(0))
 
-# Use log-domain ratios in tails for stability: phi/Phi and phi/(1-Phi)
+# Use log-domain ratios in tails for stability: phi/Phi and phi/(1-Phi).
       log_phi <- stats::dnorm(eta, log = TRUE)
       log_Phi <- stats::pnorm(eta, log.p = TRUE)
       log_tail <- stats::pnorm(eta, lower.tail = FALSE, log.p = TRUE)
@@ -85,6 +96,7 @@ probit_family <- function() {
   )
 }
 
+# Internal helper: validate Bernoulli response indicators.
 validate_delta <- function(delta) {
   delta <- as.numeric(delta)
   if (any(!is.finite(delta))) {

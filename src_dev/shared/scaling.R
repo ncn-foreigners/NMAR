@@ -7,8 +7,8 @@
 #' \itemize{
 #'   \item Provide an engine-agnostic API for standardizing design matrices and
 #'     auxiliary moments before solving.
-#'   \item Return a minimal "recipe" (per-column mean and standard deviation)
-#'     for unscaling coefficients and covariance matrices after solving.
+#'   \item Return a minimal scaling recipe (\code{nmar_scaling_recipe}) used to
+#'     unscale coefficients and covariance matrices after solving.
 #' }
 #'
 #' @section Inputs/Outputs:
@@ -92,17 +92,17 @@ compute_weighted_stats <- function(values, weights = NULL) {
 }
 
 #' Build a scaling recipe from one or more design matrices
-#' @param ... one or more matrices with named columns.
-#' @param intercept_col Intercept column name that should remain unscaled.
-#' @param weights Optional numeric vector of weights used to compute weighted
-#'   means/standard deviations.
+#' @param ... One or more numeric matrices with column names.
+#' @param intercept_col Name of an intercept column that should remain unscaled.
+#' @param weights Optional nonnegative numeric vector used to compute weighted
+#'   means and standard deviations.
 #' @param weight_mask Optional logical mask or nonnegative numeric multipliers
-#'   applied to `weights` before computing moments (useful for respondents-only
-#'   scaling). If `weights` is `NULL`, `weight_mask` is treated as the weights.
+#'   applied to \code{weights} before computing moments (useful for
+#'   respondents-only scaling). If \code{weights} is \code{NULL},
+#'   \code{weight_mask} is treated as weights.
 #' @param tol_constant Numeric tolerance below which columns are treated as
 #'   constant and left unscaled.
-#' @param warn_on_constant Logical; emit a warning when a column is treated as
-#'   constant.
+#' @param warn_on_constant Logical; warn when a column is treated as constant.
 #'
 #' @keywords internal
 create_nmar_scaling_recipe <- function(..., intercept_col = "(Intercept)", weights = NULL,
@@ -152,9 +152,9 @@ create_nmar_scaling_recipe <- function(..., intercept_col = "(Intercept)", weigh
         recipe[[col_name]] <- list(mean = 0, sd = 1)
       } else if (col_sd < tol_constant) {
         if (warn_on_constant) {
-          warning(sprintf("Column '%s' is nearly constant under the scaling weights; centering to zero column.", col_name), call. = FALSE)
+          warning(sprintf("Column '%s' is nearly constant under the scaling weights; centering to near-zero column.", col_name), call. = FALSE)
         }
-# Center to a zero column; coefficients on such columns are not
+# Center to a near-zero column; coefficients on such columns are not
 # identifiable and should not be inflated by dividing by a very small sd.
         recipe[[col_name]] <- list(mean = col_mean, sd = 1)
       } else {
@@ -166,9 +166,11 @@ create_nmar_scaling_recipe <- function(..., intercept_col = "(Intercept)", weigh
 }
 
 #' Apply scaling to a matrix using a recipe
-#' @param matrix_to_scale a numeric matrix with column names present in `recipe`.
-#' @param recipe an object of class `nmar_scaling_recipe`.
-#' @return a matrix with each named column centered and scaled using the recipe
+#' @param matrix_to_scale A numeric matrix with column names present in
+#'   \code{recipe}.
+#' @param recipe An object of class \code{nmar_scaling_recipe}.
+#' @return A numeric matrix with each column centered and scaled using
+#'   \code{recipe}.
 #'
 #' @keywords internal
 apply_nmar_scaling <- function(matrix_to_scale, recipe) {
@@ -186,12 +188,13 @@ apply_nmar_scaling <- function(matrix_to_scale, recipe) {
 #' @param Z_un response model matrix (with intercept column).
 #' @param X_un auxiliary model matrix (no intercept), or NULL.
 #' @param mu_x_un named numeric vector of auxiliary means on the original scale
-#'   (names must match `colnames(X_un)`), or NULL.
+#'   (names must match \code{colnames(X_un)}), or \code{NULL}.
 #' @param standardize logical; apply standardization if TRUE.
 #' @param weights Optional numeric vector used for weighted scaling.
 #' @param weight_mask Optional logical mask or nonnegative numeric multipliers
-#'   applied to `weights`.
-#' @return a list with `Z`, `X`, `mu_x`, and `recipe`.
+#'   applied to \code{weights}.
+#' @return A list with components \code{Z}, \code{X}, \code{mu_x}, and
+#'   \code{recipe}.
 #'
 #' @keywords internal
 prepare_nmar_scaling <- function(Z_un, X_un, mu_x_un, standardize,
@@ -235,9 +238,10 @@ prepare_nmar_scaling <- function(Z_un, X_un, mu_x_un, standardize,
 #' @param mu_x_unscaled named auxiliary means on original scale, or NULL.
 #' @param weights Optional numeric vector used for weighted scaling.
 #' @param weight_mask Optional logical mask or nonnegative numeric multipliers
-#'   applied to `weights`.
-#' @return a list with `nmar_scaling_recipe`, `response_model_matrix_scaled`,
-#'   `auxiliary_matrix_scaled`, and `mu_x_scaled`.
+#'   applied to \code{weights}.
+#' @return A list with components \code{nmar_scaling_recipe},
+#'   \code{response_model_matrix_scaled}, \code{auxiliary_matrix_scaled}, and
+#'   \code{mu_x_scaled}.
 #'
 #' @keywords internal
 validate_and_apply_nmar_scaling <- function(standardize, has_aux, response_model_matrix_unscaled,
@@ -300,12 +304,14 @@ validate_and_apply_nmar_scaling <- function(standardize, has_aux, response_model
 
 #' Map unscaled coefficients to scaled space
 #' @param beta_unscaled named numeric vector of coefficients for the response
-#'   model on the original scale, including an intercept named `"(Intercept)"`.
-#' @param recipe `nmar_scaling_recipe` returned by scaling utilities.
+#'   model on the original scale, including an intercept named
+#'   \code{"(Intercept)"}.
+#' @param recipe Scaling recipe of class \code{nmar_scaling_recipe}, or
+#'   \code{NULL}.
 #' @param columns character vector of column names (order) for the scaled design
 #'   matrix (including intercept).
 #' @return numeric vector of coefficients in the scaled space, ordered by
-#'   `columns`.
+#'   \code{columns}.
 #'
 #' @keywords internal
 scale_coefficients <- function(beta_unscaled, recipe, columns) {
@@ -339,7 +345,7 @@ scale_coefficients <- function(beta_unscaled, recipe, columns) {
 #' Map unscaled auxiliary multipliers to scaled space
 #' @param lambda_unscaled named numeric vector of auxiliary multipliers aligned
 #'   to auxiliary design columns (no intercept) on original scale.
-#' @param recipe `nmar_scaling_recipe`.
+#' @param recipe Scaling recipe of class \code{nmar_scaling_recipe}.
 #' @param columns character vector of auxiliary column names (order) for the
 #'   scaled design.
 #' @return numeric vector of multipliers in the scaled space.
@@ -368,9 +374,9 @@ scale_aux_multipliers <- function(lambda_unscaled, recipe, columns) {
 
 #' Unscale regression coefficients and covariance
 #' @param scaled_coeffs named numeric vector of coefficients estimated on the scaled space.
-#' @param scaled_vcov covariance matrix of `scaled_coeffs`.
-#' @param recipe `nmar_scaling_recipe` produced when scaling was applied.
-#' @return a list with unscaled `coefficients` and `vcov`.
+#' @param scaled_vcov covariance matrix of \code{scaled_coeffs}.
+#' @param recipe Scaling recipe of class \code{nmar_scaling_recipe}.
+#' @return A list with components \code{coefficients} and \code{vcov}.
 #'
 #' @keywords internal
 unscale_coefficients <- function(scaled_coeffs, scaled_vcov, recipe) {
