@@ -9,7 +9,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-This document explains every mathematical object, equation, and derivation behind the empirical likelihood (EL) estimator implemented in the `nmar` package, and maps each concept to code. It covers both data-frame (IID) and survey design use cases, handles arbitrary numbers of response-model and auxiliary covariates, and supports both logit and probit response families.
+This vignette summarizes the key mathematical objects and estimating-equation derivations behind the empirical likelihood (EL) estimator implemented in the `nmar` package, and maps them to code. It covers both data-frame (IID) and survey design use cases, allows arbitrary numbers of response-model and auxiliary covariates, and supports both logit and probit response families.
 
 ## Notation
 
@@ -39,7 +39,7 @@ Here `linkinv`, `mu.eta`, and `d2mu.deta2` refer to the chosen response family (
 
 ### Weight Re-parameterization
 - $W \in (0,1)$ nuisance scalar; we parameterize via $z = \text{logit}(W)$ for stability and set $W = \text{plogis}(z)$
-- $\lambda_W \in \mathbb{R}$ and $\lambda_x \in \mathbb{R}^L$ are EL Lagrange multipliers for constraints; collected together in $\theta$
+- $\lambda_W \in \mathbb{R}$ and $\lambda_x \in \mathbb{R}^L$ are EL Lagrange multipliers for the $W$-constraint and the auxiliary constraints
 
 ### EL Weights
 - **Denominator**: $D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T \lambda_x$
@@ -68,8 +68,10 @@ Here `linkinv`, `mu.eta`, and `d2mu.deta2` refer to the chosen response family (
 | $a_i$ | Base weight (IID: 1; survey: design weight) |
 | $p_i^{\mathrm{EL}}$ | Empirical-likelihood weight $\propto a_i/D_i$ |
 | $\hat Y$ | $\sum p_i^{\mathrm{EL}} Y_i/\sum p_i^{\mathrm{EL}}$ |
-| $F(\theta)$ | Estimating system (beta, W, and auxiliary equations) |
+| $F(\theta)$ | Stacked estimating system (beta, W, constraints) |
 | $A$ | Jacobian $\partial F/\partial \theta$ |
+
+Note: QLS use $\theta$ for the response-model parameter; in this vignette that parameter is $\beta$. We use $\theta$ for the full stacked unknown vector solved by the EL engine.
 
 ### Engines
 - Family: "logit" (default) or "probit". For respondents ($R_i = 1$), the score with respect to $\eta$ is $s_i = \partial\log w_i/\partial\eta_i = \mu_{\eta,i}/w_i$ (equals $1 - w_i$ for logit and $\phi(\eta_i)/\Phi(\eta_i)$ for probit). In code we compute these using stable log-domain formulas for probit and clip probabilities away from 0 and 1 when they appear in ratios.
@@ -115,7 +117,7 @@ QLS derive $\lambda_W = (N/n - 1)/(1-W)$ when $a_i \equiv 1$ and $n$ counts resp
 **IID (data-frame) path** we reuse this relation with base weights fixed at $a_i \equiv 1$:
 
 - Let $n_{\text{resp\_weighted}} = \sum_{i:R_i=1} a_i$ be the respondent-weighted total.
-- Let $N_{\text{pop}}$ be the analysis-scale population total (either $n$ or a user-supplied `n_total`).
+- Let $N_{\text{pop}}$ be the analysis-scale population total (by default `nrow(data)`, or a user-supplied `n_total`).
 
 In the `data.frame` path `el_prepare_inputs()` is called with `weights = NULL`, so `respondent_weights`
 are identically 1 and $n_{\text{resp\_weighted}} = n$. We then set
@@ -124,7 +126,7 @@ $$
 \lambda_W = \frac{N_{\text{pop}}/n_{\text{resp\_weighted}} - 1}{1 - W},
 $$
 
-which reduces exactly to the original QLS formula when $N_{\text{pop}} = n$. This closed form is used
+which reduces exactly to the original QLS formula when $N_{\text{pop}}$ is the total number of sampled units. This closed form is used
 **only** in the IID path to profile out $\lambda_W$; for complex survey designs we instead treat
 $\lambda_W$ as a free parameter and solve for it jointly with $(\beta, W, \lambda_x)$ via the
 design-weighted system described in the survey extension section.
@@ -164,16 +166,32 @@ subject to (i) $\int dF = 1$, (ii) $\int X \, dF = \mu_x$, and (iii) $\int w(Y,X
 D_i \;=\; 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^\top \lambda_x,
 \]
 
-and, with base weights $a_i$, the working weights are $p_i^{\text{EL}} \propto a_i / D_i$.
+and, with base weights $a_i$, the working masses are proportional to $a_i / D_i$.
 
 Remark on conditioning: QLS's Eq. (2) writes the first product as $\prod_i [\, w(y_i,x_i;\beta)\,dF(y_i,x_i)/W\,]$ so that it explicitly represents the likelihood of $(Y_i,X_i)$ conditional on $R_i=1$. Multiplying by the binomial term $W^n(1-W)^{N-n}$ yields the same overall likelihood as above because the $W^{-n}$ in the first factor cancels the $W^n$ in the second. Both factorizations lead to the same estimating equations and the same profiled log-likelihood form used subsequently in QLS after introducing the multipliers.
 
 ### KKT and Denominator (details)
 
-Introducing Lagrange multipliers $(\lambda_0,\lambda_x,\lambda_W)$ for these constraints and profiling the $p_i$'s gives the KKT stationarity conditions (in a survey-weighted setting, with base weights $a_i$ acting as multiplicities in the empirical likelihood)
+There are two closely related objects in the EL construction:
+
+- The unknown *conditional* masses $p_i$ on respondent support points (these are the $p_i$ in QLS).
+- The *probability mass weights* actually used to form expectations under the discretized law. For surveys this mass is proportional to $a_i p_i$ (because $a_i$ represents how many population units respondent $i$ stands for).
+
+In a survey-weighted setting (with base weights $a_i$ acting as multiplicities), we can write the discretized empirical distribution as
+\[
+F_{\text{EL}}(A) = \sum_i a_i p_i\,\mathbf{1}\{(y_i,x_i)\in A\},
+\]
+with constraints
+\[
+\sum_i a_i p_i = 1,\qquad
+\sum_i a_i p_i(X_i-\mu_x)=0,\qquad
+\sum_i a_i p_i(w_i-W)=0.
+\]
+
+Introducing Lagrange multipliers $(\lambda_0,\lambda_x,\lambda_W)$ for these constraints and profiling the $p_i$'s gives the KKT stationarity conditions
 
 \[
-\frac{\partial}{\partial p_i} \Big[ \sum_j a_j\, \log p_j - \lambda_0 (\sum_j p_j - 1) - \lambda_x^T \sum_j p_j (X_j - \mu_x) - \lambda_W \sum_j p_j (w_j - W) \Big] = 0,
+\frac{\partial}{\partial p_i} \Big[ \sum_j a_j\, \log p_j - \lambda_0 (\sum_j a_j p_j - 1) - \lambda_x^T \sum_j a_j p_j (X_j - \mu_x) - \lambda_W \sum_j a_j p_j (w_j - W) \Big] = 0,
 \]
 
 which solve to
@@ -182,13 +200,24 @@ which solve to
 p_i \;\propto\; \frac{1}{\,1 + \lambda_x^T (X_i-\mu_x) + \lambda_W (w_i - W)\,} \;\equiv\; \frac{1}{D_i}.
 \]
 
-Normalizing to enforce $\sum_i a_i p_i = 1$ (which reduces to $\sum p_i = 1$ when $a_i \equiv 1$) yields $p_i = \frac{D_i^{-1}}{\sum_j D_j^{-1}}$. In the presence of base sampling weights $a_i$ (survey designs), the same derivation gives the natural generalization
+Normalizing to enforce $\sum_i a_i p_i = 1$ yields
+\[
+p_i = \frac{D_i^{-1}}{\sum_j a_j D_j^{-1}}.
+\]
+The *probability mass weight* placed on respondent $i$ under $F_{\text{EL}}$ is then
+\[
+a_i p_i
+=
+\frac{\displaystyle a_i D_i^{-1}}{\displaystyle \sum_j a_j D_j^{-1}}
+\;\propto\; \frac{a_i}{D_i}.
+\]
+In the implementation we store unnormalized EL masses $m_i = a_i/D_i$ and use probability-scale weights $p_i^{\text{EL}} = m_i/\sum_j m_j$ for expectations.
 
 \[
-p_i^{\text{EL}} \;\propto\; \frac{a_i}{D_i} \quad \text{with} \quad D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T\lambda_x.
+m_i \;\propto\; \frac{a_i}{D_i} \quad \text{with} \quad D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T\lambda_x.
 \]
 
-This is exactly the working form used in our estimator. With survey base weights, the working masses are proportional to $a_i/D_i$, so $p_i^{\text{EL}} \propto a_i/D_i$. The EL weights $p_i^{\text{EL}}$ are then used to build the mean estimator
+The EL weights $p_i^{\text{EL}}$ are then used to build the mean estimator
 
 \[
 \hat Y \;=\; \frac{\sum_i p_i^{\text{EL}} Y_i}{\sum_i p_i^{\text{EL}}}.
@@ -198,7 +227,7 @@ The remaining unknowns $(\beta, W, \lambda_x)$ (and $\lambda_W$ in the survey sy
 
 ### Clarification: Relationship Between $W$ and $\lambda_W$
 
-In the IID (data-frame) path, the EL multiplier for the probability constraint is expressed as
+In the IID (data-frame) path, the EL multiplier for the response-rate constraint is expressed as
 
 \[
 \lambda_W = \frac{C}{1 - W}, \quad \text{with } C = \frac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1 \text{ and } W = \text{plogis}(z).
@@ -215,13 +244,7 @@ Derivation sketch (KKT, IID case): The discretized semiparametric likelihood (QL
 \; -\; \sum_{i=1}^{n} \log\!\Big(1 + (X_i - \mu_x)^\top \lambda_x + \lambda_W (w_i - W)\Big),
 \]
 
-subject to the normalization and moment constraints that generate the EL denominator. For the weighted-EL variant we work with unnormalized respondent weights proportional to $a_i/D_i$; choosing the conventional normalization
-
-\[
-\sum_{i=1}^{n} \frac{a_i}{D_i} \,=\, n_{\text{resp\_weighted}} \equiv \sum_{i=1}^{n} a_i
-\]
-
-recovers the same estimating system (and any common normalization cancels in the ratio estimator $\hat Y = \sum p_i Y_i/\sum p_i$). Taking derivatives (KKT conditions) and using that $\partial/\partial W$ of the second and third terms produces opposing contributions, one obtains the system equivalent to QLS (7)-(10). In particular, the first-order condition with respect to the multiplier associated with the $W$-constraint yields, together with the derivative with respect to $W$, the closed form
+subject to the normalization and moment constraints that generate the EL denominator. In the IID QLS case ($a_i \equiv 1$), profiling the $p_i$'s under $\sum_i p_i = 1$ gives $p_i = 1/(n D_i)$ and therefore $\sum_i D_i^{-1} = n$. Combining this identity with the first-order condition for $W$ yields the closed form
 
 \[
 \lambda_W 
@@ -247,7 +270,7 @@ Define $w_i = \mathrm{linkinv}(\eta_i)$ and $\mu_{\eta,i} = \frac{dw}{d\eta}(\et
 In the **IID (data-frame) path** all base weights are $a_i \equiv 1$, so we can use the closed-form Qin-Leung-Shao (QLS) relation between $W$ and the EL multiplier for the response constraint. Writing
 \[
 C = \frac{N_{\text{pop}}}{n_{\text{resp\_weighted}}} - 1,\qquad
-n_{\text{resp\_weighted}} = \sum_i a_i,\qquad N_{\text{pop}} = n,
+n_{\text{resp\_weighted}} = \sum_i a_i,
 \]
 QLS show that
 \[
