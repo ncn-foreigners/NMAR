@@ -463,14 +463,6 @@ to respect the denominator floor used for numerical stability.
 
 - Newton-Raphson (as used in our outer solve) linearizes $F(\theta)$ near the current iterate: $F(\theta + \Delta) \approx F(\theta) + A(\theta)\,\Delta$. The update $\Delta$ solves $A\,\Delta = -F$, hence a high-quality $A$ is critical for fast, stable convergence.
 
-## Variance Estimation
-
-Analytic delta variance for the EL estimator has not yet been implemented in the
-package. When `variance_method = "delta"` is requested, `el_engine()` coerces it
-to `"none"` (with a warning) and variance is skipped (`se = NA_real_` with an
-explanatory message). We recommend `variance_method = "bootstrap"` for standard
-errors in both IID and survey settings.
-
 ### Solving Strategy and Initialization
 
 - In the IID path the unknowns are $\theta = (\beta, z, \lambda_x)$ with $W = \mathrm{plogis}(z)$. In the
