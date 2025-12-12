@@ -342,18 +342,23 @@ el_estimator_core <- function(missingness_design,
   sum_unnormalized_weights_untrimmed <- diag_pack$sum_unnormalized_weights_untrimmed
   normalization_ratio <- diag_pack$normalization_ratio
 
-# Check if trimming has materially altered the mass distribution
+# Check if trimming forced a loss of total mass (cap too tight)
   if (is.finite(post$trimmed_fraction) && post$trimmed_fraction > 0) {
     sum_w_trimmed <- sum(w_unnorm_trimmed)
-    trimming_mass_shift <- abs(sum_w_trimmed / sum_respondent_weights - 1)
+    sum_w_untrimmed <- sum_unnormalized_weights_untrimmed
+    trimming_mass_shift <- if (is.finite(sum_w_untrimmed) && sum_w_untrimmed > 0) {
+      abs(sum_w_trimmed / sum_w_untrimmed - 1)
+    } else {
+      NA_real_
+    }
 
-    if (trimming_mass_shift > 0.05) {
+    if (is.finite(trimming_mass_shift) && trimming_mass_shift > 0.05) {
       warning(
         sprintf(
-          "Trimming altered the EL mass by %.1f%% (>5%% threshold).\n",
+          "Trimming changed the total unnormalized EL mass by %.1f%% (>5%% threshold).\n",
           trimming_mass_shift * 100
         ),
-        "Constraints remain solved but the identity sum(d_i/D_i)=sum(d_i) no longer holds exactly for trimmed weights.\n",
+        "This typically indicates trim_cap is too tight to preserve total mass.\n",
         "Bootstrap variance is recommended when trimming is active.",
         call. = FALSE
       )
