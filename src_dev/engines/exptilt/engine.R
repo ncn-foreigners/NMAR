@@ -28,7 +28,7 @@
 #'   of the score function falls below this threshold, the algorithm stops early (default: 1).
 #' @param family character; response model family, either \code{"logit"} or \code{"probit"},
 #'   or a family object created by \code{logit_family()} / \code{probit_family()}.
-#' @param y_dens Outcome density model (\code{"auto"}, \code{"normal"}, \code{"lognormal"}, or \code{"exponential"}).
+#' @param y_dens Outcome density model (\code{"auto"}, \code{"normal"}, \code{"lognormal"}, \code{"exponential"}, or \code{"binomial"}).
 #' @param sample_size Integer; maximum sample size for stratified random sampling (default: 2000).
 #'   When the dataset exceeds this size, a stratified random sample is drawn to optimize memory usage.
 #'   The sampling preserves the ratio of respondents to non-respondents in the original data.
@@ -120,7 +120,7 @@ exptilt_engine <- function(
     auxiliary_means = NULL,
     control = list(),
     family = c("logit", "probit"),
-    y_dens = c("normal", "lognormal", "exponential"),
+    y_dens = c("normal", "lognormal", "exponential", "binomial"),
     stopping_threshold = 1,
     sample_size = 2000
     ) {
@@ -134,7 +134,7 @@ exptilt_engine <- function(
   validator_assert_positive_integer(bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)
   validator_assert_logical(supress_warnings, name = "supress_warnings")
   validator_assert_choice(family, choices = c("logit", "probit"), name = "family")
-  validator_assert_choice(y_dens, choices = c("normal", "lognormal", "exponential"), name = "y_dens")
+  validator_assert_choice(y_dens, choices = c("normal", "lognormal", "exponential", "binomial"), name = "y_dens")
   validator_assert_choice(variance_method, choices = c("bootstrap", 'none'), name = "variance_method")
   validator_assert_number(stopping_threshold, name = "stopping_threshold", min = 0, max = Inf)
   validator_assert_list(control, name = "control")
