@@ -106,7 +106,9 @@ el_augment_strata_aux <- function(aux_design_full,
     W_h <- W_h / N_pop
     strata_means <- W_h[dummy_levels]
     names(strata_means) <- paste0("strata_", dummy_levels)
-    means_aug <- c(means_aug, strata_means)
+    if (!is.null(means_aug)) {
+      means_aug <- c(means_aug, strata_means)
+    }
   }
 
   list(mat = mat_aug, means = means_aug)
