@@ -3,7 +3,7 @@ title: "Empirical Likelihood"
 description: |
   Jing Qin, Denis Leung, Jun Shao <br>
   Estimation With Survey Data Under Nonignorable Nonresponse or Informative Sampling <br>
-  http://dx.doi.org/10.1198/016214502753479338
+  https://doi.org/10.1198/016214502753479338
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Empirical Likelihood}
@@ -27,6 +27,7 @@ Key features:
 - Specify the model with a two-sided formula: `Y_miss ~ X1 + X2 | Z1 + Z2` where auxiliaries are left of `|` and response-only predictors are right of `|`. If `|` is omitted, RHS variables are treated only as auxiliaries; the response model uses the outcome (LHS) and any predictors explicitly placed to the right of `|`.
   - Variables on the outcome RHS (e.g., `X1 + X2`) are auxiliaries; supply their known population means via `auxiliary_means = c(X1 = ..., X2 = ...)`.
   - Predictors to the right of `|` enter only the response model (no auxiliary constraint) and do not need population means.
+  - If you want a covariate to enter both the auxiliary constraints and the response model (as in the original QLS setup), include it on both sides, for example: `Y_miss ~ X | X`.
 - Choose the engine: `el_engine(...)`, e.g., `el_engine(auxiliary_means = c(X1 = 0), variance_method = "bootstrap", standardize = TRUE)`.
 - Fit: `nmar(formula = Y_miss ~ X1 + X2 | Z1 + Z2, data = df_or_design, engine = el_engine(...))`.
 - Inspect: `summary()`, `confint()`, `weights()`, `fitted()`, and `fit$diagnostics`.
@@ -35,8 +36,11 @@ Key features:
 
 We simulate an NMAR mechanism where the response probability depends on the unobserved outcome.
 
-```{r}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r}
 set.seed(123)
 library(NMAR)
 
@@ -55,8 +59,7 @@ dat$Y_miss[!R] <- NA_real_
 
 
 ```{r}
-engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "none", standardize = TRUE
-  )
+engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "none", standardize = TRUE)
 # Fit EL estimator (no variance for speed in vignette)
 fit <- nmar(
   formula = Y_miss ~ X,
@@ -77,19 +80,15 @@ fit_probit <- nmar(
   formula = Y_miss ~ X,
   engine = engine,
   data = dat
-
 )
 summary(fit_probit)
 ```
 
-Tidy/glance summaries:
+Tidy/glance summaries (via the `generics` package):
 
 ```{r}
-if (requireNamespace("broom", quietly = TRUE)) {
-# Requires the optional 'broom' package
-  broom::tidy(fit)
-  broom::glance(fit)
-}
+generics::tidy(fit)
+generics::glance(fit)
 ```
 
 Outputs and diagnostics at a glance (probability-scale weights sum to 1; population-scale
@@ -108,13 +107,15 @@ future.apply package; the chunk runs only if it is available:
 ```{r}
 if (requireNamespace("future.apply", quietly = TRUE)) {
 # Requires 'future.apply' (and its dependency 'future'); progressr is optional
+  set.seed(123)
   engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap", bootstrap_reps = 15, standardize = TRUE)
   fit_boot <- nmar(
     formula = Y_miss ~ X,
     engine = engine,
     data = dat
   )
-  fit_boot$se
+  se(fit_boot)
+  confint(fit_boot)
 } else {
   message("Skipping bootstrap example: future.apply not installed")
 }
@@ -125,6 +126,7 @@ if (requireNamespace("future.apply", quietly = TRUE)) {
 If you pass respondents-only data (the outcome contains no NA), provide the total sample size via `n_total` in the engine so the estimator can recover the population response rate:
 
 ```{r}
+set.seed(124)
 N <- 300
 X <- rnorm(N); Z <- rnorm(N); Y <- 1.5 + 0.4 * X + Z
 p <- plogis(-0.5 + 0.4 * scale(Y)[, 1])
@@ -140,6 +142,7 @@ summary(fit_resp)
 You can include predictors that enter only the response model (and are not constrained as auxiliaries) by placing them to the right of `|` in the formula.
 
 ```{r}
+set.seed(125)
 N <- 400
 X <- rnorm(N)
 Z <- rnorm(N)
@@ -187,7 +190,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
   engine <- el_engine(auxiliary_means = NULL, variance_method = "none", standardize = TRUE)
 
   fit_svy <- nmar(
-    formula = api00_miss ~ ell,
+    formula = api00_miss ~ ell | ell,
     data = dclus1,
     engine = engine
   )
@@ -203,11 +206,11 @@ if (requireNamespace("survey", quietly = TRUE)) {
 - Standardization: `standardize = TRUE` typically improves numerical stability and comparability across predictors and auxiliary means.
 - Diagnostics: Inspect `fit$diagnostics` (Jacobian condition number, max equation residuals, trimming fraction) to assess numerical health and identification strength.
 - Response-only predictors: Variables to the right of `|` do not need to appear on the RHS of the outcome formula; they enter only the response model. Auxiliary means must be supplied only for variables on the outcome RHS.
-- Inconsistent auxiliaries: If provided auxiliary means are grossly inconsistent with the sample, the engine will issue a warning via auxiliary inconsistency diagnostics and EL weights may go negative or the solver may fail. Consider revisiting the constraints, relaxing them, or using `trim_cap` and bootstrap variance.
+- Inconsistent auxiliaries: If provided auxiliary means are grossly inconsistent with the respondent support, the engine will issue a warning via auxiliary inconsistency diagnostics and the solver may fail or yield highly concentrated weights. Consider revisiting the constraints, relaxing them, or using `trim_cap` and bootstrap variance.
 
 Troubleshooting:
 
-- Negative or extreme weights: set a finite `trim_cap`; prefer `variance_method = "bootstrap"` for SE.
+- Extreme weights: set a finite `trim_cap`; prefer `variance_method = "bootstrap"` for SE.
 - Ill-conditioned Jacobian (large `fit$diagnostics$jacobian_condition_number`): prefer `variance_method = "bootstrap"`. You may also tighten solver tolerances via `control = list(xtol=..., ftol=..., maxit=...)`.
 - Convergence issues: check `fit$diagnostics$max_equation_residual`, rescale predictors (`standardize = TRUE`), or reduce the number of constraints.
 

@@ -388,7 +388,7 @@ For survey designs we build an analytic Jacobian for this design-weighted system
 
 For some stratified designs, especially when the NMAR mechanism varies strongly across strata, it is important that the EL weights preserve the **stratum composition** implied by the survey design. Following ideas from Wu-style calibration, we augment the auxiliary vector with stratum indicators when a `survey.design` object is provided:
 
-- Recover a strata factor from the design (using its `strata=` call).
+- Recover a strata factor from the design (prefer `design$strata`; fall back to the original `strata=` call when needed).
 - Build dummy variables for strata (dropping one reference level).
 - Compute stratum totals $N_h$ on the analysis scale from the design weights and convert to stratum shares $W_h = N_h / N_{\mathrm{pop}}$.
 - Append these stratum dummies to the auxiliary matrix $X$ and their targets $W_h$ to the auxiliary means.
