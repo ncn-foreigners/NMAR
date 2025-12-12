@@ -13,7 +13,7 @@ exptilt_engine(
   auxiliary_means = NULL,
   control = list(),
   family = c("logit", "probit"),
-  y_dens = c("normal", "lognormal", "exponential"),
+  y_dens = c("normal", "lognormal", "exponential", "binomial"),
   stopping_threshold = 1,
   sample_size = 2000
 )
@@ -49,7 +49,7 @@ See \code{?nleqslv::nleqslv} for full details.}
 \item{family}{character; response model family, either \code{"logit"} or \code{"probit"},
 or a family object created by \code{logit_family()} / \code{probit_family()}.}
 
-\item{y_dens}{Outcome density model (\code{"auto"}, \code{"normal"}, \code{"lognormal"}, or \code{"exponential"}).}
+\item{y_dens}{Outcome density model (\code{"auto"}, \code{"normal"}, \code{"lognormal"}, \code{"exponential"}, or \code{"binomial"}).}
 
 \item{stopping_threshold}{Numeric; early stopping threshold. If the maximum absolute value
 of the score function falls below this threshold, the algorithm stops early (default: 1).}
