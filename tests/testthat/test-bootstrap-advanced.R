@@ -277,9 +277,9 @@ test_that("mathematical correctness: variance has correct properties", {
   set.seed(12345)
   n <- 1000
   true_sd <- 2
-  x <- rnorm(n, mean = 5, sd = true_sd) # σ = 2, so σ² = 4
+  x <- rnorm(n, mean = 5, sd = true_sd) # sd = 2, so var = 4
 
-# True variance of sample mean = σ²/n = 4/1000 = 0.004
+# True variance of sample mean = var / n = 4/1000 = 0.004
   true_variance_of_mean <- true_sd^2 / n
 
   data_iid <- data.frame(y = x)
