@@ -17,7 +17,7 @@ exptilt_engine(
   auxiliary_means = NULL,
   control = list(),
   family = c("logit", "probit"),
-  y_dens = c("normal", "lognormal", "exponential"),
+  y_dens = c("normal", "lognormal", "exponential", "binomial"),
   stopping_threshold = 1,
   sample_size = 2000
 )
@@ -87,8 +87,8 @@ exptilt_engine(
 
 - y_dens:
 
-  Outcome density model (`"auto"`, `"normal"`, `"lognormal"`, or
-  `"exponential"`).
+  Outcome density model (`"auto"`, `"normal"`, `"lognormal"`,
+  `"exponential"`, or `"binomial"`).
 
 - stopping_threshold:
 
