@@ -248,18 +248,25 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
     idx_lambdaW <- K_beta + 2L
     idx_lambda_x <- if (K_aux > 0) (K_beta + 3L):p_dim else integer(0)
 
+# Equation row indices (equations are ordered as in el_build_equation_system_survey):
+#   [beta equations] [W constraint] [aux constraints] [W link]
+    idx_eq_beta <- idx_beta
+    idx_eq_W <- idx_z
+    idx_eq_aux <- if (K_aux > 0) (K_beta + 2L):(K_beta + 1L + K_aux) else integer(0)
+    idx_eq_link <- p_dim
+
 # J_beta,beta
     w_eff_11 <- as.numeric(respondent_weights * d_betaeq_deta)
-    full_mat[idx_beta, idx_beta] <- shared_weighted_gram(missingness_model_matrix, w_eff_11)
+    full_mat[idx_eq_beta, idx_beta] <- shared_weighted_gram(missingness_model_matrix, w_eff_11)
 # J_beta,z
     j_beta_z <- shared_weighted_Xty(missingness_model_matrix, respondent_weights, d_betaeq_dz)
-    full_mat[idx_beta, idx_z] <- as.numeric(j_beta_z)
+    full_mat[idx_eq_beta, idx_z] <- as.numeric(j_beta_z)
 # J_beta,lambda_W
     j_beta_lambdaW <- shared_weighted_Xty(missingness_model_matrix, respondent_weights, d_betaeq_dlambdaW)
-    full_mat[idx_beta, idx_lambdaW] <- as.numeric(j_beta_lambdaW)
+    full_mat[idx_eq_beta, idx_lambdaW] <- as.numeric(j_beta_lambdaW)
 # J_beta,lambda_x
     if (K_aux > 0) {
-      full_mat[idx_beta, idx_lambda_x] <- shared_weighted_XtY(
+      full_mat[idx_eq_beta, idx_lambda_x] <- shared_weighted_XtY(
         missingness_model_matrix,
         respondent_weights,
         as.matrix(d_betaeq_dlambda_mat)
@@ -269,15 +276,15 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
 # g_W block: g_W = sum d_i (w_i - W)/D_i
 # J_W,beta
     term_W_beta <- mu_eta_i * inv_denom - active * w_minus_W * inv_denom_sq * (lambda_W * mu_eta_i)
-    full_mat[idx_z, idx_beta] <- as.numeric(
+    full_mat[idx_eq_W, idx_beta] <- as.numeric(
       t(shared_weighted_Xty(missingness_model_matrix, respondent_weights, term_W_beta))
     )
 # J_W,z
     term_W_z <- dW_dz * (active * lambda_W * w_minus_W * inv_denom_sq - inv_denom)
-    full_mat[idx_z, idx_z] <- as.numeric(crossprod(respondent_weights, term_W_z))
+    full_mat[idx_eq_W, idx_z] <- as.numeric(crossprod(respondent_weights, term_W_z))
 # J_W,lambda_W
     term_W_lambdaW <- -active * (w_minus_W^2) * inv_denom_sq
-    full_mat[idx_z, idx_lambdaW] <- as.numeric(crossprod(respondent_weights, term_W_lambdaW))
+    full_mat[idx_eq_W, idx_lambdaW] <- as.numeric(crossprod(respondent_weights, term_W_lambdaW))
 # J_W,lambda_x
     if (K_aux > 0) {
       j_W_lambda_x <- t(shared_weighted_Xty(
@@ -285,30 +292,30 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
         respondent_weights,
         -(w_minus_W * inv_denom_sq * active)
       ))
-      full_mat[idx_z, idx_lambda_x] <- as.numeric(j_W_lambda_x)
+      full_mat[idx_eq_W, idx_lambda_x] <- as.numeric(j_W_lambda_x)
     }
 
     if (K_aux > 0) {
 # g_aux block: g_aux = sum d_i t_i / D_i
 # J_aux,beta
       term_aux_beta <- -active * lambda_W * mu_eta_i * inv_denom_sq
-      full_mat[idx_lambda_x, idx_beta] <- shared_weighted_XtY(
+      full_mat[idx_eq_aux, idx_beta] <- shared_weighted_XtY(
         X_centered,
         as.numeric(respondent_weights * term_aux_beta),
         missingness_model_matrix
       )
 # J_aux,z
       term_aux_z <- active * lambda_W * dW_dz * inv_denom_sq
-      full_mat[idx_lambda_x, idx_z] <- as.numeric(
+      full_mat[idx_eq_aux, idx_z] <- as.numeric(
         shared_weighted_Xty(X_centered, respondent_weights, term_aux_z)
       )
 # J_aux,lambda_W
       term_aux_lambdaW <- -active * w_minus_W * inv_denom_sq
-      full_mat[idx_lambda_x, idx_lambdaW] <- as.numeric(
+      full_mat[idx_eq_aux, idx_lambdaW] <- as.numeric(
         shared_weighted_Xty(X_centered, respondent_weights, term_aux_lambdaW)
       )
 # J_aux,lambda_x
-      full_mat[idx_lambda_x, idx_lambda_x] <- -shared_weighted_gram(
+      full_mat[idx_eq_aux, idx_lambda_x] <- -shared_weighted_gram(
         X_centered,
         as.numeric(respondent_weights * (inv_denom_sq * active))
       )
@@ -318,19 +325,21 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
     S <- sum(respondent_weights * inv_denom)
 # J_link,beta
     term_link_beta <- lambda_W^2 * mu_eta_i * inv_denom_sq * active
-    full_mat[p_dim, idx_beta] <- as.numeric(
+    full_mat[idx_eq_link, idx_beta] <- as.numeric(
       t(shared_weighted_Xty(missingness_model_matrix, respondent_weights, term_link_beta))
     )
 # J_link,z: d/dz[T0/(1-W) - lambda_W * S(z)]
-# First term: T0 * W / (1-W); second term: -lambda_W * dS/dz with
+# First term: T0 * dW_dz / (1-W)^2 (reduces to T0 * W/(1-W) when W is not clamped);
+# second term: -lambda_W * dS/dz with
 # dS/dz = sum d_i * lambda_W * dW_dz * active / D_i^2.
     term_link_z_S <- lambda_W^2 * dW_dz * inv_denom_sq * active
     dS_dz <- sum(respondent_weights * term_link_z_S)
-    full_mat[p_dim, idx_z] <- T0 * W_bounded / (1 - W_bounded) - dS_dz
+    term_link_z_T0 <- T0 * dW_dz / ((1 - W_bounded)^2)
+    full_mat[idx_eq_link, idx_z] <- term_link_z_T0 - dS_dz
 # J_link,lambda_W
     term_dS_dlambdaW <- -active * w_minus_W * inv_denom_sq
     dS_dlambdaW <- sum(respondent_weights * term_dS_dlambdaW)
-    full_mat[p_dim, idx_lambdaW] <- -S - lambda_W * dS_dlambdaW
+    full_mat[idx_eq_link, idx_lambdaW] <- -S - lambda_W * dS_dlambdaW
 # J_link,lambda_x
     if (K_aux > 0) {
       j_link_lambda_x <- lambda_W * shared_weighted_Xty(
@@ -338,18 +347,16 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
         respondent_weights,
         inv_denom_sq * active
       )
-      full_mat[p_dim, idx_lambda_x] <- as.numeric(j_link_lambda_x)
+      full_mat[idx_eq_link, idx_lambda_x] <- as.numeric(j_link_lambda_x)
     }
 
-    param_names <- c(
-      colnames(missingness_model_matrix),
-      "(W) (logit)",
-      "(lambda_W)",
-      if (K_aux > 0) paste0("lambda_", colnames(auxiliary_matrix_mat)) else NULL
-    )
-    if (!is.null(param_names) && length(param_names) == ncol(full_mat)) {
-      colnames(full_mat) <- rownames(full_mat) <- param_names
-    }
+    param_names <- c(colnames(missingness_model_matrix), "(W) (logit)", "(lambda_W)",
+      if (K_aux > 0) paste0("lambda_", colnames(auxiliary_matrix_mat)) else NULL)
+    eq_names <- c(colnames(missingness_model_matrix), "(W constraint)",
+      if (K_aux > 0) paste0("constraint_", colnames(auxiliary_matrix_mat)) else NULL,
+      "(W link)")
+    if (length(param_names) == ncol(full_mat)) colnames(full_mat) <- param_names
+    if (length(eq_names) == nrow(full_mat)) rownames(full_mat) <- eq_names
     full_mat
   }
 }

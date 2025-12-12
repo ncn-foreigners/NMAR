@@ -83,9 +83,7 @@ compute_weighted_stats <- function(values, weights = NULL) {
   if (any(w < 0)) stop("`weights` must be nonnegative.", call. = FALSE)
   w_sum <- sum(w)
   if (w_sum <= 0 || all(w == 0)) {
-    mean_val <- mean(x, na.rm = TRUE)
-    sd_val <- stats::sd(x, na.rm = TRUE)
-    return(list(mean = mean_val, sd = sd_val))
+    return(list(mean = NA_real_, sd = NA_real_))
   }
   mean_val <- sum(w * x) / w_sum
 # Population-style weighted standard deviation: sqrt(E[(X - mean)^2]).
@@ -98,8 +96,9 @@ compute_weighted_stats <- function(values, weights = NULL) {
 #' @param intercept_col Intercept column name that should remain unscaled.
 #' @param weights Optional numeric vector of weights used to compute weighted
 #'   means/standard deviations.
-#' @param weight_mask Optional logical/ numeric mask applied to `weights` before
-#'   computing moments (useful for respondents-only scaling).
+#' @param weight_mask Optional logical mask or nonnegative numeric multipliers
+#'   applied to `weights` before computing moments (useful for respondents-only
+#'   scaling). If `weights` is `NULL`, `weight_mask` is treated as the weights.
 #' @param tol_constant Numeric tolerance below which columns are treated as
 #'   constant and left unscaled.
 #' @param warn_on_constant Logical; emit a warning when a column is treated as
@@ -115,14 +114,27 @@ create_nmar_scaling_recipe <- function(..., intercept_col = "(Intercept)", weigh
     weights <- as.numeric(weights)
   }
   if (!is.null(weight_mask)) {
-    weight_mask <- as.logical(weight_mask)
+    if (is.logical(weight_mask)) {
+      if (any(is.na(weight_mask))) stop("`weight_mask` must not contain NA.", call. = FALSE)
+      mask_w <- as.numeric(weight_mask)
+    } else {
+      mask_w <- as.numeric(weight_mask)
+      if (any(!is.finite(mask_w))) stop("`weight_mask` must be finite (no NA/NaN/Inf).", call. = FALSE)
+      if (any(mask_w < 0)) stop("`weight_mask` must be nonnegative.", call. = FALSE)
+    }
     if (!is.null(weights)) {
-      if (length(weight_mask) != length(weights)) {
+      if (length(mask_w) != length(weights)) {
         stop("`weight_mask` must have the same length as `weights`.", call. = FALSE)
       }
-      weights <- weights * as.numeric(weight_mask)
+      weights <- weights * mask_w
     } else {
-      weights <- as.numeric(weight_mask)
+      weights <- mask_w
+    }
+  }
+  if (!is.null(weights)) {
+    w_finite <- weights[is.finite(weights)]
+    if (!any(w_finite > 0)) {
+      stop("Scaling weights contain no positive entries after applying weight_mask.", call. = FALSE)
     }
   }
   for (mat in matrices) {
@@ -177,7 +189,8 @@ apply_nmar_scaling <- function(matrix_to_scale, recipe) {
 #'   (names must match `colnames(X_un)`), or NULL.
 #' @param standardize logical; apply standardization if TRUE.
 #' @param weights Optional numeric vector used for weighted scaling.
-#' @param weight_mask Optional logical/numeric mask applied to `weights`.
+#' @param weight_mask Optional logical mask or nonnegative numeric multipliers
+#'   applied to `weights`.
 #' @return a list with `Z`, `X`, `mu_x`, and `recipe`.
 #'
 #' @keywords internal
@@ -221,7 +234,8 @@ prepare_nmar_scaling <- function(Z_un, X_un, mu_x_un, standardize,
 #' @param aux_matrix_unscaled auxiliary matrix (no intercept) or an empty matrix.
 #' @param mu_x_unscaled named auxiliary means on original scale, or NULL.
 #' @param weights Optional numeric vector used for weighted scaling.
-#' @param weight_mask Optional logical/numeric mask applied to `weights`.
+#' @param weight_mask Optional logical mask or nonnegative numeric multipliers
+#'   applied to `weights`.
 #' @return a list with `nmar_scaling_recipe`, `response_model_matrix_scaled`,
 #'   `auxiliary_matrix_scaled`, and `mu_x_scaled`.
 #'

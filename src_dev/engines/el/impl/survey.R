@@ -1,40 +1,3 @@
-#' Extract a strata factor from a survey.design object
-#'
-#' Uses the original svydesign() call stored in the object to recreate the
-#' stratum labels as a single factor. When multiple stratification variables
-#' are supplied, their interaction is used.
-#' @keywords internal
-el_extract_strata_factor <- function(design) {
-  if (!inherits(design, "survey.design")) return(NULL)
-  dc <- try(getCall(design), silent = TRUE)
-  if (inherits(dc, "try-error") || is.null(dc)) return(NULL)
-  args <- as.list(dc)[-1L]
-  get_arg <- function(nm) if (!is.null(args[[nm]])) args[[nm]] else NULL
-  strata_expr <- get_arg("strata")
-  if (is.null(strata_expr)) strata_expr <- get_arg("strata")
-  if (is.null(strata_expr)) return(NULL)
-  vars <- design$variables
-# Coerce to formula if needed
-  strata_formula <- if (inherits(strata_expr, "formula")) {
-    strata_expr
-  } else {
-    tryCatch(stats::as.formula(strata_expr),
-      error = function(e) return(NULL)
-    )
-  }
-  if (is.null(strata_formula)) return(NULL)
-  mf <- tryCatch(
-    stats::model.frame(strata_formula, data = vars, na.action = stats::na.pass),
-    error = function(e) NULL
-  )
-  if (is.null(mf) || nrow(mf) != nrow(vars)) return(NULL)
-  if (ncol(mf) == 1L) {
-    as.factor(mf[[1L]])
-  } else {
-    interaction(mf, drop = TRUE)
-  }
-}
-
 #' Empirical likelihood for survey designs (NMAR)
 #' @description Internal method dispatched by `el()` when `data` is a `survey.design`.
 #' @param data A `survey.design` created with [survey::svydesign()].
@@ -70,8 +33,6 @@ el_extract_strata_factor <- function(design) {
 #'   population auxiliary means via \code{auxiliary_means}. Result weights are the
 #'   unnormalized EL masses \code{d_i/D_i(theta)} on this analysis scale;
 #'   \code{weights(result, scale = "population")} sums to \code{N_pop}.
-#' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
-#' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
 #'
 #' @return `c('nmar_result_el','nmar_result')`.
 #'
@@ -90,34 +51,11 @@ el.survey.design <- function(data, formula,
   on_failure <- match.arg(on_failure)
   if (is.null(variance_method)) variance_method <- "none"
   variance_method <- match.arg(variance_method)
-
-
   design <- data
-# Capture a readable summary so validation errors can report the original survey call.
-  el_get_design_context <- function(design) {
-    ctx <- list(ids = "<unspecified>", strata = "<unspecified>")
-    dc <- try(getCall(design), silent = TRUE)
-    if (!inherits(dc, "try-error") && !is.null(dc)) {
-      args <- as.list(dc)[-1]
-      get_arg <- function(nm) if (!is.null(args[[nm]])) args[[nm]] else NULL
-      ids_val <- get_arg("ids"); id_val <- get_arg("id")
-      ids_obj <- if (!is.null(ids_val)) ids_val else id_val
-      strata_obj <- get_arg("strata")
-      deparse1 <- function(x) paste(deparse(x, width.cutoff = 200L), collapse = " ")
-      if (!is.null(ids_obj)) ctx$ids <- deparse1(ids_obj)
-      if (!is.null(strata_obj)) ctx$strata <- deparse1(strata_obj)
-    }
-    ctx
-  }
-
   survey_ctx <- el_get_design_context(design)
-
   weights_initial <- as.numeric(weights(design))
-
+  el_validate_survey_weights(weights_initial, n_obs = nrow(design$variables))
   strata_factor <- el_extract_strata_factor(design)
-  if (!is.null(strata_factor)) {
-    design$variables[["..nmar_strata_factor.."]] <- strata_factor
-  }
   respondent_weights_full <- weights_initial
 
   inputs <- tryCatch(
@@ -134,6 +72,23 @@ el.survey.design <- function(data, formula,
       stop(msg2, call. = FALSE)
     }
   )
+
+  n_resp_weighted <- sum(inputs$respondent_weights)
+  if (!is.finite(n_resp_weighted) || n_resp_weighted <= 0) {
+    stop("Respondent weights must sum to a positive number for EL estimation.", call. = FALSE)
+  }
+  if (!is.finite(inputs$N_pop) || inputs$N_pop <= 0) {
+    stop("`n_total`/`N_pop` must be a single positive number.", call. = FALSE)
+  }
+  if (inputs$N_pop + 1e-8 < n_resp_weighted) {
+    stop(
+      sprintf(
+        "`n_total`/`N_pop` must be >= sum(respondent weights). Got N_pop = %.6f, sum(d_i) = %.6f.",
+        inputs$N_pop, n_resp_weighted
+      ),
+      call. = FALSE
+    )
+  }
 
   respondents_only <- isTRUE(all(inputs$respondent_mask))
   has_aux <- is.matrix(inputs$aux_design_full) && ncol(inputs$aux_design_full) > 0L
@@ -224,4 +179,95 @@ el.survey.design <- function(data, formula,
 
   inputs$variance_method <- variance_method
   el_build_result(core_results, inputs, cl, formula)
+}
+
+# Capture a readable summary so validation errors can report the original survey call.
+el_get_design_context <- function(design) {
+  ctx <- list(ids = "<unspecified>", strata = "<unspecified>")
+  dc <- try(getCall(design), silent = TRUE)
+  if (!inherits(dc, "try-error") && !is.null(dc)) {
+    args <- as.list(dc)[-1]
+    get_arg <- function(nm) if (!is.null(args[[nm]])) args[[nm]] else NULL
+    ids_val <- get_arg("ids"); id_val <- get_arg("id")
+    ids_obj <- if (!is.null(ids_val)) ids_val else id_val
+    strata_obj <- get_arg("strata")
+    deparse1 <- function(x) paste(deparse(x, width.cutoff = 200L), collapse = " ")
+    if (!is.null(ids_obj)) ctx$ids <- deparse1(ids_obj)
+    if (!is.null(strata_obj)) ctx$strata <- deparse1(strata_obj)
+  }
+  ctx
+}
+
+# Validate survey design weights for EL workflows.
+el_validate_survey_weights <- function(weights, n_obs) {
+  if (!is.numeric(weights)) stop("Survey design weights must be numeric.", call. = FALSE)
+  if (length(weights) != n_obs) stop("Survey design weights must align with the number of observations.", call. = FALSE)
+  if (any(!is.finite(weights))) stop("Survey design weights must be finite (no NA/NaN/Inf).", call. = FALSE)
+  min_w <- suppressWarnings(min(weights))
+  if (is.finite(min_w) && min_w < 0) {
+    stop(sprintf("Survey design weights must be nonnegative (min = %.6f).", min_w), call. = FALSE)
+  }
+  sum_w <- sum(weights)
+  if (!is.finite(sum_w) || sum_w <= 0) {
+    stop("Survey design weights must sum to a positive number.", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+#' Extract a strata factor from a survey.design object
+#'
+#' Uses the original svydesign() call stored in the object to recreate the
+#' stratum labels as a single factor. When multiple stratification variables
+#' are supplied, their interaction is used.
+#' @keywords internal
+el_extract_strata_factor <- function(design) {
+  if (!inherits(design, "survey.design")) return(NULL)
+
+# Prefer the already-materialized strata stored in the survey.design object.
+# This avoids dependence on getCall()/model.frame() reconstruction, and is more
+# robust when the original call is unavailable or when factors carry unused
+# levels (which can introduce redundant all-zero strata dummies).
+  strata_df <- design$strata
+  if (is.data.frame(strata_df) && nrow(strata_df) == nrow(design$variables) && ncol(strata_df) >= 1L) {
+    norm_col <- function(x) {
+      if (is.factor(x) || is.ordered(x)) return(droplevels(x))
+      as.factor(x)
+    }
+    if (ncol(strata_df) == 1L) {
+      return(norm_col(strata_df[[1L]]))
+    }
+    strata_df_norm <- as.data.frame(lapply(strata_df, norm_col))
+    return(interaction(strata_df_norm, drop = TRUE))
+  }
+
+  dc <- try(getCall(design), silent = TRUE)
+  if (inherits(dc, "try-error") || is.null(dc)) return(NULL)
+  args <- as.list(dc)[-1L]
+  get_arg <- function(nm) if (!is.null(args[[nm]])) args[[nm]] else NULL
+  strata_expr <- get_arg("strata")
+  if (is.null(strata_expr)) return(NULL)
+  vars <- design$variables
+# Coerce to formula if needed
+  strata_formula <- if (inherits(strata_expr, "formula")) {
+    strata_expr
+  } else {
+    tryCatch(stats::as.formula(strata_expr),
+             error = function(e) return(NULL)
+    )
+  }
+  if (is.null(strata_formula)) return(NULL)
+  mf <- tryCatch(
+    stats::model.frame(strata_formula, data = vars, na.action = stats::na.pass),
+    error = function(e) NULL
+  )
+  if (is.null(mf) || nrow(mf) != nrow(vars)) return(NULL)
+  if (ncol(mf) == 1L) {
+    x <- mf[[1L]]
+    if (is.factor(x) || is.ordered(x)) droplevels(x) else as.factor(x)
+  } else {
+    mf_norm <- as.data.frame(lapply(mf, function(x) {
+      if (is.factor(x) || is.ordered(x)) droplevels(x) else as.factor(x)
+    }))
+    interaction(mf_norm, drop = TRUE)
+  }
 }

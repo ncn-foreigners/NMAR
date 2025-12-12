@@ -62,6 +62,9 @@ el_run_solver <- function(equation_system_func,
   nl_args_b$jac <- NULL
   nl_args_b$method <- "Broyden"
 
+  global_used <- nl_args$global %||% NULL
+  xscalm_used <- nl_args$xscalm %||% NULL
+
   if (solver_method == "broyden") {
     broyden_control <- final_control
     if (!is.null(broyden_control$maxit) && is.finite(broyden_control$maxit) && broyden_control$maxit < 5) {
@@ -70,7 +73,9 @@ el_run_solver <- function(equation_system_func,
     nl_args_b$control <- broyden_control
     solution <- do.call(nleqslv::nleqslv, nl_args_b)
     solver_method_used <- "Broyden"
-    return(list(solution = solution, method = solver_method_used, used_top = list(global = top_args$global %||% NULL, xscalm = top_args$xscalm %||% NULL)))
+    global_used <- nl_args_b$global %||% NULL
+    xscalm_used <- nl_args_b$xscalm %||% NULL
+    return(list(solution = solution, method = solver_method_used, used_top = list(global = global_used, xscalm = xscalm_used)))
   }
 
   solution <- do.call(nleqslv::nleqslv, nl_args)
@@ -107,6 +112,8 @@ el_run_solver <- function(equation_system_func,
       solution2 <- do.call(nleqslv::nleqslv, alt_args)
       if (!any(is.na(solution2$x)) && solution2$termcd <= 2) {
         solution <- solution2
+        global_used <- alt_args$global %||% NULL
+        xscalm_used <- alt_args$xscalm %||% NULL
       }
     }
   }
@@ -120,9 +127,11 @@ el_run_solver <- function(equation_system_func,
     nl_args_b$control <- broyden_control
     solution <- do.call(nleqslv::nleqslv, nl_args_b)
     solver_method_used <- "Broyden"
+    global_used <- nl_args_b$global %||% NULL
+    xscalm_used <- nl_args_b$xscalm %||% NULL
   }
 
-  list(solution = solution, method = solver_method_used, used_top = list(global = top_args$global %||% NULL, xscalm = top_args$xscalm %||% NULL))
+  list(solution = solution, method = solver_method_used, used_top = list(global = global_used, xscalm = xscalm_used))
 }
 
 
@@ -267,6 +276,13 @@ el_compute_diagnostics <- function(estimates,
     A_condition <- NA_real_
   }
 
+  is_survey_system <- length(estimates) == (K_beta + 2L + K_aux)
+  constraint_sum_link <- if (is_survey_system && length(eq_residuals) == length(estimates)) {
+    as.numeric(eq_residuals[length(eq_residuals)])
+  } else {
+    NA_real_
+  }
+
   denom_floor <- nmar_get_el_denom_floor()
   denom_hat <- post$denominator_hat
   denom_stats <- list(
@@ -312,6 +328,7 @@ el_compute_diagnostics <- function(estimates,
     denom_stats = denom_stats,
     constraint_sum_W = cons$constraint_sum_W,
     constraint_sum_aux = cons$constraint_sum_aux,
+    constraint_sum_link = constraint_sum_link,
     normalization_ratio = normalization_ratio,
     sum_respondent_weights = sum_respondent_weights,
     sum_unnormalized_weights_untrimmed = sum_unnormalized_weights_untrimmed,

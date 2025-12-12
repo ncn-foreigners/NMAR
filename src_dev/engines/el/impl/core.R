@@ -337,6 +337,7 @@ el_estimator_core <- function(missingness_design,
   )
   constraint_eqW_sum <- diag_pack$constraint_sum_W
   constraint_aux_sum <- diag_pack$constraint_sum_aux
+  constraint_link_sum <- diag_pack$constraint_sum_link
   sum_respondent_weights <- diag_pack$sum_respondent_weights
   sum_unnormalized_weights_untrimmed <- diag_pack$sum_unnormalized_weights_untrimmed
   normalization_ratio <- diag_pack$normalization_ratio
@@ -434,10 +435,16 @@ el_estimator_core <- function(missingness_design,
       weight_ess = weight_ess,
       constraint_sum_W = constraint_eqW_sum,
       constraint_sum_aux = constraint_aux_sum,
+      constraint_sum_link = constraint_link_sum,
       sum_respondent_weights = sum_respondent_weights,
       sum_unnormalized_weights_untrimmed = sum_unnormalized_weights_untrimmed,
       normalization_ratio = normalization_ratio,
-      max_constraint_residual = max(abs(constraint_eqW_sum), if (length(constraint_aux_sum) > 0) max(abs(constraint_aux_sum)) else 0, na.rm = TRUE)
+      max_constraint_residual = max(
+        abs(constraint_eqW_sum),
+        if (length(constraint_aux_sum) > 0) max(abs(constraint_aux_sum)) else 0,
+        if (is.finite(constraint_link_sum)) abs(constraint_link_sum) else 0,
+        na.rm = TRUE
+      )
     ),
     nmar_scaling_recipe = nmar_scaling_recipe, fitted_values = drop(w_i_hat)
   ))

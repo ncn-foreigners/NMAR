@@ -110,7 +110,7 @@ test_that("survey strata extraction supports interactions", {
   skip_if_not_installed("survey")
   set.seed(404)
   df <- data.frame(
-    Y_miss = c(1, NA, 2, NA, 3),
+    Y_miss = c(1, 2, 2, NA, 3),
     A = factor(c("a", "a", "b", "b", "b")),
     B = factor(c("x", "y", "x", "y", "y")),
     w = c(1, 2, 3, 4, 5)

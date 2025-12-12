@@ -32,8 +32,6 @@
 #'   auxiliaries are requested, you must also provide population auxiliary
 #'   means via `auxiliary_means`. Result weights are the unnormalized EL
 #'   masses \code{d_i/D_i(theta)} on this analysis scale.
-#' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
-#' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
 #'
 #' @name el_dataframe
 #' @keywords internal

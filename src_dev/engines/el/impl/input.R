@@ -111,7 +111,7 @@ el_prepare_inputs <- function(formula,
 
   outcome_names <- c(outcome_source, outcome_label)
 
-# hase 2: build auxiliary (RHS1) design on full data
+# Phase 2: build auxiliary (RHS1) design on full data
   rhs1_formula <- stats::formula(fml, lhs = 0, rhs = 1)
   rhs1_expr <- rhs1_formula[[2L]]
   rhs1_vars_explicit <- setdiff(all.vars(rhs1_expr), ".")

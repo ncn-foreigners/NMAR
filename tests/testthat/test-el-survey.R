@@ -24,4 +24,8 @@ test_that("EL survey path produces finite SE and df when survey available", {
   expect_true(is.finite(inf$df) || is.na(inf$df))
   diag <- fit$diagnostics
   expect_true(is.finite(diag$jacobian_condition_number) || is.na(diag$jacobian_condition_number))
+  expect_true(is.finite(diag$constraint_sum_link) || is.na(diag$constraint_sum_link))
+  if (is.finite(diag$constraint_sum_link)) {
+    expect_lt(abs(diag$constraint_sum_link), 1e-6)
+  }
 })
