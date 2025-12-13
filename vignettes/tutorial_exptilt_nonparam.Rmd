@@ -23,29 +23,85 @@ knitr::opts_chunk$set(
 ```{r setup}
 library(NMAR)
 ```
+# Overview
+This vignette provides a practical guide to the Nonparametric Exponential Tilting estimator for handling nonignorable nonresponse (NMAR) in survey data. This method implements the "Fully Nonparametric Approach" detailed in Appendix 2 of Riddles, Kim, and Im (2016)
 
 
+The Nonparametric Exponential Tilting engine estimates Not Missing at Random (NMAR) bias using aggregated categorical data (contingency tables). Unlike other engines in this package, **it does not process individual rows** (microdata) but  summary counts per stratum.
+
+# Input Data
+This estimator is specifically designed for scenarios where:
+- **Data is Aggregated**: The input consists of respondent and nonrespondent counts per stratum, rather than microdata.
+- **Variables are Categorical**: Both the outcome of interest and the auxiliary covariates are discrete
+
+## Required Structure:
+- **Stratification Columns**: Categorical variables defining the groups (e.g., `Gender`, `Age_group`)
+- **Outcome Counts**: Columns representing counts of different outcomes (e.g., `Voted_A`, `Voted_B`, `Other`)
+- **Refusal Count**: A column indicating the number of nonresponses (e.g., `Refusal`)
 ```{r}
 # Test data (Riddles 2016)
 head(voting)
 ```
+## Engine Configuration
 
+The `exptilt_nonparam_engine` specifies the column containing nonrespondent counts and sets convergence criteria for the EM algorithm.
 
+The model is specified via a two-part formula: `Outcome_Counts` ~ `Response_Covariates` | `Instrument`:
+- LHS: Sum of outcome columns.
+- RHS: Covariates influencing response probability (left of |) and the instrumental variable (right of |)
 ```{r}
 np_em_config <- exptilt_nonparam_engine(
   refusal_col = "Refusal",
   max_iter = 100,
-  tol_value = 0.001
+  tol_value = 0.1
 )
 
 em_formula <- Voted_A + Voted_B + Other ~ Gender | Age_group
 
 results_em_np <- nmar(formula = em_formula, data = voting, engine = np_em_config, trace_level = 0)
 ```
+# Results
+
+The data_final object returns the reconstructed population. The algorithm redistributes those counts into the outcome columns based on the estimated nonresponse odds. These adjusted counts allow for the direct calculation of corrected population proportions
 
 
 ```{r}
 print(results_em_np$data_final)
 ```
+Beyond the adjusted data, the result object contains diagnostic information and intermediate matrices used in the EM algorithm. These can be inspected to assess convergence and model internals.
 
+Key components include:
+- `$fit_stats`: Contains the number of iterations performed and the convergence status (TRUE/FALSE).
+- `$loss_value`: The final sum of absolute differences in the odds matrix, indicating the precision of convergence relative to tol_value.
+ - `$p_hat_y_given_x_matrix`: The estimated conditional probabilities of the outcome given covariates, calculated from the respondent data.
+ - `$n_y_x_matrix` and `$m_x_vec`: The internally used matrices for weighted respondent and nonrespondent counts, respectively.
+```{r}
+print(results_em_np$fit_stats)
+```
+
+# Survey designs
+The engine supports survey.design objects. When provided, the algorithm extracts sampling weights and scales the observed counts prior to the EM procedure, ensuring estimates reflect the target population.
+
+```{r}
+# Example: Integration with the survey package
+if (requireNamespace("survey", quietly = TRUE)) {
+  library(survey)
+
+# Simulate sampling weights
+  set.seed(42)
+  voting_weights <- voting
+  voting_weights$wts <- abs(rnorm(nrow(voting), mean = 1, sd = 0.05))
+
+  des <- svydesign(ids = ~1, weights = ~wts, data = voting_weights)
+
+  fit_survey <- nmar(
+    formula = em_formula,
+    data = des,
+    engine = np_em_config,
+    trace_level = 0
+  )
+
+  print(fit_survey$data_final)
+}
+```
 
