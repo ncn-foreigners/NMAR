@@ -17,12 +17,13 @@
 ^src_dev$
 ^\.pre-commit-config\.yaml$
 ^README\.Rmd$
+^README\.html$
 ^codecov\.yml$
 ^.venv$
 ^quadro\.html$
 ^quadro_files$
 ^_pkgdown\.yml$
-^logo\.PNG$
+^logo\.png$
 ^pkgdown$
 ^quadro$
 ^quadro\.qmd$

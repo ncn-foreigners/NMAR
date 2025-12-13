@@ -82,19 +82,47 @@ test_that("bootstrap_variance forwards settings to svrep", {
   expect_true(isTRUE(observed$mse))
 })
 
-test_that("bootstrap_variance errors when design call not svydesign", {
+test_that("bootstrap_variance supports subset() and update() survey designs", {
   skip_if_not_installed("survey")
   skip_if_not_installed("svrep")
   df <- data.frame(y = c(1, 2, 3, 4), w = c(1, 2, 1, 3))
   base_design <- survey::svydesign(ids = ~1, data = df, weights = ~w)
+
   subset_design <- subset(base_design, y > 1)
+  subset_point <- sum(subset_design$variables$y * stats::weights(subset_design)) / sum(stats::weights(subset_design))
+  res_subset <- bootstrap_variance(subset_design,
+    estimator_func = bootstrap_dummy_estimator,
+    point_estimate = subset_point,
+    bootstrap_reps = 3
+  )
+  expect_length(res_subset$replicates, 3)
+  expect_true(is.finite(res_subset$se))
+
+  update_design <- update(base_design, y2 = 2 * y)
+  update_point <- sum(update_design$variables$y * stats::weights(update_design)) / sum(stats::weights(update_design))
+  res_update <- bootstrap_variance(update_design,
+    estimator_func = bootstrap_dummy_estimator,
+    point_estimate = update_point,
+    bootstrap_reps = 3
+  )
+  expect_length(res_update$replicates, 3)
+  expect_true(is.finite(res_update$se))
+})
+
+test_that("bootstrap_variance errors on calibrated survey designs", {
+  skip_if_not_installed("survey")
+  skip_if_not_installed("svrep")
+  df <- data.frame(y = c(1, 2, 3, 4), w = c(1, 2, 1, 3))
+  base_design <- survey::svydesign(ids = ~1, data = df, weights = ~w)
+  calibrated <- survey::calibrate(base_design, formula = ~1, population = c("(Intercept)" = 10))
+
   expect_error(
-    bootstrap_variance(subset_design,
+    bootstrap_variance(calibrated,
       estimator_func = bootstrap_dummy_estimator,
       point_estimate = 1,
       bootstrap_reps = 3
     ),
-    "survey::svydesign",
+    regexp = "calibrated|post-stratified",
     fixed = FALSE
   )
 })

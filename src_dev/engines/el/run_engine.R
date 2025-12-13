@@ -30,7 +30,7 @@ run_engine.nmar_engine_el <- function(engine, formula, data, trace_level = 0) {
   if (!inherits(res, "nmar_result_el")) {
     stop("EL engine did not return an 'nmar_result_el' object.")
   }
-# Patch result metadata: expose outer nmar() call as meta$call and engine call as meta$engine_call
+# Preserve the engine-level call. The outer nmar() wrapper overwrites meta$call.
   if (is.list(res$meta)) {
     engine_call <- res$meta$call %||% NULL
     res$meta$engine_call <- engine_call

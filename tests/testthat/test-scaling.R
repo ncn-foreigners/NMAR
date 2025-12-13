@@ -142,3 +142,54 @@ test_that("weight_mask produces same scaling as pre-masked weights", {
     tolerance = 1e-10
   )
 })
+
+test_that("numeric weight_mask acts as multipliers (not boolean)", {
+  Z_un <- cbind(`(Intercept)` = 1, x1 = c(1, 2, 3, 4), x2 = c(5, 6, 7, 8))
+  w <- c(1, 2, 3, 4)
+  mask <- c(1, 10, 1, 10)
+
+  sc_mask <- validate_and_apply_nmar_scaling(
+    standardize = TRUE,
+    has_aux = FALSE,
+    response_model_matrix_unscaled = Z_un,
+    aux_matrix_unscaled = matrix(nrow = nrow(Z_un), ncol = 0),
+    mu_x_unscaled = NULL,
+    weights = w,
+    weight_mask = mask
+  )
+
+  sc_mult <- validate_and_apply_nmar_scaling(
+    standardize = TRUE,
+    has_aux = FALSE,
+    response_model_matrix_unscaled = Z_un,
+    aux_matrix_unscaled = matrix(nrow = nrow(Z_un), ncol = 0),
+    mu_x_unscaled = NULL,
+    weights = w * mask
+  )
+
+  expect_equal(
+    sc_mask$response_model_matrix_scaled,
+    sc_mult$response_model_matrix_scaled,
+    tolerance = 1e-10
+  )
+})
+
+test_that("all-zero effective weights after weight_mask errors", {
+  Z_un <- cbind(`(Intercept)` = 1, x1 = c(1, 2, 3))
+  w <- c(1, 1, 1)
+  mask <- c(FALSE, FALSE, FALSE)
+
+  expect_error(
+    validate_and_apply_nmar_scaling(
+      standardize = TRUE,
+      has_aux = FALSE,
+      response_model_matrix_unscaled = Z_un,
+      aux_matrix_unscaled = matrix(nrow = nrow(Z_un), ncol = 0),
+      mu_x_unscaled = NULL,
+      weights = w,
+      weight_mask = mask
+    ),
+    regexp = "no positive entries",
+    fixed = FALSE
+  )
+})

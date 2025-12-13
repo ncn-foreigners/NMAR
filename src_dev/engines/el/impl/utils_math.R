@@ -4,6 +4,97 @@
 #' @noRd
 NULL
 
+#' Core eta-state computation for EL engines
+#'
+#' Computes the capped linear predictor, response probabilities, derivatives,
+#' and stable scores with respect to the linear predictor for a given family.
+#' This helper centralizes the numerically delicate pieces (capping, clipping,
+#' Mills ratios, and score derivatives) and is used consistently across the
+#' EL equation system and analytical Jacobians for both IID and survey designs.
+#'
+#' @param family List-like response family bundle (see \code{logit_family()} and
+#'   \code{probit_family()}).
+#' @param eta_raw Numeric vector of unconstrained linear predictors.
+#' @param eta_cap Scalar cap applied symmetrically to \code{eta_raw}.
+#'
+#' @return A list with components:
+#'   \describe{
+#'     \item{\code{eta}}{Capped linear predictor.}
+#'     \item{\code{w}}{Mean function \code{family$linkinv(eta)}.}
+#'     \item{\code{w_clipped}}{\code{w} clipped to \code{[1e-12, 1-1e-12]} for use in ratios.}
+#'     \item{\code{mu_eta}}{Derivative \code{family$mu.eta(eta)}.}
+#'     \item{\code{d2mu}}{Second derivative \code{family$d2mu.deta2(eta)} when available, otherwise \code{NULL}.}
+#'     \item{\code{s_eta}}{Score with respect to \code{eta}, using stable logit/probit forms where possible.}
+#'     \item{\code{ds_eta_deta}}{Derivative of \code{s_eta} with respect to \code{eta} when \code{d2mu} is available, otherwise \code{NULL}.}
+#'   }
+#'
+#' @keywords internal
+el_core_eta_state <- function(family, eta_raw, eta_cap) {
+# Cap eta symmetrically
+  eta <- pmax(pmin(eta_raw, eta_cap), -eta_cap)
+
+# Mean and first/second derivatives
+  w <- family$linkinv(eta)
+  mu_eta <- family$mu.eta(eta)
+  d2mu <- if (!is.null(family$d2mu.deta2)) family$d2mu.deta2(eta) else NULL
+
+# Clip probabilities for ratios
+  w_clipped <- pmin(pmax(w, 1e-12), 1 - 1e-12)
+
+  is_logit <- !is.null(family$name) && identical(family$name, "logit")
+  is_probit <- !is.null(family$name) && identical(family$name, "probit")
+
+# Stable score wrt eta
+  mills_ratio <- NULL
+  if (is_logit) {
+# For logit, s_eta = mu_eta / w = 1 - w, computed stably from w
+    s_eta <- 1 - w_clipped
+  } else if (is_probit) {
+# For probit, s_eta = phi/Phi (Mills ratio); compute in log-domain
+    log_phi <- stats::dnorm(eta, log = TRUE)
+    log_Phi <- stats::pnorm(eta, log.p = TRUE)
+    mills_ratio <- exp(log_phi - log_Phi)
+    s_eta <- mills_ratio
+  } else if (!is.null(family$score_eta)) {
+# Fallback to family-provided stable score if present
+    s_eta <- family$score_eta(eta, 1)
+  } else {
+# Generic fallback: mu_eta / w
+    s_eta <- mu_eta / w_clipped
+  }
+
+# Derivative of score wrt eta, when second derivatives are available
+  if (!is.null(d2mu)) {
+    if (is_logit) {
+# s_eta = 1 - w  => d/deta(s_eta) = -dw/deta = -mu_eta
+      ds_eta_deta <- -mu_eta
+    } else if (is_probit) {
+# s_eta = r = phi/Phi (Mills ratio); r' = -eta * r - r^2
+      if (is.null(mills_ratio)) {
+        log_phi <- stats::dnorm(eta, log = TRUE)
+        log_Phi <- stats::pnorm(eta, log.p = TRUE)
+        mills_ratio <- exp(log_phi - log_Phi)
+      }
+      ds_eta_deta <- -(eta * mills_ratio + mills_ratio^2)
+    } else {
+# Generic fallback: d/deta(mu/w) = (d2mu * w - mu^2) / w^2
+      ds_eta_deta <- (d2mu * w_clipped - mu_eta^2) / (w_clipped^2)
+    }
+  } else {
+    ds_eta_deta <- NULL
+  }
+
+  list(
+    eta = eta,
+    w = w,
+    w_clipped = w_clipped,
+    mu_eta = mu_eta,
+    d2mu = d2mu,
+    s_eta = s_eta,
+    ds_eta_deta = ds_eta_deta
+  )
+}
+
 #' Compute lambda_W from C_const and W
 #' @param C_const numeric scalar: (N_pop / sum(d_resp) - 1)
 #' @param W numeric scalar in (0,1)

@@ -7,11 +7,17 @@
 #'   link-inverse clipping. Denominator guards are applied consistently when
 #'   forming terms depending on \eqn{D_i(\theta)}.
 #'
-#'   Guarding policy (must remain consistent across equations/Jacobian/post):
-#'   - Cap eta: eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())
-#'   - Compute w <- family$linkinv(eta); clip to [1e-12, 1-1e-12] when used in ratios
-#'   - Denominator floor: Di <- pmax(Di_raw, nmar_get_el_denom_floor());
-#'     multiply terms that depend on d(1/Di)/d(.) by active = 1(Di_raw > floor)
+#'   \strong{Guarding policy (must remain consistent across equations/Jacobian/post):}
+#'   \itemize{
+#'     \item Cap \eqn{\eta}:
+#'       \code{eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())}.
+#'     \item Compute \code{w <- family$linkinv(eta)} and clip to
+#'       \code{[1e-12, 1 - 1e-12]} when used in ratios.
+#'     \item Denominator floor:
+#'       \code{Di <- pmax(Di_raw, nmar_get_el_denom_floor())}. Terms that depend
+#'       on \code{d(1/Di)/d(.)} are multiplied by \code{active = 1(Di_raw > floor)}
+#'       to match the clamped equations.
+#'   }
 #'
 #' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
@@ -62,62 +68,26 @@ el_build_jacobian <- function(family, missingness_model_matrix, auxiliary_matrix
     d_lambda_W_dWb <- C_const / (1 - W_bounded)^2
     d_lambda_W_dTheta <- d_lambda_W_dWb * dWb_dTheta
     eta_raw <- as.vector(missingness_model_matrix %*% beta_vec)
-    eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
-    w_i <- family$linkinv(eta_i)
-    mu_eta_i <- family$mu.eta(eta_i)
-    d2mu_eta2_i <- family$d2mu.deta2(eta_i)
+    eta_state <- el_core_eta_state(family, eta_raw, ETA_CAP)
+    eta_i <- eta_state$eta
+    w_i <- eta_state$w
+    mu_eta_i <- eta_state$mu_eta
+    d2mu_eta2_i <- eta_state$d2mu
     X_centered <- if (K_aux > 0) X_centered_base else NULL
 # QLS Eq. (5): Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
-    denominator <- 1 + lambda_W * (w_i - W_bounded)
-    if (K_aux > 0) denominator <- denominator + as.vector(X_centered %*% lambda_x)
-    denom_floor <- nmar_get_el_denom_floor()
-# Active mask for max(Di, floor) kink: derivative is zero when clamped
-    active <- as.numeric(denominator > denom_floor)
-    denominator <- pmax(denominator, denom_floor)
-    inv_denom <- 1 / denominator
-    inv_denom_sq <- inv_denom^2
+    Xc_lambda <- if (K_aux > 0) as.vector(X_centered %*% lambda_x) else 0
+    dpack <- el_denominator(lambda_W, W_bounded, Xc_lambda, w_i, nmar_get_el_denom_floor())
+    denominator <- dpack$denom
+    inv_denom <- dpack$inv
+    inv_denom_sq <- dpack$inv_sq
+    active <- dpack$active
     dden_dTheta <- active * (d_lambda_W_dTheta * (w_i - W_bounded) - lambda_W * dWb_dTheta)
     dden_deta <- active * (lambda_W * mu_eta_i)
-# Score wrt eta for delta=1: use numerically stable family score where available
-    w_i_clipped <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
-    is_logit <- !is.null(family$name) && identical(family$name, "logit")
-    is_probit <- !is.null(family$name) && identical(family$name, "probit")
-    mills_ratio <- NULL
-    if (is_logit) {
-# For logit, s_eta = mu_eta / w = 1 - w, computed stably from w
-      s_eta_i <- 1 - w_i_clipped
-    } else if (is_probit) {
-# For probit, s_eta = phi/Phi (Mills ratio); compute in log-domain
-      log_phi <- stats::dnorm(eta_i, log = TRUE)
-      log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
-      mills_ratio <- exp(log_phi - log_Phi)
-      s_eta_i <- mills_ratio
-    } else if (!is.null(family$score_eta)) {
-# Fallback to family-provided stable score if present
-      s_eta_i <- family$score_eta(eta_i, 1)
-    } else {
-# Generic fallback
-      s_eta_i <- mu_eta_i / w_i_clipped
-    }
+# Score wrt eta and its derivative (via shared core helper)
+    s_eta_i <- eta_state$s_eta
+    ds_eta_deta <- eta_state$ds_eta_deta
 # beta block term (QLS Eq. 9)
     beta_eq_term <- s_eta_i - lambda_W * mu_eta_i * inv_denom
-# Derivative wrt eta of s_eta := d/deta(mu_eta / w) with link-specific stable forms
-    if (is_logit) {
-# s_eta = 1 - w  => d/deta(s_eta) = -dw/deta = -mu_eta
-      ds_eta_deta <- -mu_eta_i
-    } else if (is_probit) {
-# s_eta = r = phi/Phi (Mills ratio)
-# r' = -eta * r - r^2
-      if (is.null(mills_ratio)) {
-        log_phi <- stats::dnorm(eta_i, log = TRUE)
-        log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
-        mills_ratio <- exp(log_phi - log_Phi)
-      }
-      ds_eta_deta <- -(eta_i * mills_ratio + mills_ratio^2)
-    } else {
-# Generic fallback: d/deta(mu/w) = (d2mu * w - mu^2) / w^2
-      ds_eta_deta <- (d2mu_eta2_i * w_i_clipped - mu_eta_i^2) / (w_i_clipped^2)
-    }
 # Respect denominator floor: terms depending on d(1/Di)/deta vanish when clamped
     d_betaeq_deta <- ds_eta_deta - lambda_W * d2mu_eta2_i * inv_denom + active * (lambda_W^2) * (mu_eta_i^2) * inv_denom_sq
     d_betaeq_dTheta <- -d_lambda_W_dTheta * mu_eta_i * inv_denom + lambda_W * mu_eta_i * inv_denom_sq * dden_dTheta
@@ -243,48 +213,22 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
     W_bounded <- W
     dW_dz <- if (W > 1e-12 && W < 1 - 1e-12) W * (1 - W) else 0
     eta_raw <- as.vector(missingness_model_matrix %*% beta_vec)
-    eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
-    w_i <- family$linkinv(eta_i)
-    mu_eta_i <- family$mu.eta(eta_i)
-    d2mu_eta2_i <- family$d2mu.deta2(eta_i)
+    eta_state <- el_core_eta_state(family, eta_raw, ETA_CAP)
+    eta_i <- eta_state$eta
+    w_i <- eta_state$w
+    mu_eta_i <- eta_state$mu_eta
+    d2mu_eta2_i <- eta_state$d2mu
     X_centered <- if (K_aux > 0) X_centered_base else NULL
-    denom_raw <- 1 + lambda_W * (w_i - W_bounded)
-    if (K_aux > 0) denom_raw <- denom_raw + as.vector(X_centered %*% lambda_x)
-    denom_floor <- nmar_get_el_denom_floor()
-    active <- as.numeric(denom_raw > denom_floor)
-    denominator <- pmax(denom_raw, denom_floor)
-    inv_denom <- 1 / denominator
-    inv_denom_sq <- inv_denom^2
+    Xc_lambda <- if (K_aux > 0) as.vector(X_centered %*% lambda_x) else 0
+    dpack <- el_denominator(lambda_W, W_bounded, Xc_lambda, w_i, nmar_get_el_denom_floor())
+    denominator <- dpack$denom
+    inv_denom <- dpack$inv
+    inv_denom_sq <- dpack$inv_sq
+    active <- dpack$active
 
 # Score wrt eta and its derivative (same pattern as IID Jacobian)
-    w_i_clipped <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
-    is_logit <- !is.null(family$name) && identical(family$name, "logit")
-    is_probit <- !is.null(family$name) && identical(family$name, "probit")
-    mills_ratio <- NULL
-    if (is_logit) {
-      s_eta_i <- 1 - w_i_clipped
-    } else if (is_probit) {
-      log_phi <- stats::dnorm(eta_i, log = TRUE)
-      log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
-      mills_ratio <- exp(log_phi - log_Phi)
-      s_eta_i <- mills_ratio
-    } else if (!is.null(family$score_eta)) {
-      s_eta_i <- family$score_eta(eta_i, 1)
-    } else {
-      s_eta_i <- mu_eta_i / w_i_clipped
-    }
-    if (is_logit) {
-      ds_eta_deta <- -mu_eta_i
-    } else if (is_probit) {
-      if (is.null(mills_ratio)) {
-        log_phi <- stats::dnorm(eta_i, log = TRUE)
-        log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
-        mills_ratio <- exp(log_phi - log_Phi)
-      }
-      ds_eta_deta <- -(eta_i * mills_ratio + mills_ratio^2)
-    } else {
-      ds_eta_deta <- (d2mu_eta2_i * w_i_clipped - mu_eta_i^2) / (w_i_clipped^2)
-    }
+    s_eta_i <- eta_state$s_eta
+    ds_eta_deta <- eta_state$ds_eta_deta
 
 # Precompute some terms
     w_minus_W <- w_i - W_bounded
@@ -310,18 +254,25 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
     idx_lambdaW <- K_beta + 2L
     idx_lambda_x <- if (K_aux > 0) (K_beta + 3L):p_dim else integer(0)
 
+# Equation row indices (equations are ordered as in el_build_equation_system_survey):
+#   [beta equations] [W constraint] [aux constraints] [W link]
+    idx_eq_beta <- idx_beta
+    idx_eq_W <- idx_z
+    idx_eq_aux <- if (K_aux > 0) (K_beta + 2L):(K_beta + 1L + K_aux) else integer(0)
+    idx_eq_link <- p_dim
+
 # J_beta,beta
     w_eff_11 <- as.numeric(respondent_weights * d_betaeq_deta)
-    full_mat[idx_beta, idx_beta] <- shared_weighted_gram(missingness_model_matrix, w_eff_11)
+    full_mat[idx_eq_beta, idx_beta] <- shared_weighted_gram(missingness_model_matrix, w_eff_11)
 # J_beta,z
     j_beta_z <- shared_weighted_Xty(missingness_model_matrix, respondent_weights, d_betaeq_dz)
-    full_mat[idx_beta, idx_z] <- as.numeric(j_beta_z)
+    full_mat[idx_eq_beta, idx_z] <- as.numeric(j_beta_z)
 # J_beta,lambda_W
     j_beta_lambdaW <- shared_weighted_Xty(missingness_model_matrix, respondent_weights, d_betaeq_dlambdaW)
-    full_mat[idx_beta, idx_lambdaW] <- as.numeric(j_beta_lambdaW)
+    full_mat[idx_eq_beta, idx_lambdaW] <- as.numeric(j_beta_lambdaW)
 # J_beta,lambda_x
     if (K_aux > 0) {
-      full_mat[idx_beta, idx_lambda_x] <- shared_weighted_XtY(
+      full_mat[idx_eq_beta, idx_lambda_x] <- shared_weighted_XtY(
         missingness_model_matrix,
         respondent_weights,
         as.matrix(d_betaeq_dlambda_mat)
@@ -331,15 +282,15 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
 # g_W block: g_W = sum d_i (w_i - W)/D_i
 # J_W,beta
     term_W_beta <- mu_eta_i * inv_denom - active * w_minus_W * inv_denom_sq * (lambda_W * mu_eta_i)
-    full_mat[idx_z, idx_beta] <- as.numeric(
+    full_mat[idx_eq_W, idx_beta] <- as.numeric(
       t(shared_weighted_Xty(missingness_model_matrix, respondent_weights, term_W_beta))
     )
 # J_W,z
     term_W_z <- dW_dz * (active * lambda_W * w_minus_W * inv_denom_sq - inv_denom)
-    full_mat[idx_z, idx_z] <- as.numeric(crossprod(respondent_weights, term_W_z))
+    full_mat[idx_eq_W, idx_z] <- as.numeric(crossprod(respondent_weights, term_W_z))
 # J_W,lambda_W
     term_W_lambdaW <- -active * (w_minus_W^2) * inv_denom_sq
-    full_mat[idx_z, idx_lambdaW] <- as.numeric(crossprod(respondent_weights, term_W_lambdaW))
+    full_mat[idx_eq_W, idx_lambdaW] <- as.numeric(crossprod(respondent_weights, term_W_lambdaW))
 # J_W,lambda_x
     if (K_aux > 0) {
       j_W_lambda_x <- t(shared_weighted_Xty(
@@ -347,30 +298,30 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
         respondent_weights,
         -(w_minus_W * inv_denom_sq * active)
       ))
-      full_mat[idx_z, idx_lambda_x] <- as.numeric(j_W_lambda_x)
+      full_mat[idx_eq_W, idx_lambda_x] <- as.numeric(j_W_lambda_x)
     }
 
     if (K_aux > 0) {
 # g_aux block: g_aux = sum d_i t_i / D_i
 # J_aux,beta
       term_aux_beta <- -active * lambda_W * mu_eta_i * inv_denom_sq
-      full_mat[idx_lambda_x, idx_beta] <- shared_weighted_XtY(
+      full_mat[idx_eq_aux, idx_beta] <- shared_weighted_XtY(
         X_centered,
         as.numeric(respondent_weights * term_aux_beta),
         missingness_model_matrix
       )
 # J_aux,z
       term_aux_z <- active * lambda_W * dW_dz * inv_denom_sq
-      full_mat[idx_lambda_x, idx_z] <- as.numeric(
+      full_mat[idx_eq_aux, idx_z] <- as.numeric(
         shared_weighted_Xty(X_centered, respondent_weights, term_aux_z)
       )
 # J_aux,lambda_W
       term_aux_lambdaW <- -active * w_minus_W * inv_denom_sq
-      full_mat[idx_lambda_x, idx_lambdaW] <- as.numeric(
+      full_mat[idx_eq_aux, idx_lambdaW] <- as.numeric(
         shared_weighted_Xty(X_centered, respondent_weights, term_aux_lambdaW)
       )
 # J_aux,lambda_x
-      full_mat[idx_lambda_x, idx_lambda_x] <- -shared_weighted_gram(
+      full_mat[idx_eq_aux, idx_lambda_x] <- -shared_weighted_gram(
         X_centered,
         as.numeric(respondent_weights * (inv_denom_sq * active))
       )
@@ -380,19 +331,21 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
     S <- sum(respondent_weights * inv_denom)
 # J_link,beta
     term_link_beta <- lambda_W^2 * mu_eta_i * inv_denom_sq * active
-    full_mat[p_dim, idx_beta] <- as.numeric(
+    full_mat[idx_eq_link, idx_beta] <- as.numeric(
       t(shared_weighted_Xty(missingness_model_matrix, respondent_weights, term_link_beta))
     )
 # J_link,z: d/dz[T0/(1-W) - lambda_W * S(z)]
-# First term: T0 * W / (1-W); second term: -lambda_W * dS/dz with
+# First term: T0 * dW_dz / (1-W)^2 (reduces to T0 * W/(1-W) when W is not clamped);
+# second term: -lambda_W * dS/dz with
 # dS/dz = sum d_i * lambda_W * dW_dz * active / D_i^2.
     term_link_z_S <- lambda_W^2 * dW_dz * inv_denom_sq * active
     dS_dz <- sum(respondent_weights * term_link_z_S)
-    full_mat[p_dim, idx_z] <- T0 * W_bounded / (1 - W_bounded) - dS_dz
+    term_link_z_T0 <- T0 * dW_dz / ((1 - W_bounded)^2)
+    full_mat[idx_eq_link, idx_z] <- term_link_z_T0 - dS_dz
 # J_link,lambda_W
     term_dS_dlambdaW <- -active * w_minus_W * inv_denom_sq
     dS_dlambdaW <- sum(respondent_weights * term_dS_dlambdaW)
-    full_mat[p_dim, idx_lambdaW] <- -S - lambda_W * dS_dlambdaW
+    full_mat[idx_eq_link, idx_lambdaW] <- -S - lambda_W * dS_dlambdaW
 # J_link,lambda_x
     if (K_aux > 0) {
       j_link_lambda_x <- lambda_W * shared_weighted_Xty(
@@ -400,18 +353,16 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
         respondent_weights,
         inv_denom_sq * active
       )
-      full_mat[p_dim, idx_lambda_x] <- as.numeric(j_link_lambda_x)
+      full_mat[idx_eq_link, idx_lambda_x] <- as.numeric(j_link_lambda_x)
     }
 
-    param_names <- c(
-      colnames(missingness_model_matrix),
-      "(W) (logit)",
-      "(lambda_W)",
-      if (K_aux > 0) paste0("lambda_", colnames(auxiliary_matrix_mat)) else NULL
-    )
-    if (!is.null(param_names) && length(param_names) == ncol(full_mat)) {
-      colnames(full_mat) <- rownames(full_mat) <- param_names
-    }
+    param_names <- c(colnames(missingness_model_matrix), "(W) (logit)", "(lambda_W)",
+      if (K_aux > 0) paste0("lambda_", colnames(auxiliary_matrix_mat)) else NULL)
+    eq_names <- c(colnames(missingness_model_matrix), "(W constraint)",
+      if (K_aux > 0) paste0("constraint_", colnames(auxiliary_matrix_mat)) else NULL,
+      "(W link)")
+    if (length(param_names) == ncol(full_mat)) colnames(full_mat) <- param_names
+    if (length(eq_names) == nrow(full_mat)) rownames(full_mat) <- eq_names
     full_mat
   }
 }
