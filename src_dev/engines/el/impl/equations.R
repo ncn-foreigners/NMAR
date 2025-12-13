@@ -6,16 +6,21 @@
 #'   constraints in \eqn{\lambda_x}. When no auxiliaries are present the last
 #'   block is omitted. The system matches Qin, Leung, and Shao (2002, Eqs. 7-10)
 #'   with empirical masses \eqn{m_i = d_i/D_i(\theta)}, \eqn{D_i} as in the paper.
-#'   We cap \eqn{\eta}, clip \eqn{p}, and guard \eqn{D_i} away from zero to
+#'   We cap \eqn{\eta}, clip \eqn{w_i} in ratios, and guard \eqn{D_i} away from zero to
 #'   ensure numerical stability; these safeguards are applied consistently in
 #'   equations, Jacobian, and post-solution weights.
 #'
-#'   Guarding policy (must remain consistent across equations/Jacobian/post):
-#'   - Cap eta: eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())
-#'   - Compute w <- family$linkinv(eta); clip to [1e-12, 1-1e-12] when used in ratios
-#'   - Denominator floor: Di <- pmax(Di_raw, nmar_get_el_denom_floor()); in the
-#'     Jacobian, multiply terms that depend on d(1/Di)/d(.) by
-#'     active = 1(Di_raw > floor)
+#'   \strong{Guarding policy (must remain consistent across equations/Jacobian/post):}
+#'   \itemize{
+#'     \item Cap \eqn{\eta}:
+#'       \code{eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())}.
+#'     \item Compute \code{w <- family$linkinv(eta)} and clip to
+#'       \code{[1e-12, 1 - 1e-12]} when used in ratios.
+#'     \item Denominator floor:
+#'       \code{Di <- pmax(Di_raw, nmar_get_el_denom_floor())}. In the Jacobian,
+#'       terms that depend on \code{d(1/Di)/d(.)} are multiplied by
+#'       \code{active = 1(Di_raw > floor)} to match the clamped equations.
+#'   }
 #'
 #'   The score with respect to the linear predictor uses the Bernoulli form
 #'   \eqn{s_{\eta,i}(\beta) = \partial \log w_i / \partial \eta_i = \mu.\eta(\eta_i)/w_i},
@@ -50,24 +55,10 @@ el_build_equation_system <- function(family, missingness_model_matrix, auxiliary
 # QLS Eq. (10): lambda_W = (N/n - 1) / (1 - W)
     lambda_W <- el_lambda_W(C_const, W_bounded)
     eta_raw <- as.vector(missingness_model_matrix %*% beta_vec)
-    eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
-    w_i <- family$linkinv(eta_i)
-    mu_eta_i <- family$mu.eta(eta_i)
-# Unified score w.r.t. eta for delta=1: prefer numerically stable family score
-    w_i_clipped <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
-    if (!is.null(family$name) && identical(family$name, "logit")) {
-# For logit, s_eta = 1 - w
-      s_eta_i <- 1 - w_i_clipped
-    } else if (!is.null(family$name) && identical(family$name, "probit")) {
-# For probit, use Mills ratio in log domain
-      log_phi <- stats::dnorm(eta_i, log = TRUE)
-      log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
-      s_eta_i <- exp(log_phi - log_Phi)
-    } else if (!is.null(family$score_eta)) {
-      s_eta_i <- family$score_eta(eta_i, 1)
-    } else {
-      s_eta_i <- mu_eta_i / w_i_clipped
-    }
+    eta_state <- el_core_eta_state(family, eta_raw, ETA_CAP)
+    w_i <- eta_state$w
+    mu_eta_i <- eta_state$mu_eta
+    s_eta_i <- eta_state$s_eta
 # QLS Eq. (5): Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
     Xc_lambda <- if (K_aux > 0) as.vector(X_centered %*% lambda_x) else 0
     dpack <- el_denominator(lambda_W, W_bounded, Xc_lambda, w_i, nmar_get_el_denom_floor())
@@ -139,22 +130,10 @@ el_build_equation_system_survey <- function(family, missingness_model_matrix, au
     W <- min(max(W, 1e-12), 1 - 1e-12)
     W_bounded <- W
     eta_raw <- as.vector(missingness_model_matrix %*% beta_vec)
-    eta_i <- pmax(pmin(eta_raw, ETA_CAP), -ETA_CAP)
-    w_i <- family$linkinv(eta_i)
-    mu_eta_i <- family$mu.eta(eta_i)
-# Stable score w.r.t eta
-    w_i_clipped <- pmin(pmax(w_i, 1e-12), 1 - 1e-12)
-    if (!is.null(family$name) && identical(family$name, "logit")) {
-      s_eta_i <- 1 - w_i_clipped
-    } else if (!is.null(family$name) && identical(family$name, "probit")) {
-      log_phi <- stats::dnorm(eta_i, log = TRUE)
-      log_Phi <- stats::pnorm(eta_i, log.p = TRUE)
-      s_eta_i <- exp(log_phi - log_Phi)
-    } else if (!is.null(family$score_eta)) {
-      s_eta_i <- family$score_eta(eta_i, 1)
-    } else {
-      s_eta_i <- mu_eta_i / w_i_clipped
-    }
+    eta_state <- el_core_eta_state(family, eta_raw, ETA_CAP)
+    w_i <- eta_state$w
+    mu_eta_i <- eta_state$mu_eta
+    s_eta_i <- eta_state$s_eta
 # Denominator Di = 1 + lambda_W (w_i - W) + (X_centered %*% lambda_x)
     Xc_lambda <- if (K_aux > 0) as.vector(X_centered %*% lambda_x) else 0
     dpack <- el_denominator(lambda_W, W_bounded, Xc_lambda, w_i, denom_floor)

@@ -50,7 +50,7 @@ test_that("transforms that introduce NA for respondents are rejected", {
     X = rnorm(4)
   )
   expect_error(
-    el_prepare_inputs(log(Y_miss) ~ X, df),
+    suppressWarnings(el_prepare_inputs(log(Y_miss) ~ X, df)),
     regexp = "produced NA/NaN",
     fixed = FALSE
   )
