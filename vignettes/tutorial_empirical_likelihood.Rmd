@@ -37,7 +37,12 @@ Key features:
 We simulate an NMAR mechanism where the response probability depends on the unobserved outcome.
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE
+)
 ```
 
 ```{r}
@@ -95,30 +100,30 @@ Outputs and diagnostics at a glance (probability-scale weights sum to 1; populat
 weights sum to the analysis total \(N_\text{pop}\)):
 
 ```{r}
-weights(fit)[1:10]
-weights(fit, scale = "population")[1:10]
-fitted(fit)[1:10]
+head(weights(fit), 10)
+head(weights(fit, scale = "population"), 10)
+head(fitted(fit), 10)
 str(fit$diagnostics)
 ```
 
 Bootstrap variance (keep reps small for speed). This example requires the optional
-future.apply package; the chunk runs only if it is available:
+future.apply package; the chunk is skipped if it is not installed:
 
-```{r}
-if (requireNamespace("future.apply", quietly = TRUE)) {
-# Requires 'future.apply' (and its dependency 'future'); progressr is optional
-  set.seed(123)
-  engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap", bootstrap_reps = 15, standardize = TRUE)
-  fit_boot <- nmar(
-    formula = Y_miss ~ X,
-    engine = engine,
-    data = dat
-  )
-  se(fit_boot)
-  confint(fit_boot)
-} else {
-  message("Skipping bootstrap example: future.apply not installed")
-}
+```{r, eval = requireNamespace("future.apply", quietly = TRUE)}
+set.seed(123)
+engine <- el_engine(
+  auxiliary_means = c(X = 0),
+  variance_method = "bootstrap",
+  bootstrap_reps = 10,
+  standardize = TRUE
+)
+fit_boot <- nmar(
+  formula = Y_miss ~ X,
+  engine = engine,
+  data = dat
+)
+se(fit_boot)
+confint(fit_boot)
 ```
 
 # Respondents-only data (n_total)
@@ -170,32 +175,30 @@ Auxiliary means and formulas:
 
 # Survey design example (optional)
 
-The estimator supports complex surveys via `survey::svydesign()`. This chunk runs only if the `survey` package is available.
+The estimator supports complex surveys via `survey::svydesign()`. This chunk runs only if the `survey` package is available. If the survey weights were normalized (for example, rescaled to sum to the sample size), pass an appropriate population total via `el_engine(n_total = ...)` so that population-scale EL weights are on the intended scale.
 
-```{r}
-if (requireNamespace("survey", quietly = TRUE)) {
-  library(survey)
-  data(api)
+```{r, eval = requireNamespace("survey", quietly = TRUE)}
+suppressPackageStartupMessages(library(survey))
+data(api)
 
-  set.seed(42)
-  apiclus1$api00_miss <- apiclus1$api00
-  ystd <- scale(apiclus1$api00)[, 1]
-  prob <- plogis(-0.5 + 0.4 * ystd + 0.2 * scale(apiclus1$ell)[, 1])
-  miss <- runif(nrow(apiclus1)) > prob
-  apiclus1$api00_miss[miss] <- NA_real_
+set.seed(42)
+apiclus1$api00_miss <- apiclus1$api00
+ystd <- scale(apiclus1$api00)[, 1]
+prob <- plogis(-0.5 + 0.4 * ystd + 0.2 * scale(apiclus1$ell)[, 1])
+miss <- runif(nrow(apiclus1)) > prob
+apiclus1$api00_miss[miss] <- NA_real_
 
-  dclus1 <- svydesign(id = ~dnum, weights = ~pw, data = apiclus1, fpc = ~fpc)
+dclus1 <- svydesign(id = ~dnum, weights = ~pw, data = apiclus1, fpc = ~fpc)
 # Let the engine infer auxiliary means from the full design (design-weighted).
 # Alternatively, you can supply known population means via auxiliary_means.
-  engine <- el_engine(auxiliary_means = NULL, variance_method = "none", standardize = TRUE)
+engine <- el_engine(auxiliary_means = NULL, variance_method = "none", standardize = TRUE)
 
-  fit_svy <- nmar(
-    formula = api00_miss ~ ell | ell,
-    data = dclus1,
-    engine = engine
-  )
-  summary(fit_svy)
-}
+fit_svy <- nmar(
+  formula = api00_miss ~ ell | ell,
+  data = dclus1,
+  engine = engine
+)
+summary(fit_svy)
 ```
 
 # Practical guidance
@@ -227,6 +230,8 @@ invisible(nmar(Y_miss ~ X, data = dat, engine = eng_ctrl))
 # References and further reading
 
 - Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200. doi:10.1198/016214502753479338
+- Chen, J. and Sitter, R. R. (1999). A pseudo empirical likelihood approach to the effective use of auxiliary information in complex surveys. Statistica Sinica, 9, 385-406.
+- Wu, C. (2005). Algorithms and R codes for the pseudo empirical likelihood method in survey sampling. Survey Methodology, 31(2), 239-243.
 
 # Families and numerical stability
 

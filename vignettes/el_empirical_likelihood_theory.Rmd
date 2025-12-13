@@ -310,6 +310,32 @@ These are exactly how `el_build_equation_system` constructs the function in code
 
 Intuition: the $\beta$-equations equate the score of the respondent log-likelihood with the EL penalty term $\lambda_W \mu_{\eta,i}/D_i$; the $W$-equation centers the modeled response probabilities around the unconditional mean $W$ under the EL weights; the auxiliary equations calibrate the centered auxiliaries to zero mean under the EL weights.
 
+### Code cross-reference (equations and Jacobian)
+
+This table maps the theory blocks to the exact builders and argument/variable names in:
+`src_dev/engines/el/impl/equations.R` and `src_dev/engines/el/impl/jacobian.R`.
+
+#### Estimating-equation builders (`equations.R`)
+
+| Theory block | IID (data.frame) implementation | Survey (survey.design) implementation | Code identifiers used inside the closure |
+|---|---|---|---|
+| Unknown vector $\theta$ | `el_build_equation_system(...)(params)` with `params = c(beta, z, lambda_x)` | `el_build_equation_system_survey(...)(params)` with `params = c(beta, z, lambda_W, lambda_x)` | `beta_vec`, `z`, `W <- plogis(z)`, `lambda_x`, (survey) `lambda_W` |
+| Denominator $D_i$ | `el_denominator(lambda_W, W_bounded, Xc_lambda, w_i, denom_floor)` | `el_denominator(lambda_W, W_bounded, Xc_lambda, w_i, denom_floor)` | `dpack$denom` (guarded), `inv_denominator <- dpack$inv`, `active <- dpack$active` |
+| $w_i$ and derivatives | `el_core_eta_state(family, eta_raw, ETA_CAP)` | `el_core_eta_state(family, eta_raw, ETA_CAP)` | `eta_raw`, `w_i`, `mu_eta_i`, `s_eta_i` |
+| $\beta$ equations $g_\beta$ | `eq_betas <- shared_weighted_Xty(missingness_model_matrix, respondent_weights, beta_eq_term)` | same | `missingness_model_matrix`, `respondent_weights`, `beta_eq_term <- s_eta_i - lambda_W * mu_eta_i * inv_denominator` |
+| $W$ constraint $g_W^{(2)}$ | `eq_W <- crossprod(respondent_weights * inv_denominator, (w_i - W_bounded))` | `eq_W_constraint <- crossprod(respondent_weights * inv_denominator, (w_i - W_bounded))` | `w_i`, `W_bounded`, `inv_denominator` |
+| Auxiliary constraints $g_x$ | `eq_constraints <- shared_weighted_Xty(X_centered, respondent_weights, inv_denominator)` | same | `X_centered <- sweep(auxiliary_matrix, 2, mu_x_scaled, "-")` |
+| $\lambda_W$ profiling / linkage | IID: `lambda_W <- el_lambda_W(C_const, W_bounded)` with `C_const <- (N_pop/n_resp_weighted) - 1` | Survey: `eq_W_link <- (T0/(1-W_bounded)) - lambda_W * sum_d_over_D` | IID: `C_const`, `n_resp_weighted`; Survey: `T0 <- N_pop - n_resp_weighted`, `sum_d_over_D <- crossprod(respondent_weights, inv_denominator)` |
+
+#### Analytic Jacobian builders (`jacobian.R`)
+
+| Object | IID (data.frame) builder | Survey (survey.design) builder | Notes on block ordering / names |
+|---|---|---|---|
+| $A(\theta) = \partial F/\partial\theta$ | `el_build_jacobian(...)(params)` | `el_build_jacobian_survey(...)(params)` | Both return a square matrix `full_mat` with parameter ordering matching the corresponding `equations.R` closure. |
+| Parameter ordering | `params = c(beta, z, lambda_x)` | `params = c(beta, z, lambda_W, lambda_x)` | Indices in code: IID uses `idx_beta`, `idx_W`; survey uses `idx_beta`, `idx_z`, `idx_lambdaW`, `idx_lambda_x`. |
+| Equation ordering (rows) | `c(beta eqs, W eq, aux eqs)` | `c(beta eqs, W constraint, aux eqs, W link)` | Survey row indices are annotated in `el_build_jacobian_survey()` as `idx_eq_beta`, `idx_eq_W`, `idx_eq_aux`, `idx_eq_link`. |
+| Guard consistency | `el_denominator(...); active <- dpack$active` | same | Terms involving derivatives of `1/D_i` are multiplied by `active` to match the denominator floor in the equations. |
+
 ### Remarks
 
 - For logit and probit, $s_i$ is the log-likelihood score $\partial\log w_i/\partial\eta_i = \mu_{\eta,i}/w_i$ (equals $1-w_i$ for logit; behaves like $\phi/\Phi$ for probit when $w_i$ is clipped away from 0). This follows the paper's MLE derivation; EL constraints supply the nonparametric part.
