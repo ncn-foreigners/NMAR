@@ -10,12 +10,10 @@ Authors@R: c(
     person("Maciej", "Beręsewicz", email = "Maciej.Beresewicz@ue.poznan.pl", role = c("aut", "cre")),
     person("Igor", "Kołodziej", email = "igor.kolodziej@proton.me", role = "aut"),
     person("Mateusz", "Iwaniuk", email = "mateusz.iwaniuk11@gmail.com", role = "aut"))
-Description: Provides estimation tools for finite-population parameters when
-    outcomes are subject to nonignorable (Not Missing at Random, NMAR)
-    nonresponse. Methods can incorporate auxiliary information and
-    user-specified response models, and support independent samples as well as
-    complex survey designs via objects from the 'survey' package. Returns
-    diagnostics and optional variance estimates.
+Description: Methods to estimate finite-population parameters under nonresponse that is not missing at
+    random (NMAR, nonignorable). Incorporates auxiliary information and user-specified response models,
+    and supports independent samples and complex survey designs via objects from the 'survey' package.
+    Provides diagnostics and optional variance estimates.
 License: MIT + file LICENSE
 URL: https://github.com/ncn-foreigners/NMAR, https://ncn-foreigners.ue.poznan.pl/NMAR/index.html
 BugReports: https://github.com/ncn-foreigners/NMAR/issues
