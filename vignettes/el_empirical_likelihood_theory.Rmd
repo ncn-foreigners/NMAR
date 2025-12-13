@@ -145,22 +145,26 @@ For the probit link, $s_i(\eta) = \partial\log w/\partial\eta = \phi(\eta)/\Phi(
 ### Equation Crosswalk (QLS 2002 -> This Vignette/Code)
 
 - QLS (5): Discrete mass form for $p_i$ with two multipliers -> Our $D_i = 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^T \lambda_x$ and $p_i^{\text{EL}} \propto a_i/D_i$.
-- QLS (7): $\sum \dfrac{x_i - \bar x}{1 + \cdots} = 0$ -> Our auxiliary constraints $\sum a_i (X_i - \mu_x)/D_i = 0$.
+- QLS (7): $\sum \dfrac{x_i - \mu_x}{1 + \cdots} = 0$ (or with $\mu_x$ replaced by $\bar X$ when auxiliary variables are observed for all sampled units) -> Our auxiliary constraints $\sum a_i (X_i - \mu_x)/D_i = 0$, where $\mu_x$ is taken from `auxiliary_means` if supplied, otherwise estimated from the full input (unweighted for IID, design-weighted for surveys).
 - QLS (8): $\sum \dfrac{w_i - W}{1 + \cdots} = 0$ -> Our $W$-equation $\sum a_i (w_i - W)/D_i = 0$.
 - QLS (10): $\hat{\lambda}_2 = (N/n - 1)/(1 - W)$ -> In the IID path we set $\lambda_W = ((N_{\text{pop}}/n_{\text{resp\_weighted}}) - 1)/(1 - W)$; in the survey path $\lambda_W$ is solved from the additional linkage equation $g_W^{(1)}$.
 - Estimator $\hat Y$ in QLS -> Our ratio $\hat Y = \sum p_i^{\mathrm{EL}} Y_i/\sum p_i^{\mathrm{EL}}$ using $p_i^{\mathrm{EL}} \propto a_i/D_i$.
 
 ### Likelihood and Profiling (sketch)
 
-The paper's semiparametric likelihood (their Eq. (2)) combines the response mechanism $w_i = g(\eta_i)$ with the nonparametric distribution $F$ of $(Y,X)$:
+QLS start from the factorized semiparametric likelihood (their Eq. (2)):
+$$
+\mathcal{L}(\beta, W, F)
+=
+\left\{\prod_{i=1}^{n} \frac{w(Y_i, X_i; \beta)\, dF(Y_i, X_i)}{W}\right\}
+W^{n}(1-W)^{N-n},
+$$
+where $W=\iint w(y,x;\beta)\,dF(y,x)$ is the unconditional response rate. The $W^{-n}$ factor in the conditional likelihood cancels the $W^n$ in the binomial term, so the overall likelihood is equivalently proportional to
+$$
+\left\{\prod_{i=1}^{n} w(Y_i, X_i; \beta)\, dF(Y_i, X_i)\right\}(1-W)^{N-n}.
+$$
 
-\[
-\mathcal{L}(\beta, W, F) 
-\;\propto\; \prod_{i=1}^{n} w(Y_i, X_i; \beta) \, dF(Y_i, X_i) 
-\;\times\; (1 - W)^{N - n},
-\]
-
-subject to (i) $\int dF = 1$, (ii) $\int X \, dF = \mu_x$, and (iii) $\int w(Y,X;\beta) \, dF = W$. Discretizing $F$ at observed respondents by assigning unknown masses $p_i$ and introducing multipliers $\lambda$, the KKT conditions yield the familiar EL weight form with denominator
+Maximization is subject to (i) $\int dF = 1$, (ii) $\int X \, dF = \mu_x$ (or $\bar X$ when applicable), and (iii) $\int w(Y,X;\beta)\, dF = W$. Discretizing $F$ at observed respondents by assigning unknown masses $p_i$ and introducing multipliers $\lambda$, the KKT conditions yield the familiar EL weight form with denominator
 
 \[
 D_i \;=\; 1 + \lambda_W (w_i - W) + (X_i - \mu_x)^\top \lambda_x,
@@ -399,6 +403,8 @@ The EL constraints then include additional terms of the form
 \]
 for each nonreference stratum $h$. This forces the EL weights to reproduce the design-implied stratum shares while still adjusting within strata for NMAR. In the implementation this augmentation is performed in the survey entry point (`src_dev/engines/el/impl/survey.R`) before auxiliary means are resolved, and the resulting augmented auxiliaries flow through to `el_build_equation_system()` or `el_build_equation_system_survey()` depending on the data type. The behavior is controlled by the logical `strata_augmentation` argument of `el_engine()` (default `TRUE`); it has an effect only when `data` is a `survey.design` with defined strata.
 
+Implementation detail: when the user does not supply `auxiliary_means`, the targets for the augmented stratum indicators are obtained automatically as the design-weighted means of those dummy columns in the full sample (via `el_resolve_auxiliaries()`), which equals the design-implied stratum shares on the analysis scale. When the user does supply `auxiliary_means`, the augmentation appends the implied $W_h$ targets to that vector.
+
 Our survey EL implementation should be viewed as a design-weighted analogue of QLS, informed by the pseudo empirical likelihood literature (Chen and Sitter 1999; Wu 2005), rather than a verbatim implementation of any single paper.
 
 ## Analytic Jacobian ($A$ Matrix, IID path)
@@ -518,6 +524,10 @@ We extend QLS's methodology to complex surveys in two complementary ways:
 
 - **Bootstrap variance via replicate weights:** For standard errors, we use bootstrap replicate-weight designs created with `svrep::as_bootstrap_design`. For each replicate, the estimator is re-fit on a reconstructed design using that replicate's weights, and `survey::svrVar` is used to compute the variance of replicate estimates with appropriate scaling.
 
+### Weight scale note
+
+The survey system is defined on an analysis scale through $N_{\text{pop}}$ and the design weights $d_i$. By default we set $N_{\text{pop}}=\sum_i d_i$ using `weights(design)`. If the design weights have been rescaled (for example, to sum to the sample size for numerical reasons), you should supply `n_total` on the intended population-total scale so that $T_0 = N_{\text{pop}}-\sum_{i\in R} d_i$ is computed consistently with your analysis.
+
 This matches the paper's guidance to adapt the likelihood/estimating framework to stratification or unequal-probability sampling while relying on standard survey resampling for uncertainty. Analytic variance has not been implemented yet.
 
 Degrees-of-freedom: For confidence intervals, we use survey degrees-of-freedom (t-quantiles) when a `survey.design` is supplied; otherwise, we use normal quantiles.
@@ -618,7 +628,7 @@ This appendix summarizes the key options of the EL engine (constructor: `el_engi
 - **trim_cap** (default: Inf)
   - Caps EL weights and redistributes mass. Trimming is applied only after solving the EL system to the
     unnormalized masses $m_i = a_i/D_i$; the estimating equations and Jacobian are always evaluated with
-    untrimmed masses. Prefer `variance_method = "bootstrap"` when trimming is finite.
+    untrimmed masses. The reported $\hat Y$ and returned weights are computed from the trimmed masses, so trimming changes the point estimate. Prefer `variance_method = "bootstrap"` when trimming is finite.
 
 - **variance_method** (default: "none")
   - "bootstrap": IID resampling or survey replicate weights via `svrep`; preferred for SEs.
