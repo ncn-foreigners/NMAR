@@ -27,11 +27,13 @@ validate_and_apply_nmar_scaling(
 
 \item{weights}{Optional numeric vector used for weighted scaling.}
 
-\item{weight_mask}{Optional logical/numeric mask applied to `weights`.}
+\item{weight_mask}{Optional logical mask or nonnegative numeric multipliers
+applied to \code{weights}.}
 }
 \value{
-a list with `nmar_scaling_recipe`, `response_model_matrix_scaled`,
-  `auxiliary_matrix_scaled`, and `mu_x_scaled`.
+A list with components \code{nmar_scaling_recipe},
+  \code{response_model_matrix_scaled}, \code{auxiliary_matrix_scaled}, and
+  \code{mu_x_scaled}.
 }
 \description{
 Validate and apply scaling (engine-friendly)

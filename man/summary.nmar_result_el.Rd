@@ -7,7 +7,7 @@
 \method{summary}{nmar_result_el}(object, ...)
 }
 \arguments{
-\item{object}{An object of class `nmar_result_el`.}
+\item{object}{An object of class \code{nmar_result_el}.}
 
 \item{...}{Ignored.}
 }

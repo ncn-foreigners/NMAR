@@ -23,31 +23,35 @@
 )
 }
 \arguments{
-\item{data}{A `data.frame` where the outcome column contains `NA` for nonrespondents.}
+\item{data}{A \code{data.frame} where the outcome column contains \code{NA}
+for nonrespondents.}
 
-\item{formula}{Two-sided formula `Y_miss ~ auxiliaries` or
-`Y_miss ~ auxiliaries | missingness_predictors`.}
+\item{formula}{Two-sided formula \code{Y_miss ~ auxiliaries} or
+\code{Y_miss ~ auxiliaries | missingness_predictors}.}
 
 \item{auxiliary_means}{Named numeric vector of population means for auxiliary
-design columns. Names must match the materialized `model.matrix` columns on
+design columns. Names must match the materialized \code{model.matrix} columns on
 the first RHS (after formula expansion), including factor indicators and
 transformed terms. The intercept is always excluded.}
 
 \item{standardize}{Logical; whether to standardize predictors prior to estimation.}
 
-\item{trim_cap}{Numeric; cap for EL weights (`Inf` = no trimming).}
+\item{trim_cap}{Numeric; cap for EL weights (\code{Inf} = no trimming).}
 
-\item{control}{List; optional solver control parameters for `nleqslv(control=...)`.}
+\item{control}{List; optional solver control parameters for
+\code{nleqslv::nleqslv(control = ...)}.}
 
-\item{on_failure}{Character; one of `"return"` or `"error"` on solver failure.}
+\item{on_failure}{Character; one of \code{"return"} or \code{"error"} on solver failure.}
 
-\item{variance_method}{Character; one of `"bootstrap"` or `"none"`.}
+\item{variance_method}{Character; one of \code{"bootstrap"} or \code{"none"}.}
 
-\item{bootstrap_reps}{Integer; number of bootstrap reps if `variance_method = "bootstrap"`.}
+\item{bootstrap_reps}{Integer; number of bootstrap reps if
+\code{variance_method = "bootstrap"}.}
 
-\item{n_total}{Optional integer population size. When the outcome contains
-at least one `NA`, `n_total` defaults to `nrow(data)`; when respondents-only
-data are supplied (no `NA` in the outcome), `n_total` must be provided.}
+\item{n_total}{Optional analysis-scale population total \code{N_pop}. When the
+outcome contains at least one \code{NA}, \code{n_total} defaults to
+\code{nrow(data)}. When respondents-only data are supplied (no \code{NA} in
+the outcome), \code{n_total} must be provided.}
 
 \item{start}{Optional list of starting values passed to the solver helpers.}
 
@@ -58,24 +62,22 @@ data are supplied (no `NA` in the outcome), `n_total` must be provided.}
 \item{...}{Additional arguments passed to the solver.}
 }
 \description{
-Internal method dispatched by `el()` when `data` is a `data.frame`.
-  Returns `c('nmar_result_el','nmar_result')` with the point estimate, optional
+Internal method dispatched by \code{el()} when \code{data} is a
+  \code{data.frame}. Returns \code{c("nmar_result_el","nmar_result")} with the
+  point estimate, optional
   bootstrap SE, weights, coefficients, diagnostics, and metadata.
 }
 \details{
 Implements the empirical likelihood estimator for IID data with
   optional auxiliary moment constraints. The missingness-model score is the
   Bernoulli derivative with respect to the linear predictor, supporting logit
-  and probit links. When respondents-only data are supplied (no `NA` in the
-  outcome), `n_total` is required so the response-rate equation targets the
-  full sample size. When missingness is observed (`NA` present), the default
-  population total is `nrow(data)`. If respondents-only data are used and
+  and probit links. When respondents-only data are supplied (no \code{NA} in the
+  outcome), \code{n_total} is required so the response-rate equation targets the
+  full sample size. When missingness is observed (\code{NA} present), the default
+  population total is \code{nrow(data)}. If respondents-only data are used and
   auxiliaries are requested, you must also provide population auxiliary
-  means via `auxiliary_means`. Result weights are the unnormalized EL
-  masses \code{d_i/D_i(theta)} on this analysis scale.
-}
-\references{
-Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
-nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
+  means via \code{auxiliary_means}. Result weights are the unnormalized EL
+  masses \eqn{a_i / D_i(\theta)} on the analysis scale, where \eqn{a_i \equiv 1}
+  for IID data.
 }
 \keyword{internal}

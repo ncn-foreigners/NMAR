@@ -8,26 +8,26 @@
 #'
 #' Invariants enforced here (relied on by all downstream EL code):
 #' \itemize{
-#'   \item LHS references exactly one outcome source variable in `data`; any
+#'   \item LHS references exactly one outcome source variable in \code{data}; any
 #'     transforms are applied via the formula environment and must be defined
 #'     for all respondent rows.
 #'   \item The outcome is never allowed to appear on RHS1 (auxiliaries) or RHS2
 #'     (missingness predictors), either explicitly in the formula or implicitly
-#'     via dot (`.`) expansion. The missingness model uses the evaluated LHS
+#'     via dot (\code{.}) expansion. The missingness model uses the evaluated LHS
 #'     expression as a dedicated predictor column instead.
 #'   \item RHS1 always yields an intercept-free auxiliary design matrix with
-#'     k-1 coding for factor auxiliaries, regardless of user `+0`/`-1` syntax or
+#'     k-1 coding for factor auxiliaries, regardless of user \code{+0}/\code{-1} syntax or
 #'     custom contrasts. Auxiliary columns are validated to be fully observed
 #'     and non-constant among respondents.
 #'   \item RHS2 always yields a missingness-design matrix for respondents that
 #'     includes an intercept column and zero-variance predictors only emit
 #'     warnings (not errors); NA among respondents is rejected.
-#'   \item `respondent_mask` is defined from the raw outcome in `data`, not from
-#'     the transformed LHS; an injected `..nmar_delta..` indicator in
-#'     `analysis_data` matches this mask exactly.
-#'   \item `N_pop` is the analysis-scale population size used in the EL system:
-#'     for IID it is `nrow(data)` unless overridden by `n_total`; for survey
-#'     designs it is `sum(weights)` or `n_total` when supplied.
+#'   \item \code{respondent_mask} is defined from the raw outcome in \code{data}, not from
+#'     the transformed LHS; an injected \code{..nmar_delta..} indicator in
+#'     \code{analysis_data} matches this mask exactly.
+#'   \item \code{N_pop} is the analysis-scale population size used in the EL system:
+#'     for IID it is \code{nrow(data)} unless overridden by \code{n_total}; for survey
+#'     designs it is \code{sum(weights)} or \code{n_total} when supplied.
 #' }
 #'
 #' @keywords internal
@@ -37,7 +37,7 @@ el_prepare_inputs <- function(formula,
                               n_total = NULL,
                               design_object = NULL) {
 
-# hase 1: parse formula and outcome
+# Phase 1: parse formula and outcome
   if (missing(formula)) stop("`formula` must be supplied.", call. = FALSE)
 
   fml <- Formula::as.Formula(formula)
@@ -111,7 +111,7 @@ el_prepare_inputs <- function(formula,
 
   outcome_names <- c(outcome_source, outcome_label)
 
-# hase 2: build auxiliary (RHS1) design on full data
+# Phase 2: build auxiliary (RHS1) design on full data
   rhs1_formula <- stats::formula(fml, lhs = 0, rhs = 1)
   rhs1_expr <- rhs1_formula[[2L]]
   rhs1_vars_explicit <- setdiff(all.vars(rhs1_expr), ".")
@@ -227,7 +227,7 @@ el_prepare_inputs <- function(formula,
     rep(1, sum(respondent_mask))
   }
 
-# hase 5: wrap survey design (if present) and compute N_pop
+# Phase 5: wrap survey design (if present) and compute N_pop
   is_survey <- !is.null(design_object) && inherits(design_object, "survey.design")
   analysis_object <- if (isTRUE(is_survey)) {
     design_object$variables <- data_aug

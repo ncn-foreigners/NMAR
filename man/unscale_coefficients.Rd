@@ -9,12 +9,12 @@ unscale_coefficients(scaled_coeffs, scaled_vcov, recipe)
 \arguments{
 \item{scaled_coeffs}{named numeric vector of coefficients estimated on the scaled space.}
 
-\item{scaled_vcov}{covariance matrix of `scaled_coeffs`.}
+\item{scaled_vcov}{covariance matrix of \code{scaled_coeffs}.}
 
-\item{recipe}{`nmar_scaling_recipe` produced when scaling was applied.}
+\item{recipe}{Scaling recipe of class \code{nmar_scaling_recipe}.}
 }
 \value{
-a list with unscaled `coefficients` and `vcov`.
+A list with components \code{coefficients} and \code{vcov}.
 }
 \description{
 Unscale regression coefficients and covariance

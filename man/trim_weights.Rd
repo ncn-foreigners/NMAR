@@ -37,6 +37,9 @@ preserved. When the requested cap is too tight to preserve the total mass,
 all positive entries are set to the cap and the total sum decreases.
 }
 \details{
+Zero weights remain zero; only entries that are positive after nonnegativity
+enforcement can absorb redistributed mass.
+
 Internally, a simple water-filling style algorithm is used on the positive
 weights: the largest weights are successively saturated at the cap and the
 remaining weights are rescaled by a common factor chosen to maintain the

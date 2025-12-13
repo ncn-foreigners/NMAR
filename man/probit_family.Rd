@@ -2,11 +2,15 @@
 % Please edit documentation in R/shared_families.R
 \name{probit_family}
 \alias{probit_family}
-\title{Probit family functions (link and derivatives)}
+\title{Construct a probit response family bundle}
 \usage{
 probit_family()
 }
+\value{
+A list with components \code{name}, \code{linkinv}, \code{mu.eta},
+  \code{d2mu.deta2}, and \code{score_eta}.
+}
 \description{
-Probit family functions (link and derivatives)
+Construct a probit response family bundle
 }
 \keyword{internal}

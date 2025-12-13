@@ -30,9 +30,9 @@ el_estimator_core(
 
 \item{aux_matrix}{Auxiliary design matrix on respondents (may have zero columns).}
 
-\item{aux_means}{Named numeric vector of auxiliary population means (aligned to columns of `aux_matrix`).}
+\item{aux_means}{Named numeric vector of auxiliary population means (aligned to columns of \code{aux_matrix}).}
 
-\item{respondent_weights}{Numeric vector of respondent weights aligned with `missingness_design` rows.}
+\item{respondent_weights}{Numeric vector of respondent weights aligned with \code{missingness_design} rows.}
 
 \item{analysis_data}{Data object used for logging and variance (survey designs supply the design object).}
 
@@ -70,7 +70,7 @@ and diagnostic computation.
 Orchestrates EL estimation for NMAR following Qin, Leung, and Shao (2002).
 For \code{data.frame} inputs (IID setting) the stacked system in
 \eqn{(\beta, z, \lambda_x)} with \eqn{z = \logit(W)} is solved by
-\code{nleqslv} using an analytic Jacobian. For \code{survey.design} inputs a
+\code{nleqslv::nleqslv()} using an analytic Jacobian. For \code{survey.design} inputs a
 design-weighted analogue in \eqn{(\beta, z, \lambda_W, \lambda_x)} is solved
 with an analytic Jacobian when the response family supplies second
 derivatives, or with numeric/Broyden Jacobians otherwise. Numerical

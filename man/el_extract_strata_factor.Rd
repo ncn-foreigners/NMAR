@@ -7,8 +7,9 @@
 el_extract_strata_factor(design)
 }
 \description{
-Uses the original svydesign() call stored in the object to recreate the
-stratum labels as a single factor. When multiple stratification variables
-are supplied, their interaction is used.
+Prefers strata already materialized in the \code{survey.design} object
+(typically \code{design$strata}). When unavailable, attempts to reconstruct
+strata from the original \code{svydesign()} call. When multiple
+stratification variables are supplied, their interaction is used.
 }
 \keyword{internal}

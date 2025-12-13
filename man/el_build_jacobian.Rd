@@ -26,11 +26,17 @@ Builds the block Jacobian \eqn{A = \partial F/\partial \theta} for the
   link-inverse clipping. Denominator guards are applied consistently when
   forming terms depending on \eqn{D_i(\theta)}.
 
-  Guarding policy (must remain consistent across equations/Jacobian/post):
-  - Cap eta: eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())
-  - Compute w <- family$linkinv(eta); clip to [1e-12, 1-1e-12] when used in ratios
-  - Denominator floor: Di <- pmax(Di_raw, nmar_get_el_denom_floor());
-    multiply terms that depend on d(1/Di)/d(.) by active = 1(Di_raw > floor)
+  \strong{Guarding policy (must remain consistent across equations/Jacobian/post):}
+  \itemize{
+    \item Cap \eqn{\eta}:
+      \code{eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())}.
+    \item Compute \code{w <- family$linkinv(eta)} and clip to
+      \code{[1e-12, 1 - 1e-12]} when used in ratios.
+    \item Denominator floor:
+      \code{Di <- pmax(Di_raw, nmar_get_el_denom_floor())}. Terms that depend
+      on \code{d(1/Di)/d(.)} are multiplied by \code{active = 1(Di_raw > floor)}
+      to match the clamped equations.
+  }
 }
 \references{
 Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under

@@ -28,9 +28,9 @@ unavailable or when forcing Broyden.}
 
 \item{init}{Numeric vector of initial parameter values.}
 
-\item{final_control}{List passed to `nleqslv(control = ...)`.}
+\item{final_control}{List passed to \code{nleqslv::nleqslv(control = ...)}.}
 
-\item{top_args}{List of top-level `nleqslv` args (e.g., `global`, `xscalm`).}
+\item{top_args}{List of top-level \code{nleqslv::nleqslv} args (e.g., \code{global}, \code{xscalm}).}
 
 \item{solver_method}{Character; one of "auto", "newton", or "broyden".}
 

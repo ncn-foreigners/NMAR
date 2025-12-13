@@ -4,15 +4,14 @@
 NULL
 
 #' Print method for EL results
-#' @description Compact print for objects of class `nmar_result_el`.
-#' @param x An object of class `nmar_result_el`.
+#' @description Compact print for objects of class \code{nmar_result_el}.
+#' @param x An object of class \code{nmar_result_el}.
 #' @param ... Ignored.
 #' @keywords result_view
 #' @export
 print.nmar_result_el <- function(x, ...) {
   meta <- x$meta %||% list()
-# Print an abridged call line instead of the full captured call to avoid
-# dumping large data objects
+# Print an abridged call line to avoid dumping large embedded objects.
   call_line <- nmar_format_call_line(x)
   if (is.character(call_line) && nzchar(call_line)) {
     cat(call_line, "\n\n", sep = "")
@@ -44,7 +43,7 @@ print.nmar_result_el <- function(x, ...) {
 
 #' Summary method for EL results
 #' @description Summarize estimation, standard error and missingness-model coefficients.
-#' @param object An object of class `nmar_result_el`.
+#' @param object An object of class \code{nmar_result_el}.
 #' @param ... Ignored.
 #' @keywords result_view
 #' @export
@@ -53,8 +52,7 @@ summary.nmar_result_el <- function(object, ...) {
   model <- nmar_result_get_model(object)
   base$response_model <- model$coefficients
   base$response_vcov <- model$vcov
-# Keep an abridged call string for printing; avoid storing the full call
-# (which may embed the entire data frame)
+# Keep an abridged call string for printing (full calls may embed data).
   base$call_line <- nmar_format_call_line(object)
   base$df <- nmar_result_get_inference(object)$df
   class(base) <- c("summary_nmar_result_el", class(base))
@@ -99,5 +97,3 @@ print.summary_nmar_result_el <- function(x, ...) {
   }
   invisible(x)
 }
-
-## Engine-specific methods beyond parent defaults are not required here.

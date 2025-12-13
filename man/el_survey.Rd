@@ -24,14 +24,14 @@
 )
 }
 \arguments{
-\item{data}{A `survey.design` created with [survey::svydesign()].}
+\item{data}{A \code{survey.design} created with \code{survey::svydesign()}.}
 
 \item{formula}{Two-sided formula with an NA-valued outcome on the LHS;
 auxiliaries on the first RHS and, optionally, missingness predictors on
 the second RHS partition.}
 
 \item{auxiliary_means}{Named numeric vector of population means for auxiliary
-design columns. Names must match the materialized `model.matrix` columns on
+design columns. Names must match the materialized \code{model.matrix} columns on
 the first RHS (after formula expansion), including factor indicators and
 transformed terms. The intercept is always excluded.}
 
@@ -41,15 +41,15 @@ transformed terms. The intercept is always excluded.}
 auxiliary design with stratum indicators and stratum shares when a strata
 structure is present in the survey design.}
 
-\item{trim_cap}{Numeric; cap for EL weights (Inf = no trimming).}
+\item{trim_cap}{Numeric; cap for EL weights (\code{Inf} = no trimming).}
 
-\item{control}{List; solver control for `nleqslv(control=...)`.}
+\item{control}{List; solver control for \code{nleqslv::nleqslv(control = ...)}.}
 
-\item{on_failure}{Character; "return" or "error" on solver failure.}
+\item{on_failure}{Character; \code{"return"} or \code{"error"} on solver failure.}
 
-\item{variance_method}{Character; "bootstrap" or "none".}
+\item{variance_method}{Character; \code{"bootstrap"} or \code{"none"}.}
 
-\item{bootstrap_reps}{Integer; reps when `variance_method = "bootstrap"`.}
+\item{bootstrap_reps}{Integer; reps when \code{variance_method = "bootstrap"}.}
 
 \item{n_total}{Optional analysis-scale population size \code{N_pop}; required for respondents-only designs.}
 
@@ -62,10 +62,11 @@ structure is present in the survey design.}
 \item{...}{Passed to solver.}
 }
 \value{
-`c('nmar_result_el','nmar_result')`.
+\code{c("nmar_result_el","nmar_result")}.
 }
 \description{
-Internal method dispatched by `el()` when `data` is a `survey.design`.
+Internal method dispatched by \code{el()} when \code{data} is a
+  \code{survey.design}.
 }
 \details{
 Implements the empirical likelihood estimator with design weights.
@@ -73,15 +74,11 @@ Implements the empirical likelihood estimator with design weights.
   size \code{N_pop} used in the design-weighted QLS system. If \code{n_total}
   is not supplied, \code{sum(weights(design))} is used as \code{N_pop}. Design
   weights are not rescaled internally; the EL equations use respondent weights
-  and \code{N_pop} via \code{T0 = N_pop - sum(d_i)} in the linkage equation.
+  and \code{N_pop} via \eqn{T_0 = N_{\mathrm{pop}} - \sum d_i} in the linkage equation.
   When respondents-only designs are used (no NA in the outcome), \code{n_total}
   must be provided; if auxiliaries are requested you must also provide
   population auxiliary means via \code{auxiliary_means}. Result weights are the
-  unnormalized EL masses \code{d_i/D_i(theta)} on this analysis scale;
+  unnormalized EL masses \eqn{d_i / D_i(\theta)} on this analysis scale;
   \code{weights(result, scale = "population")} sums to \code{N_pop}.
-}
-\references{
-Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
-nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
 }
 \keyword{internal}

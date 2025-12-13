@@ -14,21 +14,22 @@ create_nmar_scaling_recipe(
 )
 }
 \arguments{
-\item{...}{one or more matrices with named columns.}
+\item{...}{One or more numeric matrices with column names.}
 
-\item{intercept_col}{Intercept column name that should remain unscaled.}
+\item{intercept_col}{Name of an intercept column that should remain unscaled.}
 
-\item{weights}{Optional numeric vector of weights used to compute weighted
-means/standard deviations.}
+\item{weights}{Optional nonnegative numeric vector used to compute weighted
+means and standard deviations.}
 
-\item{weight_mask}{Optional logical/ numeric mask applied to `weights` before
-computing moments (useful for respondents-only scaling).}
+\item{weight_mask}{Optional logical mask or nonnegative numeric multipliers
+applied to \code{weights} before computing moments (useful for
+respondents-only scaling). If \code{weights} is \code{NULL},
+\code{weight_mask} is treated as weights.}
 
 \item{tol_constant}{Numeric tolerance below which columns are treated as
 constant and left unscaled.}
 
-\item{warn_on_constant}{Logical; emit a warning when a column is treated as
-constant.}
+\item{warn_on_constant}{Logical; warn when a column is treated as constant.}
 }
 \description{
 Build a scaling recipe from one or more design matrices
