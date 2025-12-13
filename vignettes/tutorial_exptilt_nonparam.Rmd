@@ -42,18 +42,18 @@ This estimator is specifically designed for scenarios where:
 # Test data (Riddles 2016)
 head(voting)
 ```
-## Engine Configuration
+# Engine Configuration
 
 The `exptilt_nonparam_engine` specifies the column containing nonrespondent counts and sets convergence criteria for the EM algorithm.
 
 The model is specified via a two-part formula: `Outcome_Counts` ~ `Response_Covariates` | `Instrument`:
-- LHS: Sum of outcome columns.
-- RHS: Covariates influencing response probability (left of |) and the instrumental variable (right of |)
+- **LHS**: Sum of outcome columns.
+- **RHS**: Covariates influencing response probability (left of |) and the instrumental variable (right of |)
 ```{r}
 np_em_config <- exptilt_nonparam_engine(
   refusal_col = "Refusal",
-  max_iter = 100,
-  tol_value = 0.1
+  max_iter = 100, # Maximum EM iterations
+  tol_value = 0.1 # Convergence tolerance
 )
 
 em_formula <- Voted_A + Voted_B + Other ~ Gender | Age_group
@@ -89,10 +89,8 @@ if (requireNamespace("survey", quietly = TRUE)) {
 
 # Simulate sampling weights
   set.seed(42)
-  voting_weights <- voting
-  voting_weights$wts <- abs(rnorm(nrow(voting), mean = 1, sd = 0.05))
 
-  des <- svydesign(ids = ~1, weights = ~wts, data = voting_weights)
+  des <- svydesign(ids = ~1, weights = abs(rnorm(nrow(voting), mean = 1, sd = 0.05)), data = voting)
 
   fit_survey <- nmar(
     formula = em_formula,
