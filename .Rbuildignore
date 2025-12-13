@@ -23,7 +23,7 @@
 ^quadro\.html$
 ^quadro_files$
 ^_pkgdown\.yml$
-^logo\.PNG$
+^logo\.png$
 ^pkgdown$
 ^quadro$
 ^quadro\.qmd$
