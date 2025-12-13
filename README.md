@@ -113,7 +113,7 @@ fit_et <- nmar(
 summary(fit_et)
 #> NMAR Model Summary
 #> =================
-#> y mean: -1.004075
+#> y mean: -1.004084
 #> Converged: TRUE 
 #> Variance method: none
 ```
