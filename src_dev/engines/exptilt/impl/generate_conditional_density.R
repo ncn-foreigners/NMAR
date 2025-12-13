@@ -1,6 +1,6 @@
 ##' Import specific stats functions used here to satisfy R CMD check
 #' @importFrom stats binomial dbinom
-NULL
+
 
 generate_conditional_density <- function(model) {
 
