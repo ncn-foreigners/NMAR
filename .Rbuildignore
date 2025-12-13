@@ -17,6 +17,7 @@
 ^src_dev$
 ^\.pre-commit-config\.yaml$
 ^README\.Rmd$
+^README\.html$
 ^codecov\.yml$
 ^.venv$
 ^quadro\.html$

@@ -17,6 +17,7 @@ vignettes/*.pdf
 *.zip
 R/
 README.md
+README.html
 docs/
 quadro.html
 quadro_files/
