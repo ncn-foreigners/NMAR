@@ -12,12 +12,12 @@ apply_nmar_scaling(matrix_to_scale, recipe)
 
 - matrix_to_scale:
 
-  a numeric matrix with column names present in \`recipe\`.
+  A numeric matrix with column names present in `recipe`.
 
 - recipe:
 
-  an object of class \`nmar_scaling_recipe\`.
+  An object of class `nmar_scaling_recipe`.
 
 ## Value
 
-a matrix with each named column centered and scaled using the recipe
+A numeric matrix with each column centered and scaled using `recipe`.

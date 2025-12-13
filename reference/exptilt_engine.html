@@ -3,7 +3,7 @@
 nonignorable nonresponse (NMAR).
 The estimator solves \(S_2(\boldsymbol{\phi}, \hat{\boldsymbol{\gamma}}) = 0,\) using nleqslv to apply EM algorithm."><meta property="og:description" content="Constructs a configuration for the exponential tilting estimator under
 nonignorable nonresponse (NMAR).
-The estimator solves \(S_2(\boldsymbol{\phi}, \hat{\boldsymbol{\gamma}}) = 0,\) using nleqslv to apply EM algorithm."></head><body>
+The estimator solves \(S_2(\boldsymbol{\phi}, \hat{\boldsymbol{\gamma}}) = 0,\) using nleqslv to apply EM algorithm."><meta property="og:image" content="https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -46,8 +46,7 @@ The estimator solves \(S_2(\boldsymbol{\phi}, \hat{\boldsymbol{\gamma}}) = 0,\) 
 </nav><div class="container template-reference-topic">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>Exponential tilting (ET) engine for NMAR estimation</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Exponential tilting (ET) engine for NMAR estimation</h1>
       <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/NMAR/blob/package-dev/R/engines_exptilt_engine.R" class="external-link"><code>R/engines_exptilt_engine.R</code></a></small>
       <div class="d-none name"><code>exptilt_engine.Rd</code></div>
     </div>
@@ -226,8 +225,8 @@ A Propensity-score-adjustment Method for Nonignorable Nonresponse
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] -- DATA SUMMARY -- </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Total observations:      500 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Respondents:             348 (30.4%) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Non-respondents:         152 (69.6%) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Respondents:             355 (29.0%) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Non-respondents:         145 (71.0%) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] -- CONDITIONAL DENSITY ESTIMATION -- </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Selected distribution:   normal </span>
@@ -236,25 +235,25 @@ A Propensity-score-adjustment Method for Nonignorable Nonresponse
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Solving... </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   OK Converged </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Iterations:               6 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Iterations:               4 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Bootstrap replications:   5 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   OK Bootstrap complete </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Standard error:           0.091309 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]   Standard error:           0.076549 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [INFO]  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT] ============================================================ </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   ESTIMATION COMPLETE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT] ============================================================ </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   Mean estimate:            -0.942440 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   Standard error:           0.091309 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   95% CI:                   [-1.121405, -0.763474] </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   Mean estimate:            -1.007936 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   Standard error:           0.076549 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT]   95% CI:                   [-1.157972, -0.857899] </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [RESULT] ============================================================ </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NMAR Model Summary</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> =================</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Y mean: -0.942440 (0.091309)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 95% CI: (-1.121402, -0.763478)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Y mean: -1.007936 (0.076549)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 95% CI: (-1.157969, -0.857902)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Converged: TRUE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Variance method: bootstrap </span>
 <span class="r-in"><span><span class="co"># }</span></span></span>

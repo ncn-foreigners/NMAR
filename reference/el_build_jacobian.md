@@ -27,12 +27,17 @@ missingness (response) model uses the Bernoulli score form
 link-inverse clipping. Denominator guards are applied consistently when
 forming terms depending on \\D_i(\theta)\\.
 
-Guarding policy (must remain consistent across
-equations/Jacobian/post): - Cap eta: eta \<- pmax(pmin(eta,
-get_eta_cap()), -get_eta_cap()) - Compute w \<- family\$linkinv(eta);
-clip to \[1e-12, 1-1e-12\] when used in ratios - Denominator floor: Di
-\<- pmax(Di_raw, nmar_get_el_denom_floor()); multiply terms that depend
-on d(1/Di)/d(.) by active = 1(Di_raw \> floor)
+**Guarding policy (must remain consistent across
+equations/Jacobian/post):**
+
+- Cap \\\eta\\: `eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())`.
+
+- Compute `w <- family$linkinv(eta)` and clip to `[1e-12, 1 - 1e-12]`
+  when used in ratios.
+
+- Denominator floor: `Di <- pmax(Di_raw, nmar_get_el_denom_floor())`.
+  Terms that depend on `d(1/Di)/d(.)` are multiplied by
+  `active = 1(Di_raw > floor)` to match the clamped equations.
 
 ## References
 

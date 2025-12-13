@@ -25,16 +25,21 @@ correspond to: (i) missingness (response) model score equations in
 moment constraints in \\\lambda_x\\. When no auxiliaries are present the
 last block is omitted. The system matches Qin, Leung, and Shao (2002,
 Eqs. 7-10) with empirical masses \\m_i = d_i/D_i(\theta)\\, \\D_i\\ as
-in the paper. We cap \\\eta\\, clip \\p\\, and guard \\D_i\\ away from
-zero to ensure numerical stability; these safeguards are applied
-consistently in equations, Jacobian, and post-solution weights.
+in the paper. We cap \\\eta\\, clip \\w_i\\ in ratios, and guard \\D_i\\
+away from zero to ensure numerical stability; these safeguards are
+applied consistently in equations, Jacobian, and post-solution weights.
 
-Guarding policy (must remain consistent across
-equations/Jacobian/post): - Cap eta: eta \<- pmax(pmin(eta,
-get_eta_cap()), -get_eta_cap()) - Compute w \<- family\$linkinv(eta);
-clip to \[1e-12, 1-1e-12\] when used in ratios - Denominator floor: Di
-\<- pmax(Di_raw, nmar_get_el_denom_floor()); in the Jacobian, multiply
-terms that depend on d(1/Di)/d(.) by active = 1(Di_raw \> floor)
+**Guarding policy (must remain consistent across
+equations/Jacobian/post):**
+
+- Cap \\\eta\\: `eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())`.
+
+- Compute `w <- family$linkinv(eta)` and clip to `[1e-12, 1 - 1e-12]`
+  when used in ratios.
+
+- Denominator floor: `Di <- pmax(Di_raw, nmar_get_el_denom_floor())`. In
+  the Jacobian, terms that depend on `d(1/Di)/d(.)` are multiplied by
+  `active = 1(Di_raw > floor)` to match the clamped equations.
 
 The score with respect to the linear predictor uses the Bernoulli form
 \\s\_{\eta,i}(\beta) = \partial \log w_i / \partial \eta_i =

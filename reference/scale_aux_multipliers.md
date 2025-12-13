@@ -17,7 +17,7 @@ scale_aux_multipliers(lambda_unscaled, recipe, columns)
 
 - recipe:
 
-  \`nmar_scaling_recipe\`.
+  Scaling recipe of class `nmar_scaling_recipe`.
 
 - columns:
 

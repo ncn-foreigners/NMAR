@@ -38,11 +38,13 @@ el_run_solver(
 
 - final_control:
 
-  List passed to \`nleqslv(control = ...)\`.
+  List passed to `nleqslv::nleqslv(control = ...)`.
 
 - top_args:
 
-  List of top-level \`nleqslv\` args (e.g., \`global\`, \`xscalm\`).
+  List of top-level
+  [`nleqslv::nleqslv`](https://rdrr.io/pkg/nleqslv/man/nleqslv.html)
+  args (e.g., `global`, `xscalm`).
 
 - solver_method:
 

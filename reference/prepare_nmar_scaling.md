@@ -28,7 +28,7 @@ prepare_nmar_scaling(
 - mu_x_un:
 
   named numeric vector of auxiliary means on the original scale (names
-  must match \`colnames(X_un)\`), or NULL.
+  must match `colnames(X_un)`), or `NULL`.
 
 - standardize:
 
@@ -40,8 +40,9 @@ prepare_nmar_scaling(
 
 - weight_mask:
 
-  Optional logical/numeric mask applied to \`weights\`.
+  Optional logical mask or nonnegative numeric multipliers applied to
+  `weights`.
 
 ## Value
 
-a list with \`Z\`, \`X\`, \`mu_x\`, and \`recipe\`.
+A list with components `Z`, `X`, `mu_x`, and `recipe`.

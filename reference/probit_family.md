@@ -1,9 +1,14 @@
-# Probit family functions (link and derivatives)
+# Construct a probit response family bundle
 
-Probit family functions (link and derivatives)
+Construct a probit response family bundle
 
 ## Usage
 
 ``` r
 probit_family()
 ```
+
+## Value
+
+A list with components `name`, `linkinv`, `mu.eta`, `d2mu.deta2`, and
+`score_eta`.

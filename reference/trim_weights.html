@@ -5,7 +5,7 @@ preserved. When the requested cap is too tight to preserve the total mass,
 all positive entries are set to the cap and the total sum decreases."><meta property="og:description" content="Applies a cap to a nonnegative weight vector and, when feasible, redistributes
 excess mass across the remaining positive entries so that the total sum is
 preserved. When the requested cap is too tight to preserve the total mass,
-all positive entries are set to the cap and the total sum decreases."></head><body>
+all positive entries are set to the cap and the total sum decreases."><meta property="og:image" content="https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -48,8 +48,7 @@ all positive entries are set to the cap and the total sum decreases."></head><bo
 </nav><div class="container template-reference-topic">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>Trim weights by capping and proportional redistribution</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Trim weights by capping and proportional redistribution</h1>
       <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/NMAR/blob/package-dev/R/shared_weights.R" class="external-link"><code>R/shared_weights.R</code></a></small>
       <div class="d-none name"><code>trim_weights.Rd</code></div>
     </div>
@@ -112,7 +111,9 @@ has been preserved.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Internally, a simple water-filling style algorithm is used on the positive
+    <p>Zero weights remain zero; only entries that are positive after nonnegativity
+enforcement can absorb redistributed mass.</p>
+<p>Internally, a simple water-filling style algorithm is used on the positive
 weights: the largest weights are successively saturated at the cap and the
 remaining weights are rescaled by a common factor chosen to maintain the
 total sum.</p>

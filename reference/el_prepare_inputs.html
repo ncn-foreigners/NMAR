@@ -7,7 +7,7 @@ use of the outcome variable on RHS2 is rejected."><meta property="og:description
 respondent delta indicator, attaches weights and (optionally) survey metadata,
 and returns the pieces needed by the EL core. The outcome enters the
 missingness design only through the evaluated LHS expression; any explicit
-use of the outcome variable on RHS2 is rejected."></head><body>
+use of the outcome variable on RHS2 is rejected."><meta property="og:image" content="https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -50,8 +50,7 @@ use of the outcome variable on RHS2 is rejected."></head><body>
 </nav><div class="container template-reference-topic">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>Prepare EL inputs for IID and survey designs</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Prepare EL inputs for IID and survey designs</h1>
       <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/NMAR/blob/package-dev/R/engines_el_impl_input.R" class="external-link"><code>R/engines_el_impl_input.R</code></a></small>
       <div class="d-none name"><code>el_prepare_inputs.Rd</code></div>
     </div>
@@ -77,26 +76,26 @@ use of the outcome variable on RHS2 is rejected.</p>
 
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Invariants enforced here (relied on by all downstream EL code):</p><ul><li><p>LHS references exactly one outcome source variable in `data`; any
+    <p>Invariants enforced here (relied on by all downstream EL code):</p><ul><li><p>LHS references exactly one outcome source variable in <code>data</code>; any
     transforms are applied via the formula environment and must be defined
     for all respondent rows.</p></li>
 <li><p>The outcome is never allowed to appear on RHS1 (auxiliaries) or RHS2
     (missingness predictors), either explicitly in the formula or implicitly
-    via dot (`.`) expansion. The missingness model uses the evaluated LHS
+    via dot (<code>.</code>) expansion. The missingness model uses the evaluated LHS
     expression as a dedicated predictor column instead.</p></li>
 <li><p>RHS1 always yields an intercept-free auxiliary design matrix with
-    k-1 coding for factor auxiliaries, regardless of user `+0`/`-1` syntax or
+    k-1 coding for factor auxiliaries, regardless of user <code>+0</code>/<code>-1</code> syntax or
     custom contrasts. Auxiliary columns are validated to be fully observed
     and non-constant among respondents.</p></li>
 <li><p>RHS2 always yields a missingness-design matrix for respondents that
     includes an intercept column and zero-variance predictors only emit
     warnings (not errors); NA among respondents is rejected.</p></li>
-<li><p>`respondent_mask` is defined from the raw outcome in `data`, not from
-    the transformed LHS; an injected `..nmar_delta..` indicator in
-    `analysis_data` matches this mask exactly.</p></li>
-<li><p>`N_pop` is the analysis-scale population size used in the EL system:
-    for IID it is `nrow(data)` unless overridden by `n_total`; for survey
-    designs it is `sum(weights)` or `n_total` when supplied.</p></li>
+<li><p><code>respondent_mask</code> is defined from the raw outcome in <code>data</code>, not from
+    the transformed LHS; an injected <code>..nmar_delta..</code> indicator in
+    <code>analysis_data</code> matches this mask exactly.</p></li>
+<li><p><code>N_pop</code> is the analysis-scale population size used in the EL system:
+    for IID it is <code>nrow(data)</code> unless overridden by <code>n_total</code>; for survey
+    designs it is <code>sum(weights)</code> or <code>n_total</code> when supplied.</p></li>
 </ul></div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

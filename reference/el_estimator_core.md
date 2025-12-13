@@ -43,12 +43,12 @@ el_estimator_core(
 - aux_means:
 
   Named numeric vector of auxiliary population means (aligned to columns
-  of \`aux_matrix\`).
+  of `aux_matrix`).
 
 - respondent_weights:
 
-  Numeric vector of respondent weights aligned with
-  \`missingness_design\` rows.
+  Numeric vector of respondent weights aligned with `missingness_design`
+  rows.
 
 - analysis_data:
 
@@ -109,7 +109,8 @@ List containing estimation results, diagnostics, and metadata.
 
 Orchestrates EL estimation for NMAR following Qin, Leung, and Shao
 (2002). For `data.frame` inputs (IID setting) the stacked system in
-\\(\beta, z, \lambda_x)\\ with \\z = \logit(W)\\ is solved by `nleqslv`
+\\(\beta, z, \lambda_x)\\ with \\z = \logit(W)\\ is solved by
+[`nleqslv::nleqslv()`](https://rdrr.io/pkg/nleqslv/man/nleqslv.html)
 using an analytic Jacobian. For `survey.design` inputs a design-weighted
 analogue in \\(\beta, z, \lambda_W, \lambda_x)\\ is solved with an
 analytic Jacobian when the response family supplies second derivatives,

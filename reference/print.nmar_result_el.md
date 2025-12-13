@@ -1,6 +1,6 @@
 # Print method for EL results
 
-Compact print for objects of class \`nmar_result_el\`.
+Compact print for objects of class `nmar_result_el`.
 
 ## Usage
 
@@ -13,7 +13,7 @@ print(x, ...)
 
 - x:
 
-  An object of class \`nmar_result_el\`.
+  An object of class `nmar_result_el`.
 
 - ...:
 

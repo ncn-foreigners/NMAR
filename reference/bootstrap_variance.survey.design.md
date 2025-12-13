@@ -19,16 +19,18 @@ bootstrap_variance.survey.design(
 
 - data:
 
-  a \`data.frame\` or a \`survey.design\`.
+  A `survey.design`.
 
 - estimator_func:
 
-  function that returns an S3 result object; the primary estimate is
-  extracted via \`\$y_hat\` and convergence via \`\$converged\`.
+  Function returning an object with a numeric scalar component `y_hat`
+  and an optional logical component `converged`.
 
 - point_estimate:
 
-  numeric; point estimate used for some survey variance formulas.
+  Numeric scalar; used for survey bootstrap variance (passed to
+  [`survey::svrVar()`](https://rdrr.io/pkg/survey/man/svrVar.html) as
+  `coef`).
 
 - bootstrap_reps:
 
@@ -41,9 +43,8 @@ bootstrap_variance.survey.design(
 
   `"strict"`
 
-  :   (default) Any failed replicate causes an error. This ensures the
-      full replicate design structure is maintained and is required for
-      proper calibration-based variance.
+  :   (default) Any failed replicate causes an error. This is a
+      conservative default that makes instability explicit.
 
   `"omit"`
 
@@ -53,66 +54,48 @@ bootstrap_variance.survey.design(
 
 - ...:
 
-  passed through to \`estimator_func\`.
+  Additional arguments. Some are consumed by
+  [`bootstrap_variance()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/bootstrap_variance.md)
+  itself (for example `resample_guard` for IID bootstrap or
+  `bootstrap_settings`/`bootstrap_options`/`bootstrap_type`/`bootstrap_mse`
+  for survey bootstrap); remaining arguments are forwarded to
+  `estimator_func`.
 
 ## Value
 
-a list with \`se\`, \`variance\`, and the vector of \`replicates\`.
+A list with components `se`, `variance`, and `replicates`.
 
 ## Details
 
 This path constructs a replicate-weight design using
-\[svrep::as_bootstrap_design()\] and rebuilds the original sampling
-design for each replicate weight vector. The supplied design must have
-been created directly with \[survey::svydesign()\].
+[`svrep::as_bootstrap_design()`](https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html)
+and evaluates the estimator on each set of bootstrap replicate analysis
+weights.
+
+Replicate evaluation starts from a shallow template copy of the input
+survey design (including its ids/strata/fpc structure) and injects each
+replicate's analysis weights by updating the design's probability slots
+(`prob`/`allprob`) so that `weights(design)` returns the desired
+replicate weights (with zero weights represented as `prob = Inf`). This
+avoids replaying or reconstructing a
+[`svydesign()`](https://rdrr.io/pkg/survey/man/svydesign.html) call and
+therefore supports designs created via
+[`subset()`](https://rdrr.io/r/base/subset.html) and
+[`update()`](https://rdrr.io/r/stats/update.html).
 
 **NA policy:** By default, survey bootstrap uses a strict NA policy: if
 any replicate fails to produce a finite estimate, the entire bootstrap
-fails with an error. This ensures that the full replicate design
-structure is maintained for design-calibrated variance via
-[`survey::svrVar()`](https://rdrr.io/pkg/survey/man/svrVar.html). In
-contrast, IID bootstrap allows up to 10% failures before warning and
-uses [`stats::var()`](https://rdrr.io/r/stats/cor.html) on the
-successful replicates.
+fails with an error. Setting `survey_na_policy = "omit"` drops failed
+replicates (and their corresponding `rscales`) and proceeds with the
+remaining replicates.
 
 ## Limitations
 
-**Design reconstruction:** Survey bootstrap currently supports only
-designs created directly with
-[`survey::svydesign()`](https://rdrr.io/pkg/survey/man/svydesign.html).
-Post-hoc adjustments applied via
+**Calibrated/post-stratified designs:** Post-hoc adjustments applied via
 [`survey::calibrate()`](https://rdrr.io/pkg/survey/man/calibrate.html),
 [`survey::postStratify()`](https://rdrr.io/pkg/survey/man/postStratify.html),
-or [`survey::rake()`](https://rdrr.io/pkg/survey/man/rake.html) cannot
-be reconstructed across bootstrap replicates and will cause the function
-to error.
-
-Calibrated or post-stratified designs are not supported by this
-bootstrap path. Start from the original \`survey::svydesign()\` object
-prior to calibration/post-stratification.
-
-**Supported design features:** The following `svydesign()` parameters
-are preserved during reconstruction:
-
-- `ids` (or `id`): Sampling unit identifiers
-
-- `strata`: Stratification variables
-
-- `fpc`: Finite population correction
-
-- `nest`: Nested vs non-nested strata
-
-The following are not preserved (they conflict with replicate weights):
-
-- `probs`: Sampling probabilities (incompatible with direct weights)
-
-- `pps`: PPS sampling specification (incompatible with direct weights)
-
-**Rationale:** When reconstructing designs for each replicate, the
-original analysis weights are replaced with bootstrap replicate weights.
-Specifying both `weights` and `probs`/`pps` simultaneously is undefined
-behavior in
-[`survey::svydesign()`](https://rdrr.io/pkg/survey/man/svydesign.html).
-The structural design parameters (ids, strata, fpc, nest) define the
-sampling topology and are preserved; the weights define the analysis
-weights and are replaced.
+or [`survey::rake()`](https://rdrr.io/pkg/survey/man/rake.html) are not
+supported here and will cause the function to error. These adjustments
+are not recomputed when replicate weights are injected, so the replicate
+designs would not reflect the intended calibrated/post-stratified
+analysis.

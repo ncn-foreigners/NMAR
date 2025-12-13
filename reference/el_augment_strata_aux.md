@@ -1,8 +1,10 @@
 # Strata augmentation for survey designs
 
 Augments the auxiliary design with strata dummies (dropping one level)
-and appends stratum-share means when weights and N_pop are available.
-Intended for survey workflows only.
+and appends stratum-share means when user-supplied `auxiliary_means` are
+present. This is the Wu-style strategy of adding stratum indicators to
+the auxiliary calibration block in pseudo empirical likelihood for
+surveys.
 
 ## Usage
 

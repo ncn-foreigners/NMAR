@@ -60,6 +60,9 @@ A list with components:
 
 ## Details
 
+Zero weights remain zero; only entries that are positive after
+nonnegativity enforcement can absorb redistributed mass.
+
 Internally, a simple water-filling style algorithm is used on the
 positive weights: the largest weights are successively saturated at the
 cap and the remaining weights are rescaled by a common factor chosen to

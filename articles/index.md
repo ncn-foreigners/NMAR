@@ -11,7 +11,7 @@ both data.frame and survey design objects
   Jing Qin, Denis Leung, Jun Shao  
   Estimation With Survey Data Under Nonignorable Nonresponse or
   Informative Sampling  
-  <http://dx.doi.org/10.1198/016214502753479338>
+  <https://doi.org/10.1198/016214502753479338>
 
 - [Exponential
   Tilting](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/tutorial_exptilt.md):
@@ -33,7 +33,7 @@ both data.frame and survey design objects
 - [Developing a New NMAR
   Estimator](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/developing_new_nmar_estimator.md):
 
-  Guide for adding a new NMAR estimator to the `nmar` package
+  Guide for adding a new NMAR estimator to the `NMAR` package
 
 ### Theory
 

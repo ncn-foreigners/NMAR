@@ -13,11 +13,11 @@ scale_coefficients(beta_unscaled, recipe, columns)
 - beta_unscaled:
 
   named numeric vector of coefficients for the response model on the
-  original scale, including an intercept named \`"(Intercept)"\`.
+  original scale, including an intercept named `"(Intercept)"`.
 
 - recipe:
 
-  \`nmar_scaling_recipe\` returned by scaling utilities.
+  Scaling recipe of class `nmar_scaling_recipe`, or `NULL`.
 
 - columns:
 
@@ -27,4 +27,4 @@ scale_coefficients(beta_unscaled, recipe, columns)
 ## Value
 
 numeric vector of coefficients in the scaled space, ordered by
-\`columns\`.
+`columns`.

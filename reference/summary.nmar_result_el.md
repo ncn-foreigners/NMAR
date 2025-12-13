@@ -13,7 +13,7 @@ summary(object, ...)
 
 - object:
 
-  An object of class \`nmar_result_el\`.
+  An object of class `nmar_result_el`.
 
 - ...:
 

@@ -44,9 +44,11 @@ validate_and_apply_nmar_scaling(
 
 - weight_mask:
 
-  Optional logical/numeric mask applied to \`weights\`.
+  Optional logical mask or nonnegative numeric multipliers applied to
+  `weights`.
 
 ## Value
 
-a list with \`nmar_scaling_recipe\`, \`response_model_matrix_scaled\`,
-\`auxiliary_matrix_scaled\`, and \`mu_x_scaled\`.
+A list with components `nmar_scaling_recipe`,
+`response_model_matrix_scaled`, `auxiliary_matrix_scaled`, and
+`mu_x_scaled`.

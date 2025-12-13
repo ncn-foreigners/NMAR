@@ -3,12 +3,14 @@
 ## Overview
 
 This vignette demonstrates the empirical likelihood (EL) estimator for
-Not Missing At Random (NMAR) data in the NMAR package. The method
-implements the estimator of Qin, Leung, and Shao (2002), using empirical
-likelihood weights that satisfy estimating equations for the response
-mechanism and (optionally) auxiliary moment constraints. For full
-derivations, the analytic Jacobian, and variance discussion (bootstrap),
-see the companion article “Empirical Likelihood Theory for NMAR”.
+Not Missing At Random (NMAR) data in the NMAR package. The primary
+estimand is the full-data mean of the outcome $Y$ under the QLS NMAR
+model. The method implements the estimator of Qin, Leung, and Shao
+(2002), using empirical likelihood weights that satisfy estimating
+equations for the response mechanism and (optionally) auxiliary moment
+constraints. For full derivations, the analytic Jacobian, and variance
+discussion (bootstrap), see the companion article “Empirical Likelihood
+Theory for NMAR”.
 
 Key features:
 
@@ -20,19 +22,25 @@ Key features:
   robustness.
 - Rich S3 surface: [`summary()`](https://rdrr.io/r/base/summary.html),
   [`confint()`](https://rdrr.io/r/stats/confint.html), `tidy()`,
-  `glance()`,
+  `glance()`, [`weights()`](https://rdrr.io/r/stats/weights.html),
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html).
 
 ### Quick start
 
 - Specify the model with a two-sided formula:
   `Y_miss ~ X1 + X2 | Z1 + Z2` where auxiliaries are left of `|` and
-  response-only predictors are right of `|`. If `|` is omitted, only
-  auxiliaries are used.
+  response-only predictors are right of `|`. If `|` is omitted, RHS
+  variables are treated only as auxiliaries; the response model uses the
+  outcome (LHS) and any predictors explicitly placed to the right of
+  `|`.
   - Variables on the outcome RHS (e.g., `X1 + X2`) are auxiliaries;
     supply their known population means via
     `auxiliary_means = c(X1 = ..., X2 = ...)`.
   - Predictors to the right of `|` enter only the response model (no
     auxiliary constraint) and do not need population means.
+  - If you want a covariate to enter both the auxiliary constraints and
+    the response model (as in the original QLS setup), include it on
+    both sides, for example: `Y_miss ~ X | X`.
 - Choose the engine: `el_engine(...)`, e.g.,
   `el_engine(auxiliary_means = c(X1 = 0), variance_method = "bootstrap", standardize = TRUE)`.
 - Fit:
@@ -41,13 +49,14 @@ Key features:
   [`confint()`](https://rdrr.io/r/stats/confint.html),
   [`weights()`](https://rdrr.io/r/stats/weights.html),
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html), and
-  `fit$diagnostics`. \# \# Data-frame example (IID)
+  `fit$diagnostics`.
+
+## Data-frame example (IID)
 
 We simulate an NMAR mechanism where the response probability depends on
 the unobserved outcome.
 
 ``` r
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 set.seed(123)
 library(NMAR)
 
@@ -65,8 +74,7 @@ dat$Y_miss[!R] <- NA_real_
 ```
 
 ``` r
-engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "none", standardize = TRUE
-  )
+engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "none", standardize = TRUE)
 # Fit EL estimator (no variance for speed in vignette)
 fit <- nmar(
   formula = Y_miss ~ X,
@@ -101,7 +109,6 @@ fit_probit <- nmar(
   formula = Y_miss ~ X,
   engine = engine,
   data = dat
-
 )
 summary(fit_probit)
 #> NMAR Model Summary
@@ -120,13 +127,19 @@ summary(fit_probit)
 #> Y_miss       0.217504
 ```
 
-Tidy/glance summaries:
+Tidy/glance summaries (via the `generics` package):
 
 ``` r
-if (requireNamespace("broom", quietly = TRUE)) {
-  broom::tidy(fit)
-  broom::glance(fit)
-}
+generics::tidy(fit)
+#>          term   estimate std.error conf.low conf.high component statistic
+#> 1      Y_miss  1.8786601        NA       NA        NA  estimand        NA
+#> 2 (Intercept) -1.5706942        NA       NA        NA  response        NA
+#> 3      Y_miss  0.3667545        NA       NA        NA  response        NA
+#>   p.value
+#> 1      NA
+#> 2      NA
+#> 3      NA
+generics::glance(fit)
 #>     y_hat std.error conf.low conf.high converged trimmed_fraction
 #> 1 1.87866        NA       NA        NA      TRUE                0
 #>   variance_method jacobian_condition_number max_equation_residual
@@ -139,26 +152,26 @@ Outputs and diagnostics at a glance (probability-scale weights sum to 1;
 population-scale weights sum to the analysis total $N_{\text{pop}}$):
 
 ``` r
-weights(fit)[1:10]
+head(weights(fit), 10)
 #>  [1] 0.008384402 0.008937803 0.004381958 0.014450653 0.006959120 0.007160884
 #>  [7] 0.005995129 0.006358571 0.007390444 0.007842733
-weights(fit, scale = "population")[1:10]
+head(weights(fit, scale = "population"), 10)
 #>  [1] 4.192201 4.468901 2.190979 7.225327 3.479560 3.580442 2.997564 3.179285
 #>  [9] 3.695222 3.921366
-fitted(fit)[1:10]
+head(fitted(fit), 10)
 #>  [1] 0.2385382 0.2237686 0.4564170 0.1384020 0.2873926 0.2792951 0.3336042
 #>  [8] 0.3145361 0.2706197 0.2550132
 str(fit$diagnostics)
-#> List of 34
+#> List of 35
 #>  $ convergence_code                  : int 1
 #>  $ message                           : chr "Function criterion near zero"
 #>  $ vcov_message                      : chr "Variance skipped (variance_method='none')"
 #>  $ trimmed_fraction                  : num 0
 #>  $ solver_method                     : chr "Newton"
-#>  $ nleqslv_global                    : chr NA
-#>  $ nleqslv_xscalm                    : chr NA
+#>  $ nleqslv_global                    : chr "qline"
+#>  $ nleqslv_xscalm                    : chr "auto"
 #>  $ solver_iterations                 : int 7
-#>  $ solver_time                       : num 0.005
+#>  $ solver_time                       : num 0.004
 #>  $ variance_time                     : num 0
 #>  $ reparam_W                         : chr "logit"
 #>  $ max_equation_residual             : num 5.18e-13
@@ -179,6 +192,7 @@ str(fit$diagnostics)
 #>  $ constraint_sum_W                  : num -3.33e-13
 #>  $ constraint_sum_aux                : Named num -5.18e-13
 #>   ..- attr(*, "names")= chr "X"
+#>  $ constraint_sum_link               : num NA
 #>  $ sum_respondent_weights            : num 150
 #>  $ sum_unnormalized_weights_untrimmed: num 150
 #>  $ normalization_ratio               : num 1
@@ -192,22 +206,27 @@ str(fit$diagnostics)
 ```
 
 Bootstrap variance (keep reps small for speed). This example requires
-the optional future.apply package; the chunk runs only if it is
-available:
+the optional future.apply package; the chunk is skipped if it is not
+installed:
 
 ``` r
-if (requireNamespace("future.apply", quietly = TRUE)) {
-  engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "bootstrap", bootstrap_reps = 15, standardize = TRUE)
-  fit_boot <- nmar(
-    formula = Y_miss ~ X,
-    engine = engine,
-    data = dat
-  )
-  fit_boot$se
-} else {
-  message("Skipping bootstrap example: future.apply not installed")
-}
-#> [1] 0.1879633
+set.seed(123)
+engine <- el_engine(
+  auxiliary_means = c(X = 0),
+  variance_method = "bootstrap",
+  bootstrap_reps = 10,
+  standardize = TRUE
+)
+fit_boot <- nmar(
+  formula = Y_miss ~ X,
+  engine = engine,
+  data = dat
+)
+se(fit_boot)
+#> [1] 0.2817672
+confint(fit_boot)
+#>           2.5 %   97.5 %
+#> Y_miss 1.326407 2.430914
 ```
 
 ## Respondents-only data (n_total)
@@ -217,6 +236,7 @@ the total sample size via `n_total` in the engine so the estimator can
 recover the population response rate:
 
 ``` r
+set.seed(124)
 N <- 300
 X <- rnorm(N); Z <- rnorm(N); Y <- 1.5 + 0.4 * X + Z
 p <- plogis(-0.5 + 0.4 * scale(Y)[, 1])
@@ -227,18 +247,18 @@ fit_resp <- nmar(Y_miss ~ X, data = df_resp, engine = eng_resp)
 summary(fit_resp)
 #> NMAR Model Summary
 #> =================
-#> Y_miss mean: 1.105712
+#> Y_miss mean: 1.509469
 #> Converged: TRUE 
 #> Variance method: none 
 #> Variance notes: Variance skipped (variance_method='none') 
 #> Total units: 300 
-#> Respondents: 118 
+#> Respondents: 102 
 #> Call: nmar(Y_miss ~ X, data = <data.frame: N=300>, engine = empirical_likelihood)
 #> 
 #> Missingness-model coefficients:
 #>              Estimate
-#> (Intercept) -1.449030
-#> Y_miss       0.826353
+#> (Intercept) -0.886331
+#> Y_miss       0.145580
 ```
 
 ## Response-only predictors
@@ -248,6 +268,7 @@ not constrained as auxiliaries) by placing them to the right of `|` in
 the formula.
 
 ``` r
+set.seed(125)
 N <- 400
 X <- rnorm(N)
 Z <- rnorm(N)
@@ -267,25 +288,27 @@ fit_resp_only <- nmar(
 summary(fit_resp_only)
 #> NMAR Model Summary
 #> =================
-#> Y_miss mean: 1.422045
+#> Y_miss mean: 1.136991
 #> Converged: TRUE 
 #> Variance method: none 
 #> Variance notes: Variance skipped (variance_method='none') 
 #> Total units: 400 
-#> Respondents: 140 
+#> Respondents: 139 
 #> Call: nmar(Y_miss ~ X | Z, data = <data.frame: N=400>, engine = empirical_likelihood)
 #> 
 #> Missingness-model coefficients:
 #>              Estimate
-#> (Intercept) -0.557563
-#> Y_miss      -0.044005
-#> Z            0.003693
+#> (Intercept) -1.019139
+#> Y_miss       0.369372
+#> Z           -0.232795
 ```
 
 Auxiliary means and formulas:
 
-- Names of `auxiliary_means` must match the variables on the outcome RHS
-  exactly.
+- Names of `auxiliary_means` must match the `model.matrix` columns
+  generated by the outcome RHS (for numeric variables this typically
+  equals the variable names; for factors it corresponds to the indicator
+  columns).
 - When `standardize = TRUE`, the engine automatically transforms
   `auxiliary_means` to the standardized scale internally and reports
   coefficients on the original scale.
@@ -296,59 +319,49 @@ Auxiliary means and formulas:
 
 The estimator supports complex surveys via
 [`survey::svydesign()`](https://rdrr.io/pkg/survey/man/svydesign.html).
-This chunk runs only if the `survey` package is available.
+This chunk runs only if the `survey` package is available. If the survey
+weights were normalized (for example, rescaled to sum to the sample
+size), pass an appropriate population total via
+`el_engine(n_total = ...)` so that population-scale EL weights are on
+the intended scale.
 
 ``` r
-if (requireNamespace("survey", quietly = TRUE)) {
-  library(survey)
-  data(api)
+suppressPackageStartupMessages(library(survey))
+data(api)
 
-  set.seed(42)
-  apiclus1$api00_miss <- apiclus1$api00
-  ystd <- scale(apiclus1$api00)[, 1]
-  prob <- plogis(-0.5 + 0.4 * ystd + 0.2 * scale(apiclus1$ell)[, 1])
-  miss <- runif(nrow(apiclus1)) > prob
-  apiclus1$api00_miss[miss] <- NA_real_
+set.seed(42)
+apiclus1$api00_miss <- apiclus1$api00
+ystd <- scale(apiclus1$api00)[, 1]
+prob <- plogis(-0.5 + 0.4 * ystd + 0.2 * scale(apiclus1$ell)[, 1])
+miss <- runif(nrow(apiclus1)) > prob
+apiclus1$api00_miss[miss] <- NA_real_
 
-  dclus1 <- svydesign(id = ~dnum, weights = ~pw, data = apiclus1, fpc = ~fpc)
+dclus1 <- svydesign(id = ~dnum, weights = ~pw, data = apiclus1, fpc = ~fpc)
 # Let the engine infer auxiliary means from the full design (design-weighted).
 # Alternatively, you can supply known population means via auxiliary_means.
-  engine <- el_engine(auxiliary_means = NULL, variance_method = "none", standardize = TRUE)
+engine <- el_engine(auxiliary_means = NULL, variance_method = "none", standardize = TRUE)
 
-  fit_svy <- nmar(
-    formula = api00_miss ~ ell,
-    data = dclus1,
-    engine = engine
-  )
-  summary(fit_svy)
-}
-#> Loading required package: grid
-#> Loading required package: Matrix
-#> Loading required package: survival
-#> 
-#> Attaching package: 'survival'
-#> The following object is masked from 'package:future':
-#> 
-#>     cluster
-#> 
-#> Attaching package: 'survey'
-#> The following object is masked from 'package:graphics':
-#> 
-#>     dotchart
+fit_svy <- nmar(
+  formula = api00_miss ~ ell | ell,
+  data = dclus1,
+  engine = engine
+)
+summary(fit_svy)
 #> NMAR Model Summary
 #> =================
-#> api00_miss mean: 691.822197
+#> api00_miss mean: 667.708681
 #> Converged: TRUE 
 #> Variance method: none 
 #> Variance notes: Variance skipped (variance_method='none') 
 #> Total units: 6194 
 #> Respondents: 65 
-#> Call: nmar(api00_miss ~ ell, data = <survey.design: N=6194>, engine = empirical_likelihood)
+#> Call: nmar(api00_miss ~ ell | ell, data = <survey.design: N=6194>, engine = empirical_likelihood)
 #> 
 #> Missingness-model coefficients:
 #>              Estimate
-#> (Intercept)  3.231721
-#> api00_miss  -0.005586
+#> (Intercept) -1.246046
+#> api00_miss   0.000168
+#> ell          0.019037
 ```
 
 ## Practical guidance
@@ -371,13 +384,15 @@ if (requireNamespace("survey", quietly = TRUE)) {
   model. Auxiliary means must be supplied only for variables on the
   outcome RHS.
 - Inconsistent auxiliaries: If provided auxiliary means are grossly
-  inconsistent with the sample, EL weights may go negative and the
-  solver may fail. Consider revisiting the constraints, relaxing them,
-  or using `trim_cap` and bootstrap variance.
+  inconsistent with the respondent support, the engine will issue a
+  warning via auxiliary inconsistency diagnostics and the solver may
+  fail or yield highly concentrated weights. Consider revisiting the
+  constraints, relaxing them, or using `trim_cap` and bootstrap
+  variance.
 
 Troubleshooting:
 
-- Negative or extreme weights: set a finite `trim_cap`; prefer
+- Extreme weights: set a finite `trim_cap`; prefer
   `variance_method = "bootstrap"` for SE.
 - Ill-conditioned Jacobian (large
   `fit$diagnostics$jacobian_condition_number`): prefer
@@ -404,6 +419,12 @@ invisible(nmar(Y_miss ~ X, data = dat, engine = eng_ctrl))
   under nonignorable nonresponse or informative sampling. Journal of the
   American Statistical Association, 97(457), 193-200.
   <doi:10.1198/016214502753479338>
+- Chen, J. and Sitter, R. R. (1999). A pseudo empirical likelihood
+  approach to the effective use of auxiliary information in complex
+  surveys. Statistica Sinica, 9, 385-406.
+- Wu, C. (2005). Algorithms and R codes for the pseudo empirical
+  likelihood method in survey sampling. Survey Methodology, 31(2),
+  239-243.
 
 ## Families and numerical stability
 
@@ -443,24 +464,20 @@ sessionInfo()
 #> [1] survey_4.4-8   survival_3.8-3 Matrix_1.7-4   future_1.68.0  NMAR_0.0.0.1  
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] sass_0.4.10         generics_0.1.4      tidyr_1.3.1        
-#>  [4] lattice_0.22-7      listenv_0.10.0      digest_0.6.39      
-#>  [7] magrittr_2.0.4      evaluate_1.0.5      nleqslv_3.3.5      
-#> [10] fastmap_1.2.0       jsonlite_2.0.0      backports_1.5.0    
-#> [13] DBI_1.2.3           Formula_1.2-5       purrr_1.2.0        
-#> [16] codetools_0.2-20    textshaping_1.0.4   jquerylib_0.1.4    
-#> [19] cli_3.6.5           mitools_2.4         rlang_1.1.6        
-#> [22] parallelly_1.46.0   future.apply_1.20.1 splines_4.5.2      
-#> [25] cachem_1.1.0        yaml_2.3.12         tools_4.5.2        
-#> [28] parallel_4.5.2      dplyr_1.1.4         globals_0.18.0     
-#> [31] broom_1.0.11        vctrs_0.6.5         R6_2.6.1           
-#> [34] lifecycle_1.0.4     fs_1.6.6            htmlwidgets_1.6.4  
-#> [37] ragg_1.5.0          pkgconfig_2.0.3     desc_1.4.3         
-#> [40] pkgdown_2.2.0       progressr_0.18.0    pillar_1.11.1      
-#> [43] bslib_0.9.0         Rcpp_1.1.0          glue_1.8.0         
-#> [46] systemfonts_1.3.1   xfun_0.54           tibble_3.3.0       
-#> [49] tidyselect_1.2.1    knitr_1.50          htmltools_0.5.9    
-#> [52] rmarkdown_2.30      compiler_4.5.2
+#>  [1] future.apply_1.20.1 jsonlite_2.0.0      compiler_4.5.2     
+#>  [4] Rcpp_1.1.0          nleqslv_3.3.5       parallel_4.5.2     
+#>  [7] jquerylib_0.1.4     globals_0.18.0      splines_4.5.2      
+#> [10] systemfonts_1.3.1   textshaping_1.0.4   yaml_2.3.12        
+#> [13] fastmap_1.2.0       lattice_0.22-7      R6_2.6.1           
+#> [16] generics_0.1.4      Formula_1.2-5       knitr_1.50         
+#> [19] htmlwidgets_1.6.4   desc_1.4.3          DBI_1.2.3          
+#> [22] bslib_0.9.0         rlang_1.1.6         cachem_1.1.0       
+#> [25] xfun_0.54           fs_1.6.6            sass_0.4.10        
+#> [28] cli_3.6.5           progressr_0.18.0    pkgdown_2.2.0      
+#> [31] digest_0.6.39       lifecycle_1.0.4     evaluate_1.0.5     
+#> [34] listenv_0.10.0      codetools_0.2-20    ragg_1.5.0         
+#> [37] mitools_2.4         parallelly_1.46.0   rmarkdown_2.30     
+#> [40] tools_4.5.2         htmltools_0.5.9
 ```
 
 ## Notes on variance choices

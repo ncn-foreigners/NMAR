@@ -1,6 +1,6 @@
-# Bootstrap for i.i.d. data.frames
+# Bootstrap for IID data frames
 
-Bootstrap for i.i.d. data.frames
+Bootstrap for IID data frames
 
 ## Usage
 
@@ -18,16 +18,16 @@ bootstrap_variance.data.frame(
 
 - data:
 
-  a \`data.frame\` or a \`survey.design\`.
+  A `data.frame`.
 
 - estimator_func:
 
-  function that returns an S3 result object; the primary estimate is
-  extracted via \`\$y_hat\` and convergence via \`\$converged\`.
+  Function returning an object with a numeric scalar component `y_hat`
+  and an optional logical component `converged`.
 
 - point_estimate:
 
-  numeric; point estimate used for some survey variance formulas.
+  Unused for IID bootstrap; included for signature consistency.
 
 - bootstrap_reps:
 
@@ -35,8 +35,13 @@ bootstrap_variance.data.frame(
 
 - ...:
 
-  passed through to \`estimator_func\`.
+  Additional arguments. Some are consumed by
+  [`bootstrap_variance()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/bootstrap_variance.md)
+  itself (for example `resample_guard` for IID bootstrap or
+  `bootstrap_settings`/`bootstrap_options`/`bootstrap_type`/`bootstrap_mse`
+  for survey bootstrap); remaining arguments are forwarded to
+  `estimator_func`.
 
 ## Value
 
-a list with \`se\`, \`variance\`, and the vector of \`replicates\`.
+A list with components `se`, `variance`, and `replicates`.

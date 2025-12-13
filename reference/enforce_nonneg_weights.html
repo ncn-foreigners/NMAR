@@ -3,7 +3,7 @@
 values (beyond a tolerance) are treated as errors; small negative values
 (for example, from numerical noise) are truncated to zero."><meta property="og:description" content="Softly enforces nonnegativity of a numeric weight vector. Large negative
 values (beyond a tolerance) are treated as errors; small negative values
-(for example, from numerical noise) are truncated to zero."></head><body>
+(for example, from numerical noise) are truncated to zero."><meta property="og:image" content="https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -46,8 +46,7 @@ values (beyond a tolerance) are treated as errors; small negative values
 </nav><div class="container template-reference-topic">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>Enforce (near-)nonnegativity of weights</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Enforce (near-)nonnegativity of weights</h1>
       <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/NMAR/blob/package-dev/R/shared_weights.R" class="external-link"><code>R/shared_weights.R</code></a></small>
       <div class="d-none name"><code>enforce_nonneg_weights.Rd</code></div>
     </div>
@@ -93,6 +92,11 @@ numerical noise and clipped to zero.</p></dd>
 
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Values below <code>-tol</code> are treated as clearly negative. Values in
+<code>[-tol, 0)</code> are clipped to zero.</p>
+    </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

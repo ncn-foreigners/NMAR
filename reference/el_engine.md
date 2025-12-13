@@ -1,21 +1,7 @@
 # Empirical likelihood (EL) engine for NMAR
 
-Constructs a configuration object for the empirical likelihood estimator
-under nonignorable nonresponse (NMAR) with optional auxiliary moment
-constraints. For `data.frame` inputs (IID setting) the estimator solves
-a stacked system in \\\theta = (\beta, z, \lambda_x)\\ with \\z =
-\operatorname{logit}(W)\\ using a Newton method with an analytic
-Jacobian and globalization via
-[nleqslv](https://rdrr.io/pkg/nleqslv/man/nleqslv.html). For
-`survey.design` inputs it solves a design-weighted analogue in \\\theta
-= (\beta, z, \lambda_W, \lambda_x)\\. When the response family supplies
-second derivatives (logit and probit) an analytic Jacobian is used;
-otherwise the solver falls back to numeric/Broyden Jacobians. Numerical
-safeguards (bounded linear predictor, link-inverse clipping, denominator
-floors, and stable linear algebra) improve robustness. Pass the engine
-to
-[nmar](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md)
-together with a formula and data.
+Constructs an engine specification for the empirical likelihood (EL)
+estimator of a full-data mean under nonignorable nonresponse (NMAR).
 
 ## Usage
 
@@ -62,28 +48,27 @@ el_engine(
 
   named numeric vector; population means for auxiliary design columns.
   Names must match the materialized model.matrix column names on the
-  first RHS (after formula expansion), e.g., factor indicators like
-  \`F_b\` or transformed terms \`I(X^2)\`. Auxiliary intercepts are
-  always dropped automatically, so do not supply \`(Intercept)\`.
-  Optional.
+  first RHS (after formula expansion), e.g., factor indicator columns
+  created by
+  [`model.matrix()`](https://rdrr.io/r/stats/model.matrix.html) or
+  transformed terms like `I(X^2)`. Auxiliary intercepts are always
+  dropped automatically, so do not supply `(Intercept)`. If `NULL`
+  (default) and the outcome contains at least one `NA`, auxiliary means
+  are estimated from the full input (including nonrespondents): IID uses
+  unweighted column means of the auxiliary design; survey designs use
+  the design-weighted means based on `weights(design)`. This corresponds
+  to the QLS case where \\\mu_x\\ is replaced by \\\bar X\\ (the
+  full-sample mean) when auxiliary variables are observed for all
+  sampled units.
 
 - control:
 
-  list; optional solver control for
+  Optional solver configuration forwarded to
   [`nleqslv::nleqslv()`](https://rdrr.io/pkg/nleqslv/man/nleqslv.html).
-  Recognized fields (defaults in parentheses):
-
-  - Top-level: `global` = `"qline"` (quadratic line search) or one of
-    `"dbldog"`, `"pwldog"`, `"cline"`, `"gline"`, `"hook"`, `"none"`;
-    `xscalm` = `"auto"` or `"fixed"`
-
-  - In `control=`: `xtol`, `ftol`, `btol`, `maxit`, `trace`, `stepmax`,
-    `delta`, `allowSing`
-
-  Unknown names are ignored. For `data.frame` inputs the EL system is
-  solved by Newton with an analytic Jacobian; for `survey.design` inputs
-  a design-weighted analogue is solved with an analytic Jacobian when
-  available or numeric/Broyden Jacobians otherwise.
+  Provide a single list that may include solver tolerances (e.g.,
+  `xtol`, `ftol`, `maxit`) and, optionally, top-level entries `global`
+  and `xscalm` for globalization and scaling. Example:
+  `control = list(maxit = 500, xtol = 1e-10, ftol = 1e-10, global = "qline", xscalm = "auto")`.
 
 - strata_augmentation:
 
@@ -98,9 +83,9 @@ el_engine(
   numeric; optional when supplying respondents-only data (no `NA` in the
   outcome). For `data.frame` inputs, set to the total number of sampled
   units before filtering to respondents. For `survey.design` inputs, set
-  to the total design weight or known population total. If omitted and
-  the outcome contains no NAs, the estimator errors, requesting
-  `n_total`.
+  to the total design-weight total on the same analysis scale as
+  `weights(design)` (default `sum(weights(design))`). If omitted and the
+  outcome contains no NAs, the estimator errors, requesting `n_total`.
 
 - start:
 
@@ -119,11 +104,10 @@ el_engine(
 
 - family:
 
-  character; missingness (response) model family, either `"logit"` or
-  `"probit"`, or a family object created by
-  [`logit_family()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/logit_family.md)
-  /
-  [`probit_family()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/probit_family.md).
+  Missingness (response) model family. Either `"logit"` (default) or
+  `"probit"`, or a custom family object: a list with components `name`,
+  `linkinv`, `mu.eta`, `score_eta`, and optionally `d2mu.deta2`. When
+  `d2mu.deta2` is absent the solver uses Broyden/numeric Jacobians.
 
 ## Value
 
@@ -136,65 +120,76 @@ together with a formula and data.
 
 ## Details
 
-This engine implements an empirical likelihood estimator for NMAR
-response based on Qin, Leung and Shao (2002) for IID data, and a
-design-weighted analogue for complex survey designs inspired by Chen and
-Sitter (1999) and Wu (2005). For `data.frame` inputs the unknowns are
-`(beta, z, lambda_x)` with `z = logit(W)`, and the QLS closed-form
-identity is used to profile out the multiplier `lambda_W`. For
-`survey.design` inputs the system is extended to
-`(beta, z, lambda_W, lambda_x)` and solved with design weights and, when
-present, Wu-style strata augmentation in the auxiliary block. Numerical
-guards (capped linear predictors, clipped response probabilities,
-denominator floors) are applied consistently in equations and Jacobians.
+The implementation follows Qin, Leung, and Shao (2002): the response
+mechanism is modeled as \\w(y, x; \beta) = P(R = 1 \mid Y = y, X = x)\\
+and the joint law of \\(Y, X)\\ is represented nonparametrically by
+respondent masses that satisfy empirical likelihood constraints. The
+mean is estimated as a respondent weighted mean with weights
+proportional to \\\tilde w_i = a_i / D_i(\beta, W, \lambda)\\, where
+\\a_i\\ are base weights (\\a_i \equiv 1\\ for IID data and \\a_i =
+d_i\\ for survey designs) and \\D_i\\ is the EL denominator.
 
-**Formula syntax**:
+For `data.frame` inputs the estimator solves the Qin-Leung-Shao (QLS)
+estimating equations for \\(\beta, W, \lambda_x)\\ with \\W\\
+reparameterized as \\z = \operatorname{logit}(W)\\, and profiles out the
+response multiplier \\\lambda_W\\ using the closed-form QLS identity
+(their Eq. 10). For `survey.design` inputs the estimator uses a
+design-weighted analogue (Chen and Sitter 1999; Wu 2005) with an
+explicit \\\lambda_W\\ and an additional linkage equation involving the
+nonrespondent design-weight total \\T_0\\.
+
+Numerical stability:
+
+- \\W\\ is optimized on the logit scale so \\0 \< W \< 1\\.
+
+- The response-model linear predictor is capped and EL denominators
+  \\D_i\\ are floored at a small positive value; the analytic Jacobian
+  is consistent with this guard via an active-set mask.
+
+- Optional trimming (`trim_cap`) is applied only after solving, to the
+  unnormalized masses \\\tilde w_i = a_i/D_i\\; this changes the
+  returned weights and therefore the point estimate.
+
+**Formula syntax and data constraints**:
 [`nmar()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md)
-supports a partitioned right-hand side `y_miss ~ aux1 + aux2 | z1 + z2`.
-Variables left of `|` are auxiliaries (used in EL moment constraints);
-variables right of `|` are missingness-model predictors only. The
-outcome appears on the left-hand side and is included as a response
-predictor by default. Auxiliary design matrices are constructed with an
-intercept dropped automatically; missingness models always include an
-intercept even if the formula uses `-1` or `+0`.
+accepts a partitioned right-hand side
+`y_miss ~ auxiliaries | response_only`. Variables left of `|` enter
+auxiliary moment constraints; variables right of `|` enter only the
+response model. The outcome (LHS) is always included as a response-model
+predictor through the evaluated LHS expression; explicit use of the
+outcome on the RHS is rejected. The response model always includes an
+intercept; the auxiliary block never includes an intercept.
+
+To include a covariate in both the auxiliary constraints and the
+response model, repeat it on both sides, e.g. `y_miss ~ X | X`.
+
+**Auxiliary means**: If `auxiliary_means = NULL` (default) and the
+outcome contains at least one `NA`, auxiliary means are estimated from
+the full input and used as \\\bar X\\ in the QLS constraints. For
+respondents-only data (no `NA` in the outcome), `n_total` must be
+supplied; and if the auxiliary RHS is non-empty, `auxiliary_means` must
+also be supplied. When `standardize = TRUE`, supply `auxiliary_means` on
+the original data scale; the engine applies the same standardization
+internally.
+
+**Survey scale**: For `survey.design` inputs, `n_total` (if provided)
+must be on the same analysis scale as `weights(design)`. The default is
+`sum(weights(design))`.
+
+**Convergence and identification**: the stacked EL system can have
+multiple solutions. Adding response-only predictors (variables to the
+right of `|`) can make the problem sensitive to starting values. Inspect
+diagnostics such as `jacobian_condition_number` and consider supplying
+`start = list(beta = ..., W = ...)` when needed.
 
 **Variance**: The EL engine supports bootstrap standard errors via
 `variance_method = "bootstrap"` or can skip variance with
-`variance_method = "none"`.
+`variance_method = "none"`. Set a seed for reproducible bootstrap
+results.
 
-## Progress Reporting
-
-When `variance_method = "bootstrap"`, progress reporting is available
-via the `progressr` package. To enable it:
-
-    library(progressr)
-    library(future)
-
-    # Enable progress reporting
-    handlers(global = TRUE)
-    handlers("txtprogressbar")  # or "progress", "cli", etc.
-
-    # Set parallel backend (optional)
-    plan(multisession, workers = 4)
-
-    # Always set seed for reproducibility
-    set.seed(123)
-
-    # Run with progress bar
-    result <- nmar(Y ~ X, data = df,
-                   engine = el_engine(variance_method = "bootstrap",
-                                      bootstrap_reps = 500))
-
-    # Reset to sequential
-    plan(sequential)
-
-To disable progress in simulations or batch jobs:
-
-`handlers("void") # Silent`
-
-If progressr is not installed or no handlers are set, bootstrap runs
-silently (default behavior). Progress reporting works with all future
-backends and does not affect reproducibility.
+Bootstrap requires suggested packages: for IID resampling it requires
+`future.apply` (and `future`); for survey replicate-weight bootstrap it
+requires `survey` and `svrep`.
 
 ## References
 
@@ -203,15 +198,18 @@ under nonignorable nonresponse or informative sampling. Journal of the
 American Statistical Association, 97(457), 193-200.
 
 Chen, J., and Sitter, R. R. (1999). A pseudo empirical likelihood
-approach for complex survey data. Biometrika, 86(2), 373-385.
+approach for the effective use of auxiliary information in complex
+surveys. Statistica Sinica, 9, 385-406.
 
 Wu, C. (2005). Algorithms and R codes for the pseudo empirical
-likelihood method in survey sampling. Canadian Journal of Statistics,
-33(3), 497-509.
+likelihood method in survey sampling. Survey Methodology, 31(2),
+239-243.
 
 ## See also
 
-\[nmar()\], \[weights.nmar_result()\], \[summary.nmar_result\]
+[`nmar`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md),
+[`weights.nmar_result`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/weights.nmar_result.md),
+[`summary.nmar_result`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/summary.nmar_result.md)
 
 ## Examples
 
@@ -244,7 +242,7 @@ summary(fit)
 #> (Intercept) -2.535301
 #> Y_miss       0.987603
 
-# Response-only predictors can be placed to the right of `|`:
+# Response-only predictors can be placed to the right of |:
 df2 <- data.frame(Y_miss = Y, X = X, Z = Z)
 df2$Y_miss[!R] <- NA_real_
 eng2 <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")

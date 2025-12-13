@@ -9,8 +9,8 @@ behavior.
 - Provide an engine-agnostic API for standardizing design matrices and
   auxiliary moments before solving.
 
-- Return a minimal "recipe" (per-column mean and standard deviation) for
-  unscaling coefficients and covariance matrices after solving.
+- Return a minimal scaling recipe (`nmar_scaling_recipe`) used to
+  unscale coefficients and covariance matrices after solving.
 
 ## Inputs/Outputs
 

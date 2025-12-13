@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Not Missing at Random • NMAR</title>
+<title>Estimation under Not Missing at Random Nonresponse • NMAR</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -15,9 +15,10 @@
 <link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Not Missing at Random">
-<meta name="description" content="A set of statistical functions to estimate the population parameters of data subject to Not Missing At Random (NMAR) mechanisms using advanced statistical methods.">
-<meta property="og:description" content="A set of statistical functions to estimate the population parameters of data subject to Not Missing At Random (NMAR) mechanisms using advanced statistical methods.">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Estimation under Not Missing at Random Nonresponse">
+<meta name="description" content="Provides estimation tools for finite-population parameters when outcomes are subject to nonignorable (Not Missing at Random, NMAR) nonresponse. Methods can incorporate auxiliary information and user-specified response models, and support independent samples as well as complex survey designs via objects from the survey package. Returns diagnostics and optional variance estimates.">
+<meta property="og:description" content="Provides estimation tools for finite-population parameters when outcomes are subject to nonignorable (Not Missing at Random, NMAR) nonresponse. Methods can incorporate auxiliary information and user-specified response models, and support independent samples as well as complex survey designs via objects from the survey package. Returns diagnostics and optional variance estimates.">
+<meta property="og:image" content="https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/logo.png">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -69,99 +70,143 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
-<div class="page-header"><h1 id="nmar">NMAR<a class="anchor" aria-label="anchor" href="#nmar"></a>
-</h1></div>
+<div class="page-header">
+<img src="logo.png" class="logo" alt=""><h1 id="nmar-">NMAR <a class="anchor" aria-label="anchor" href="#nmar-"></a>
+</h1>
+</div>
 <!-- badges: start -->
 
-<p>The goal of <strong>NMAR</strong> is to provide a set of functions to <strong>estimate the population mean</strong> of data subject to Not Missing At Random (NMAR) mechanisms using advanced statistical methods</p>
+<p>NMAR provides estimators for finite-population means when outcomes are subject to nonignorable nonresponse (Not Missing at Random, NMAR). It supports iid <code>data.frame</code> inputs and complex survey designs via <code>survey::survey.design</code>, and exposes a unified interface through <code><a href="reference/nmar.html">nmar()</a></code>.</p>
 <div class="section level2">
-<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
+<h2 id="methods">Methods<a class="anchor" aria-label="anchor" href="#methods"></a>
 </h2>
-<p>The <strong>NMAR</strong> library provides functions to estimate the mean of <strong>Not Missing At Random (NMAR)</strong> data. The estimation functions are built upon the following engine functions, each implementing a distinct method:</p>
+<p>NMAR currently provides the following engines:</p>
 <ul>
-<li><p><code>exptilt_engine</code>: Exponential Tilting Estimator<br>
-Minsun Kim Riddles, Jae Kwang Kim, Jongho Im<br>
-A Propensity-score-adjustment Method for Nonignorable Nonresponse<br><a href="https://doi.org/10.1093/jssam/smv047" class="external-link uri">https://doi.org/10.1093/jssam/smv047</a></p></li>
-<li><p><code>exptilt_nonparam_engine</code>: Nonparametric Exponential Tilting Estimator<br>
-Minsun Kim Riddles, Jae Kwang Kim, Jongho Im<br>
-A Propensity-score-adjustment Method for Nonignorable Nonresponse<br>
-Appendix 2<br><a href="https://doi.org/10.1093/jssam/smv047" class="external-link uri">https://doi.org/10.1093/jssam/smv047</a></p></li>
-<li><p><code>el_engine</code>: Empirical Likelihood Estimator<br>
-Jing Qin, Denis Leung, Jun Shao<br>
-Estimation With Survey Data Under Nonignorable Nonresponse or Informative Sampling<br><a href="http://dx.doi.org/10.1198/016214502753479338" class="external-link uri">http://dx.doi.org/10.1198/016214502753479338</a></p></li>
+<li>
+<code><a href="reference/el_engine.html">el_engine()</a></code>: empirical likelihood (Qin, Leung and Shao, 2002).</li>
+<li>
+<code><a href="reference/exptilt_engine.html">exptilt_engine()</a></code>: exponential tilting (Riddles, Kim and Im, 2016).</li>
+<li>
+<code><a href="reference/exptilt_nonparam_engine.html">exptilt_nonparam_engine()</a></code>: nonparametric exponential tilting for aggregated categorical data (Riddles, Kim and Im, 2016, Appendix 2).</li>
 </ul>
-<p>The main user-facing function is <code><a href="reference/nmar.html">nmar()</a></code>, which acts as a unified wrapper around these engine functions.</p>
+<p>References:</p>
+<ul>
+<li>Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200. <a href="https://doi.org/10.1198/016214502753479338" class="external-link uri">https://doi.org/10.1198/016214502753479338</a>
+</li>
+<li>Riddles, M. K., Kim, J. K., and Im, J. (2016). A propensity-score-adjustment method for nonignorable nonresponse. Journal of Survey Statistics and Methodology, 4(2), 215-245. <a href="https://doi.org/10.1093/jssam/smv047" class="external-link uri">https://doi.org/10.1093/jssam/smv047</a>
+</li>
+</ul>
+<p>See <code>browseVignettes("NMAR")</code> and the package website for worked examples and engine-specific assumptions: <a href="https://ncn-foreigners.ue.poznan.pl/NMAR/" class="external-link uri">https://ncn-foreigners.ue.poznan.pl/NMAR/</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>You can install the development version of NMAR from <a href="https://github.com/" class="external-link">GitHub</a> with:</p>
+<p>Install the development version from GitHub:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"ncn-foreigners/NMAR"</span><span class="op">)</span></span></code></pre></div>
-<p>or</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>remotes<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">"ncn-foreigners/NMAR@main"</span>, <span class="at">force =</span> T, <span class="at">build =</span> T, <span class="at">build_manual =</span> T, <span class="at">build_vignettes =</span> T)</span></code></pre></div>
-<div class="section level3">
-<h3 id="project-branches">Project branches:<a class="anchor" aria-label="anchor" href="#project-branches"></a>
-</h3>
-<ul>
-<li>
-<code>main</code> - The stable production branch. This is the version you should install for general use</li>
-<li>
-<code>package-pre_prod</code> - The pre-production development branch. This is a stable, installable version reflecting the latest features. (1:1 clone of <code>package-dev</code>)</li>
-<li>
-<code>package-dev</code> - The <strong>internal development branch</strong>. This branch uses a non-R package structure for internal development purposes. <strong>DO NOT</strong> download or install this branch. For contribution guidelines, please see the CONTRIBUTING.md file or the [project webpage (TODO: add link to webpage)]</li>
-</ul>
-</div>
+<p>Or with remotes:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"ncn-foreigners/NMAR"</span><span class="op">)</span></span></code></pre></div>
+<p>To build vignettes locally:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"ncn-foreigners/NMAR"</span>, build_vignettes <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
 </h2>
 <div class="section level3">
-<h3 id="general-naming">General naming<a class="anchor" aria-label="anchor" href="#general-naming"></a>
+<h3 id="formula-interface">Formula interface<a class="anchor" aria-label="anchor" href="#formula-interface"></a>
 </h3>
-<ul>
-<li>
-<code>outcome_var</code> (f.e Y): The outcome variable (with missing values).</li>
-<li>
-<code>covariates_for_outcome</code>(f.e x1,x2): Predictors of <code>outcome_var</code> value (used in the response model).</li>
-<li>
-<code>covariates_for_missingness</code>(f.e x3): Predictor of <code>outcome_var</code> missingness (used in the missingness model).</li>
-</ul>
-<p><code>formula</code> = outcome_var ~ covariates_for_outcome</p>
+<p><code><a href="reference/nmar.html">nmar()</a></code> uses a two-sided formula with the outcome on the left-hand side. In the common “missing values indicate nonresponse” workflow, nonrespondents are encoded as <code>NA</code> in the outcome.</p>
+<p>Many engines support a partitioned right-hand side via <code>|</code> (e.g., <code>y_miss ~ block1_vars | block2_vars</code>), but the interpretation of these blocks is engine-specific. See <code><a href="reference/el_engine.html">?el_engine</a></code> and <code><a href="reference/exptilt_engine.html">?exptilt_engine</a></code> for details.</p>
 </div>
 <div class="section level3">
 <h3 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
 </h3>
-<p>If, in a salary survey, richer people were less likely to answer, <code>Y</code> is salary, <code>x1</code> and <code>x2</code> are experience and education, and <code>x3</code> might be gender (if we assume gender affects the likelihood of responding but not the salary value itself).</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ncn-foreigners/NMAR" class="external-link">NMAR</a></span>, quietly <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressPackageStartupMessages</a></span><span class="op">(</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ncn-foreigners/NMAR" class="external-link">NMAR</a></span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">exptilt_config</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/exptilt_engine.html">exptilt_engine</a></span><span class="op">(</span></span>
-<span>  y_dens <span class="op">=</span> <span class="st">'normal'</span>,</span>
-<span>  family <span class="op">=</span> <span class="st">'probit'</span>, <span class="co"># or logit</span></span>
-<span>  variance_method <span class="op">=</span> <span class="st">'bootstrap'</span>, <span class="co"># or none</span></span>
-<span>  bootstrap_reps <span class="op">=</span> <span class="fl">10</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"riddles_case1"</span>, package <span class="op">=</span> <span class="st">"NMAR"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Empirical likelihood (EL)</span></span>
+<span><span class="va">fit_el</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nmar.html">nmar</a></span><span class="op">(</span></span>
+<span>  <span class="va">y</span> <span class="op">~</span> <span class="va">x</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">riddles_case1</span>,</span>
+<span>  engine <span class="op">=</span> <span class="fu"><a href="reference/el_engine.html">el_engine</a></span><span class="op">(</span>variance_method <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">formula</span> <span class="op">=</span> <span class="va">y</span> <span class="op">~</span> <span class="va">x</span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">riddles_case1</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span>, trace_level <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; (Intercept)           y </span></span>
-<span><span class="co">#&gt;   0.5335240  -0.1015705</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NMAR Result</span></span>
-<span><span class="co">#&gt; ------------</span></span>
-<span><span class="co">#&gt; y mean: -1.003644 (0.058162)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_el</span><span class="op">)</span></span>
+<span><span class="co">#&gt; NMAR Model Summary</span></span>
+<span><span class="co">#&gt; =================</span></span>
+<span><span class="co">#&gt; y mean: -1.001986</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
-<span><span class="co">#&gt; Variance method: bootstrap </span></span>
-<span><span class="co">#&gt; Estimator: exponential_tilting</span></span></code></pre></div>
+<span><span class="co">#&gt; Variance method: none </span></span>
+<span><span class="co">#&gt; Variance notes: Variance skipped (variance_method='none') </span></span>
+<span><span class="co">#&gt; Total units: 500 </span></span>
+<span><span class="co">#&gt; Respondents: 368 </span></span>
+<span><span class="co">#&gt; Call: nmar(y ~ x, data = &lt;data.frame: N=500&gt;, engine = empirical_likelihood)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Missingness-model coefficients:</span></span>
+<span><span class="co">#&gt;              Estimate</span></span>
+<span><span class="co">#&gt; (Intercept)  0.860555</span></span>
+<span><span class="co">#&gt; y           -0.175376</span></span>
+<span></span>
+<span><span class="co"># Exponential tilting (ET)</span></span>
+<span><span class="va">fit_et</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nmar.html">nmar</a></span><span class="op">(</span></span>
+<span>  <span class="va">y</span> <span class="op">~</span> <span class="va">x</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">riddles_case1</span>,</span>
+<span>  engine <span class="op">=</span> <span class="fu"><a href="reference/exptilt_engine.html">exptilt_engine</a></span><span class="op">(</span>y_dens <span class="op">=</span> <span class="st">"normal"</span>, family <span class="op">=</span> <span class="st">"logit"</span>, variance_method <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_et</span><span class="op">)</span></span>
+<span><span class="co">#&gt; NMAR Model Summary</span></span>
+<span><span class="co">#&gt; =================</span></span>
+<span><span class="co">#&gt; y mean: -1.004075</span></span>
+<span><span class="co">#&gt; Converged: TRUE </span></span>
+<span><span class="co">#&gt; Variance method: none</span></span></code></pre></div>
+<p>Result objects returned by <code><a href="reference/nmar.html">nmar()</a></code> support methods such as <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code><a href="reference/se.html">se()</a></code>, and <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, and broom-style <code>tidy()</code> / <code>glance()</code> via the <code>generics</code> package.</p>
+</div>
+<div class="section level3">
+<h3 id="survey-designs">Survey designs<a class="anchor" aria-label="anchor" href="#survey-designs"></a>
+</h3>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"survey"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressPackageStartupMessages</a></span><span class="op">(</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://r-survey.r-forge.r-project.org/survey/" class="external-link">survey</a></span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">riddles_case1</span></span>
+<span>  <span class="va">d</span><span class="op">$</span><span class="va">w</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">d</span><span class="op">)</span>, <span class="fl">0.5</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span>  <span class="va">des</span> <span class="op">&lt;-</span> <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svydesign.html" class="external-link">svydesign</a></span><span class="op">(</span>ids <span class="op">=</span> <span class="op">~</span><span class="fl">1</span>, weights <span class="op">=</span> <span class="op">~</span><span class="va">w</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">fit_svy</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nmar.html">nmar</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, data <span class="op">=</span> <span class="va">des</span>, engine <span class="op">=</span> <span class="fu"><a href="reference/el_engine.html">el_engine</a></span><span class="op">(</span>variance_method <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_svy</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="co">#&gt; NMAR Model Summary</span></span>
+<span><span class="co">#&gt; =================</span></span>
+<span><span class="co">#&gt; y mean: -1.005961</span></span>
+<span><span class="co">#&gt; Converged: TRUE </span></span>
+<span><span class="co">#&gt; Variance method: none </span></span>
+<span><span class="co">#&gt; Variance notes: Variance skipped (variance_method='none') </span></span>
+<span><span class="co">#&gt; Total units: 621.7412 </span></span>
+<span><span class="co">#&gt; Respondents: 368 </span></span>
+<span><span class="co">#&gt; Call: nmar(y ~ x, data = &lt;survey.design: N=621.741&gt;, engine = empirical_likelihood)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Missingness-model coefficients:</span></span>
+<span><span class="co">#&gt;              Estimate</span></span>
+<span><span class="co">#&gt; (Intercept)  0.893453</span></span>
+<span><span class="co">#&gt; y           -0.129256</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
 <h2 id="getting-help">Getting help<a class="anchor" aria-label="anchor" href="#getting-help"></a>
 </h2>
 <p>If you encounter a clear bug, please file an issue with a minimal reproducible example on <a href="https://github.com/ncn-foreigners/NMAR/issues" class="external-link">GitHub</a></p>
+</div>
+<div class="section level2">
+<h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
+</h2>
+<p>If you use NMAR in academic work, please cite the package and the relevant method paper(s):</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"NMAR"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="authors-and-acknowledgments">Authors and acknowledgments<a class="anchor" aria-label="anchor" href="#authors-and-acknowledgments"></a>

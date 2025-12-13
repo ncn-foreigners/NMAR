@@ -16,10 +16,11 @@
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Developing a New NMAR Estimator">
-<meta name="description" content="Guide for adding a new NMAR estimator to the `nmar` package
+<meta name="description" content="Guide for adding a new NMAR estimator to the `NMAR` package
 ">
-<meta property="og:description" content="Guide for adding a new NMAR estimator to the `nmar` package
+<meta property="og:description" content="Guide for adding a new NMAR estimator to the `NMAR` package
 ">
+<meta property="og:image" content="https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/logo.png">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -75,8 +76,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>Developing a New NMAR Estimator</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Developing a New NMAR Estimator</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/NMAR/blob/package-dev/vignettes/developing_new_nmar_estimator.Rmd" class="external-link"><code>vignettes/developing_new_nmar_estimator.Rmd</code></a></small>
@@ -86,51 +86,80 @@
     
     
 <div class="section level2">
-<h2 id="developing-a-new-nmar-estimator-in-the-nmar-package">Developing a New NMAR Estimator in the <code>nmar</code>
+<h2 id="developing-a-new-nmar-estimator-in-the-nmar-package">Developing a New NMAR Estimator in the <code>NMAR</code>
 Package<a class="anchor" aria-label="anchor" href="#developing-a-new-nmar-estimator-in-the-nmar-package"></a>
 </h2>
-<p>This guide explains how to add and integrate a new
-Not‑Missing‑At‑Random (NMAR) statistical estimator into
-<code>nmar</code>, following the architecture used by the Empirical
-Likelihood (EL) engine, emphasizing a clean separation of concerns:</p>
+<p>This guide explains how to add and integrate a new Not Missing at
+Random (NMAR) statistical estimator into <code>NMAR</code>, following
+the architecture used by the Empirical Likelihood (EL) engine and
+emphasizing a clean separation of concerns:</p>
 <ul>
 <li>Shared, reusable utilities live in <code>src_dev/shared/</code>
-(scaling, families, bootstrap, numerics, diagnostics).</li>
-<li>Estimator‑specific math and code live in
+(scaling, families, bootstrap, numerics, weights, verbosity).</li>
+<li>Estimator-specific math and code live in
 <code>src_dev/engines/&lt;method&gt;/</code>.</li>
 </ul>
 <blockquote>
 <p>Repository conventions - Always edit source under
-<code>src_dev/</code>; the flat files in <code>R/</code> are generated
-by running <code>Rscript build_r_folder.R</code>. - After changing
-<code>src_dev/</code>, regenerate roxygen outputs with
-<code>R -q -e "devtools::document()"</code> and confirm
-<code>git status</code> is clean; this keeps S3 registrations and Rd
-files in sync. - Use testthat v3 under <code>tests/testthat/</code> for
-tests and run <code>R -q -e "devtools::test()"</code> before opening a
-PR. - Use roxygen2 for documentation; do not edit <code>NAMESPACE</code>
-directly.</p>
+<code>src_dev/</code>. Do not edit generated artifacts in
+<code>R/</code>, <code>man/</code>, or <code>NAMESPACE</code> by hand. -
+Before running tests, vignettes, or pkgdown, refresh generated sources
+with <code>Rscript build_r_folder.R</code> (or
+<code>source("build_r_folder.R")</code> from an R session). - In
+development, prefer <code><a href="https://devtools.r-lib.org/reference/load_all.html" class="external-link">devtools::load_all()</a></code> over
+<code><a href="https://github.com/ncn-foreigners/NMAR" class="external-link">library(NMAR)</a></code> so you always load the current working tree.
+- If you change roxygen comments, run <code><a href="https://devtools.r-lib.org/reference/document.html" class="external-link">devtools::document()</a></code>
+after refreshing <code>R/</code> so Rd/NAMESPACE are rebuilt from
+current sources. - Use testthat v3 under <code>tests/testthat/</code>
+and run <code><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">devtools::test()</a></code> before opening a PR. - Recommended
+before publishing: <code>R CMD check . --no-manual --as-cran</code>. -
+Optional repo tooling: <code>pre-commit run --all-files</code> (styling,
+README render, roxygenize, and other guards). - Use roxygen2 for
+documentation; do not edit <code>NAMESPACE</code> directly.</p>
 </blockquote>
 <hr>
 <div class="section level3">
 <h3 id="general-guidelines">0) General guidelines<a class="anchor" aria-label="anchor" href="#general-guidelines"></a>
 </h3>
 <ol style="list-style-type: decimal">
-<li>Adhere to the functional programming style and design patterns
-(writing pure functions, function factories, functionals, and function
-operators) when appropriate (eg. building systems of equations)</li>
-<li>Do not use unpredictable functions like sapply, use vapply or purrr
-equivalents instead</li>
-<li>Avoid code duplication, reuse the shared infrastructure as much as
-possible</li>
-<li>Develop loosely coupled, modular architecture, identify shareable,
-method-agnostic functionalities</li>
-<li>Use S3 OOP system</li>
-<li>Use constructor and validator functions for your S3 objects</li>
-<li>Follow the best software engineering practices, including SOLID,
-DRY, KISS, YAGNI, Separation of Concerns, Principle of Least
-Astonishment, and Law of Demeter?</li>
+<li>Prefer small, pure functions with clear inputs/outputs; fail loudly
+with informative <code><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop()</a></code> messages.</li>
+<li>Prefer type-stable iteration (<code><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply()</a></code>,
+<code><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply()</a></code>, explicit loops) over <code><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply()</a></code>.</li>
+<li>Avoid adding new dependencies without prior discussion; prefer base
+R and existing shared infrastructure.</li>
+<li>Reuse <code>src_dev/shared/</code> for method-agnostic components
+(scaling, families, bootstrap, numerics).</li>
+<li>Use S3 with explicit constructors and validators for engine and
+result objects.</li>
+<li>Keep a single, predictable execution path; avoid unnecessary nesting
+and multi-modal behavior (KISS/YAGNI).</li>
 </ol>
+</div>
+<div class="section level3">
+<h3 id="minimal-developer-checklist">0.1) Minimal developer checklist<a class="anchor" aria-label="anchor" href="#minimal-developer-checklist"></a>
+</h3>
+<ul>
+<li>Add an engine constructor <code>&lt;method&gt;_engine()</code> with
+<code>@export</code> and <code>@keywords engine</code>.</li>
+<li>Add <code>run_engine.nmar_engine_&lt;method&gt;()</code> with
+<code>@exportS3Method run_engine nmar_engine_&lt;method&gt;</code>.</li>
+<li>Implement a method generic <code>&lt;method&gt;()</code> and class
+methods <code>&lt;method&gt;.data.frame()</code> and
+<code>&lt;method&gt;.survey.design()</code> (as needed).</li>
+<li>Construct results with <code><a href="../reference/new_nmar_result.html">new_nmar_result()</a></code> and return
+class <code>nmar_result_&lt;method&gt;</code>.</li>
+<li>Add tests under <code>tests/testthat/</code> (at least: smoke test,
+argument validation, and one regression test).</li>
+<li>Refresh generated files and validate:
+<code>Rscript build_r_folder.R</code>, then
+<code><a href="https://devtools.r-lib.org/reference/document.html" class="external-link">devtools::document()</a></code>, then
+<code><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">devtools::test()</a></code>.</li>
+<li>If you add a developer article or vignette, register it in
+<code>_pkgdown.yml</code>. Note that this guide is intentionally
+excluded from the package tarball via <code>.Rbuildignore</code> but can
+still be built into the pkgdown site from source.</li>
+</ul>
 </div>
 <div class="section level3">
 <h3 id="overview-of-the-package-flow">1) Overview of the package flow<a class="anchor" aria-label="anchor" href="#overview-of-the-package-flow"></a>
@@ -142,14 +171,12 @@ Astonishment, and Law of Demeter?</li>
 <li>User calls
 <code>nmar(formula = ..., data = ..., engine = &lt;engine&gt;)</code>.</li>
 <li>
-<code><a href="../reference/nmar.html">nmar()</a></code> creates an <code>nmar_inputs</code> via
-<code>parse_nmar_spec()</code>, validates it with
-<code>validate_nmar_args()</code> (using engine-specific traits), and
-then dispatches to <code>run_engine(engine, task)</code> by S3.</li>
-<li>The engine’s <code>run_engine.&lt;engine_class&gt;()</code> extracts
-what it needs from <code>task</code> (typically via
-<code>prepare_nmar_design()</code>) and passes control to a
-method-specific generic, which dispatches on <code>data</code> type:
+<code><a href="../reference/nmar.html">nmar()</a></code> validates inputs and dispatches to
+<code>run_engine(engine, formula, data, trace_level)</code> by S3.</li>
+<li>The engine’s <code>run_engine.nmar_engine_&lt;method&gt;()</code>
+builds arguments from the engine configuration and calls an internal
+method-specific generic (e.g., <code><a href="../reference/el.html">el()</a></code>), which dispatches on
+<code>data</code> type:
 <ul>
 <li>
 <code>*.data.frame(...)</code> for IID data</li>
@@ -171,106 +198,118 @@ containing the primary estimand and supporting data for S3 methods.</li>
 <p>Create the following files under
 <code>src_dev/engines/&lt;method&gt;/</code>:</p>
 <div class="section level4">
-<h4 id="engine-r-engine-constructor">1) <code>engine.R</code> — engine constructor<a class="anchor" aria-label="anchor" href="#engine-r-engine-constructor"></a>
+<h4 id="engine-r---engine-constructor">1) <code>engine.R</code> - engine constructor<a class="anchor" aria-label="anchor" href="#engine-r---engine-constructor"></a>
 </h4>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">method_engine</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
-<span><span class="co"># Validate controls using validate_arguments.R as in exptilt.</span></span>
-<span>  <span class="fu">validator_assert_choice</span><span class="op">(</span><span class="va">family</span>, choices <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"logit"</span>, <span class="st">"probit"</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"family"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">method_engine</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span></span>
+<span>  <span class="va">standardize</span> <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  <span class="va">variance_method</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"bootstrap"</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
+<span>  <span class="va">bootstrap_reps</span> <span class="op">=</span> <span class="fl">500</span>,</span>
+<span>  <span class="va">auxiliary_means</span> <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu">validator_assert_scalar_logical</span><span class="op">(</span><span class="va">standardize</span>, name <span class="op">=</span> <span class="st">"standardize"</span><span class="op">)</span></span>
+<span>  <span class="va">variance_method</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/match.arg.html" class="external-link">match.arg</a></span><span class="op">(</span><span class="va">variance_method</span><span class="op">)</span></span>
 <span></span>
-<span>  <span class="va">engine</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">...</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">engine</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"nmar_engine_method"</span>, <span class="st">"nmar_engine"</span><span class="op">)</span></span>
+<span>  <span class="va">engine</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    standardize <span class="op">=</span> <span class="va">standardize</span>,</span>
+<span>    variance_method <span class="op">=</span> <span class="va">variance_method</span>,</span>
+<span>    bootstrap_reps <span class="op">=</span> <span class="va">bootstrap_reps</span>,</span>
+<span>    auxiliary_means <span class="op">=</span> <span class="va">auxiliary_means</span>,</span>
+<span>    <span class="va">...</span></span>
+<span>  <span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">engine</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"nmar_engine_&lt;method&gt;"</span>, <span class="st">"nmar_engine"</span><span class="op">)</span></span>
 <span>  <span class="va">engine</span></span>
 <span><span class="op">}</span></span></code></pre></div>
-<p>Important: add <code>@keywords engine</code> in roxygen ### 2)
-<code>run_engine.R</code> — run_engine method</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">run_engine.nmar_engine_method</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">engine</span>, <span class="va">task</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">design</span> <span class="op">&lt;-</span> <span class="fu">prepare_nmar_design</span><span class="op">(</span></span>
-<span>    <span class="va">task</span>,</span>
-<span>    standardize <span class="op">=</span> <span class="va">engine</span><span class="op">$</span><span class="va">standardize</span>,</span>
-<span>    auxiliary_means <span class="op">=</span> <span class="va">engine</span><span class="op">$</span><span class="va">auxiliary_means</span>,</span>
-<span>    include_response <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>    include_auxiliary <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span>  <span class="op">)</span></span>
-<span></span>
-<span>  <span class="va">args</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>      data <span class="op">=</span> <span class="va">design</span><span class="op">$</span><span class="va">survey_design</span> <span class="op"><a href="https://rdrr.io/r/base/Control.html" class="external-link">%||%</a></span> <span class="va">design</span><span class="op">$</span><span class="va">data</span>,</span>
-<span>      formula <span class="op">=</span> <span class="va">task</span><span class="op">$</span><span class="va">formula</span>,</span>
-<span>      auxiliary_means <span class="op">=</span> <span class="va">design</span><span class="op">$</span><span class="va">auxiliary_means</span>,</span>
-<span>      standardize <span class="op">=</span> <span class="va">design</span><span class="op">$</span><span class="va">standardize</span></span>
-<span>    <span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">as.list</a></span><span class="op">(</span><span class="va">engine</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span></span>
-<span>  <span class="va">method_fn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="st">"method"</span>, mode <span class="op">=</span> <span class="st">"function"</span><span class="op">)</span></span>
-<span>  <span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">method_fn</span>, <span class="va">args</span><span class="op">)</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">inherits</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"nmar_result_method"</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Expected nmar_result_method."</span><span class="op">)</span></span>
-<span>  <span class="va">fit</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-<p>The engine should rely on the shared validation/traits
-infrastructure:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">engine_traits.nmar_engine_method</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">engine</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/modifyList.html" class="external-link">modifyList</a></span><span class="op">(</span></span>
-<span>    <span class="fu">engine_traits.default</span><span class="op">(</span><span class="va">engine</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>      allow_outcome_in_missingness <span class="op">=</span> <span class="cn">TRUE</span>,      <span class="co"># customise as needed</span></span>
-<span>      allow_covariate_overlap <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>      requires_single_outcome <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span>    <span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
+<p>Important: add <code>@keywords engine</code> in roxygen</p>
 </div>
 <div class="section level4">
-<h4 id="implmethod-r-define-the-generic">3) <code>impl/&lt;method&gt;.R</code> — define the generic<a class="anchor" aria-label="anchor" href="#implmethod-r-define-the-generic"></a>
+<h4 id="run_engine-r---run_engine-method">2) <code>run_engine.R</code> - run_engine method<a class="anchor" aria-label="anchor" href="#run_engine-r---run_engine-method"></a>
 </h4>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co">#' @exportS3Method run_engine nmar_engine_&lt;method&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>run_engine.nmar_engine_<span class="sc">&lt;</span>method<span class="sc">&gt;</span> <span class="er">&lt;</span><span class="sc">-</span> <span class="cf">function</span>(engine, formula, data, <span class="at">trace_level =</span> <span class="dv">0</span>) {</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  args <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>    <span class="at">data =</span> data,</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>    <span class="at">formula =</span> formula,</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>    <span class="at">standardize =</span> engine<span class="sc">$</span>standardize,</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>    <span class="at">auxiliary_means =</span> engine<span class="sc">$</span>auxiliary_means,</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>    <span class="at">variance_method =</span> engine<span class="sc">$</span>variance_method,</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>    <span class="at">bootstrap_reps =</span> engine<span class="sc">$</span>bootstrap_reps,</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>    <span class="at">trace_level =</span> trace_level</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>  )</span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>  fit <span class="ot">&lt;-</span> <span class="fu">do.call</span>(method, args)</span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">inherits</span>(fit, <span class="st">"nmar_result_&lt;method&gt;"</span>)) <span class="fu">stop</span>(<span class="st">"Expected nmar_result_&lt;method&gt;."</span>, <span class="at">call. =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>  fit</span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div class="section level4">
+<h4 id="implmethod-r---define-the-method-generic">3) <code>impl/&lt;method&gt;.R</code> - define the method
+generic<a class="anchor" aria-label="anchor" href="#implmethod-r---define-the-method-generic"></a>
+</h4>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">#' @param data A data.frame or survey.design.</span></span>
-<span><span class="co">#' @export</span></span>
+<span><span class="co">#' @keywords internal</span></span>
 <span><span class="va">method</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">...</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/UseMethod.html" class="external-link">UseMethod</a></span><span class="op">(</span><span class="st">"method"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
-<h4 id="implmethod_dataframe-r-method-for-iid-data">4) <code>impl/&lt;method&gt;_dataframe.R</code> — method for IID
-data<a class="anchor" aria-label="anchor" href="#implmethod_dataframe-r-method-for-iid-data"></a>
+<h4 id="impldataframe-r---method-for-iid-data">4) <code>impl/dataframe.R</code> - method for IID data<a class="anchor" aria-label="anchor" href="#impldataframe-r---method-for-iid-data"></a>
 </h4>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co">#' @export</span></span>
-<span><span class="va">method.data.frame</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">formula</span>, <span class="va">controls</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
-<span><span class="co"># Prepare inputs. You may adapt from EL’s el_prepare_inputs() pattern.</span></span>
-<span>  <span class="va">parsed</span> <span class="op">&lt;-</span> <span class="fu">build_method_inputs</span><span class="op">(</span><span class="va">data</span>, <span class="va">formula</span>, <span class="va">controls</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co">#' @keywords internal</span></span>
+<span><span class="va">method.data.frame</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">formula</span>, <span class="va">standardize</span> <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">auxiliary_means</span> <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="co"># Prepare inputs. You may adapt from EL's el_prepare_inputs() pattern.</span></span>
+<span>  <span class="va">parsed</span> <span class="op">&lt;-</span> <span class="fu">build_method_inputs</span><span class="op">(</span><span class="va">data</span>, <span class="va">formula</span><span class="op">)</span></span>
 <span>  <span class="va">estimation_data</span> <span class="op">&lt;-</span> <span class="va">parsed</span><span class="op">$</span><span class="va">data</span></span>
 <span>  <span class="va">obs_idx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">parsed</span><span class="op">$</span><span class="va">respondent_mask</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Build design matrices supplied by the shared parser</span></span>
+<span>  <span class="co"># Build design matrices supplied by the engine-specific parser</span></span>
 <span>  <span class="va">Z_un</span> <span class="op">&lt;-</span> <span class="va">parsed</span><span class="op">$</span><span class="va">missingness_design</span></span>
 <span>  <span class="va">X_un</span> <span class="op">&lt;-</span> <span class="va">parsed</span><span class="op">$</span><span class="va">auxiliary_matrix</span></span>
-<span>  <span class="va">mu_x</span> <span class="op">&lt;-</span> <span class="va">controls</span><span class="op">$</span><span class="va">auxiliary_means</span></span>
+<span>  <span class="va">has_aux</span> <span class="op">&lt;-</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">X_un</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">X_un</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span></span>
 <span></span>
-<span><span class="co"># Shared scaling</span></span>
+<span>  <span class="co"># Resolve auxiliary means before scaling.</span></span>
+<span>  <span class="co"># If your estimator uses auxiliary moment constraints, you must define what</span></span>
+<span>  <span class="co"># "population means" mean in your workflow:</span></span>
+<span>  <span class="co"># - If auxiliaries are observed for all sampled units, a common default is</span></span>
+<span>  <span class="co">#   colMeans(X_un) (iid) or design-weighted means (survey).</span></span>
+<span>  <span class="co"># - If only respondents are observed, you typically require user input.</span></span>
+<span>  <span class="va">mu_x</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="va">has_aux</span><span class="op">)</span> <span class="va">auxiliary_means</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="va">has_aux</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">mu_x</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">anyNA</a></span><span class="op">(</span><span class="va">X_un</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Cannot compute auxiliary means when auxiliaries contain NA; supply auxiliary_means instead."</span>, call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span>    <span class="va">mu_x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/colSums-methods.html" class="external-link">colMeans</a></span><span class="op">(</span><span class="va">X_un</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="va">has_aux</span> <span class="op">&amp;&amp;</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">mu_x</span><span class="op">)</span><span class="op">)</span> <span class="op">||</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setequal</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">mu_x</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">X_un</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"auxiliary_means must be a named numeric vector matching auxiliary columns."</span>, call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span></span>
+<span>  <span class="co"># Shared scaling</span></span>
 <span>  <span class="va">sc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/validate_and_apply_nmar_scaling.html">validate_and_apply_nmar_scaling</a></span><span class="op">(</span></span>
-<span>    standardize <span class="op">=</span> <span class="cn">TRUE</span>, has_aux <span class="op">=</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">X_un</span><span class="op">)</span>,</span>
+<span>    standardize <span class="op">=</span> <span class="va">standardize</span>,</span>
+<span>    has_aux <span class="op">=</span> <span class="va">has_aux</span>,</span>
 <span>    response_model_matrix_unscaled <span class="op">=</span> <span class="va">Z_un</span>,</span>
 <span>    aux_matrix_unscaled <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">X_un</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span>nrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">Z_un</span><span class="op">)</span>, ncol <span class="op">=</span> <span class="fl">0</span><span class="op">)</span> <span class="kw">else</span> <span class="va">X_un</span>,</span>
 <span>    mu_x_unscaled <span class="op">=</span> <span class="va">mu_x</span></span>
 <span>  <span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Solve on the scaled space (method-specific code)</span></span>
+<span>  <span class="co"># Solve on the scaled space (method-specific code)</span></span>
 <span>  <span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">method_solve_core</span><span class="op">(</span></span>
 <span>    full_data <span class="op">=</span> <span class="va">estimation_data</span>,</span>
 <span>    respondent_data <span class="op">=</span> <span class="va">estimation_data</span><span class="op">[</span><span class="va">obs_idx</span>, <span class="op">]</span>,</span>
 <span>    response_model_matrix_scaled <span class="op">=</span> <span class="va">sc</span><span class="op">$</span><span class="va">response_model_matrix_scaled</span>,</span>
 <span>    auxiliary_matrix_scaled <span class="op">=</span> <span class="va">sc</span><span class="op">$</span><span class="va">auxiliary_matrix_scaled</span>,</span>
 <span>    mu_x_scaled <span class="op">=</span> <span class="va">sc</span><span class="op">$</span><span class="va">mu_x_scaled</span>,</span>
-<span>    controls <span class="op">=</span> <span class="va">controls</span>,</span>
 <span>    <span class="va">...</span></span>
 <span>  <span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Wrap into a standard result object (see Section 5)</span></span>
+<span>  <span class="co"># Unscale coefficients/vcov if you report missingness-model parameters.</span></span>
+<span>  <span class="co"># beta_unscaled &lt;- unscale_coefficients(fit$beta_scaled, fit$vcov_scaled, sc$recipe)</span></span>
+<span></span>
+<span>  <span class="co"># Wrap into a standard result object (see Section 5)</span></span>
 <span>  <span class="fu">new_nmar_result_method</span><span class="op">(</span></span>
-<span>    estimate <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">estimate</span>,</span>
-<span>    std_error <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">std_error</span>,</span>
+<span>    y_hat <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">y_hat</span>,</span>
+<span>    se <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">se</span>,</span>
 <span>    coefficients <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">coefficients</span>,</span>
 <span>    vcov <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">vcov</span>,</span>
 <span>    diagnostics <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">diagnostics</span></span>
@@ -278,97 +317,89 @@ data<a class="anchor" aria-label="anchor" href="#implmethod_dataframe-r-method-f
 <span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level4">
-<h4 id="implmethod_survey-r-method-for-survey-design">5) <code>impl/&lt;method&gt;_survey.R</code> — method for
-survey.design<a class="anchor" aria-label="anchor" href="#implmethod_survey-r-method-for-survey-design"></a>
+<h4 id="implsurvey-r---method-for-survey-design">5) <code>impl/survey.R</code> - method for survey.design<a class="anchor" aria-label="anchor" href="#implsurvey-r---method-for-survey-design"></a>
 </h4>
 <p>Follow EL’s <code>el.survey.design</code> pattern:</p>
 <ul>
-<li>Subset respondents via <code>observed_mask</code>.</li>
-<li>Get respondent base weights via <code>weights(resp_design)</code>
-and set <code>N_pop &lt;- sum(weights(design))</code>.</li>
-<li>For survey designs that require design-based variance, you may
-compute the covariance of score totals via
-<code>svytotal(~ scores, design)</code> followed by
+<li>Construct full-sample and respondent-only designs using
+<code><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset()</a></code>.</li>
+<li>Get analysis weights via <code>weights(design)</code> and set
+<code>N_pop &lt;- sum(weights(design))</code> on the analysis
+scale.</li>
+<li>For design-based degrees of freedom, consider
+<code>survey::degf(design)</code> (when available).</li>
+<li>For design-based variance built from score totals, you may compute
+<code>survey::svytotal(~ scores, design)</code> and use
 <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>.</li>
 </ul>
 </div>
 <div class="section level4">
-<h4 id="implmethod_equations-r-implmethod_jacobian-r-optional">6) <code>impl/&lt;method&gt;_equations.R</code> /
-<code>impl/&lt;method&gt;_jacobian.R</code> (optional)<a class="anchor" aria-label="anchor" href="#implmethod_equations-r-implmethod_jacobian-r-optional"></a>
+<h4 id="implequations-r-impljacobian-r-optional">6) <code>impl/equations.R</code> / <code>impl/jacobian.R</code>
+(optional)<a class="anchor" aria-label="anchor" href="#implequations-r-impljacobian-r-optional"></a>
 </h4>
 <p>If your estimator uses a system of estimating equations and an
-analytic Jacobian (like EL), define and document them here. Otherwise,
-keep method‑specific math here (e.g., likelihood, gradients,
-constraints).</p>
+analytic Jacobian (like EL), define and document them here.</p>
 </div>
 <div class="section level4">
-<h4 id="implmethod_variance-r">7) <code>impl/&lt;method&gt;_variance.R</code><a class="anchor" aria-label="anchor" href="#implmethod_variance-r"></a>
+<h4 id="implvariance-r-optional">7) <code>impl/variance.R</code> (optional)<a class="anchor" aria-label="anchor" href="#implvariance-r-optional"></a>
 </h4>
-<ul>
-<li>Add an option to use shared bootstrap variance helpers
-(<code><a href="../reference/bootstrap_variance.html">bootstrap_variance()</a></code>) for IID or survey designs.</li>
-</ul>
+<p>Add an option to use shared bootstrap variance helpers
+(<code><a href="../reference/bootstrap_variance.html">bootstrap_variance()</a></code>) for IID or survey designs.</p>
 </div>
 <div class="section level4">
-<h4 id="implmethod_constructors-r">8) <code>impl/&lt;method&gt;_constructors.R</code><a class="anchor" aria-label="anchor" href="#implmethod_constructors-r"></a>
+<h4 id="implconstructors-r---results">8) <code>impl/constructors.R</code> - results<a class="anchor" aria-label="anchor" href="#implconstructors-r---results"></a>
 </h4>
 <p>Call <code><a href="../reference/new_nmar_result.html">new_nmar_result()</a></code> inside your constructor so the
 object carries class
 <code>c("nmar_result_&lt;method&gt;", "nmar_result")</code> and shares
 the standard layout:</p>
 <ul>
-<li>Scalar fields: <code>estimate</code>, <code>estimate_name</code>,
-<code>se</code>, <code>converged</code>.</li>
+<li>Scalars: <code>y_hat</code> (primary estimate),
+<code>estimate_name</code>, <code>se</code>,
+<code>converged</code>.</li>
 <li>Lists: <code>model</code> (coefficients/vcov),
 <code>weights_info</code>, <code>sample</code>, <code>inference</code>,
 <code>diagnostics</code>, <code>meta</code>, <code>extra</code>.</li>
 </ul>
-<p>Populate these components directly; do not add extra top-level
-aliases such as <code>y_hat</code> or <code>data_info</code>. The
-<code><a href="../reference/new_nmar_result.html">new_nmar_result()</a></code> helper will attach the engine-specific
-class, add the parent <code>"nmar_result"</code> class, and route the
-object through <code><a href="../reference/validate_nmar_result.html">validate_nmar_result()</a></code> so missing pieces are
-filled with safe defaults. You rarely need to call
-<code><a href="../reference/validate_nmar_result.html">validate_nmar_result()</a></code> directly unless constructing an
-object by hand.</p>
+<p>Populate only fields in the shared schema; put engine-specific
+objects under <code>extra</code>. Call
+<code>new_nmar_result(estimate = ...)</code> rather than assigning
+<code>y_hat</code> directly. The helper attaches classes, adds the
+parent <code>"nmar_result"</code> class, and routes the object through
+<code><a href="../reference/validate_nmar_result.html">validate_nmar_result()</a></code> so missing pieces are filled with
+safe defaults.</p>
 <p>Minimal constructor example (inside
 <code>src_dev/engines/&lt;method&gt;/impl/constructors.R</code>):</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">#' @keywords internal</span></span>
-<span><span class="va">new_nmar_result_method</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">estimate</span>, <span class="va">se</span>,</span>
+<span><span class="va">new_nmar_result_method</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">y_hat</span>, <span class="va">se</span>,</span>
+<span>                                   <span class="va">estimate_name</span> <span class="op">=</span> <span class="cn">NA_character_</span>,</span>
 <span>                                   <span class="va">coefficients</span> <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">vcov</span> <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>                                   <span class="va">weights</span> <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">sample</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>                                   <span class="va">inference</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>variance_method <span class="op">=</span> <span class="cn">NA_character_</span>,</span>
-<span>                                                    df <span class="op">=</span> <span class="cn">NA_real_</span>,</span>
-<span>                                                    message <span class="op">=</span> <span class="cn">NA_character_</span><span class="op">)</span>,</span>
+<span>                                   <span class="va">weights</span> <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>                                   <span class="va">sample</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>                                   <span class="va">inference</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>                                   <span class="va">diagnostics</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>                                   <span class="va">meta</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>engine_name <span class="op">=</span> <span class="st">"method"</span>, call <span class="op">=</span> <span class="cn">NULL</span>, formula <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
-<span>                                   <span class="va">extra</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">sample_defaults</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_total <span class="op">=</span> <span class="cn">NA_integer_</span>, n_respondents <span class="op">=</span> <span class="cn">NA_integer_</span>,</span>
-<span>                          is_survey <span class="op">=</span> <span class="cn">FALSE</span>, design <span class="op">=</span> <span class="cn">NULL</span>, outcome_var <span class="op">=</span> <span class="cn">NA_character_</span><span class="op">)</span></span>
-<span>  <span class="va">sample</span> <span class="op">&lt;-</span> <span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/modifyList.html" class="external-link">modifyList</a></span><span class="op">(</span><span class="va">sample_defaults</span>, <span class="va">sample</span><span class="op">)</span></span>
-<span>  <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_nmar_result.html">new_nmar_result</a></span><span class="op">(</span></span>
-<span>    estimate <span class="op">=</span> <span class="va">estimate</span>,</span>
-<span>    estimate_name <span class="op">=</span> <span class="va">sample</span><span class="op">$</span><span class="va">outcome_var</span>,</span>
+<span>                                   <span class="va">meta</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>engine_name <span class="op">=</span> <span class="st">"&lt;method&gt;"</span>, call <span class="op">=</span> <span class="cn">NULL</span>, formula <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
+<span>                                   <span class="va">extra</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>                                   <span class="va">converged</span> <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/new_nmar_result.html">new_nmar_result</a></span><span class="op">(</span></span>
+<span>    estimate <span class="op">=</span> <span class="va">y_hat</span>,</span>
+<span>    estimate_name <span class="op">=</span> <span class="va">estimate_name</span>,</span>
 <span>    se <span class="op">=</span> <span class="va">se</span>,</span>
-<span>    converged <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>    converged <span class="op">=</span> <span class="va">converged</span>,</span>
 <span>    model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>coefficients <span class="op">=</span> <span class="va">coefficients</span>, vcov <span class="op">=</span> <span class="va">vcov</span><span class="op">)</span>,</span>
 <span>    weights_info <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">weights</span>, trimmed_fraction <span class="op">=</span> <span class="cn">NA_real_</span><span class="op">)</span>,</span>
-<span>    sample <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_total <span class="op">=</span> <span class="va">sample</span><span class="op">$</span><span class="va">n_total</span>,</span>
-<span>                  n_respondents <span class="op">=</span> <span class="va">sample</span><span class="op">$</span><span class="va">n_respondents</span>,</span>
-<span>                  is_survey <span class="op">=</span> <span class="va">sample</span><span class="op">$</span><span class="va">is_survey</span>,</span>
-<span>                  design <span class="op">=</span> <span class="va">sample</span><span class="op">$</span><span class="va">design</span><span class="op">)</span>,</span>
+<span>    sample <span class="op">=</span> <span class="va">sample</span>,</span>
 <span>    inference <span class="op">=</span> <span class="va">inference</span>,</span>
 <span>    diagnostics <span class="op">=</span> <span class="va">diagnostics</span>,</span>
 <span>    meta <span class="op">=</span> <span class="va">meta</span>,</span>
 <span>    extra <span class="op">=</span> <span class="va">extra</span>,</span>
-<span>    class <span class="op">=</span> <span class="st">"nmar_result_method"</span></span>
+<span>    class <span class="op">=</span> <span class="st">"nmar_result_&lt;method&gt;"</span></span>
 <span>  <span class="op">)</span></span>
-<span>  <span class="va">result</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level4">
-<h4 id="s3-r-s3-methods-for-your-result-class">9) <code>s3.R</code> — S3 methods for your result class<a class="anchor" aria-label="anchor" href="#s3-r-s3-methods-for-your-result-class"></a>
+<h4 id="s3-r---s3-methods-for-your-result-class">9) <code>s3.R</code> - S3 methods for your result class<a class="anchor" aria-label="anchor" href="#s3-r---s3-methods-for-your-result-class"></a>
 </h4>
 <p>Implement (or rely on parent defaults):</p>
 <ul>
@@ -378,10 +409,9 @@ object by hand.</p>
 overriding, call <code><a href="https://rdrr.io/r/base/UseMethod.html" class="external-link">NextMethod()</a></code> first to reuse the parent
 output and then append estimator-specific details.</li>
 <li>
-<code>estimate()</code>, <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>,
-<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code>tidy()</code>, <code>glance()</code>:
-these work out of the box as long as you populate the shared
-schema.</li>
+<code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code>tidy()</code>,
+<code>glance()</code>: these work out of the box as long as you populate
+the shared schema.</li>
 <li>Optional accessors: <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>,
 <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code>, etc., if your engine exposes them.</li>
 </ul>
@@ -403,9 +433,7 @@ returning an <code>nmar_scaling_recipe</code> for unscaling.</li>
 <li>
 <code><a href="../reference/unscale_coefficients.html">unscale_coefficients()</a></code> to map scaled coefficients and
 vcov back to the original scale for reporting.</li>
-<li>Intercept is never scaled; constant columns get sd=1. Engines may
-create a recipe from respondents‑only matrices (as in EL) or from
-full/design matrices.</li>
+<li>Intercept is never scaled; constant columns get sd = 1.</li>
 </ul>
 </div>
 <div class="section level4">
@@ -415,9 +443,9 @@ full/design matrices.</li>
 <li>
 <code><a href="../reference/logit_family.html">logit_family()</a></code> / <code><a href="../reference/probit_family.html">probit_family()</a></code> expose
 <code>linkinv</code>, <code>mu.eta</code>, <code>d2mu.deta2</code>, and
-<code>score_eta</code> for link‑agnostic estimating equations and
+<code>score_eta</code> for link-agnostic estimating equations and
 Jacobians.</li>
-<li>Probit uses a tail‑stable log‑ratio for <code>phi/Phi</code>.</li>
+<li>Probit uses a tail-stable log-ratio for <code>phi/Phi</code>.</li>
 </ul>
 </div>
 <div class="section level4">
@@ -425,51 +453,50 @@ Jacobians.</li>
 </h4>
 <ul>
 <li>
-<code><a href="../reference/bootstrap_variance.html">bootstrap_variance()</a></code> S3 generic with methods for
-<code>data.frame</code> and <code>survey.design</code>.</li>
+<code><a href="../reference/bootstrap_variance.html">bootstrap_variance()</a></code> is an internal helper that handles
+<code>data.frame</code> and <code>survey.design</code> inputs (it is not
+a formal exported S3 generic).</li>
 <li>IID: resample rows and rerun the estimator.</li>
 <li>Survey: convert to bootstrap replicate weights
-(<code><a href="https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html" class="external-link">svrep::as_bootstrap_design</a></code>), then feed replicate estimates
-and the design’s
-<code>scale</code>/<code>rscales</code>/<code>mse</code> directly into
+(<code><a href="https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html" class="external-link">svrep::as_bootstrap_design()</a></code>), then pass replicate
+estimates and the design’s
+<code>scale</code>/<code>rscales</code>/<code>mse</code> directly to
 <code><a href="https://rdrr.io/pkg/survey/man/svrVar.html" class="external-link">survey::svrVar()</a></code>.</li>
 <li>Engines may pass a <code>resample_guard(indices, data)</code> in the
 IID case to reject structurally invalid resamples (e.g., those with zero
-respondents). Guards should be rare and simple; they condition the
-bootstrap on “acceptable” samples and are preferable to letting the
-estimator crash.</li>
+respondents).</li>
 <li>For survey designs, <code>survey_na_policy</code> controls how
 failed replicates are handled:
 <ul>
 <li>
-<code>"strict"</code> (default): any non‑finite replicate estimate
+<code>"strict"</code> (default): any non-finite replicate estimate
 is an error.</li>
 <li>
 <code>"omit"</code>: failed replicates are dropped and the
 corresponding <code>rscales</code> entries are removed before calling
-<code>svrVar()</code>. This yields a variance conditional on
-“successful” replicates and should be used cautiously.</li>
+<code><a href="https://rdrr.io/pkg/survey/man/svrVar.html" class="external-link">svrVar()</a></code>.</li>
 </ul>
 </li>
 </ul>
+<hr>
 </div>
-<div class="section level4">
-<h4 id="engine-boundaries-and-naming">4) Engine boundaries and naming<a class="anchor" aria-label="anchor" href="#engine-boundaries-and-naming"></a>
-</h4>
+</div>
+<div class="section level3">
+<h3 id="engine-boundaries-and-naming">4) Engine boundaries and naming<a class="anchor" aria-label="anchor" href="#engine-boundaries-and-naming"></a>
+</h3>
 <ul>
 <li>Do not call helpers from other engines’ <code>impl/</code> folders.
-Engines must depend only on <code>src_dev/shared/</code> and their own
+Engines should depend only on <code>src_dev/shared/</code> and their own
 <code>src_dev/engines/&lt;method&gt;/impl/</code>.</li>
-<li>Prefix engine‑specific helpers with <code>&lt;method&gt;_</code>
+<li>Prefix engine-specific helpers with <code>&lt;method&gt;_</code>
 (e.g., <code>el_...</code> for empirical likelihood) to signal ownership
 and avoid accidental reuse.</li>
 <li>The parent S3 class <code>nmar_result</code> provides default
-methods (<code>estimate</code>, <code>vcov</code>, <code>confint</code>,
-<code>tidy</code>, <code>glance</code>, <code>coef</code>,
-<code>fitted</code>, <code>weights</code>, <code>formula</code>).
-Implement child print/summary only if you need extra presentation.</li>
+methods (<code>vcov</code>, <code>confint</code>, <code>tidy</code>,
+<code>glance</code>, <code>coef</code>, <code>fitted</code>,
+<code>weights</code>, <code>formula</code>, <code>se</code>). Implement
+child print/summary only if you need extra presentation.</li>
 </ul>
-</div>
 <div class="section level4">
 <h4 id="developer-notes-nmar_result-schema-and-conventions">Developer notes: <code>nmar_result</code> schema and
 conventions<a class="anchor" aria-label="anchor" href="#developer-notes-nmar_result-schema-and-conventions"></a>
@@ -512,7 +539,7 @@ outcome variable name).</li>
 <code>weights_info</code>: list with
 <ul>
 <li>
-<code>values</code>: unnormalised analysis weights or masses on the
+<code>values</code>: unnormalized analysis weights or masses on the
 engine’s scale,</li>
 <li>
 <code>trimmed_fraction</code>: fraction of mass trimmed (numeric,

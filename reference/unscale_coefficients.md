@@ -16,12 +16,12 @@ unscale_coefficients(scaled_coeffs, scaled_vcov, recipe)
 
 - scaled_vcov:
 
-  covariance matrix of \`scaled_coeffs\`.
+  covariance matrix of `scaled_coeffs`.
 
 - recipe:
 
-  \`nmar_scaling_recipe\` produced when scaling was applied.
+  Scaling recipe of class `nmar_scaling_recipe`.
 
 ## Value
 
-a list with unscaled \`coefficients\` and \`vcov\`.
+A list with components `coefficients` and `vcov`.

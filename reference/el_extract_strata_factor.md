@@ -1,8 +1,11 @@
 # Extract a strata factor from a survey.design object
 
-Uses the original svydesign() call stored in the object to recreate the
-stratum labels as a single factor. When multiple stratification
-variables are supplied, their interaction is used.
+Prefers strata already materialized in the `survey.design` object
+(typically `design$strata`). When unavailable, attempts to reconstruct
+strata from the original
+[`svydesign()`](https://rdrr.io/pkg/survey/man/svydesign.html) call.
+When multiple stratification variables are supplied, their interaction
+is used.
 
 ## Usage
 

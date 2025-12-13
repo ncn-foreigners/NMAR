@@ -3,7 +3,7 @@
 under nonignorable nonresponse, including parameter solving, variance calculation,
 and diagnostic computation."><meta property="og:description" content="Implements the core computational engine for empirical likelihood estimation
 under nonignorable nonresponse, including parameter solving, variance calculation,
-and diagnostic computation."></head><body>
+and diagnostic computation."><meta property="og:image" content="https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -46,8 +46,7 @@ and diagnostic computation."></head><body>
 </nav><div class="container template-reference-topic">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>Core Empirical Likelihood Estimator</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Core Empirical Likelihood Estimator</h1>
       <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/NMAR/blob/package-dev/R/engines_el_impl_core.R" class="external-link"><code>R/engines_el_impl_core.R</code></a></small>
       <div class="d-none name"><code>el_estimator_core.Rd</code></div>
     </div>
@@ -95,11 +94,11 @@ and diagnostic computation.</p>
 
 
 <dt id="arg-aux-means">aux_means<a class="anchor" aria-label="anchor" href="#arg-aux-means"></a></dt>
-<dd><p>Named numeric vector of auxiliary population means (aligned to columns of `aux_matrix`).</p></dd>
+<dd><p>Named numeric vector of auxiliary population means (aligned to columns of <code>aux_matrix</code>).</p></dd>
 
 
 <dt id="arg-respondent-weights">respondent_weights<a class="anchor" aria-label="anchor" href="#arg-respondent-weights"></a></dt>
-<dd><p>Numeric vector of respondent weights aligned with `missingness_design` rows.</p></dd>
+<dd><p>Numeric vector of respondent weights aligned with <code>missingness_design</code> rows.</p></dd>
 
 
 <dt id="arg-analysis-data">analysis_data<a class="anchor" aria-label="anchor" href="#arg-analysis-data"></a></dt>
@@ -159,7 +158,7 @@ and diagnostic computation.</p>
     <p>Orchestrates EL estimation for NMAR following Qin, Leung, and Shao (2002).
 For <code>data.frame</code> inputs (IID setting) the stacked system in
 \((\beta, z, \lambda_x)\) with \(z = \logit(W)\) is solved by
-<code>nleqslv</code> using an analytic Jacobian. For <code>survey.design</code> inputs a
+<code><a href="https://rdrr.io/pkg/nleqslv/man/nleqslv.html" class="external-link">nleqslv::nleqslv()</a></code> using an analytic Jacobian. For <code>survey.design</code> inputs a
 design-weighted analogue in \((\beta, z, \lambda_W, \lambda_x)\) is solved
 with an analytic Jacobian when the response family supplies second
 derivatives, or with numeric/Broyden Jacobians otherwise. Numerical

@@ -1,7 +1,7 @@
 # Empirical likelihood estimator
 
 Generic for the empirical likelihood (EL) estimator under NMAR. Methods
-are provided for \`data.frame\` and \`survey.design\`.
+are provided for `data.frame` and `survey.design`.
 
 ## Usage
 
@@ -13,7 +13,7 @@ el(data, ...)
 
 - data:
 
-  A \`data.frame\` or a \`survey.design\`.
+  A `data.frame` or a `survey.design`.
 
 - ...:
 
@@ -21,4 +21,4 @@ el(data, ...)
 
 ## See also
 
-\`el.data.frame()\`, \`el.survey.design()\`, \`el_engine()\`
+[`el_engine`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/el_engine.md)

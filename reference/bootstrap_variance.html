@@ -3,7 +3,7 @@
   via bootstrap resampling (IID data) or bootstrap replicate weights
   (survey designs). Designed to be reused across NMAR engines."><meta property="og:description" content="Internal helpers to estimate the variance of a scalar estimator
   via bootstrap resampling (IID data) or bootstrap replicate weights
-  (survey designs). Designed to be reused across NMAR engines."></head><body>
+  (survey designs). Designed to be reused across NMAR engines."><meta property="og:image" content="https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -46,8 +46,7 @@
 </nav><div class="container template-reference-topic">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>Shared bootstrap variance helpers</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Shared bootstrap variance helpers</h1>
       <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/NMAR/blob/package-dev/R/shared_bootstrap.R" class="external-link"><code>R/shared_bootstrap.R</code></a></small>
       <div class="d-none name"><code>bootstrap_variance.Rd</code></div>
     </div>
@@ -68,37 +67,71 @@
 
 
 <dl><dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
-<dd><p>a `data.frame` or a `survey.design`.</p></dd>
+<dd><p>A <code>data.frame</code> or a <code>survey.design</code>.</p></dd>
 
 
 <dt id="arg-estimator-func">estimator_func<a class="anchor" aria-label="anchor" href="#arg-estimator-func"></a></dt>
-<dd><p>function that returns an S3 result object; the primary
-estimate is extracted via `$y_hat` and convergence via `$converged`.</p></dd>
+<dd><p>Function returning an object with a numeric scalar
+component <code>y_hat</code> and an optional logical component <code>converged</code>.</p></dd>
 
 
 <dt id="arg-point-estimate">point_estimate<a class="anchor" aria-label="anchor" href="#arg-point-estimate"></a></dt>
-<dd><p>numeric; point estimate used for some survey variance formulas.</p></dd>
+<dd><p>Numeric scalar; used for survey bootstrap variance
+(passed to <code><a href="https://rdrr.io/pkg/survey/man/svrVar.html" class="external-link">survey::svrVar()</a></code> as <code>coef</code>).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>passed through to `estimator_func`.</p></dd>
+<dd><p>Additional arguments. Some are consumed by <code>bootstrap_variance()</code>
+itself (for example <code>resample_guard</code> for IID bootstrap or
+<code>bootstrap_settings</code>/<code>bootstrap_options</code>/<code>bootstrap_type</code>/<code>bootstrap_mse</code>
+for survey bootstrap); remaining arguments are forwarded to <code>estimator_func</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>- For `data.frame` inputs, performs IID bootstrap by resampling rows and
-    rerunning `estimator_func` on each resample, then computing the empirical
-    variance of the replicate estimates.
-  - For `survey.design` inputs, converts the design to a bootstrap
-    replicate-weight design with `svrep::as_bootstrap_design()`, reconstructs
-    the original sampling design for each replicate weight vector, and passes
-    the resulting replicate estimates and replicate scaling factors to
-    `survey::svrVar()`.</p>
-<p>`estimator_func` is typically an engine-level estimator (for example
+
+<ul><li><p>For <code>data.frame</code> inputs, performs IID bootstrap by resampling
+      rows and rerunning <code>estimator_func</code> on each resample, then
+      computing the empirical variance of the replicate estimates.</p></li>
+<li><p>For <code>survey.design</code> inputs, converts the design to a bootstrap
+      replicate-weight design with <code><a href="https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html" class="external-link">svrep::as_bootstrap_design()</a></code>,
+      evaluates <code>estimator_func</code> on each replicate weight vector (by
+      injecting the replicate analysis weights into a copy of the input design), and
+      passes the resulting replicate estimates and replicate scaling factors
+      to <code><a href="https://rdrr.io/pkg/survey/man/svrVar.html" class="external-link">survey::svrVar()</a></code>.</p></li>
+</ul><p><code>estimator_func</code> is typically an engine-level estimator (for example
   the EL engine) and is called with the same arguments used for the point
-  estimate, except that the `data` argument is replaced by the resampled data
-  (IID) or the replicate `survey.design` (survey).</p>
+  estimate, except that the <code>data</code> argument is replaced by the resampled
+  data (IID) or a replicate-weighted <code>survey.design</code> (survey). Arguments
+  reserved for the bootstrap implementation are stripped from <code>...</code>
+  before forwarding.</p>
     </div>
+    <div class="section level2">
+    <h2 id="bootstrap-specific-options">Bootstrap-specific options<a class="anchor" aria-label="anchor" href="#bootstrap-specific-options"></a></h2>
+
+
+<p></p><dl><dt><code>resample_guard</code></dt>
+<dd><p>IID bootstrap only. A function
+      <code>function(indices, data)</code> that returns <code>TRUE</code> to accept a
+      resample and <code>FALSE</code> to reject it.</p></dd>
+
+    <dt><code>bootstrap_settings</code></dt>
+<dd><p>Survey bootstrap only. A list of
+      arguments forwarded to <code><a href="https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html" class="external-link">svrep::as_bootstrap_design()</a></code>.</p></dd>
+
+    <dt><code>bootstrap_options</code></dt>
+<dd><p>Alias for <code>bootstrap_settings</code>.</p></dd>
+
+    <dt><code>bootstrap_type</code></dt>
+<dd><p>Shortcut for the <code>type</code> argument to
+      <code><a href="https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html" class="external-link">svrep::as_bootstrap_design()</a></code>.</p></dd>
+
+    <dt><code>bootstrap_mse</code></dt>
+<dd><p>Shortcut for the <code>mse</code> argument to
+      <code><a href="https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html" class="external-link">svrep::as_bootstrap_design()</a></code>.</p></dd>
+
+
+</dl></div>
     <div class="section level2">
     <h2 id="progress-reporting">Progress Reporting<a class="anchor" aria-label="anchor" href="#progress-reporting"></a></h2>
 

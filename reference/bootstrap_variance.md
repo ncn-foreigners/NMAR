@@ -14,36 +14,74 @@ bootstrap_variance(data, estimator_func, point_estimate, ...)
 
 - data:
 
-  a \`data.frame\` or a \`survey.design\`.
+  A `data.frame` or a `survey.design`.
 
 - estimator_func:
 
-  function that returns an S3 result object; the primary estimate is
-  extracted via \`\$y_hat\` and convergence via \`\$converged\`.
+  Function returning an object with a numeric scalar component `y_hat`
+  and an optional logical component `converged`.
 
 - point_estimate:
 
-  numeric; point estimate used for some survey variance formulas.
+  Numeric scalar; used for survey bootstrap variance (passed to
+  [`survey::svrVar()`](https://rdrr.io/pkg/survey/man/svrVar.html) as
+  `coef`).
 
 - ...:
 
-  passed through to \`estimator_func\`.
+  Additional arguments. Some are consumed by `bootstrap_variance()`
+  itself (for example `resample_guard` for IID bootstrap or
+  `bootstrap_settings`/`bootstrap_options`/`bootstrap_type`/`bootstrap_mse`
+  for survey bootstrap); remaining arguments are forwarded to
+  `estimator_func`.
 
 ## Details
 
-\- For \`data.frame\` inputs, performs IID bootstrap by resampling rows
-and rerunning \`estimator_func\` on each resample, then computing the
-empirical variance of the replicate estimates. - For \`survey.design\`
-inputs, converts the design to a bootstrap replicate-weight design with
-\`svrep::as_bootstrap_design()\`, reconstructs the original sampling
-design for each replicate weight vector, and passes the resulting
-replicate estimates and replicate scaling factors to
-\`survey::svrVar()\`.
+- For `data.frame` inputs, performs IID bootstrap by resampling rows and
+  rerunning `estimator_func` on each resample, then computing the
+  empirical variance of the replicate estimates.
 
-\`estimator_func\` is typically an engine-level estimator (for example
-the EL engine) and is called with the same arguments used for the point
-estimate, except that the \`data\` argument is replaced by the resampled
-data (IID) or the replicate \`survey.design\` (survey).
+- For `survey.design` inputs, converts the design to a bootstrap
+  replicate-weight design with
+  [`svrep::as_bootstrap_design()`](https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html),
+  evaluates `estimator_func` on each replicate weight vector (by
+  injecting the replicate analysis weights into a copy of the input
+  design), and passes the resulting replicate estimates and replicate
+  scaling factors to
+  [`survey::svrVar()`](https://rdrr.io/pkg/survey/man/svrVar.html).
+
+`estimator_func` is typically an engine-level estimator (for example the
+EL engine) and is called with the same arguments used for the point
+estimate, except that the `data` argument is replaced by the resampled
+data (IID) or a replicate-weighted `survey.design` (survey). Arguments
+reserved for the bootstrap implementation are stripped from `...` before
+forwarding.
+
+## Bootstrap-specific options
+
+- `resample_guard`:
+
+  IID bootstrap only. A function `function(indices, data)` that returns
+  `TRUE` to accept a resample and `FALSE` to reject it.
+
+- `bootstrap_settings`:
+
+  Survey bootstrap only. A list of arguments forwarded to
+  [`svrep::as_bootstrap_design()`](https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html).
+
+- `bootstrap_options`:
+
+  Alias for `bootstrap_settings`.
+
+- `bootstrap_type`:
+
+  Shortcut for the `type` argument to
+  [`svrep::as_bootstrap_design()`](https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html).
+
+- `bootstrap_mse`:
+
+  Shortcut for the `mse` argument to
+  [`svrep::as_bootstrap_design()`](https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html).
 
 ## Progress Reporting
 

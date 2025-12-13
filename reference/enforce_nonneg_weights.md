@@ -37,3 +37,8 @@ A list with components:
 
   numeric vector of adjusted weights (original if `ok` is `FALSE`,
   otherwise with small negatives clipped to zero).
+
+## Details
+
+Values below `-tol` are treated as clearly negative. Values in
+`[-tol, 0)` are clipped to zero.

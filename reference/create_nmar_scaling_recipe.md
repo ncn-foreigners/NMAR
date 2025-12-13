@@ -19,21 +19,22 @@ create_nmar_scaling_recipe(
 
 - ...:
 
-  one or more matrices with named columns.
+  One or more numeric matrices with column names.
 
 - intercept_col:
 
-  Intercept column name that should remain unscaled.
+  Name of an intercept column that should remain unscaled.
 
 - weights:
 
-  Optional numeric vector of weights used to compute weighted
-  means/standard deviations.
+  Optional nonnegative numeric vector used to compute weighted means and
+  standard deviations.
 
 - weight_mask:
 
-  Optional logical/ numeric mask applied to \`weights\` before computing
-  moments (useful for respondents-only scaling).
+  Optional logical mask or nonnegative numeric multipliers applied to
+  `weights` before computing moments (useful for respondents-only
+  scaling). If `weights` is `NULL`, `weight_mask` is treated as weights.
 
 - tol_constant:
 
@@ -42,4 +43,4 @@ create_nmar_scaling_recipe(
 
 - warn_on_constant:
 
-  Logical; emit a warning when a column is treated as constant.
+  Logical; warn when a column is treated as constant.
