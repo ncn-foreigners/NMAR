@@ -29,11 +29,15 @@
 #'     \item 3: full diagnostic output.
 #'   }
 #'
-#' @return An object of class `"nmar_result"` with an engine-specific subclass
+#' @return An object of class \code{"nmar_result"} with an engine-specific subclass
 #'   (for example \code{"nmar_result_el"}). Use \code{summary()},
 #'   \code{\link{se}}, \code{confint()}, \code{weights()}, \code{coef()},
 #'   \code{fitted()}, and \code{generics::tidy()} / \code{generics::glance()} to
 #'   access estimates, standard errors, weights, and diagnostics.
+#'
+#' @seealso \code{\link{el_engine}}, \code{\link{exptilt_engine}},
+#'   \code{\link{exptilt_nonparam_engine}}, \code{\link{summary.nmar_result}},
+#'   \code{\link{weights.nmar_result}}
 #'
 #' @examples
 #' set.seed(1)
@@ -73,13 +77,15 @@
 #' }
 #'
 #' # Bootstrap variance usage
-#' set.seed(2)
-#' eng_boot <- el_engine(
-#'   variance_method = "bootstrap",
-#'   bootstrap_reps = 20
-#' )
-#' fit_boot <- nmar(Y_miss ~ X | Z, data = df_el, engine = eng_boot)
-#' se(fit_boot)
+#' if (requireNamespace("future.apply", quietly = TRUE)) {
+#'   set.seed(2)
+#'   eng_boot <- el_engine(
+#'     variance_method = "bootstrap",
+#'     bootstrap_reps = 20
+#'   )
+#'   fit_boot <- nmar(Y_miss ~ X | Z, data = df_el, engine = eng_boot)
+#'   se(fit_boot)
+#' }
 #' }
 #' @keywords nmar
 #' @export

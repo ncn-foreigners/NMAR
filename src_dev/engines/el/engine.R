@@ -45,15 +45,16 @@
 #'   \code{variance_method = "bootstrap"}.
 #' @param auxiliary_means named numeric vector; population means for auxiliary
 #'   design columns. Names must match the materialized model.matrix column names
-#'   on the first RHS (after formula expansion), e.g., factor indicators like
-#'   `F_b` or transformed terms `I(X^2)`. Auxiliary intercepts are always
-#'   dropped automatically, so do not supply `(Intercept)`. If `NULL` (default)
-#'   and the outcome contains at least one `NA`, auxiliary means are estimated
+#'   on the first RHS (after formula expansion), e.g., factor indicator columns
+#'   created by \code{model.matrix()} or transformed terms like \code{I(X^2)}.
+#'   Auxiliary intercepts are always dropped automatically, so do not supply
+#'   \code{(Intercept)}. If \code{NULL} (default)
+#'   and the outcome contains at least one \code{NA}, auxiliary means are estimated
 #'   from the full input (including nonrespondents): IID uses unweighted column
 #'   means of the auxiliary design; survey designs use the design-weighted means
-#'   based on `weights(design)`. This corresponds to the QLS case where `mu_x` is
-#'   replaced by \eqn{\bar X} (the full-sample mean) when auxiliary variables are
-#'   observed for all sampled units.
+#'   based on \code{weights(design)}. This corresponds to the QLS case where
+#'   \eqn{\mu_x} is replaced by \eqn{\bar X} (the full-sample mean) when auxiliary
+#'   variables are observed for all sampled units.
 #' @param control Optional solver configuration forwarded to
 #'   \code{nleqslv::nleqslv()}. Provide a single list that may include solver
 #'   tolerances (e.g., \code{xtol}, \code{ftol}, \code{maxit}) and, optionally,
@@ -97,11 +98,16 @@
 #' the outcome on the RHS is rejected. The response model always includes an
 #' intercept; the auxiliary block never includes an intercept.
 #'
+#' To include a covariate in both the auxiliary constraints and the response
+#' model, repeat it on both sides, e.g. \code{y_miss ~ X | X}.
+#'
 #' \strong{Auxiliary means}: If \code{auxiliary_means = NULL} (default) and the
 #' outcome contains at least one \code{NA}, auxiliary means are estimated from the
 #' full input and used as \eqn{\bar X} in the QLS constraints. For respondents-only
 #' data (no \code{NA} in the outcome), \code{n_total} must be supplied; and if the
 #' auxiliary RHS is non-empty, \code{auxiliary_means} must also be supplied.
+#' When \code{standardize = TRUE}, supply \code{auxiliary_means} on the original
+#' data scale; the engine applies the same standardization internally.
 #'
 #' \strong{Survey scale}: For \code{survey.design} inputs, \code{n_total} (if
 #' provided) must be on the same analysis scale as \code{weights(design)}. The
@@ -118,19 +124,24 @@
 #' \code{variance_method = "none"}.
 #' Set a seed for reproducible bootstrap results.
 #'
+#' Bootstrap requires suggested packages: for IID resampling it requires
+#' \code{future.apply} (and \code{future}); for survey replicate-weight bootstrap
+#' it requires \code{survey} and \code{svrep}.
+#'
 #' @references
 #' Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 #' nonignorable nonresponse or informative sampling. Journal of the American Statistical
 #' Association, 97(457), 193-200.
 #'
 #' Chen, J., and Sitter, R. R. (1999). A pseudo empirical likelihood approach for
-#' complex survey data. Biometrika, 86(2), 373-385.
+#' the effective use of auxiliary information in complex surveys. Statistica Sinica,
+#' 9, 385-406.
 #'
 #' Wu, C. (2005). Algorithms and R codes for the pseudo empirical likelihood method
-#' in survey sampling. Canadian Journal of Statistics, 33(3), 497-509.
+#' in survey sampling. Survey Methodology, 31(2), 239-243.
 #' @keywords engine
 #' @export
-#' @seealso [nmar()], [weights.nmar_result()], [summary.nmar_result]
+#' @seealso \code{\link{nmar}}, \code{\link{weights.nmar_result}}, \code{\link{summary.nmar_result}}
 #'
 #' @examples
 #' \donttest{
@@ -147,7 +158,7 @@
 #' fit <- nmar(Y_miss ~ X, data = df, engine = eng)
 #' summary(fit)
 #'
-#' # Response-only predictors can be placed to the right of `|`:
+#' # Response-only predictors can be placed to the right of |:
 #' df2 <- data.frame(Y_miss = Y, X = X, Z = Z)
 #' df2$Y_miss[!R] <- NA_real_
 #' eng2 <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")

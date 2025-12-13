@@ -1,7 +1,8 @@
 #' EL core helpers
 #' @description Internal helpers for solving and post-processing the EL system.
-#'   `el_run_solver()` orchestrates `nleqslv` with a small, deterministic fallback
-#'   ladder; `el_post_solution()` computes masses and the point estimate with
+#'   \code{el_run_solver()} orchestrates \code{nleqslv::nleqslv()} with a small,
+#'   deterministic fallback ladder; \code{el_post_solution()} computes masses and
+#'   the point estimate with
 #'   denominator guards and optional trimming.
 #' @name el_core_helpers
 #' @keywords internal
@@ -16,8 +17,8 @@ NULL
 #' @param analytical_jac_func Analytic Jacobian function; may be NULL if
 #'   unavailable or when forcing Broyden.
 #' @param init Numeric vector of initial parameter values.
-#' @param final_control List passed to `nleqslv(control = ...)`.
-#' @param top_args List of top-level `nleqslv` args (e.g., `global`, `xscalm`).
+#' @param final_control List passed to \code{nleqslv::nleqslv(control = ...)}.
+#' @param top_args List of top-level \code{nleqslv::nleqslv} args (e.g., \code{global}, \code{xscalm}).
 #' @param solver_method Character; one of "auto", "newton", or "broyden".
 #' @param use_solver_jac Logical; whether to pass analytic Jacobian to Newton.
 #' @param K_beta Integer; number of response model parameters.
@@ -39,7 +40,6 @@ el_run_solver <- function(equation_system_func,
                           respondent_weights,
                           N_pop,
                           trace_level = 0) {
-# Create verboser for this function
   verboser <- create_verboser(trace_level)
   solver_method_used <- "Newton"
 # Curated defaults: Newton + analytic Jacobian, quadratic line search, auto scaling
@@ -80,7 +80,8 @@ el_run_solver <- function(equation_system_func,
 
   solution <- do.call(nleqslv::nleqslv, nl_args)
 
-# Small pool of perturbed restarts with the same configuration
+# Small pool of stochastic perturbed restarts, used only on solver failure.
+# For reproducibility across runs, set a seed before calling nmar().
   if (any(is.na(solution$x)) || solution$termcd > 2) {
     verboser("  Initial attempt failed, trying perturbed starts...", level = 3)
     for (i in seq_len(3)) {
