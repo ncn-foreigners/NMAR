@@ -13,7 +13,7 @@ vignette: >
 
 # Overview
 
-This vignette demonstrates the empirical likelihood (EL) estimator for Not Missing At Random (NMAR) data in the NMAR package. The primary estimand is the full-data mean of the outcome \(Y\) under the QLS NMAR model. The method implements the estimator of Qin, Leung, and Shao (2002), using empirical likelihood weights that satisfy estimating equations for the response mechanism and (optionally) auxiliary moment constraints. For full derivations, the analytic Jacobian, and variance discussion (bootstrap), see the companion article "Empirical Likelihood Theory for NMAR".
+This vignette demonstrates the empirical likelihood (EL) estimator for Not Missing at Random (NMAR) data in the NMAR package. The primary estimand is the full-data mean of the outcome \(Y\) under the QLS NMAR model. The method implements the estimator of Qin, Leung, and Shao (2002), using empirical likelihood weights that satisfy estimating equations for the response mechanism and (optionally) auxiliary moment constraints. For full derivations, the analytic Jacobian, and variance discussion (bootstrap), see the companion article "Empirical Likelihood Theory for NMAR".
 
 Key features:
 
@@ -24,8 +24,12 @@ Key features:
 
 ## Quick start
 
-- Specify the model with a two-sided formula: `Y_miss ~ X1 + X2 | Z1 + Z2` where auxiliaries are left of `|` and response-only predictors are right of `|`. If `|` is omitted, RHS variables are treated only as auxiliaries; the response model uses the outcome (LHS) and any predictors explicitly placed to the right of `|`.
+- Specify the model with a two-sided formula: `Y_miss ~ auxiliaries | response_predictors`.
+  - The response model always includes an intercept and the evaluated LHS outcome expression \(Y\) for respondents.
+  - Variables on the first RHS (left of `|`) enter only the auxiliary constraints (not the response model).
+  - Variables on the second RHS (right of `|`) enter only the response model (not the auxiliary constraints).
   - Variables on the outcome RHS (e.g., `X1 + X2`) are auxiliaries; supply their known population means via `auxiliary_means = c(X1 = ..., X2 = ...)`.
+    - Alternatively, set `auxiliary_means = NULL` to estimate auxiliary means from the full input (unweighted for IID data; design-weighted for surveys), corresponding to the QLS case that uses \(\bar X\) when \(X\) is observed for all sampled units.
   - Predictors to the right of `|` enter only the response model (no auxiliary constraint) and do not need population means.
   - If you want a covariate to enter both the auxiliary constraints and the response model (as in the original QLS setup), include it on both sides, for example: `Y_miss ~ X | X`.
 - Choose the engine: `el_engine(...)`, e.g., `el_engine(auxiliary_means = c(X1 = 0), variance_method = "bootstrap", standardize = TRUE)`.
@@ -51,8 +55,8 @@ library(NMAR)
 
 N <- 500
 X <- rnorm(N)
-Z <- rnorm(N)
-Y <- 2 + 0.5 * X + Z
+eps <- rnorm(N)
+Y <- 2 + 0.5 * X + eps
 
 # NMAR response: depends on Y
 p <- plogis(-1.0 + 0.4 * scale(Y)[, 1])
@@ -103,7 +107,13 @@ weights sum to the analysis total \(N_\text{pop}\)):
 head(weights(fit), 10)
 head(weights(fit, scale = "population"), 10)
 head(fitted(fit), 10)
-str(fit$diagnostics)
+fit$diagnostics[c(
+  "max_equation_residual",
+  "jacobian_condition_number",
+  "trimmed_fraction",
+  "min_denominator",
+  "fraction_small_denominators"
+)]
 ```
 
 Bootstrap variance (keep reps small for speed). This example requires the optional
@@ -133,7 +143,7 @@ If you pass respondents-only data (the outcome contains no NA), provide the tota
 ```{r}
 set.seed(124)
 N <- 300
-X <- rnorm(N); Z <- rnorm(N); Y <- 1.5 + 0.4 * X + Z
+X <- rnorm(N); eps <- rnorm(N); Y <- 1.5 + 0.4 * X + eps
 p <- plogis(-0.5 + 0.4 * scale(Y)[, 1])
 R <- runif(N) < p
 df_resp <- subset(data.frame(Y_miss = Y, X = X), R == 1)
@@ -179,7 +189,7 @@ The estimator supports complex surveys via `survey::svydesign()`. This chunk run
 
 ```{r, eval = requireNamespace("survey", quietly = TRUE)}
 suppressPackageStartupMessages(library(survey))
-data(api)
+data(api, package = "survey")
 
 set.seed(42)
 apiclus1$api00_miss <- apiclus1$api00
