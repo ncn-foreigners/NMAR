@@ -196,6 +196,7 @@ requires `survey` and `svrep`.
 Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data
 under nonignorable nonresponse or informative sampling. Journal of the
 American Statistical Association, 97(457), 193-200.
+[doi:10.1198/016214502753479338](https://doi.org/10.1198/016214502753479338)
 
 Chen, J., and Sitter, R. R. (1999). A pseudo empirical likelihood
 approach for the effective use of auxiliary information in complex
@@ -214,67 +215,73 @@ likelihood method in survey sampling. Survey Methodology, 31(2),
 ## Examples
 
 ``` r
-# \donttest{
 set.seed(1)
 n <- 200
 X <- rnorm(n)
-Z <- rnorm(n)
-Y <- 2 + 0.5 * X + Z
+Y <- 2 + 0.5 * X + rnorm(n)
 p <- plogis(-0.7 + 0.4 * scale(Y)[, 1])
 R <- runif(n) < p
+if (all(R)) R[1] <- FALSE
 df <- data.frame(Y_miss = Y, X = X)
 df$Y_miss[!R] <- NA_real_
-eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
-fit <- nmar(Y_miss ~ X, data = df, engine = eng)
+
+# Estimate auxiliary mean from full data (QLS "use Xbar" case)
+eng <- el_engine(auxiliary_means = NULL, variance_method = "none")
+
+# Put X in both the auxiliary block and the response model (QLS-like)
+fit <- nmar(Y_miss ~ X | X, data = df, engine = eng)
 summary(fit)
 #> NMAR Model Summary
 #> =================
-#> Y_miss mean: 1.979080
+#> Y_miss mean: 2.250442
 #> Converged: TRUE 
 #> Variance method: none 
 #> Variance notes: Variance skipped (variance_method='none') 
 #> Total units: 200 
 #> Respondents: 76 
-#> Call: nmar(Y_miss ~ X, data = <data.frame: N=200>, engine = empirical_likelihood)
+#> Call: nmar(Y_miss ~ X | X, data = <data.frame: N=200>, engine = empirical_likelihood)
 #> 
 #> Missingness-model coefficients:
 #>              Estimate
-#> (Intercept) -2.535301
-#> Y_miss       0.987603
+#> (Intercept) -1.434576
+#> Y_miss       0.408022
+#> X            0.133420
 
+# \donttest{
 # Response-only predictors can be placed to the right of |:
+Z <- rnorm(n)
 df2 <- data.frame(Y_miss = Y, X = X, Z = Z)
 df2$Y_miss[!R] <- NA_real_
-eng2 <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
+eng2 <- el_engine(auxiliary_means = NULL, variance_method = "none")
 fit2 <- nmar(Y_miss ~ X | Z, data = df2, engine = eng2)
 print(fit2)
 #> Call: nmar(Y_miss ~ X | Z, data = <data.frame: N=200>, engine = empirical_likelihood)
 #> 
 #> NMAR Result
 #> ------------
-#> Y_miss mean: 2.372442
+#> Y_miss mean: 2.107642
 #> Converged: TRUE 
 #> Variance method: none 
 #> Estimator: empirical_likelihood 
 #> Sample size: 200 (respondents: 76)
 #> 
 #> Method: empirical_likelihood
-#> Max equation residual: 8.380e-09
-#> Constraint sum (W): -8.380e-09
+#> Max equation residual: 8.894e-09
+#> Constraint sum (W): 8.894e-09
 #> Constraint sums (aux):
-#>             X 
-#> -3.356769e-09 
+#>            X 
+#> 1.806571e-09 
 
 # Survey design usage
 if (requireNamespace("survey", quietly = TRUE)) {
   des <- survey::svydesign(ids = ~1, weights = ~1, data = df)
-  eng3 <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
+  eng3 <- el_engine(auxiliary_means = NULL, variance_method = "none")
   fit3 <- nmar(Y_miss ~ X, data = des, engine = eng3)
   summary(fit3)
 }
 #> NMAR Model Summary
 #> =================
-#> Y_miss mean: 1.979080
+#> Y_miss mean: 2.099150
 #> Converged: TRUE 
 #> Variance method: none 
 #> Variance notes: Variance skipped (variance_method='none') 
@@ -284,7 +291,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> 
 #> Missingness-model coefficients:
 #>              Estimate
-#> (Intercept) -2.535301
-#> Y_miss       0.987603
+#> (Intercept) -2.113955
+#> Y_miss       0.747676
 # }
 ```

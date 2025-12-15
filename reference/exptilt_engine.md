@@ -199,8 +199,8 @@ res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 
 #> [INFO]  
 #> [INFO] -- DATA SUMMARY -- 
 #> [INFO]   Total observations:      500 
-#> [INFO]   Respondents:             355 (29.0%) 
-#> [INFO]   Non-respondents:         145 (71.0%) 
+#> [INFO]   Respondents:             349 (30.2%) 
+#> [INFO]   Non-respondents:         151 (69.8%) 
 #> [INFO]  
 #> [INFO] -- CONDITIONAL DENSITY ESTIMATION -- 
 #> [INFO]   Selected distribution:   normal 
@@ -214,20 +214,20 @@ res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 
 #> [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- 
 #> [INFO]   Bootstrap replications:   5 
 #> [INFO]   OK Bootstrap complete 
-#> [INFO]   Standard error:           0.076549 
+#> [INFO]   Standard error:           0.109669 
 #> [INFO]  
 #> [RESULT] ============================================================ 
 #> [RESULT]   ESTIMATION COMPLETE 
 #> [RESULT] ============================================================ 
-#> [RESULT]   Mean estimate:            -1.007936 
-#> [RESULT]   Standard error:           0.076549 
-#> [RESULT]   95% CI:                   [-1.157972, -0.857899] 
+#> [RESULT]   Mean estimate:            -1.008413 
+#> [RESULT]   Standard error:           0.109669 
+#> [RESULT]   95% CI:                   [-1.223363, -0.793463] 
 #> [RESULT] ============================================================ 
 summary(res)
 #> NMAR Model Summary
 #> =================
-#> Y mean: -1.007936 (0.076549)
-#> 95% CI: (-1.157969, -0.857902)
+#> Y mean: -1.008413 (0.109669)
+#> 95% CI: (-1.223359, -0.793467)
 #> Converged: TRUE 
 #> Variance method: bootstrap 
 # }

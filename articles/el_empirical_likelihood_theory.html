@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Empirical Likelihood Theory • NMAR</title>
+<title>Empirical Likelihood Theory for NMAR • NMAR</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
@@ -15,7 +15,7 @@
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Empirical Likelihood Theory">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Empirical Likelihood Theory for NMAR">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -45,7 +45,7 @@
     <li><a class="dropdown-item" href="../articles/tutorial_exptilt_nonparam.html">Exponential Tilting (Nonparametric)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Theory</h6></li>
-    <li><a class="dropdown-item" href="../articles/el_empirical_likelihood_theory.html">Empirical Likelihood Theory</a></li>
+    <li><a class="dropdown-item" href="../articles/el_empirical_likelihood_theory.html">Empirical Likelihood Theory for NMAR</a></li>
     <li><a class="dropdown-item" href="../articles/exptilt_theory.html">Exponential Tilting Theory</a></li>
     <li><a class="dropdown-item" href="../articles/exptilt_nonparam_theory.html">Nonparametric Exponential Tilting Theory</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -71,7 +71,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Empirical Likelihood Theory</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Empirical Likelihood Theory for NMAR</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/NMAR/blob/package-dev/vignettes/el_empirical_likelihood_theory.Rmd" class="external-link"><code>vignettes/el_empirical_likelihood_theory.Rmd</code></a></small>
@@ -1777,102 +1777,12 @@ Return: p_i \propto a_i / D_i and \hat{Y} = Sum p_i Y_i / Sum p_i.</code></pre>
 under nonignorable nonresponse or informative sampling. Journal of the
 American Statistical Association, 97(457), 193-200.</li>
 <li>Chen, J., and Sitter, R. R. (1999). A pseudo empirical likelihood
-approach for complex survey data. Biometrika, 86(2), 373-385.</li>
+approach to the effective use of auxiliary information in complex
+surveys. Statistica Sinica, 9, 385-406.</li>
 <li>Wu, C. (2005). Algorithms and R codes for the pseudo empirical
-likelihood method in survey sampling. Canadian Journal of Statistics,
-33(3), 497-509.</li>
+likelihood method in survey sampling. Survey Methodology, 31(2),
+239-243.</li>
 </ul>
-</div>
-<div class="section level2">
-<h2 id="appendix-el-engine-api-reference-user-facing">Appendix: EL Engine API Reference (User-Facing)<a class="anchor" aria-label="anchor" href="#appendix-el-engine-api-reference-user-facing"></a>
-</h2>
-<p>This appendix summarizes the key options of the EL engine
-(constructor: <code><a href="../reference/el_engine.html">el_engine()</a></code>), their defaults, and recommended
-usage.</p>
-<ul>
-<li>
-<strong>family</strong> (default: “logit”)
-<ul>
-<li>Values: “logit”, “probit”, or a family object (list with
-<code>name</code>, <code>linkinv</code>, <code>mu.eta</code>,
-<code>d2mu.deta2</code>, <code>score_eta</code>).</li>
-<li>Notes: We implement <code><a href="../reference/logit_family.html">logit_family()</a></code> and
-<code><a href="../reference/probit_family.html">probit_family()</a></code>. For logit,
-<code>score_eta(eta, delta) = delta - p</code> (the Bernoulli score with
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mrow><mi mathvariant="normal">p</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi></mrow><mrow><mo stretchy="true" form="prefix">(</mo><mi>η</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">p = \mathrm{plogis}(\eta)</annotation></semantics></math>);
-for probit, <code>score_eta</code> is computed via a stable log-domain
-Mills ratio and coincides with the Bernoulli score. On the EL side we
-only ever use the respondent score
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\delta=1</annotation></semantics></math>),
-which reduces to
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mo>−</mo><msub><mi>w</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">s_i = 1 - w_i</annotation></semantics></math>
-for logit and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>i</mi></msub><mo>=</mo><mi>ϕ</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>η</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mi>/</mi><mi>Φ</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>η</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">s_i = \phi(\eta_i)/\Phi(\eta_i)</annotation></semantics></math>
-for probit in the estimating equations.</li>
-</ul>
-</li>
-<li>
-<strong>standardize</strong> (default: TRUE)
-<ul>
-<li>Standardize
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>Z</mi><annotation encoding="application/x-tex">Z</annotation></semantics></math>/<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>X</mi><annotation encoding="application/x-tex">X</annotation></semantics></math>
-(and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>μ</mi><mi>x</mi></msub><annotation encoding="application/x-tex">\mu_x</annotation></semantics></math>)
-using a <code>nmar_scaling_recipe</code> for numerical stability.
-Coefficients are unscaled after solving; the EL engine does not
-currently provide a coefficient covariance matrix (<code>vcov</code> is
-<code>NULL</code>).</li>
-</ul>
-</li>
-<li>
-<strong>trim_cap</strong> (default: Inf)
-<ul>
-<li>Caps EL weights and redistributes mass. Trimming is applied only
-after solving the EL system to the unnormalized masses
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>m</mi><mi>i</mi></msub><mo>=</mo><msub><mi>a</mi><mi>i</mi></msub><mi>/</mi><msub><mi>D</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">m_i = a_i/D_i</annotation></semantics></math>;
-the estimating equations and Jacobian are always evaluated with
-untrimmed masses. The reported
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>Y</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat Y</annotation></semantics></math>
-and returned weights are computed from the trimmed masses, so trimming
-changes the point estimate. Prefer
-<code>variance_method = "bootstrap"</code> when trimming is finite.</li>
-</ul>
-</li>
-<li>
-<strong>variance_method</strong> (default: “none”)
-<ul>
-<li>“bootstrap”: IID resampling or survey replicate weights via
-<code>svrep</code>; preferred for SEs.</li>
-<li>“none”: skip variance calculation.</li>
-</ul>
-</li>
-<li>bootstrap_reps (default: 500)
-<ul>
-<li>Number of bootstrap replicates for
-<code>variance_method = "bootstrap"</code>. Increase for stability,
-decrease for speed.</li>
-</ul>
-</li>
-<li>
-<strong>control</strong> (default: list())
-<ul>
-<li>Passed to <code>nleqslv</code> (e.g., <code>ftol</code>,
-<code>xtol</code>, <code>maxit</code>).</li>
-</ul>
-</li>
-</ul>
-<div class="section level3">
-<h3 id="diagnostics-glanceprint">Diagnostics (glance/print)<a class="anchor" aria-label="anchor" href="#diagnostics-glanceprint"></a>
-</h3>
-<ul>
-<li>
-<code>jacobian_condition_number</code>
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>κ</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>A</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\kappa(A)</annotation></semantics></math>),
-<code>max_equation_residual</code>, denominator summaries (min,
-1%/5%/median), weight concentration (max share/top-5/ESS), and trimming
-fraction. These help assess identification and numerical stability.</li>
-</ul>
-</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

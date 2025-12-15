@@ -54,7 +54,7 @@ https://doi.org/10.1198/016214502753479338
     <li><a class="dropdown-item" href="../articles/tutorial_exptilt_nonparam.html">Exponential Tilting (Nonparametric)</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Theory</h6></li>
-    <li><a class="dropdown-item" href="../articles/el_empirical_likelihood_theory.html">Empirical Likelihood Theory</a></li>
+    <li><a class="dropdown-item" href="../articles/el_empirical_likelihood_theory.html">Empirical Likelihood Theory for NMAR</a></li>
     <li><a class="dropdown-item" href="../articles/exptilt_theory.html">Exponential Tilting Theory</a></li>
     <li><a class="dropdown-item" href="../articles/exptilt_nonparam_theory.html">Nonparametric Exponential Tilting Theory</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -93,7 +93,7 @@ https://doi.org/10.1198/016214502753479338
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
 <p>This vignette demonstrates the empirical likelihood (EL) estimator
-for Not Missing At Random (NMAR) data in the NMAR package. The primary
+for Not Missing at Random (NMAR) data in the NMAR package. The primary
 estimand is the full-data mean of the outcome
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>Y</mi><annotation encoding="application/x-tex">Y</annotation></semantics></math>
 under the QLS NMAR model. The method implements the estimator of Qin,
@@ -120,15 +120,29 @@ robustness.</li>
 </h3>
 <ul>
 <li>Specify the model with a two-sided formula:
-<code>Y_miss ~ X1 + X2 | Z1 + Z2</code> where auxiliaries are left of
-<code>|</code> and response-only predictors are right of <code>|</code>.
-If <code>|</code> is omitted, RHS variables are treated only as
-auxiliaries; the response model uses the outcome (LHS) and any
-predictors explicitly placed to the right of <code>|</code>.
+<code>Y_miss ~ auxiliaries | response_predictors</code>.
 <ul>
+<li>The response model always includes an intercept and the evaluated
+LHS outcome expression
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>Y</mi><annotation encoding="application/x-tex">Y</annotation></semantics></math>
+for respondents.</li>
+<li>Variables on the first RHS (left of <code>|</code>) enter only the
+auxiliary constraints (not the response model).</li>
+<li>Variables on the second RHS (right of <code>|</code>) enter only the
+response model (not the auxiliary constraints).</li>
 <li>Variables on the outcome RHS (e.g., <code>X1 + X2</code>) are
 auxiliaries; supply their known population means via
-<code>auxiliary_means = c(X1 = ..., X2 = ...)</code>.</li>
+<code>auxiliary_means = c(X1 = ..., X2 = ...)</code>.
+<ul>
+<li>Alternatively, set <code>auxiliary_means = NULL</code> to estimate
+auxiliary means from the full input (unweighted for IID data;
+design-weighted for surveys), corresponding to the QLS case that uses
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>X</mi><mo accent="true">‾</mo></mover><annotation encoding="application/x-tex">\bar X</annotation></semantics></math>
+when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>X</mi><annotation encoding="application/x-tex">X</annotation></semantics></math>
+is observed for all sampled units.</li>
+</ul>
+</li>
 <li>Predictors to the right of <code>|</code> enter only the response
 model (no auxiliary constraint) and do not need population means.</li>
 <li>If you want a covariate to enter both the auxiliary constraints and
@@ -157,8 +171,8 @@ on the unobserved outcome.</p>
 <span></span>
 <span><span class="va">N</span> <span class="op">&lt;-</span> <span class="fl">500</span></span>
 <span><span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span></span>
-<span><span class="va">Z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span></span>
-<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fl">2</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">X</span> <span class="op">+</span> <span class="va">Z</span></span>
+<span><span class="va">eps</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span></span>
+<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fl">2</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">X</span> <span class="op">+</span> <span class="va">eps</span></span>
 <span></span>
 <span><span class="co"># NMAR response: depends on Y</span></span>
 <span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1.0</span> <span class="op">+</span> <span class="fl">0.4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/scale.html" class="external-link">scale</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
@@ -246,48 +260,27 @@ on the unobserved outcome.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="co">#&gt;  [1] 0.2385382 0.2237686 0.4564170 0.1384020 0.2873926 0.2792951 0.3336042</span></span>
 <span><span class="co">#&gt;  [8] 0.3145361 0.2706197 0.2550132</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">diagnostics</span><span class="op">)</span></span>
-<span><span class="co">#&gt; List of 35</span></span>
-<span><span class="co">#&gt;  $ convergence_code                  : int 1</span></span>
-<span><span class="co">#&gt;  $ message                           : chr "Function criterion near zero"</span></span>
-<span><span class="co">#&gt;  $ vcov_message                      : chr "Variance skipped (variance_method='none')"</span></span>
-<span><span class="co">#&gt;  $ trimmed_fraction                  : num 0</span></span>
-<span><span class="co">#&gt;  $ solver_method                     : chr "Newton"</span></span>
-<span><span class="co">#&gt;  $ nleqslv_global                    : chr "qline"</span></span>
-<span><span class="co">#&gt;  $ nleqslv_xscalm                    : chr "auto"</span></span>
-<span><span class="co">#&gt;  $ solver_iterations                 : int 7</span></span>
-<span><span class="co">#&gt;  $ solver_time                       : num 0.004</span></span>
-<span><span class="co">#&gt;  $ variance_time                     : num 0</span></span>
-<span><span class="co">#&gt;  $ reparam_W                         : chr "logit"</span></span>
-<span><span class="co">#&gt;  $ max_equation_residual             : num 5.18e-13</span></span>
-<span><span class="co">#&gt;  $ jacobian_condition_number         : num 36.8</span></span>
-<span><span class="co">#&gt;  $ auxiliary_inconsistency_max_z     : num 0.114</span></span>
-<span><span class="co">#&gt;  $ auxiliary_inconsistency_cols      : chr "X"</span></span>
-<span><span class="co">#&gt;  $ min_denominator                   : num 0.461</span></span>
-<span><span class="co">#&gt;  $ fraction_small_denominators       : num 0</span></span>
-<span><span class="co">#&gt;  $ denom_q01                         : num 0.496</span></span>
-<span><span class="co">#&gt;  $ denom_q05                         : num 0.664</span></span>
-<span><span class="co">#&gt;  $ denom_median                      : num 1.05</span></span>
-<span><span class="co">#&gt;  $ denom_count_lt_1e4                : int 0</span></span>
-<span><span class="co">#&gt;  $ denom_floor                       : num 1e-08</span></span>
-<span><span class="co">#&gt;  $ denom_floor_hits                  : num 0</span></span>
-<span><span class="co">#&gt;  $ weight_max_share                  : num 0.0145</span></span>
-<span><span class="co">#&gt;  $ weight_top5_share                 : num 0.0665</span></span>
-<span><span class="co">#&gt;  $ weight_ess                        : num 137</span></span>
-<span><span class="co">#&gt;  $ constraint_sum_W                  : num -3.33e-13</span></span>
-<span><span class="co">#&gt;  $ constraint_sum_aux                : Named num -5.18e-13</span></span>
-<span><span class="co">#&gt;   ..- attr(*, "names")= chr "X"</span></span>
-<span><span class="co">#&gt;  $ constraint_sum_link               : num NA</span></span>
-<span><span class="co">#&gt;  $ sum_respondent_weights            : num 150</span></span>
-<span><span class="co">#&gt;  $ sum_unnormalized_weights_untrimmed: num 150</span></span>
-<span><span class="co">#&gt;  $ normalization_ratio               : num 1</span></span>
-<span><span class="co">#&gt;  $ max_constraint_residual           : num 5.18e-13</span></span>
-<span><span class="co">#&gt;  $ auxiliary_means                   : Named num 0</span></span>
-<span><span class="co">#&gt;   ..- attr(*, "names")= chr "X"</span></span>
-<span><span class="co">#&gt;  $ auxiliary_matrix                  : num [1:150, 1] -0.56 -0.23 1.559 -1.265 -0.687 ...</span></span>
-<span><span class="co">#&gt;   ..- attr(*, "dimnames")=List of 2</span></span>
-<span><span class="co">#&gt;   .. ..$ : chr [1:150] "1" "2" "3" "8" ...</span></span>
-<span><span class="co">#&gt;   .. ..$ : chr "X"</span></span></code></pre></div>
+<span><span class="va">fit</span><span class="op">$</span><span class="va">diagnostics</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  <span class="st">"max_equation_residual"</span>,</span>
+<span>  <span class="st">"jacobian_condition_number"</span>,</span>
+<span>  <span class="st">"trimmed_fraction"</span>,</span>
+<span>  <span class="st">"min_denominator"</span>,</span>
+<span>  <span class="st">"fraction_small_denominators"</span></span>
+<span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; $max_equation_residual</span></span>
+<span><span class="co">#&gt; [1] 5.17808e-13</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $jacobian_condition_number</span></span>
+<span><span class="co">#&gt; [1] 36.83019</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $trimmed_fraction</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $min_denominator</span></span>
+<span><span class="co">#&gt; [1] 0.4613402</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $fraction_small_denominators</span></span>
+<span><span class="co">#&gt; [1] 0</span></span></code></pre></div>
 <p>Bootstrap variance (keep reps small for speed). This example requires
 the optional future.apply package; the chunk is skipped if it is not
 installed:</p>
@@ -319,7 +312,7 @@ the estimator can recover the population response rate:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">124</span><span class="op">)</span></span>
 <span><span class="va">N</span> <span class="op">&lt;-</span> <span class="fl">300</span></span>
-<span><span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span>; <span class="va">Z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span>; <span class="va">Y</span> <span class="op">&lt;-</span> <span class="fl">1.5</span> <span class="op">+</span> <span class="fl">0.4</span> <span class="op">*</span> <span class="va">X</span> <span class="op">+</span> <span class="va">Z</span></span>
+<span><span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span>; <span class="va">eps</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span>; <span class="va">Y</span> <span class="op">&lt;-</span> <span class="fl">1.5</span> <span class="op">+</span> <span class="fl">0.4</span> <span class="op">*</span> <span class="va">X</span> <span class="op">+</span> <span class="va">eps</span></span>
 <span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.5</span> <span class="op">+</span> <span class="fl">0.4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/scale.html" class="external-link">scale</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="va">R</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span> <span class="op">&lt;</span> <span class="va">p</span></span>
 <span><span class="va">df_resp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Y_miss <span class="op">=</span> <span class="va">Y</span>, X <span class="op">=</span> <span class="va">X</span><span class="op">)</span>, <span class="va">R</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span></span>
@@ -405,7 +398,7 @@ appropriate population total via <code>el_engine(n_total = ...)</code>
 so that population-scale EL weights are on the intended scale.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressPackageStartupMessages</a></span><span class="op">(</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://r-survey.r-forge.r-project.org/survey/" class="external-link">survey</a></span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">api</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">api</span>, package <span class="op">=</span> <span class="st">"survey"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
 <span><span class="va">apiclus1</span><span class="op">$</span><span class="va">api00_miss</span> <span class="op">&lt;-</span> <span class="va">apiclus1</span><span class="op">$</span><span class="va">api00</span></span>
@@ -445,8 +438,6 @@ so that population-scale EL weights are on the intended scale.</p>
 <h2 id="practical-guidance">Practical guidance<a class="anchor" aria-label="anchor" href="#practical-guidance"></a>
 </h2>
 <ul>
-<li>Variance method: Analytical delta variance for EL is currently
-disabled; use bootstrap for standard errors.</li>
 <li>Trimming: Use a finite <code>trim_cap</code> to improve robustness
 when large weights occur; prefer bootstrap variance when trimming.</li>
 <li>Solver control: set
@@ -571,19 +562,6 @@ details.</li>
 <span><span class="co">#&gt; [34] listenv_0.10.0      codetools_0.2-20    ragg_1.5.0         </span></span>
 <span><span class="co">#&gt; [37] mitools_2.4         parallelly_1.46.0   rmarkdown_2.30     </span></span>
 <span><span class="co">#&gt; [40] tools_4.5.2         htmltools_0.5.9</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="notes-on-variance-choices">Notes on variance choices<a class="anchor" aria-label="anchor" href="#notes-on-variance-choices"></a>
-</h2>
-<ul>
-<li>Analytical delta variance for EL is not implemented in this version.
-Use <code>variance_method = "bootstrap"</code> for SEs.</li>
-<li>For speed-critical bootstraps, you can set
-<code>variance_method = "none"</code> for point fits and let the
-bootstrap call use it internally for replicates (this is the default
-behavior when you request bootstrap SEs through
-<code>el_engine(...)</code>).</li>
-</ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

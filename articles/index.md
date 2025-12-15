@@ -37,8 +37,8 @@ both data.frame and survey design objects
 
 ### Theory
 
-- [Empirical Likelihood
-  Theory](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/el_empirical_likelihood_theory.md):
+- [Empirical Likelihood Theory for
+  NMAR](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/el_empirical_likelihood_theory.md):
 - [Exponential Tilting
   Theory](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/exptilt_theory.md):
 - [Nonparametric Exponential Tilting

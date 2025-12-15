@@ -1,4 +1,4 @@
-# Empirical Likelihood Theory
+# Empirical Likelihood Theory for NMAR
 
 This vignette summarizes the key mathematical objects and
 estimating-equation derivations behind the empirical likelihood (EL)
@@ -915,57 +915,8 @@ Return: p_i \propto a_i / D_i and \hat{Y} = Sum p_i Y_i / Sum p_i.
   under nonignorable nonresponse or informative sampling. Journal of the
   American Statistical Association, 97(457), 193-200.
 - Chen, J., and Sitter, R. R. (1999). A pseudo empirical likelihood
-  approach for complex survey data. Biometrika, 86(2), 373-385.
+  approach to the effective use of auxiliary information in complex
+  surveys. Statistica Sinica, 9, 385-406.
 - Wu, C. (2005). Algorithms and R codes for the pseudo empirical
-  likelihood method in survey sampling. Canadian Journal of Statistics,
-  33(3), 497-509.
-
-## Appendix: EL Engine API Reference (User-Facing)
-
-This appendix summarizes the key options of the EL engine (constructor:
-[`el_engine()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/el_engine.md)),
-their defaults, and recommended usage.
-
-- **family** (default: “logit”)
-  - Values: “logit”, “probit”, or a family object (list with `name`,
-    `linkinv`, `mu.eta`, `d2mu.deta2`, `score_eta`).
-  - Notes: We implement
-    [`logit_family()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/logit_family.md)
-    and
-    [`probit_family()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/probit_family.md).
-    For logit, `score_eta(eta, delta) = delta - p` (the Bernoulli score
-    with $p = {plogis}(\eta)$); for probit, `score_eta` is computed via
-    a stable log-domain Mills ratio and coincides with the Bernoulli
-    score. On the EL side we only ever use the respondent score
-    ($\delta = 1$), which reduces to $s_{i} = 1 - w_{i}$ for logit and
-    $s_{i} = \phi\left( \eta_{i} \right)/\Phi\left( \eta_{i} \right)$
-    for probit in the estimating equations.
-- **standardize** (default: TRUE)
-  - Standardize $Z$/$X$ (and $\mu_{x}$) using a `nmar_scaling_recipe`
-    for numerical stability. Coefficients are unscaled after solving;
-    the EL engine does not currently provide a coefficient covariance
-    matrix (`vcov` is `NULL`).
-- **trim_cap** (default: Inf)
-  - Caps EL weights and redistributes mass. Trimming is applied only
-    after solving the EL system to the unnormalized masses
-    $m_{i} = a_{i}/D_{i}$; the estimating equations and Jacobian are
-    always evaluated with untrimmed masses. The reported $\widehat{Y}$
-    and returned weights are computed from the trimmed masses, so
-    trimming changes the point estimate. Prefer
-    `variance_method = "bootstrap"` when trimming is finite.
-- **variance_method** (default: “none”)
-  - “bootstrap”: IID resampling or survey replicate weights via `svrep`;
-    preferred for SEs.
-  - “none”: skip variance calculation.
-- bootstrap_reps (default: 500)
-  - Number of bootstrap replicates for `variance_method = "bootstrap"`.
-    Increase for stability, decrease for speed.
-- **control** (default: list())
-  - Passed to `nleqslv` (e.g., `ftol`, `xtol`, `maxit`).
-
-### Diagnostics (glance/print)
-
-- `jacobian_condition_number` ($\kappa(A)$), `max_equation_residual`,
-  denominator summaries (min, 1%/5%/median), weight concentration (max
-  share/top-5/ESS), and trimming fraction. These help assess
-  identification and numerical stability.
+  likelihood method in survey sampling. Survey Methodology, 31(2),
+  239-243.

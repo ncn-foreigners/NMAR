@@ -3,7 +3,7 @@
 ## Overview
 
 This vignette demonstrates the empirical likelihood (EL) estimator for
-Not Missing At Random (NMAR) data in the NMAR package. The primary
+Not Missing at Random (NMAR) data in the NMAR package. The primary
 estimand is the full-data mean of the outcome $Y$ under the QLS NMAR
 model. The method implements the estimator of Qin, Leung, and Shao
 (2002), using empirical likelihood weights that satisfy estimating
@@ -28,14 +28,20 @@ Key features:
 ### Quick start
 
 - Specify the model with a two-sided formula:
-  `Y_miss ~ X1 + X2 | Z1 + Z2` where auxiliaries are left of `|` and
-  response-only predictors are right of `|`. If `|` is omitted, RHS
-  variables are treated only as auxiliaries; the response model uses the
-  outcome (LHS) and any predictors explicitly placed to the right of
-  `|`.
+  `Y_miss ~ auxiliaries | response_predictors`.
+  - The response model always includes an intercept and the evaluated
+    LHS outcome expression $Y$ for respondents.
+  - Variables on the first RHS (left of `|`) enter only the auxiliary
+    constraints (not the response model).
+  - Variables on the second RHS (right of `|`) enter only the response
+    model (not the auxiliary constraints).
   - Variables on the outcome RHS (e.g., `X1 + X2`) are auxiliaries;
     supply their known population means via
     `auxiliary_means = c(X1 = ..., X2 = ...)`.
+    - Alternatively, set `auxiliary_means = NULL` to estimate auxiliary
+      means from the full input (unweighted for IID data;
+      design-weighted for surveys), corresponding to the QLS case that
+      uses $\bar{X}$ when $X$ is observed for all sampled units.
   - Predictors to the right of `|` enter only the response model (no
     auxiliary constraint) and do not need population means.
   - If you want a covariate to enter both the auxiliary constraints and
@@ -62,8 +68,8 @@ library(NMAR)
 
 N <- 500
 X <- rnorm(N)
-Z <- rnorm(N)
-Y <- 2 + 0.5 * X + Z
+eps <- rnorm(N)
+Y <- 2 + 0.5 * X + eps
 
 # NMAR response: depends on Y
 p <- plogis(-1.0 + 0.4 * scale(Y)[, 1])
@@ -161,48 +167,27 @@ head(weights(fit, scale = "population"), 10)
 head(fitted(fit), 10)
 #>  [1] 0.2385382 0.2237686 0.4564170 0.1384020 0.2873926 0.2792951 0.3336042
 #>  [8] 0.3145361 0.2706197 0.2550132
-str(fit$diagnostics)
-#> List of 35
-#>  $ convergence_code                  : int 1
-#>  $ message                           : chr "Function criterion near zero"
-#>  $ vcov_message                      : chr "Variance skipped (variance_method='none')"
-#>  $ trimmed_fraction                  : num 0
-#>  $ solver_method                     : chr "Newton"
-#>  $ nleqslv_global                    : chr "qline"
-#>  $ nleqslv_xscalm                    : chr "auto"
-#>  $ solver_iterations                 : int 7
-#>  $ solver_time                       : num 0.004
-#>  $ variance_time                     : num 0
-#>  $ reparam_W                         : chr "logit"
-#>  $ max_equation_residual             : num 5.18e-13
-#>  $ jacobian_condition_number         : num 36.8
-#>  $ auxiliary_inconsistency_max_z     : num 0.114
-#>  $ auxiliary_inconsistency_cols      : chr "X"
-#>  $ min_denominator                   : num 0.461
-#>  $ fraction_small_denominators       : num 0
-#>  $ denom_q01                         : num 0.496
-#>  $ denom_q05                         : num 0.664
-#>  $ denom_median                      : num 1.05
-#>  $ denom_count_lt_1e4                : int 0
-#>  $ denom_floor                       : num 1e-08
-#>  $ denom_floor_hits                  : num 0
-#>  $ weight_max_share                  : num 0.0145
-#>  $ weight_top5_share                 : num 0.0665
-#>  $ weight_ess                        : num 137
-#>  $ constraint_sum_W                  : num -3.33e-13
-#>  $ constraint_sum_aux                : Named num -5.18e-13
-#>   ..- attr(*, "names")= chr "X"
-#>  $ constraint_sum_link               : num NA
-#>  $ sum_respondent_weights            : num 150
-#>  $ sum_unnormalized_weights_untrimmed: num 150
-#>  $ normalization_ratio               : num 1
-#>  $ max_constraint_residual           : num 5.18e-13
-#>  $ auxiliary_means                   : Named num 0
-#>   ..- attr(*, "names")= chr "X"
-#>  $ auxiliary_matrix                  : num [1:150, 1] -0.56 -0.23 1.559 -1.265 -0.687 ...
-#>   ..- attr(*, "dimnames")=List of 2
-#>   .. ..$ : chr [1:150] "1" "2" "3" "8" ...
-#>   .. ..$ : chr "X"
+fit$diagnostics[c(
+  "max_equation_residual",
+  "jacobian_condition_number",
+  "trimmed_fraction",
+  "min_denominator",
+  "fraction_small_denominators"
+)]
+#> $max_equation_residual
+#> [1] 5.17808e-13
+#> 
+#> $jacobian_condition_number
+#> [1] 36.83019
+#> 
+#> $trimmed_fraction
+#> [1] 0
+#> 
+#> $min_denominator
+#> [1] 0.4613402
+#> 
+#> $fraction_small_denominators
+#> [1] 0
 ```
 
 Bootstrap variance (keep reps small for speed). This example requires
@@ -238,7 +223,7 @@ recover the population response rate:
 ``` r
 set.seed(124)
 N <- 300
-X <- rnorm(N); Z <- rnorm(N); Y <- 1.5 + 0.4 * X + Z
+X <- rnorm(N); eps <- rnorm(N); Y <- 1.5 + 0.4 * X + eps
 p <- plogis(-0.5 + 0.4 * scale(Y)[, 1])
 R <- runif(N) < p
 df_resp <- subset(data.frame(Y_miss = Y, X = X), R == 1)
@@ -327,7 +312,7 @@ the intended scale.
 
 ``` r
 suppressPackageStartupMessages(library(survey))
-data(api)
+data(api, package = "survey")
 
 set.seed(42)
 apiclus1$api00_miss <- apiclus1$api00
@@ -366,8 +351,6 @@ summary(fit_svy)
 
 ## Practical guidance
 
-- Variance method: Analytical delta variance for EL is currently
-  disabled; use bootstrap for standard errors.
 - Trimming: Use a finite `trim_cap` to improve robustness when large
   weights occur; prefer bootstrap variance when trimming.
 - Solver control: set
@@ -479,12 +462,3 @@ sessionInfo()
 #> [37] mitools_2.4         parallelly_1.46.0   rmarkdown_2.30     
 #> [40] tools_4.5.2         htmltools_0.5.9
 ```
-
-## Notes on variance choices
-
-- Analytical delta variance for EL is not implemented in this version.
-  Use `variance_method = "bootstrap"` for SEs.
-- For speed-critical bootstraps, you can set `variance_method = "none"`
-  for point fits and let the bootstrap call use it internally for
-  replicates (this is the default behavior when you request bootstrap
-  SEs through `el_engine(...)`).
