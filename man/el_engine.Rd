@@ -160,31 +160,36 @@ Bootstrap requires suggested packages: for IID resampling it requires
 it requires \code{survey} and \code{svrep}.
 }
 \examples{
-\donttest{
 set.seed(1)
 n <- 200
 X <- rnorm(n)
-Z <- rnorm(n)
-Y <- 2 + 0.5 * X + Z
+Y <- 2 + 0.5 * X + rnorm(n)
 p <- plogis(-0.7 + 0.4 * scale(Y)[, 1])
 R <- runif(n) < p
+if (all(R)) R[1] <- FALSE
 df <- data.frame(Y_miss = Y, X = X)
 df$Y_miss[!R] <- NA_real_
-eng <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
-fit <- nmar(Y_miss ~ X, data = df, engine = eng)
+
+# Estimate auxiliary mean from full data (QLS "use Xbar" case)
+eng <- el_engine(auxiliary_means = NULL, variance_method = "none")
+
+# Put X in both the auxiliary block and the response model (QLS-like)
+fit <- nmar(Y_miss ~ X | X, data = df, engine = eng)
 summary(fit)
 
+\donttest{
 # Response-only predictors can be placed to the right of |:
+Z <- rnorm(n)
 df2 <- data.frame(Y_miss = Y, X = X, Z = Z)
 df2$Y_miss[!R] <- NA_real_
-eng2 <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
+eng2 <- el_engine(auxiliary_means = NULL, variance_method = "none")
 fit2 <- nmar(Y_miss ~ X | Z, data = df2, engine = eng2)
 print(fit2)
 
 # Survey design usage
 if (requireNamespace("survey", quietly = TRUE)) {
   des <- survey::svydesign(ids = ~1, weights = ~1, data = df)
-  eng3 <- el_engine(auxiliary_means = c(X = 0), variance_method = "none")
+  eng3 <- el_engine(auxiliary_means = NULL, variance_method = "none")
   fit3 <- nmar(Y_miss ~ X, data = des, engine = eng3)
   summary(fit3)
 }
@@ -193,7 +198,7 @@ if (requireNamespace("survey", quietly = TRUE)) {
 \references{
 Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
 nonignorable nonresponse or informative sampling. Journal of the American Statistical
-Association, 97(457), 193-200.
+Association, 97(457), 193-200. \doi{10.1198/016214502753479338}
 
 Chen, J., and Sitter, R. R. (1999). A pseudo empirical likelihood approach for
 the effective use of auxiliary information in complex surveys. Statistica Sinica,
