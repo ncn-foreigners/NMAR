@@ -156,6 +156,7 @@ el_post_solution <- function(estimates,
   beta_hat_scaled <- estimates[1:K_beta]
   names(beta_hat_scaled) <- colnames(missingness_model_matrix_scaled)
   W_hat <- stats::plogis(estimates[K_beta + 1])
+  W_hat <- min(max(W_hat, 1e-12), 1 - 1e-12)
 # For survey designs the parameter vector includes lambda_W explicitly after z;
 # for IID designs lambda_W is derived from (N_pop, sum(weights)).
   if (!is.null(lambda_W)) {
