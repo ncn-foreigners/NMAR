@@ -203,7 +203,6 @@ summary(fit_svy)
 
 # Practical guidance
 
-- Variance method: Analytical delta variance for EL is currently disabled; use bootstrap for standard errors.
 - Trimming: Use a finite `trim_cap` to improve robustness when large weights occur; prefer bootstrap variance when trimming.
 - Solver control: set `control = list(xtol = 1e-10, ftol = 1e-10, maxit = 200)` for tighter tolerances if needed. Globalization details are managed internally by `nleqslv`.
 - Standardization: `standardize = TRUE` typically improves numerical stability and comparability across predictors and auxiliary means.
@@ -242,8 +241,3 @@ invisible(nmar(Y_miss ~ X, data = dat, engine = eng_ctrl))
 ```{r}
 sessionInfo()
 ```
-
-# Notes on variance choices
-
-- Analytical delta variance for EL is not implemented in this version. Use `variance_method = "bootstrap"` for SEs.
-- For speed-critical bootstraps, you can set `variance_method = "none"` for point fits and let the bootstrap call use it internally for replicates (this is the default behavior when you request bootstrap SEs through `el_engine(...)`).
