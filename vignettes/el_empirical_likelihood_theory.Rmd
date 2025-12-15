@@ -1,8 +1,8 @@
 ---
-title: "Empirical Likelihood Theory"
+title: "Empirical Likelihood Theory for NMAR"
 # <!-- description: > -->
 # <!--   Mathematical details behind the empirical likelihood estimator for NMAR data (Qin, Leung, and Shao 2002), and how the theory maps to our implementation. -->
-output: rmarkdown::html_document
+output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Empirical Likelihood Theory for NMAR}
   %\VignetteEngine{knitr::rmarkdown}

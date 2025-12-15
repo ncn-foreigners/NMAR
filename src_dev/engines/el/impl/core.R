@@ -202,8 +202,6 @@ el_estimator_core <- function(missingness_design,
   t_solve_start <- proc.time()[[3]]
 
   el_log_solving(verboser)
-  {
-
   solver_out <- el_run_solver(
     equation_system_func = equation_system_func,
     analytical_jac_func = analytical_jac_func,
@@ -245,7 +243,6 @@ el_estimator_core <- function(missingness_design,
         nmar_scaling_recipe = nmar_scaling_recipe
       ))
     }
-  }
   }
 
 # Post-processing and point estimate
