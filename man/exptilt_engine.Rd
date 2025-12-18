@@ -10,7 +10,6 @@ exptilt_engine(
   variance_method = c("bootstrap", "none"),
   bootstrap_reps = 10,
   supress_warnings = FALSE,
-  auxiliary_means = NULL,
   control = list(),
   family = c("logit", "probit"),
   y_dens = c("normal", "lognormal", "exponential", "binomial"),
@@ -29,9 +28,6 @@ exptilt_engine(
 \code{variance_method = "bootstrap"}.}
 
 \item{supress_warnings}{Logical; suppress variance-related warnings.}
-
-\item{auxiliary_means}{Optional named numeric vector of population moments for
-auxiliary covariates.}
 
 \item{control}{Named list of control parameters passed to \code{nleqslv::nleqslv}.
 Common parameters include:

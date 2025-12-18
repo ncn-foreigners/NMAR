@@ -211,79 +211,18 @@ fitted.nmar_result <- function(object, ...) {
   as.numeric(fv)
 }
 
-#' Extract Weights from NMAR Result
+#' Extract weights from an `nmar_result`
 #'
-#' @param object An object of class \code{nmar_result}.
-#' @param scale Character: \code{"probability"} (default) or \code{"population"}.
-#'   \describe{
-#'     \item{\code{"probability"}}{
-#'       Returns \eqn{p_i = \tilde w_i / \sum_j \tilde w_j} where \eqn{\sum_i p_i = 1}.
-#'       This is the canonical form for computing means, for example
-#'       \eqn{\bar y = \sum_i p_i y_i}.
-#'     }
-#'     \item{\code{"population"}}{
-#'       Returns \eqn{w_i = N_\mathrm{pop} p_i} where \eqn{\sum_i w_i = N_\mathrm{pop}}.
-#'       This follows survey conventions and can be used for totals
-#'       \eqn{\hat T = \sum_i w_i y_i = N_\mathrm{pop} \bar y}.
-#'     }
-#'   }
+#' Return analysis weights stored in an `nmar_result` as either
+#' probability-scale (summing to 1) or population-scale (summing to
+#' `sample$n_total`). The function normalizes stored masses and attaches
+#' informative attributes.
+#'
+#' @param object An `nmar_result` object.
+#' @param scale One of `"probability"` (default) or `"population"`.
 #' @param ... Additional arguments (ignored).
 #'
-#' @details
-#' By convention, NMAR engines that expose analysis weights store unnormalized
-#' respondent masses \eqn{\tilde w_i} on the analysis scale in the
-#' \code{weights_info$values} component, and record the population size
-#' \eqn{N_\mathrm{pop}} in \code{sample$n_total}. For the empirical likelihood
-#' (EL) engine these masses are \eqn{\tilde w_i = d_i / D_i(\theta)} as in Qin,
-#' Leung, and Shao (2002); exponential tilting engines may store the
-#' corresponding tilted masses.
-#'
-#' When an engine follows this convention, this helper standardizes those
-#' masses into probability and population weights with the following properties
-#' (up to floating-point error, and even under trimming):
-#' \itemize{
-#'   \item \code{sum(weights(object, scale = "probability")) = 1};
-#'   \item \code{sum(weights(object, scale = "population")) = N_pop};
-#'   \item \code{weights(object, "population") = N_pop * weights(object, "probability")}.
-#' }
-#'
-#' Engines that use different internal weighting schemes can either map their
-#' weights into this convention (by populating \code{weights_info$values} and
-#' \code{sample$n_total} accordingly) or provide engine-specific methods
-#' \code{weights.nmar_result_<method>()} if a different interpretation is
-#' required.
-#'
-#' \strong{Trimming effects}:
-#' When \code{trim_cap < Inf} and trimming is active, the stored unnormalized
-#' masses \eqn{\tilde w_i} may no longer satisfy identities such as
-#' \eqn{\sum_i \tilde w_i = \sum_i d_i}. This helper always renormalizes the
-#' stored masses via
-#' \deqn{w_i = N_\mathrm{pop} \tilde w_i / \sum_j \tilde w_j,}
-#' so that the returned probability- and population-scale weights satisfy the
-#' stated sums regardless of trimming or denominator floors used internally.
-#'
 #' @return Numeric vector of weights with length equal to the number of respondents.
-#'
-#' @references
-#' Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
-#' nonignorable nonresponse or informative sampling. \emph{Journal of the
-#' American Statistical Association}, 97(457), 193-200.
-#'
-#' @examples
-#' \dontrun{
-#' res <- nmar(y_miss ~ x, data = df, engine = el_engine())
-#'
-#' # Probability weights (default): sum to 1
-#' w_prob <- weights(res)
-#' sum(w_prob) # 1 (up to numerical precision)
-#'
-#' # Population weights: sum to N_pop
-#' w_pop <- weights(res, scale = "population")
-#' sum(w_pop) # nrow(df) for IID data
-#'
-#' # Relationship (exact up to floating-point error):
-#' all.equal(w_pop, nrow(df) * w_prob)
-#' }
 #'
 #' @keywords result_param
 #' @export

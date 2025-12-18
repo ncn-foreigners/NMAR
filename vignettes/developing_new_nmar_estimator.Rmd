@@ -5,8 +5,11 @@ description: >
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Developing a New NMAR Estimator}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 # Developing a New NMAR Estimator in the `NMAR` Package
@@ -77,7 +80,8 @@ User workflow:
 
 ## 2) What to implement for a new estimator
 
-Assume your engine will be named `<method>` (e.g., `exptilt2`, `abc`, etc.).
+Assume your engine will be named `<method>` (e.g., `exptilt2`, `abc`,
+etc.).
 
 Create the following files under `src_dev/engines/<method>/`:
 
@@ -130,7 +134,7 @@ run_engine.nmar_engine_<method> <- function(engine, formula, data, trace_level =
 
 ### 3) `impl/<method>.R` - define the method generic
 
-```{r eval=FALSE}
+``` r
 #' @param data A data.frame or survey.design.
 #' @keywords internal
 method <- function(data, ...) UseMethod("method")
@@ -233,9 +237,10 @@ Call `new_nmar_result(estimate = ...)` rather than assigning `y_hat` directly.
 The helper attaches classes, adds the parent `"nmar_result"` class, and routes the
 object through `validate_nmar_result()` so missing pieces are filled with safe defaults.
 
-Minimal constructor example (inside `src_dev/engines/<method>/impl/constructors.R`):
+Minimal constructor example (inside
+`src_dev/engines/<method>/impl/constructors.R`):
 
-```r
+``` r
 #' @keywords internal
 new_nmar_result_method <- function(y_hat, se,
                                    estimate_name = NA_character_,
@@ -276,7 +281,7 @@ Implement (or rely on parent defaults):
 - Optional accessors: `weights()`, `fitted()`, `coef()`, etc., if your engine
   exposes them.
 
-***
+------------------------------------------------------------------------
 
 ## 3) Reusing shared infrastructure
 

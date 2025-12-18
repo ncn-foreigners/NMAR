@@ -54,6 +54,25 @@ new_nmar_result_exptilt <- function(estimate, se, coefficients
   coeffs_vec <- coefficients %||% NULL
 # vcov_mat <- vcov %||% NULL
 
+# Compute fitted values (respondent-level predicted response probabilities)
+  fitted_vals <- NULL
+  try({
+    if (!is.null(model$data) && !is.null(model$col_y) && !is.null(model$cols_delta) && !is.null(model$theta)) {
+      resp_mask <- !is.na(model$data[, model$col_y])
+      if (any(resp_mask)) {
+        x_mat <- as.matrix(model$data[resp_mask, model$cols_delta, drop = FALSE])
+        y_vec <- as.numeric(model$data[resp_mask, model$col_y])
+        if (ncol(x_mat) > 0) {
+          X_full <- cbind(1, x_mat, y_vec)
+        } else {
+          X_full <- cbind(1, y_vec)
+        }
+        theta_num <- as.numeric(model$theta)
+        fitted_vals <- as.numeric(model$family$linkinv(X_full %*% theta_num))
+      }
+    }
+  }, silent = TRUE)
+
   result <- new_nmar_result(
     estimate = estimate,
     estimate_name = outcome_name,
@@ -73,6 +92,7 @@ new_nmar_result_exptilt <- function(estimate, se, coefficients
       variance_method = model$variance_method,
       loss_value = model$loss_value,
       iterations = model$iterations,
+      fitted_values = fitted_vals,
       raw = list(model = model) # allow post-hoc diagnostics (e.g. score checks)
     ),
     class = "nmar_result_exptilt"
