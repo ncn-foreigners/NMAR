@@ -4,7 +4,7 @@
 
 * First release of the **NMAR** package for estimating nonignorable nonresponse (NMAR) bias in survey data.
 
-## New Methods
+## Methods
 
 * **Empirical Likelihood (EL):** Added `el_engine()` implementing the estimator of Qin, Leung, and Shao (2002). This method uses empirical likelihood weights satisfying response mechanism equations and auxiliary moment constraints.
 * **Exponential Tilting (Parametric & Nonparametric):** Included robust implementations for both microdata (`exptilt_engine`) and aggregated contingency tables (`exptilt_nonparam_engine`) based on Riddles, Kim, and Im (2016).
@@ -18,10 +18,6 @@
 
 ## Major Changes
 
-* **Refactored Architecture:** The `exptilt` and `el` engines now share a unified structural design, ensuring consistent behavior for controls, standardization, and error handling.
+* **Refactored Architecture:** The `exptilt` and `el` engines share a unified structural design, ensuring consistent behavior for controls, standardization, and error handling.
 * **Standardization:** Added `standardize = TRUE` argument to engines to improve numerical stability during optimization.
 
-## Minor Improvements
-
-* Implemented weight trimming (`trim_cap`) to handle extreme weights in small samples.
-* Improved numerical stability for Probit link functions using log-domain calculations for Mills ratios.
