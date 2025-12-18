@@ -14,7 +14,6 @@ exptilt_engine(
   variance_method = c("bootstrap", "none"),
   bootstrap_reps = 10,
   supress_warnings = FALSE,
-  auxiliary_means = NULL,
   control = list(),
   family = c("logit", "probit"),
   y_dens = c("normal", "lognormal", "exponential", "binomial"),
@@ -45,11 +44,6 @@ exptilt_engine(
 - supress_warnings:
 
   Logical; suppress variance-related warnings.
-
-- auxiliary_means:
-
-  Optional named numeric vector of population moments for auxiliary
-  covariates.
 
 - control:
 
@@ -224,11 +218,16 @@ res <- nmar(formula = formula, data = x, engine = exptilt_config, trace_level = 
 #> [RESULT]   95% CI:                   [-1.223363, -0.793463] 
 #> [RESULT] ============================================================ 
 summary(res)
-#> NMAR Model Summary
-#> =================
+#> NMAR Model Summary (Exponential tilting)
+#> =================================
 #> Y mean: -1.008413 (0.109669)
 #> 95% CI: (-1.223359, -0.793467)
 #> Converged: TRUE 
 #> Variance method: bootstrap 
+#> Call: nmar(Y ~ x1, data = <data.frame: N=?>, engine = exponential_tilting)
+#> 
+#> Response-model (theta) coefficients:
+#>   (Intercept)          : 0.770027
+#>   Y                    : -0.068508
 # }
 ```

@@ -34,7 +34,7 @@ https://doi.org/10.1093/jssam/smv047
 
     <a class="navbar-brand me-2" href="../index.html">NMAR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,6 +91,35 @@ https://doi.org/10.1093/jssam/smv047
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ncn-foreigners/NMAR" class="external-link">NMAR</a></span><span class="op">)</span></span></code></pre></div>
+<div class="section level2">
+<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
+</h2>
+<p>This vignette demonstrates the Parametric Exponential Tilting
+estimator for handling Not Missing at Random (NMAR). This method
+implements the maximum likelihood approach described in Riddles, Kim,
+and Im (2016)</p>
+</div>
+<div class="section level2">
+<h2 id="input-data">Input data<a class="anchor" aria-label="anchor" href="#input-data"></a>
+</h2>
+<p>This method is applicable when: - Data is individual-level with both
+the outcome variable and auxiliary covariates. - The outcome variable
+follows a known distribution (e.g., normal).</p>
+<div class="section level3">
+<h3 id="required-structure">Required Structure<a class="anchor" aria-label="anchor" href="#required-structure"></a>
+</h3>
+<ul>
+<li>
+<strong>Outcome Variable</strong>: A continuous variable subject to
+nonresponse (e.g., <code>y</code>).</li>
+<li>
+<strong>Covariates for outcome model</strong>: Variables trying to
+model Outcome Variable (e.g., <code>x</code>).</li>
+<li>
+<strong>Instrumental Variable</strong>: (optional) A variable
+affecting response probability but not directly related to the
+outcome.</li>
+</ul>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1108</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">riddles_case1</span><span class="op">)</span></span>
@@ -103,43 +132,95 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="co">#&gt; 6 0.07122291  0.7444041  0.7444041     1</span></span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">y_original</span> <span class="op">&lt;-</span> <span class="va">riddles_case1</span><span class="op">$</span><span class="va">y_true</span> <span class="co"># to compare with true values</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="engine-configuration">Engine Configuration<a class="anchor" aria-label="anchor" href="#engine-configuration"></a>
+</h2>
+<p>The estimation is configured using <code>exptilt_engine</code>.
+Critical parameters include the assumed outcome density for respondents
+and the variance estimation method</p>
+<p>The model is specified via a formula: Outcome ~ Response_Covariates |
+Instrument.</p>
+<ul>
+<li>
+<strong>LHS</strong>: The outcome variable (Y) containing missing
+values.</li>
+<li>
+<strong>RHS</strong> (Left of |): Covariates included in the
+response propensity model .</li>
+<li>
+<strong>RHS</strong> (Right of |): The instrumental variable. The
+method assumes this variable predicts the outcome but is conditionally
+independent of the response status .</li>
+</ul>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Exptilt engine configuration</span></span>
 <span><span class="va">exptilt_config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/exptilt_engine.html">exptilt_engine</a></span><span class="op">(</span></span>
-<span>  y_dens <span class="op">=</span> <span class="st">'normal'</span>,</span>
-<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span>
-<span>  stopping_threshold <span class="op">=</span> <span class="fl">0.01</span>,</span>
-<span>  standardize <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  family <span class="op">=</span> <span class="st">'logit'</span>,</span>
+<span>  y_dens <span class="op">=</span> <span class="st">'normal'</span>, <span class="co"># Assume f(y|x, delta=1) is Normal</span></span>
+<span>  family <span class="op">=</span> <span class="st">'logit'</span>, <span class="co"># Logit link for response probability</span></span>
+<span>  variance_method <span class="op">=</span> <span class="st">'bootstrap'</span>,</span>
 <span>  bootstrap_reps <span class="op">=</span> <span class="fl">5</span>,</span>
-<span>  variance_method <span class="op">=</span> <span class="st">'bootstrap'</span></span>
+<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>, <span class="co"># Solver control parameters</span></span>
+<span>  stopping_threshold <span class="op">=</span> <span class="fl">0.01</span>, <span class="co"># Convergence threshold</span></span>
+<span>  standardize <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">formula</span> <span class="op">=</span> <span class="va">y</span> <span class="op">~</span><span class="va">x</span></span>
 <span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">formula</span>, data <span class="op">=</span> <span class="va">riddles_case1</span>, engine <span class="op">=</span> <span class="va">exptilt_config</span>, trace_level <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="results">Results<a class="anchor" aria-label="anchor" href="#results"></a>
+</h2>
+<p>The function returns an object containing the estimated coefficients
+for the response model and the adjusted mean estimate for the
+outcome.</p>
+<p>The adjusted mean is calculated using propensity score weighting,
+where the weights are derived from the fitted nonignorable response
+model</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NMAR Result</span></span>
-<span><span class="co">#&gt; ------------</span></span>
+<span><span class="co">#&gt; NMAR Result (Exponential tilting)</span></span>
+<span><span class="co">#&gt; -------------------------------</span></span>
 <span><span class="co">#&gt; y mean: -1.003197 (0.039987)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: bootstrap </span></span>
-<span><span class="co">#&gt; Estimator: exponential_tilting</span></span></code></pre></div>
+<span><span class="co">#&gt; Estimator: exponential_tilting </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Exptilt diagnostics:</span></span>
+<span><span class="co">#&gt;   Loss value: 0.000000 0.000000 </span></span>
+<span><span class="co">#&gt;   Iterations: 5 </span></span>
+<span><span class="co">#&gt;   Variance method: bootstrap </span></span>
+<span><span class="co">#&gt;   Bootstrap reps: 5 </span></span>
+<span><span class="co">#&gt;   Stopping threshold: 0.010000</span></span></code></pre></div>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="co">#&gt; (Intercept)           y </span></span>
 <span><span class="co">#&gt;   0.8629256  -0.1722635</span></span></code></pre></div>
+<p>Comparing the results to the true population mean (known from the
+synthetic generation) demonstrates the bias correction.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'True Y mean:          '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">y_original</span><span class="op">)</span><span class="op">)</span>, <span class="st">'\n'</span><span class="op">)</span></span>
-<span><span class="co">#&gt; True Y mean:           -1.0105</span></span>
-<span><span class="va">est</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">y_hat</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">y_true_mean</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">riddles_case1</span><span class="op">$</span><span class="va">y_true</span><span class="op">)</span></span>
+<span><span class="va">est_mean</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">y_hat</span><span class="op">)</span></span>
 <span><span class="va">se</span> <span class="op">&lt;-</span> <span class="va">res</span><span class="op">$</span><span class="va">se</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'Est Y mean (NMAR):    '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span><span class="op">)</span>,</span>
-<span>    <span class="st">'  3σ interval: ('</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span> <span class="op">-</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="va">se</span><span class="op">)</span>,</span>
-<span>    <span class="st">', '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est</span> <span class="op">+</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="va">se</span><span class="op">)</span>, <span class="st">'σ='</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">se</span><span class="op">)</span>, <span class="st">')\n'</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Est Y mean (NMAR):     -1.0032   3σ interval: ( -1.0632 ,  -0.9432 σ= 0.0400 )</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'Naive Y mean (MAR):   '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">riddles_case1</span><span class="op">$</span><span class="va">y</span>, na.rm <span class="op">=</span> <span class="cn">T</span><span class="op">)</span><span class="op">)</span>, <span class="st">'\n'</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Naive Y mean (MAR):    -1.0716</span></span></code></pre></div>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'Estimated (NMAR) Mean:'</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">est_mean</span><span class="op">)</span>,</span>
+<span>    <span class="st">' (SE:'</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">se</span><span class="op">)</span>, <span class="st">')\n'</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Estimated (NMAR) Mean: -1.0032  (SE: 0.0400 )</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'True Y Mean:          '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="va">y_true_mean</span><span class="op">)</span>, <span class="st">'\n'</span><span class="op">)</span></span>
+<span><span class="co">#&gt; True Y Mean:           -1.0105</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">'Naive (MCAR) Mean:     '</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'%.4f'</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">riddles_case1</span><span class="op">$</span><span class="va">y</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span>, <span class="st">'\n'</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Naive (MCAR) Mean:      -1.0716</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="survey-designs">Survey designs<a class="anchor" aria-label="anchor" href="#survey-designs"></a>
+</h2>
+<p>The engine supports survey.design objects. When provided, the
+algorithm incorporates sampling weights into the likelihood estimation
+and the final propensity score weighting.</p>
+<p>The weights affect both the estimation of the respondent density
+f(y∣x) and the solution to the mean score equation, ensuring
+population-level inference</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># if survey is installed</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"survey"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -153,7 +234,6 @@ https://doi.org/10.1093/jssam/smv047
 <span>     on_failure <span class="op">=</span> <span class="st">"error"</span>,</span>
 <span>     bootstrap_reps <span class="op">=</span> <span class="fl">5</span>,</span>
 <span>     supress_warnings <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>     auxiliary_means <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>     control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">15</span>, method <span class="op">=</span> <span class="st">"Newton"</span><span class="op">)</span>,</span>
 <span>     family <span class="op">=</span> <span class="st">"logit"</span>,</span>
 <span>     y_dens <span class="op">=</span> <span class="st">"normal"</span>,</span>
@@ -263,13 +343,22 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="co">#&gt; [INFO]     (Intercept)         :  0.865942  (Intercept) </span></span>
 <span><span class="co">#&gt; [INFO]     y                   : -0.159226  (Effect of y on response prob.) </span></span>
 <span><span class="co">#&gt; [RESULT] ============================================================ </span></span>
-<span><span class="co">#&gt; NMAR Result</span></span>
-<span><span class="co">#&gt; ------------</span></span>
+<span><span class="co">#&gt; NMAR Result (Exponential tilting)</span></span>
+<span><span class="co">#&gt; -------------------------------</span></span>
 <span><span class="co">#&gt; y mean: -1.004793 (0.054672)</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: bootstrap </span></span>
-<span><span class="co">#&gt; Estimator: exponential_tilting</span></span></code></pre></div>
-  </main>
+<span><span class="co">#&gt; Estimator: exponential_tilting </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Exptilt diagnostics:</span></span>
+<span><span class="co">#&gt;   Loss value: 0.000000 0.000000 </span></span>
+<span><span class="co">#&gt;   Iterations: 3 </span></span>
+<span><span class="co">#&gt;   Variance method: bootstrap </span></span>
+<span><span class="co">#&gt;   Bootstrap reps: 5 </span></span>
+<span><span class="co">#&gt;   Stopping threshold: 1.000000</span></span></code></pre></div>
+</div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
 

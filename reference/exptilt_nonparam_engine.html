@@ -17,7 +17,7 @@ nonresponse odds \(O(x_1, y)\) for aggregated, categorical data.'><meta property
 
     <a class="navbar-brand me-2" href="../index.html">NMAR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -159,15 +159,15 @@ A Propensity-score-adjustment Method for Nonignorable Nonresponse
 <span class="r-in"><span><span class="co"># View the final adjusted counts</span></span></span>
 <span class="r-in"><span><span class="co"># (Original counts + expected non-respondent counts)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">results_em_np</span><span class="op">$</span><span class="va">data_final</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Gender Age_group  Voted_A  Voted_B    Other Total</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1   Male     20-29 108.4560 118.8595 12.68447   240</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2   Male     30-39 137.3696 248.0971 41.53330   427</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3   Male     40-49 172.4092 305.7756 16.81518   495</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4   Male      &gt;=50 705.4611 368.3589 13.18002  1087</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 Female     20-29 149.2433 166.3526 19.40414   335</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 Female     30-39 180.9255 253.0418 12.03269   446</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7 Female     40-49 224.0130 271.4359 10.55110   506</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8 Female       50+ 693.1421 227.4771 16.38086   937</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Voted_A  Voted_B    Other Gender Age_group</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 108.4560 118.8595 12.68447   Male     20-29</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 137.3696 248.0971 41.53330   Male     30-39</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 172.4092 305.7756 16.81518   Male     40-49</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 705.4611 368.3589 13.18002   Male      &gt;=50</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 149.2433 166.3526 19.40414 Female     20-29</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 180.9255 253.0418 12.03269 Female     30-39</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7 224.0130 271.4359 10.55110 Female     40-49</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8 693.1421 227.4771 16.38086 Female       50+</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

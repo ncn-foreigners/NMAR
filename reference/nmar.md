@@ -116,11 +116,17 @@ eng_et <- exptilt_engine(
 )
 fit_et <- nmar(y ~ x2 | x1, data = dat_et, engine = eng_et)
 summary(fit_et)
-#> NMAR Model Summary
-#> =================
+#> NMAR Model Summary (Exponential tilting)
+#> =================================
 #> y mean: 0.515218
 #> Converged: TRUE 
 #> Variance method: none 
+#> Call: nmar(y ~ x2 | x1, data = <data.frame: N=?>, engine = exponential_tilting)
+#> 
+#> Response-model (theta) coefficients:
+#>   (Intercept)          : 2.214475
+#>   x1                   : 0.120835
+#>   y                    : -0.161063
 
 # Survey design example (same outcome, random weights)
 if (requireNamespace("survey", quietly = TRUE)) {

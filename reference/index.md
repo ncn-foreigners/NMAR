@@ -26,12 +26,16 @@
   : Print method for nmar_result
 - [`print(`*`<nmar_result_el>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/print.nmar_result_el.md)
   : Print method for EL results
+- [`print(`*`<nmar_result_exptilt>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/print.nmar_result_exptilt.md)
+  : Print method for Exponential Tilting results (engine-specific)
 - [`print(`*`<summary_nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/print.summary_nmar_result.md)
   : Print method for summary.nmar_result
 - [`summary(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/summary.nmar_result.md)
   : Summary method for nmar_result
 - [`summary(`*`<nmar_result_el>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/summary.nmar_result_el.md)
   : Summary method for EL results
+- [`summary(`*`<nmar_result_exptilt>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/summary.nmar_result_exptilt.md)
+  : Summary method for Exponential Tilting results (engine-specific)
 - [`tidy(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/tidy.nmar_result.md)
   : Tidy summary for NMAR results
 
@@ -63,7 +67,7 @@
 - [`vcov(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/vcov.nmar_result.md)
   : Variance-covariance for base NMAR results
 - [`weights(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/weights.nmar_result.md)
-  : Extract Weights from NMAR Result
+  : Extract weights from an \`nmar_result\`
 
 ## Datasets
 

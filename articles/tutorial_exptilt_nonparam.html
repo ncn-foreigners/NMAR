@@ -36,7 +36,7 @@ https://doi.org/10.1093/jssam/smv047
 
     <a class="navbar-brand me-2" href="../index.html">NMAR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -93,6 +93,43 @@ https://doi.org/10.1093/jssam/smv047
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ncn-foreigners/NMAR" class="external-link">NMAR</a></span><span class="op">)</span></span></code></pre></div>
+<div class="section level2">
+<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
+</h2>
+<p>This vignette provides a practical guide to the Nonparametric
+Exponential Tilting estimator for handling nonignorable nonresponse
+(NMAR) in survey data. This method implements the “Fully Nonparametric
+Approach” detailed in Appendix 2 of Riddles, Kim, and Im (2016)</p>
+<p>The Nonparametric Exponential Tilting engine estimates Not Missing at
+Random (NMAR) bias using aggregated categorical data (contingency
+tables). Unlike other engines in this package, <strong>it does not
+process individual rows</strong> (microdata) but summary counts per
+stratum.</p>
+</div>
+<div class="section level2">
+<h2 id="input-data">Input Data<a class="anchor" aria-label="anchor" href="#input-data"></a>
+</h2>
+<p>This estimator is specifically designed for scenarios where: -
+<strong>Data is Aggregated</strong>: The input consists of respondent
+and nonrespondent counts per stratum, rather than microdata. -
+<strong>Variables are Categorical</strong>: Both the outcome of interest
+and the auxiliary covariates are discrete</p>
+<div class="section level3">
+<h3 id="required-structure">Required Structure:<a class="anchor" aria-label="anchor" href="#required-structure"></a>
+</h3>
+<ul>
+<li>
+<strong>Stratification Columns</strong>: Categorical variables
+defining the groups (e.g., <code>Gender</code>,
+<code>Age_group</code>)</li>
+<li>
+<strong>Outcome Counts</strong>: Columns representing counts of
+different outcomes (e.g., <code>Voted_A</code>, <code>Voted_B</code>,
+<code>Other</code>)</li>
+<li>
+<strong>Refusal Count</strong>: A column indicating the number of
+nonresponses (e.g., <code>Refusal</code>)</li>
+</ul>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Test data (Riddles 2016)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">voting</span><span class="op">)</span></span>
@@ -103,28 +140,114 @@ https://doi.org/10.1093/jssam/smv047
 <span><span class="co">#&gt; 4   Male       50+     560     350     3     174  1087</span></span>
 <span><span class="co">#&gt; 5 Female     20-29     106     159     8      62   335</span></span>
 <span><span class="co">#&gt; 6 Female     30-39     129     242     5      70   446</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="engine-configuration">Engine Configuration<a class="anchor" aria-label="anchor" href="#engine-configuration"></a>
+</h2>
+<p>The <code>exptilt_nonparam_engine</code> specifies the column
+containing nonrespondent counts and sets convergence criteria for the EM
+algorithm.</p>
+<p>The model is specified via a two-part formula:
+<code>Outcome_Counts</code> ~ <code>Response_Covariates</code> |
+<code>Instrument</code>: - <strong>LHS</strong>: Sum of outcome columns.
+- <strong>RHS</strong>: Covariates influencing response probability
+(left of |) and the instrumental variable (right of |)</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">np_em_config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/exptilt_nonparam_engine.html">exptilt_nonparam_engine</a></span><span class="op">(</span></span>
 <span>  refusal_col <span class="op">=</span> <span class="st">"Refusal"</span>,</span>
-<span>  max_iter <span class="op">=</span> <span class="fl">100</span>,</span>
-<span>  tol_value <span class="op">=</span> <span class="fl">0.001</span></span>
+<span>  max_iter <span class="op">=</span> <span class="fl">100</span>, <span class="co"># Maximum EM iterations</span></span>
+<span>  tol_value <span class="op">=</span> <span class="fl">0.1</span> <span class="co"># Convergence tolerance</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">em_formula</span> <span class="op">&lt;-</span> <span class="va">Voted_A</span> <span class="op">+</span> <span class="va">Voted_B</span> <span class="op">+</span> <span class="va">Other</span> <span class="op">~</span> <span class="va">Gender</span> <span class="op">|</span> <span class="va">Age_group</span></span>
 <span></span>
 <span><span class="va">results_em_np</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="va">em_formula</span>, data <span class="op">=</span> <span class="va">voting</span>, engine <span class="op">=</span> <span class="va">np_em_config</span>, trace_level <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="results">Results<a class="anchor" aria-label="anchor" href="#results"></a>
+</h2>
+<p>The data_final object returns the reconstructed population. The
+algorithm redistributes those counts into the outcome columns based on
+the estimated nonresponse odds. These adjusted counts allow for the
+direct calculation of corrected population proportions</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">results_em_np</span><span class="op">$</span><span class="va">data_final</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   Gender Age_group  Voted_A  Voted_B    Other Total</span></span>
-<span><span class="co">#&gt; 1   Male     20-29 108.4560 118.8595 12.68447   240</span></span>
-<span><span class="co">#&gt; 2   Male     30-39 137.3696 248.0971 41.53330   427</span></span>
-<span><span class="co">#&gt; 3   Male     40-49 172.4092 305.7756 16.81518   495</span></span>
-<span><span class="co">#&gt; 4   Male       50+ 705.4611 368.3589 13.18002  1087</span></span>
-<span><span class="co">#&gt; 5 Female     20-29 149.2433 166.3526 19.40414   335</span></span>
-<span><span class="co">#&gt; 6 Female     30-39 180.9255 253.0418 12.03269   446</span></span>
-<span><span class="co">#&gt; 7 Female     40-49 224.0130 271.4359 10.55110   506</span></span>
-<span><span class="co">#&gt; 8 Female       50+ 693.1421 227.4771 16.38086   937</span></span></code></pre></div>
-  </main>
+<span><span class="co">#&gt;    Voted_A  Voted_B     Other Gender Age_group</span></span>
+<span><span class="co">#&gt; 1 105.7271 129.7191  4.553824   Male     20-29</span></span>
+<span><span class="co">#&gt; 2 129.8415 287.1473 10.011131   Male     30-39</span></span>
+<span><span class="co">#&gt; 3 162.7556 326.6639  5.580552   Male     40-49</span></span>
+<span><span class="co">#&gt; 4 669.4366 413.9703  3.593145   Male       50+</span></span>
+<span><span class="co">#&gt; 5 134.0864 191.1140  9.799682 Female     20-29</span></span>
+<span><span class="co">#&gt; 6 157.4218 282.6429  5.935294 Female     30-39</span></span>
+<span><span class="co">#&gt; 7 201.3671 298.8497  5.783269 Female     40-49</span></span>
+<span><span class="co">#&gt; 8 658.0469 270.0901  8.862970 Female       50+</span></span></code></pre></div>
+<p>Beyond the adjusted data, the result object contains diagnostic
+information and intermediate matrices used in the EM algorithm. These
+can be inspected to assess convergence and model internals.</p>
+<p>Key components include: - <code>$fit_stats</code>: Contains the
+number of iterations performed and the convergence status (TRUE/FALSE).
+- <code>$loss_value</code>: The final sum of absolute differences in the
+odds matrix, indicating the precision of convergence relative to
+tol_value. - <code>$p_hat_y_given_x_matrix</code>: The estimated
+conditional probabilities of the outcome given covariates, calculated
+from the respondent data. - <code>$n_y_x_matrix</code> and
+<code>$m_x_vec</code>: The internally used matrices for weighted
+respondent and nonrespondent counts, respectively.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">results_em_np</span><span class="op">$</span><span class="va">fit_stats</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $iterations</span></span>
+<span><span class="co">#&gt; [1] 2</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $converged</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="survey-designs">Survey designs<a class="anchor" aria-label="anchor" href="#survey-designs"></a>
+</h2>
+<p>The engine supports survey.design objects. When provided, the
+algorithm extracts sampling weights and scales the observed counts prior
+to the EM procedure, ensuring estimates reflect the target
+population.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Example: Integration with the survey package</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"survey"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://r-survey.r-forge.r-project.org/survey/" class="external-link">survey</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Simulate sampling weights</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">des</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survey/man/svydesign.html" class="external-link">svydesign</a></span><span class="op">(</span>ids <span class="op">=</span> <span class="op">~</span><span class="fl">1</span>, weights <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">voting</span><span class="op">)</span>, mean <span class="op">=</span> <span class="fl">1</span>, sd <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">voting</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">fit_survey</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nmar.html">nmar</a></span><span class="op">(</span></span>
+<span>    formula <span class="op">=</span> <span class="va">em_formula</span>,</span>
+<span>    data <span class="op">=</span> <span class="va">des</span>,</span>
+<span>    engine <span class="op">=</span> <span class="va">np_em_config</span>,</span>
+<span>    trace_level <span class="op">=</span> <span class="fl">0</span></span>
+<span>  <span class="op">)</span></span>
+<span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">fit_survey</span><span class="op">$</span><span class="va">data_final</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="co">#&gt; Loading required package: grid</span></span>
+<span><span class="co">#&gt; Loading required package: Matrix</span></span>
+<span><span class="co">#&gt; Loading required package: survival</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'survey'</span></span>
+<span><span class="co">#&gt; The following object is masked from 'package:graphics':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     dotchart</span></span>
+<span><span class="co">#&gt;    Voted_A  Voted_B     Other Gender Age_group</span></span>
+<span><span class="co">#&gt; 1 113.0123 138.5787  4.860519   Male     20-29</span></span>
+<span><span class="co">#&gt; 2 126.2632 278.9687  9.711809   Male     30-39</span></span>
+<span><span class="co">#&gt; 3 165.7664 332.5443  5.676708   Male     40-49</span></span>
+<span><span class="co">#&gt; 4 690.8249 426.8706  3.700616   Male       50+</span></span>
+<span><span class="co">#&gt; 5 136.7994 194.9707 10.001422 Female     20-29</span></span>
+<span><span class="co">#&gt; 6 156.5905 281.1372  5.905697 Female     30-39</span></span>
+<span><span class="co">#&gt; 7 216.5900 321.4294  6.222056 Female     40-49</span></span>
+<span><span class="co">#&gt; 8 654.9408 268.7998  8.824640 Female       50+</span></span></code></pre></div>
+</div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
 

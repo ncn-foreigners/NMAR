@@ -1,18 +1,44 @@
 # Changelog
 
-## NMAR (development version)
+## NMAR 0.1.0
 
-- Preparing to CRAN deploy
+### Initial CRAN Release
 
-## NMAR 0.0.0.1
+- First release of the **NMAR** package for estimating nonignorable
+  nonresponse (NMAR) bias in survey data.
 
-### Major changes
+### Methods
 
-- Exptilt, el share similar structure design
-  ([\#27](https://github.com/ncn-foreigners/NMAR/issues/27))
+- **Empirical Likelihood (EL):** Added
+  [`el_engine()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/el_engine.md)
+  implementing the estimator of Qin, Leung, and Shao (2002). This method
+  uses empirical likelihood weights satisfying response mechanism
+  equations and auxiliary moment constraints.
+- **Exponential Tilting (Parametric & Nonparametric):** Included robust
+  implementations for both microdata (`exptilt_engine`) and aggregated
+  contingency tables (`exptilt_nonparam_engine`) based on Riddles, Kim,
+  and Im (2016).
 
-### Minor improvements and bug fixes
+### Key Features
 
-- feature 1
+- **Unified API:** All estimators are accessible via a single,
+  consistent
+  [`nmar()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md)
+  interface supporting standard formula syntax (e.g., `Y ~ X | Z`).
+- **Complex Survey Support:** Seamless integration with the `survey`
+  package.
+  [`nmar()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md)
+  accepts `survey.design` objects, automatically handling weights and
+  stratification.
+- **Variance Estimation:** Robust bootstrapping (S3) implementation for
+  standard errors and confidence intervals across all engines.
+- **Diagnostics:** Rich return objects including convergence statistics,
+  Jacobian condition numbers, and detailed weight summaries.
 
-- feature 2
+### Major Changes
+
+- **Refactored Architecture:** The `exptilt` and `el` engines share a
+  unified structural design, ensuring consistent behavior for controls,
+  standardization, and error handling.
+- **Standardization:** Added `standardize = TRUE` argument to engines to
+  improve numerical stability during optimization.

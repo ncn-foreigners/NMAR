@@ -444,7 +444,7 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#> [1] survey_4.4-8   survival_3.8-3 Matrix_1.7-4   future_1.68.0  NMAR_0.0.0.1  
+#> [1] survey_4.4-8   survival_3.8-3 Matrix_1.7-4   future_1.68.0  NMAR_0.1      
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] future.apply_1.20.1 jsonlite_2.0.0      compiler_4.5.2     
@@ -455,7 +455,7 @@ sessionInfo()
 #> [16] generics_0.1.4      Formula_1.2-5       knitr_1.50         
 #> [19] htmlwidgets_1.6.4   desc_1.4.3          DBI_1.2.3          
 #> [22] bslib_0.9.0         rlang_1.1.6         cachem_1.1.0       
-#> [25] xfun_0.54           fs_1.6.6            sass_0.4.10        
+#> [25] xfun_0.55           fs_1.6.6            sass_0.4.10        
 #> [28] cli_3.6.5           progressr_0.18.0    pkgdown_2.2.0      
 #> [31] digest_0.6.39       lifecycle_1.0.4     evaluate_1.0.5     
 #> [34] listenv_0.10.0      codetools_0.2-20    ragg_1.5.0         

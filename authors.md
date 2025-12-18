@@ -14,13 +14,13 @@ Source:
 [`DESCRIPTION`](https://github.com/ncn-foreigners/NMAR/blob/package-dev/DESCRIPTION)
 
 Beręsewicz M, Kołodziej I, Iwaniuk M (2025). *NMAR: Estimation under Not
-Missing at Random Nonresponse*. R package version 0.0.0.1,
+Missing at Random Nonresponse*. R package version 0.1,
 <https://github.com/ncn-foreigners/NMAR>.
 
     @Manual{,
       title = {NMAR: Estimation under Not Missing at Random Nonresponse},
       author = {Maciej Beręsewicz and Igor Kołodziej and Mateusz Iwaniuk},
       year = {2025},
-      note = {R package version 0.0.0.1},
+      note = {R package version 0.1},
       url = {https://github.com/ncn-foreigners/NMAR},
     }

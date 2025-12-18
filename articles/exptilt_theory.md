@@ -348,9 +348,3 @@ described in Riddles et al. (2016) for exponential tilting under NMAR:
 fit the conditional density on respondents, approximate the missing-data
 expectation by a finite sum over observed $y$ values, and solve the
 resulting estimating equations for the missingness-model parameters.
-
-If you would like, I can produce a minimal worked numeric example (R
-code) that builds the matrices and demonstrates the matrix
-multiplications used here — implemented as small, readable functions for
-teaching purposes — and place it in this vignette as an optional
-appendix.

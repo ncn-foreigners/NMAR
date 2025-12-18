@@ -4,6 +4,27 @@
 library(NMAR)
 ```
 
+## Overview
+
+This vignette demonstrates the Parametric Exponential Tilting estimator
+for handling Not Missing at Random (NMAR). This method implements the
+maximum likelihood approach described in Riddles, Kim, and Im (2016)
+
+## Input data
+
+This method is applicable when: - Data is individual-level with both the
+outcome variable and auxiliary covariates. - The outcome variable
+follows a known distribution (e.g., normal).
+
+### Required Structure
+
+- **Outcome Variable**: A continuous variable subject to nonresponse
+  (e.g., `y`).
+- **Covariates for outcome model**: Variables trying to model Outcome
+  Variable (e.g., `x`).
+- **Instrumental Variable**: (optional) A variable affecting response
+  probability but not directly related to the outcome.
+
 ``` r
 set.seed(1108)
 head(riddles_case1)
@@ -20,30 +41,61 @@ head(riddles_case1)
 y_original <- riddles_case1$y_true # to compare with true values
 ```
 
+## Engine Configuration
+
+The estimation is configured using `exptilt_engine`. Critical parameters
+include the assumed outcome density for respondents and the variance
+estimation method
+
+The model is specified via a formula: Outcome ~ Response_Covariates \|
+Instrument.
+
+- **LHS**: The outcome variable (Y) containing missing values.
+- **RHS** (Left of \|): Covariates included in the response propensity
+  model .
+- **RHS** (Right of \|): The instrumental variable. The method assumes
+  this variable predicts the outcome but is conditionally independent of
+  the response status .
+
 ``` r
 # Exptilt engine configuration
 exptilt_config <- exptilt_engine(
-  y_dens = 'normal',
-  control = list(maxit = 10),
-  stopping_threshold = 0.01,
-  standardize = FALSE,
-  family = 'logit',
+  y_dens = 'normal', # Assume f(y|x, delta=1) is Normal
+  family = 'logit', # Logit link for response probability
+  variance_method = 'bootstrap',
   bootstrap_reps = 5,
-  variance_method = 'bootstrap'
+  control = list(maxit = 10), # Solver control parameters
+  stopping_threshold = 0.01, # Convergence threshold
+  standardize = FALSE
 )
 
 formula = y ~x
 res <- nmar(formula = formula, data = riddles_case1, engine = exptilt_config, trace_level = 0)
 ```
 
+## Results
+
+The function returns an object containing the estimated coefficients for
+the response model and the adjusted mean estimate for the outcome.
+
+The adjusted mean is calculated using propensity score weighting, where
+the weights are derived from the fitted nonignorable response model
+
 ``` r
 print(res)
-#> NMAR Result
-#> ------------
+#> NMAR Result (Exponential tilting)
+#> -------------------------------
 #> y mean: -1.003197 (0.039987)
 #> Converged: TRUE 
 #> Variance method: bootstrap 
-#> Estimator: exponential_tilting
+#> Estimator: exponential_tilting 
+#> 
+#> Exptilt diagnostics:
+#>   Loss value: 0.000000 0.000000 
+#>   Iterations: 5 
+#>   Variance method: bootstrap 
+#>   Bootstrap reps: 5 
+#>   Stopping threshold: 0.010000
 ```
 
 ``` r
@@ -52,18 +104,32 @@ coef(res)
 #>   0.8629256  -0.1722635
 ```
 
+Comparing the results to the true population mean (known from the
+synthetic generation) demonstrates the bias correction.
+
 ``` r
-cat('True Y mean:          ', sprintf('%.4f', mean(y_original)), '\n')
-#> True Y mean:           -1.0105
-est <- as.numeric(res$y_hat)
+y_true_mean <- mean(riddles_case1$y_true)
+est_mean <- as.numeric(res$y_hat)
 se <- res$se
-cat('Est Y mean (NMAR):    ', sprintf('%.4f', est),
-    '  3σ interval: (', sprintf('%.4f', est - 1.5 * se),
-    ', ', sprintf('%.4f', est + 1.5 * se), 'σ=', sprintf('%.4f', se), ')\n')
-#> Est Y mean (NMAR):     -1.0032   3σ interval: ( -1.0632 ,  -0.9432 σ= 0.0400 )
-cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(riddles_case1$y, na.rm = T)), '\n')
-#> Naive Y mean (MAR):    -1.0716
+
+cat('Estimated (NMAR) Mean:', sprintf('%.4f', est_mean),
+    ' (SE:', sprintf('%.4f', se), ')\n')
+#> Estimated (NMAR) Mean: -1.0032  (SE: 0.0400 )
+cat('True Y Mean:          ', sprintf('%.4f', y_true_mean), '\n')
+#> True Y Mean:           -1.0105
+cat('Naive (MCAR) Mean:     ', sprintf('%.4f', mean(riddles_case1$y, na.rm = TRUE)), '\n')
+#> Naive (MCAR) Mean:      -1.0716
 ```
+
+## Survey designs
+
+The engine supports survey.design objects. When provided, the algorithm
+incorporates sampling weights into the likelihood estimation and the
+final propensity score weighting.
+
+The weights affect both the estimation of the respondent density f(y∣x)
+and the solution to the mean score equation, ensuring population-level
+inference
 
 ``` r
 # if survey is installed
@@ -78,7 +144,6 @@ if (requireNamespace("survey", quietly = TRUE)) {
      on_failure = "error",
      bootstrap_reps = 5,
      supress_warnings = FALSE,
-     auxiliary_means = NULL,
      control = list(maxit = 15, method = "Newton"),
      family = "logit",
      y_dens = "normal",
@@ -188,10 +253,17 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> [INFO]     (Intercept)         :  0.865942  (Intercept) 
 #> [INFO]     y                   : -0.159226  (Effect of y on response prob.) 
 #> [RESULT] ============================================================ 
-#> NMAR Result
-#> ------------
+#> NMAR Result (Exponential tilting)
+#> -------------------------------
 #> y mean: -1.004793 (0.054672)
 #> Converged: TRUE 
 #> Variance method: bootstrap 
-#> Estimator: exponential_tilting
+#> Estimator: exponential_tilting 
+#> 
+#> Exptilt diagnostics:
+#>   Loss value: 0.000000 0.000000 
+#>   Iterations: 3 
+#>   Variance method: bootstrap 
+#>   Bootstrap reps: 5 
+#>   Stopping threshold: 1.000000
 ```

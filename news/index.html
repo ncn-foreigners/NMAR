@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">NMAR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,19 +47,35 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="development version" id="nmar-development-version">NMAR (development version)<a class="anchor" aria-label="anchor" href="#nmar-development-version"></a></h2>
-<ul><li>Preparing to CRAN deploy</li>
-</ul></div>
-    <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.0.0.1" id="nmar-0001">NMAR 0.0.0.1<a class="anchor" aria-label="anchor" href="#nmar-0001"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.1.0" id="nmar-010">NMAR 0.1.0<a class="anchor" aria-label="anchor" href="#nmar-010"></a></h2>
 <div class="section level3">
-<h3 id="major-changes-0-0-0-1">Major changes<a class="anchor" aria-label="anchor" href="#major-changes-0-0-0-1"></a></h3>
-<ul><li>Exptilt, el share similar structure design (<a href="https://github.com/ncn-foreigners/NMAR/issues/27" class="external-link">#27</a>)</li>
+<h3 id="initial-cran-release-0-1-0">Initial CRAN Release<a class="anchor" aria-label="anchor" href="#initial-cran-release-0-1-0"></a></h3>
+<ul><li>First release of the <strong>NMAR</strong> package for estimating nonignorable nonresponse (NMAR) bias in survey data.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="minor-improvements-and-bug-fixes-0-0-0-1">Minor improvements and bug fixes<a class="anchor" aria-label="anchor" href="#minor-improvements-and-bug-fixes-0-0-0-1"></a></h3>
-<ul><li><p>feature 1</p></li>
-<li><p>feature 2</p></li>
+<h3 id="methods-0-1-0">Methods<a class="anchor" aria-label="anchor" href="#methods-0-1-0"></a></h3>
+<ul><li>
+<strong>Empirical Likelihood (EL):</strong> Added <code><a href="../reference/el_engine.html">el_engine()</a></code> implementing the estimator of Qin, Leung, and Shao (2002). This method uses empirical likelihood weights satisfying response mechanism equations and auxiliary moment constraints.</li>
+<li>
+<strong>Exponential Tilting (Parametric &amp; Nonparametric):</strong> Included robust implementations for both microdata (<code>exptilt_engine</code>) and aggregated contingency tables (<code>exptilt_nonparam_engine</code>) based on Riddles, Kim, and Im (2016).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="key-features-0-1-0">Key Features<a class="anchor" aria-label="anchor" href="#key-features-0-1-0"></a></h3>
+<ul><li>
+<strong>Unified API:</strong> All estimators are accessible via a single, consistent <code><a href="../reference/nmar.html">nmar()</a></code> interface supporting standard formula syntax (e.g., <code>Y ~ X | Z</code>).</li>
+<li>
+<strong>Complex Survey Support:</strong> Seamless integration with the <code>survey</code> package. <code><a href="../reference/nmar.html">nmar()</a></code> accepts <code>survey.design</code> objects, automatically handling weights and stratification.</li>
+<li>
+<strong>Variance Estimation:</strong> Robust bootstrapping (S3) implementation for standard errors and confidence intervals across all engines.</li>
+<li>
+<strong>Diagnostics:</strong> Rich return objects including convergence statistics, Jacobian condition numbers, and detailed weight summaries.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="major-changes-0-1-0">Major Changes<a class="anchor" aria-label="anchor" href="#major-changes-0-1-0"></a></h3>
+<ul><li>
+<strong>Refactored Architecture:</strong> The <code>exptilt</code> and <code>el</code> engines share a unified structural design, ensuring consistent behavior for controls, standardization, and error handling.</li>
+<li>
+<strong>Standardization:</strong> Added <code>standardize = TRUE</code> argument to engines to improve numerical stability during optimization.</li>
 </ul></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
