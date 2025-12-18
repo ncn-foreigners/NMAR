@@ -1,7 +1,7 @@
 Package: NMAR
 Type: Package
 Title: Estimation under Not Missing at Random Nonresponse
-Version: 0.1
+Version: 0.1.0
 Maintainer: Maciej Beręsewicz <Maciej.Beresewicz@ue.poznan.pl>
 Author: Maciej Beręsewicz [aut, cre],
     Igor Kołodziej [aut],
