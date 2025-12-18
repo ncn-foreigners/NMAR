@@ -115,7 +115,6 @@ if (requireNamespace("survey", quietly = TRUE)) {
      on_failure = "error",
      bootstrap_reps = 5,
      supress_warnings = FALSE,
-     auxiliary_means = NULL,
      control = list(maxit = 15, method = "Newton"),
      family = "logit",
      y_dens = "normal",

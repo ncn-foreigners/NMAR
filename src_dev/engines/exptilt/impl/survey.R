@@ -1,7 +1,6 @@
 #' @importFrom stats weights
 #' @exportS3Method exptilt survey.design
 exptilt.survey.design <- function(data, formula,
-                                  auxiliary_means = NULL,
                                   standardize = TRUE,
                                   prob_model_type = c("logit", "probit"),
                                   y_dens = c("auto", "normal", "lognormal", "exponential", "binomial"),
@@ -25,7 +24,6 @@ exptilt.survey.design <- function(data, formula,
   exptilt.data.frame(
     design_vars,
     formula = formula,
-    auxiliary_means = auxiliary_means,
     standardize = standardize,
     prob_model_type = prob_model_type,
     y_dens = y_dens,
