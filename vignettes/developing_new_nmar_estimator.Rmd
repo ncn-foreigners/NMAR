@@ -5,85 +5,105 @@ description: >
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Developing a New NMAR Estimator}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 # Developing a New NMAR Estimator in the `NMAR` Package
 
-This guide explains how to add and integrate a new Not Missing at Random (NMAR)
-statistical estimator into `NMAR`, following the architecture used by the
-Empirical Likelihood (EL) engine and emphasizing a clean separation of concerns:
+This guide explains how to add and integrate a new Not Missing at Random
+(NMAR) statistical estimator into `NMAR`, following the architecture
+used by the Empirical Likelihood (EL) engine and emphasizing a clean
+separation of concerns:
 
-- Shared, reusable utilities live in `src_dev/shared/` (scaling, families,
-  bootstrap, numerics, weights, verbosity).
-- Estimator-specific math and code live in `src_dev/engines/<method>/`.
+-   Shared, reusable utilities live in `src_dev/shared/` (scaling,
+    families, bootstrap, numerics, weights, verbosity).
+-   Estimator-specific math and code live in
+    `src_dev/engines/<method>/`.
 
-> Repository conventions
-> - Always edit source under `src_dev/`. Do not edit generated artifacts in `R/`,
->   `man/`, or `NAMESPACE` by hand.
-> - Before running tests, vignettes, or pkgdown, refresh generated sources with
->   `Rscript build_r_folder.R` (or `source("build_r_folder.R")` from an R session).
-> - In development, prefer `devtools::load_all()` over `library(NMAR)` so you
->   always load the current working tree.
-> - If you change roxygen comments, run `devtools::document()` after refreshing
->   `R/` so Rd/NAMESPACE are rebuilt from current sources.
-> - Use testthat v3 under `tests/testthat/` and run `devtools::test()` before
->   opening a PR.
-> - Recommended before publishing: `R CMD check . --no-manual --as-cran`.
-> - Optional repo tooling: `pre-commit run --all-files` (styling, README render,
->   roxygenize, and other guards).
-> - Use roxygen2 for documentation; do not edit `NAMESPACE` directly.
+> Repository conventions - Always edit source under `src_dev/`. Do not
+> edit generated artifacts in `R/`, `man/`, or `NAMESPACE` by hand. -
+> Before running tests, vignettes, or pkgdown, refresh generated sources
+> with `Rscript build_r_folder.R` (or `source("build_r_folder.R")` from
+> an R session). - In development, prefer `devtools::load_all()` over
+> `library(NMAR)` so you always load the current working tree. - If you
+> change roxygen comments, run `devtools::document()` after refreshing
+> `R/` so Rd/NAMESPACE are rebuilt from current sources. - Use testthat
+> v3 under `tests/testthat/` and run `devtools::test()` before opening a
+> PR. - Recommended before publishing:
+> `R CMD check . --no-manual --as-cran`. - Optional repo tooling:
+> `pre-commit run --all-files` (styling, README render, roxygenize, and
+> other guards). - Use roxygen2 for documentation; do not edit
+> `NAMESPACE` directly.
 
-***
+------------------------------------------------------------------------
+
 ## 0) General guidelines
-1. Prefer small, pure functions with clear inputs/outputs; fail loudly with informative `stop()` messages.
-2. Prefer type-stable iteration (`vapply()`, `lapply()`, explicit loops) over `sapply()`.
-3. Avoid adding new dependencies without prior discussion; prefer base R and existing shared infrastructure.
-4. Reuse `src_dev/shared/` for method-agnostic components (scaling, families, bootstrap, numerics).
-5. Use S3 with explicit constructors and validators for engine and result objects.
-6. Keep a single, predictable execution path; avoid unnecessary nesting and multi-modal behavior (KISS/YAGNI).
+
+1.  Prefer small, pure functions with clear inputs/outputs; fail loudly
+    with informative `stop()` messages.
+2.  Prefer type-stable iteration (`vapply()`, `lapply()`, explicit
+    loops) over `sapply()`.
+3.  Avoid adding new dependencies without prior discussion; prefer base
+    R and existing shared infrastructure.
+4.  Reuse `src_dev/shared/` for method-agnostic components (scaling,
+    families, bootstrap, numerics).
+5.  Use S3 with explicit constructors and validators for engine and
+    result objects.
+6.  Keep a single, predictable execution path; avoid unnecessary nesting
+    and multi-modal behavior (KISS/YAGNI).
 
 ## 0.1) Minimal developer checklist
 
-- Add an engine constructor `<method>_engine()` with `@export` and `@keywords engine`.
-- Add `run_engine.nmar_engine_<method>()` with `@exportS3Method run_engine nmar_engine_<method>`.
-- Implement a method generic `<method>()` and class methods `<method>.data.frame()` and
-  `<method>.survey.design()` (as needed).
-- Construct results with `new_nmar_result()` and return class `nmar_result_<method>`.
-- Add tests under `tests/testthat/` (at least: smoke test, argument validation, and one regression test).
-- Refresh generated files and validate: `Rscript build_r_folder.R`, then `devtools::document()`,
-  then `devtools::test()`.
-- If you add a developer article or vignette, register it in `_pkgdown.yml`. Note
-  that this guide is intentionally excluded from the package tarball via
-  `.Rbuildignore` but can still be built into the pkgdown site from source.
+-   Add an engine constructor `<method>_engine()` with `@export` and
+    `@keywords engine`.
+-   Add `run_engine.nmar_engine_<method>()` with
+    `@exportS3Method run_engine nmar_engine_<method>`.
+-   Implement a method generic `<method>()` and class methods
+    `<method>.data.frame()` and `<method>.survey.design()` (as needed).
+-   Construct results with `new_nmar_result()` and return class
+    `nmar_result_<method>`.
+-   Add tests under `tests/testthat/` (at least: smoke test, argument
+    validation, and one regression test).
+-   Refresh generated files and validate: `Rscript build_r_folder.R`,
+    then `devtools::document()`, then `devtools::test()`.
+-   If you add a developer article or vignette, register it in
+    `_pkgdown.yml`. Note that this guide is intentionally excluded from
+    the package tarball via `.Rbuildignore` but can still be built into
+    the pkgdown site from source.
 
 ## 1) Overview of the package flow
 
 User workflow:
 
-1. User creates an engine configuration (e.g., `el_engine(...)`).
-2. User calls `nmar(formula = ..., data = ..., engine = <engine>)`.
-3. `nmar()` validates inputs and dispatches to `run_engine(engine, formula, data, trace_level)` by S3.
-4. The engine's `run_engine.nmar_engine_<method>()` builds arguments from the engine configuration and
-   calls an internal method-specific generic (e.g., `el()`), which dispatches on `data` type:
-   - `*.data.frame(...)` for IID data
-   - `*.survey.design(...)` for complex surveys
-5. The method computes the estimator and returns a result object of class
-   `c("nmar_result_<method>", "nmar_result")` containing the primary estimand
-   and supporting data for S3 methods.
+1.  User creates an engine configuration (e.g., `el_engine(...)`).
+2.  User calls `nmar(formula = ..., data = ..., engine = <engine>)`.
+3.  `nmar()` validates inputs and dispatches to
+    `run_engine(engine, formula, data, trace_level)` by S3.
+4.  The engine's `run_engine.nmar_engine_<method>()` builds arguments
+    from the engine configuration and calls an internal method-specific
+    generic (e.g., `el()`), which dispatches on `data` type:
+    -   `*.data.frame(...)` for IID data
+    -   `*.survey.design(...)` for complex surveys
+5.  The method computes the estimator and returns a result object of
+    class `c("nmar_result_<method>", "nmar_result")` containing the
+    primary estimand and supporting data for S3 methods.
 
-***
+------------------------------------------------------------------------
 
 ## 2) What to implement for a new estimator
 
-Assume your engine will be named `<method>` (e.g., `exptilt2`, `abc`, etc.).
+Assume your engine will be named `<method>` (e.g., `exptilt2`, `abc`,
+etc.).
 
 Create the following files under `src_dev/engines/<method>/`:
 
 ### 1) `engine.R` - engine constructor
 
-```{r eval=FALSE}
+``` r
 method_engine <- function(
   standardize = TRUE,
   variance_method = c("bootstrap", "none"),
@@ -110,7 +130,7 @@ Important: add `@keywords engine` in roxygen
 
 ### 2) `run_engine.R` - run_engine method
 
-```{r eval=FALSE}
+``` r
 #' @exportS3Method run_engine nmar_engine_<method>
 run_engine.nmar_engine_<method> <- function(engine, formula, data, trace_level = 0) {
   args <- list(
@@ -130,7 +150,7 @@ run_engine.nmar_engine_<method> <- function(engine, formula, data, trace_level =
 
 ### 3) `impl/<method>.R` - define the method generic
 
-```{r eval=FALSE}
+``` r
 #' @param data A data.frame or survey.design.
 #' @keywords internal
 method <- function(data, ...) UseMethod("method")
@@ -138,7 +158,7 @@ method <- function(data, ...) UseMethod("method")
 
 ### 4) `impl/dataframe.R` - method for IID data
 
-```{r eval=FALSE}
+``` r
 #' @keywords internal
 method.data.frame <- function(data, formula, standardize = TRUE, auxiliary_means = NULL, ...) {
   # Prepare inputs. You may adapt from EL's el_prepare_inputs() pattern.
@@ -205,37 +225,46 @@ method.data.frame <- function(data, formula, standardize = TRUE, auxiliary_means
 
 Follow EL's `el.survey.design` pattern:
 
-- Construct full-sample and respondent-only designs using `subset()`.
-- Get analysis weights via `weights(design)` and set `N_pop <- sum(weights(design))` on the analysis scale.
-- For design-based degrees of freedom, consider `survey::degf(design)` (when available).
-- For design-based variance built from score totals, you may compute `survey::svytotal(~ scores, design)` and use `vcov()`.
+-   Construct full-sample and respondent-only designs using `subset()`.
+-   Get analysis weights via `weights(design)` and set
+    `N_pop <- sum(weights(design))` on the analysis scale.
+-   For design-based degrees of freedom, consider `survey::degf(design)`
+    (when available).
+-   For design-based variance built from score totals, you may compute
+    `survey::svytotal(~ scores, design)` and use `vcov()`.
 
 ### 6) `impl/equations.R` / `impl/jacobian.R` (optional)
 
-If your estimator uses a system of estimating equations and an analytic Jacobian (like EL),
-define and document them here.
+If your estimator uses a system of estimating equations and an analytic
+Jacobian (like EL), define and document them here.
 
 ### 7) `impl/variance.R` (optional)
 
-Add an option to use shared bootstrap variance helpers (`bootstrap_variance()`) for IID or survey designs.
+Add an option to use shared bootstrap variance helpers
+(`bootstrap_variance()`) for IID or survey designs.
 
 ### 8) `impl/constructors.R` - results
 
-Call `new_nmar_result()` inside your constructor so the object carries class
-`c("nmar_result_<method>", "nmar_result")` and shares the standard layout:
+Call `new_nmar_result()` inside your constructor so the object carries
+class `c("nmar_result_<method>", "nmar_result")` and shares the standard
+layout:
 
-- Scalars: `y_hat` (primary estimate), `estimate_name`, `se`, `converged`.
-- Lists: `model` (coefficients/vcov), `weights_info`, `sample`, `inference`,
-  `diagnostics`, `meta`, `extra`.
+-   Scalars: `y_hat` (primary estimate), `estimate_name`, `se`,
+    `converged`.
+-   Lists: `model` (coefficients/vcov), `weights_info`, `sample`,
+    `inference`, `diagnostics`, `meta`, `extra`.
 
-Populate only fields in the shared schema; put engine-specific objects under `extra`.
-Call `new_nmar_result(estimate = ...)` rather than assigning `y_hat` directly.
-The helper attaches classes, adds the parent `"nmar_result"` class, and routes the
-object through `validate_nmar_result()` so missing pieces are filled with safe defaults.
+Populate only fields in the shared schema; put engine-specific objects
+under `extra`. Call `new_nmar_result(estimate = ...)` rather than
+assigning `y_hat` directly. The helper attaches classes, adds the parent
+`"nmar_result"` class, and routes the object through
+`validate_nmar_result()` so missing pieces are filled with safe
+defaults.
 
-Minimal constructor example (inside `src_dev/engines/<method>/impl/constructors.R`):
+Minimal constructor example (inside
+`src_dev/engines/<method>/impl/constructors.R`):
 
-```r
+``` r
 #' @keywords internal
 new_nmar_result_method <- function(y_hat, se,
                                    estimate_name = NA_character_,
@@ -268,15 +297,15 @@ new_nmar_result_method <- function(y_hat, se,
 
 Implement (or rely on parent defaults):
 
-- `print.nmar_result_<method>()`, `summary.nmar_result_<method>()` (optional).
-  When overriding, call `NextMethod()` first to reuse the parent output and then
-  append estimator-specific details.
-- `vcov()`, `confint()`, `tidy()`, `glance()`: these work out of the box as long
-  as you populate the shared schema.
-- Optional accessors: `weights()`, `fitted()`, `coef()`, etc., if your engine
-  exposes them.
+-   `print.nmar_result_<method>()`, `summary.nmar_result_<method>()`
+    (optional). When overriding, call `NextMethod()` first to reuse the
+    parent output and then append estimator-specific details.
+-   `vcov()`, `confint()`, `tidy()`, `glance()`: these work out of the
+    box as long as you populate the shared schema.
+-   Optional accessors: `weights()`, `fitted()`, `coef()`, etc., if your
+    engine exposes them.
 
-***
+------------------------------------------------------------------------
 
 ## 3) Reusing shared infrastructure
 
@@ -284,102 +313,127 @@ Use these shared modules in `src_dev/shared/`:
 
 ### Scaling
 
-- `validate_and_apply_nmar_scaling()` to standardize `Z`/`X` and auxiliary means
-  before solving, returning an `nmar_scaling_recipe` for unscaling.
-- `unscale_coefficients()` to map scaled coefficients and vcov back to the
-  original scale for reporting.
-- Intercept is never scaled; constant columns get sd = 1.
+-   `validate_and_apply_nmar_scaling()` to standardize `Z`/`X` and
+    auxiliary means before solving, returning an `nmar_scaling_recipe`
+    for unscaling.
+-   `unscale_coefficients()` to map scaled coefficients and vcov back to
+    the original scale for reporting.
+-   Intercept is never scaled; constant columns get sd = 1.
 
 ### Families (response model)
 
-- `logit_family()` / `probit_family()` expose `linkinv`, `mu.eta`, `d2mu.deta2`,
-  and `score_eta` for link-agnostic estimating equations and Jacobians.
-- Probit uses a tail-stable log-ratio for `phi/Phi`.
+-   `logit_family()` / `probit_family()` expose `linkinv`, `mu.eta`,
+    `d2mu.deta2`, and `score_eta` for link-agnostic estimating equations
+    and Jacobians.
+-   Probit uses a tail-stable log-ratio for `phi/Phi`.
 
 ### Bootstrap variance
 
-- `bootstrap_variance()` is an internal helper that handles `data.frame` and
-  `survey.design` inputs (it is not a formal exported S3 generic).
-- IID: resample rows and rerun the estimator.
-- Survey: convert to bootstrap replicate weights (`svrep::as_bootstrap_design()`),
-  then pass replicate estimates and the design's `scale`/`rscales`/`mse` directly
-  to `survey::svrVar()`.
-- Engines may pass a `resample_guard(indices, data)` in the IID case to
-  reject structurally invalid resamples (e.g., those with zero respondents).
-- For survey designs, `survey_na_policy` controls how failed replicates are handled:
-  - `"strict"` (default): any non-finite replicate estimate is an error.
-  - `"omit"`: failed replicates are dropped and the corresponding `rscales`
-    entries are removed before calling `svrVar()`.
+-   `bootstrap_variance()` is an internal helper that handles
+    `data.frame` and `survey.design` inputs (it is not a formal exported
+    S3 generic).
+-   IID: resample rows and rerun the estimator.
+-   Survey: convert to bootstrap replicate weights
+    (`svrep::as_bootstrap_design()`), then pass replicate estimates and
+    the design's `scale`/`rscales`/`mse` directly to `survey::svrVar()`.
+-   Engines may pass a `resample_guard(indices, data)` in the IID case
+    to reject structurally invalid resamples (e.g., those with zero
+    respondents).
+-   For survey designs, `survey_na_policy` controls how failed
+    replicates are handled:
+    -   `"strict"` (default): any non-finite replicate estimate is an
+        error.
+    -   `"omit"`: failed replicates are dropped and the corresponding
+        `rscales` entries are removed before calling `svrVar()`.
 
-***
+------------------------------------------------------------------------
 
 ## 4) Engine boundaries and naming
 
-- Do not call helpers from other engines' `impl/` folders. Engines should depend only on `src_dev/shared/` and their own `src_dev/engines/<method>/impl/`.
-- Prefix engine-specific helpers with `<method>_` (e.g., `el_...` for empirical likelihood) to signal ownership and avoid accidental reuse.
-- The parent S3 class `nmar_result` provides default methods (`vcov`, `confint`, `tidy`, `glance`, `coef`, `fitted`, `weights`, `formula`, `se`). Implement child print/summary only if you need extra presentation.
+-   Do not call helpers from other engines' `impl/` folders. Engines
+    should depend only on `src_dev/shared/` and their own
+    `src_dev/engines/<method>/impl/`.
+-   Prefix engine-specific helpers with `<method>_` (e.g., `el_...` for
+    empirical likelihood) to signal ownership and avoid accidental
+    reuse.
+-   The parent S3 class `nmar_result` provides default methods (`vcov`,
+    `confint`, `tidy`, `glance`, `coef`, `fitted`, `weights`, `formula`,
+    `se`). Implement child print/summary only if you need extra
+    presentation.
 
 ### Developer notes: `nmar_result` schema and conventions
 
-All NMAR engines should construct result objects via `new_nmar_result()` (or a
-thin engine wrapper such as `new_nmar_result_el()`). The shared parent class
-has the following schema:
+All NMAR engines should construct result objects via `new_nmar_result()`
+(or a thin engine wrapper such as `new_nmar_result_el()`). The shared
+parent class has the following schema:
 
-- Scalars:
-  - `y_hat`: numeric scalar primary estimand (e.g., adjusted mean).
-  - `estimate_name`: label for the estimand (usually the outcome variable name).
-  - `se`: numeric scalar standard error (may be `NA_real_` if unavailable).
-  - `converged`: logical flag indicating solver success.
-- Lists:
-  - `model`: list with
-    - `coefficients`: missingness-model coefficients (or `NULL`),
-    - `vcov`: covariance matrix for `coefficients` (or `NULL`),
-    - engine-specific extras such as `nuisance`.
-  - `weights_info`: list with
-    - `values`: unnormalized analysis weights or masses on the engine's scale,
-    - `trimmed_fraction`: fraction of mass trimmed (numeric, `NA_real_` when not used).
-  - `sample`: list with
-    - `n_total`: population size on the analysis scale,
-    - `n_respondents`: number of respondents,
-    - `is_survey`: logical; `TRUE` for survey designs,
-    - `design`: underlying `survey.design` object when applicable.
-  - `inference`: list with
-    - `variance_method`: label such as `"none"` or `"bootstrap"`,
-    - `df`: degrees of freedom for t-based inference (numeric, may be `NA_real_`),
-    - `message`: variance-related notes (character, may be `NA_character_`).
-  - `diagnostics`: list for engine-specific diagnostics (Jacobian condition
-    numbers, equation residuals, denominator summaries, and so on).
-  - `meta`: list with
-    - `engine_name`: short engine label (for printing),
-    - `call`: outer `nmar()` call,
-    - `formula`: estimation formula.
-  - `extra`: list for any additional engine-specific objects (for example
-    `nmar_scaling_recipe`, fitted probabilities, or cached raw structures).
+-   Scalars:
+    -   `y_hat`: numeric scalar primary estimand (e.g., adjusted mean).
+    -   `estimate_name`: label for the estimand (usually the outcome
+        variable name).
+    -   `se`: numeric scalar standard error (may be `NA_real_` if
+        unavailable).
+    -   `converged`: logical flag indicating solver success.
+-   Lists:
+    -   `model`: list with
+        -   `coefficients`: missingness-model coefficients (or `NULL`),
+        -   `vcov`: covariance matrix for `coefficients` (or `NULL`),
+        -   engine-specific extras such as `nuisance`.
+    -   `weights_info`: list with
+        -   `values`: unnormalized analysis weights or masses on the
+            engine's scale,
+        -   `trimmed_fraction`: fraction of mass trimmed (numeric,
+            `NA_real_` when not used).
+    -   `sample`: list with
+        -   `n_total`: population size on the analysis scale,
+        -   `n_respondents`: number of respondents,
+        -   `is_survey`: logical; `TRUE` for survey designs,
+        -   `design`: underlying `survey.design` object when applicable.
+    -   `inference`: list with
+        -   `variance_method`: label such as `"none"` or `"bootstrap"`,
+        -   `df`: degrees of freedom for t-based inference (numeric, may
+            be `NA_real_`),
+        -   `message`: variance-related notes (character, may be
+            `NA_character_`).
+    -   `diagnostics`: list for engine-specific diagnostics (Jacobian
+        condition numbers, equation residuals, denominator summaries,
+        and so on).
+    -   `meta`: list with
+        -   `engine_name`: short engine label (for printing),
+        -   `call`: outer `nmar()` call,
+        -   `formula`: estimation formula.
+    -   `extra`: list for any additional engine-specific objects (for
+        example `nmar_scaling_recipe`, fitted probabilities, or cached
+        raw structures).
 
-`validate_nmar_result()` is the single authority on this schema; it normalises
-and type-checks objects so that parent S3 methods can rely on the presence and
-shape of these fields. Engine constructors supply whatever information they
-have and let the validator back-fill missing components with safe defaults.
+`validate_nmar_result()` is the single authority on this schema; it
+normalises and type-checks objects so that parent S3 methods can rely on
+the presence and shape of these fields. Engine constructors supply
+whatever information they have and let the validator back-fill missing
+components with safe defaults.
 
-Two conventions are important for engines that want to reuse the parent methods:
+Two conventions are important for engines that want to reuse the parent
+methods:
 
-- **Weights:** if you want `weights()` to return analysis weights, store
-  unnormalised masses in `weights_info$values` and the population size in
-  `sample$n_total`. The shared `weights.nmar_result()` method then returns
-  probability weights (`scale = "probability"`) and population weights
-  (`scale = "population"`) that satisfy the documented sum relationships
-  (up to numerical precision), even under trimming. Engines that use a
-  different weighting concept can either map into this convention or provide
-  an engine-specific `weights.nmar_result_<method>()`.
+-   **Weights:** if you want `weights()` to return analysis weights,
+    store unnormalised masses in `weights_info$values` and the
+    population size in `sample$n_total`. The shared
+    `weights.nmar_result()` method then returns probability weights
+    (`scale = "probability"`) and population weights
+    (`scale = "population"`) that satisfy the documented sum
+    relationships (up to numerical precision), even under trimming.
+    Engines that use a different weighting concept can either map into
+    this convention or provide an engine-specific
+    `weights.nmar_result_<method>()`.
 
-- **Inference:** parent methods (`confint()`, `tidy()`, `glance()`,
-  `coef(summary())`, `confint(summary())`) use `inference$df` together with
-  `sample$is_survey` to decide between t- and normal-based quantiles. Engines
-  that provide design-based degrees of freedom should populate `df`; those
-  that do not can leave it as `NA_real_`, in which case normal-based inference
-  is used.
+-   **Inference:** parent methods (`confint()`, `tidy()`, `glance()`,
+    `coef(summary())`, `confint(summary())`) use `inference$df` together
+    with `sample$is_survey` to decide between t- and normal-based
+    quantiles. Engines that provide design-based degrees of freedom
+    should populate `df`; those that do not can leave it as `NA_real_`,
+    in which case normal-based inference is used.
 
-As long as a new engine adheres to these conventions and calls `new_nmar_result()`,
-it automatically inherits a consistent interface for `vcov()`, `confint()`,
-`tidy()`, `glance()`, `coef()`, `fitted()`, `weights()`, `formula()`,
-`se()`, `summary()`, and `print()`.
+As long as a new engine adheres to these conventions and calls
+`new_nmar_result()`, it automatically inherits a consistent interface
+for `vcov()`, `confint()`, `tidy()`, `glance()`, `coef()`, `fitted()`,
+`weights()`, `formula()`, `se()`, `summary()`, and `print()`.
