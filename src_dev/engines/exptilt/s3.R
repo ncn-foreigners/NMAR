@@ -74,6 +74,7 @@ print.nmar_result_exptilt <- function(x, ...) {
 #' Summary method for Exponential Tilting results (engine-specific)
 #' @description Summarize estimation, standard error and model coefficients.
 #' @param object An object of class `nmar_result_exptilt`.
+#' @param conf.level Confidence level for confidence interval (default 0.95).
 #' @param ... Ignored.
 #' @keywords result_view
 #' @export
