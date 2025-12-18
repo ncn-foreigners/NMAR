@@ -44,6 +44,27 @@ test_that("survey strata augmentation appends dummies and implied means", {
   expect_equal(unname(strata_means_fit), unname(W_h[setdiff(levels(strata_fac), levels(strata_fac)[1])]), ignore_attr = TRUE)
 })
 
+test_that("survey strata augmentation works with sample-implied auxiliary means", {
+  skip_if_not_installed("survey")
+  set.seed(456)
+
+  df <- make_iid_nmar(n = 200, alpha = 0.4, include_z = FALSE, seed = 2L)
+  df$strata <- factor(rep(letters[1:4], length.out = nrow(df)))
+  df$w <- runif(nrow(df), 0.5, 2)
+
+  design <- survey::svydesign(ids = ~1, strata = ~strata, weights = ~w, data = df)
+  eng <- el_engine(variance_method = "none", strata_augmentation = TRUE)
+
+  fit <- nmar(Y_miss ~ X, data = design, engine = eng)
+
+  expect_s3_class(fit, "nmar_result_el")
+  expect_true(isTRUE(fit$converged))
+
+  aux_means <- fit$diagnostics$auxiliary_means
+  expect_true("X" %in% names(aux_means))
+  expect_true(any(grepl("^strata_", names(aux_means))))
+})
+
 test_that("survey prep stores delta column and uses rescaled weights", {
   skip_if_not_installed("survey")
   set.seed(200)
@@ -110,7 +131,7 @@ test_that("survey strata extraction supports interactions", {
   skip_if_not_installed("survey")
   set.seed(404)
   df <- data.frame(
-    Y_miss = c(1, NA, 2, NA, 3),
+    Y_miss = c(1, 2, 2, NA, 3),
     A = factor(c("a", "a", "b", "b", "b")),
     B = factor(c("x", "y", "x", "y", "y")),
     w = c(1, 2, 3, 4, 5)

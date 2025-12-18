@@ -1,6 +1,6 @@
 #' @importFrom stats aggregate
 #' @exportS3Method exptilt_nonparam data.frame
-exptilt_nonparam.survey <- function(
+exptilt_nonparam.survey.design <- function(
     data,
     formula,
     trace_level = 0,

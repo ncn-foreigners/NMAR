@@ -4,6 +4,9 @@
 #' values (beyond a tolerance) are treated as errors; small negative values
 #' (for example, from numerical noise) are truncated to zero.
 #'
+#' Values below \code{-tol} are treated as clearly negative. Values in
+#' \code{[-tol, 0)} are clipped to zero.
+#'
 #' @param weights numeric vector of weights.
 #' @param tol numeric tolerance below which negative values are treated as
 #'   numerical noise and clipped to zero.
@@ -25,7 +28,7 @@ enforce_nonneg_weights <- function(weights, tol = 1e-8) {
   if (is.finite(min_w) && min_w < -tol) {
     return(list(
       ok = FALSE,
-      message = sprintf("Negative EL weights produced (min = %.6f)", min_w),
+      message = sprintf("Negative weights detected beyond tolerance (min = %.6f)", min_w),
       weights = weights
     ))
   }
@@ -40,6 +43,9 @@ enforce_nonneg_weights <- function(weights, tol = 1e-8) {
 #' excess mass across the remaining positive entries so that the total sum is
 #' preserved. When the requested cap is too tight to preserve the total mass,
 #' all positive entries are set to the cap and the total sum decreases.
+#'
+#' Zero weights remain zero; only entries that are positive after nonnegativity
+#' enforcement can absorb redistributed mass.
 #'
 #' Internally, a simple water-filling style algorithm is used on the positive
 #' weights: the largest weights are successively saturated at the cap and the
@@ -65,7 +71,7 @@ enforce_nonneg_weights <- function(weights, tol = 1e-8) {
 #'   }
 #' @keywords internal
 trim_weights <- function(weights, cap, tol = 1e-12, warn_tol = 1e-8) {
-# Basic validation of inputs.
+# Validate inputs.
   if (!is.numeric(weights)) stop("`weights` must be numeric.", call. = FALSE)
   if (length(cap) != 1L || !is.numeric(cap) || is.na(cap) || cap <= 0)
     stop("`cap` must be a single positive number or +Inf.", call. = FALSE)
@@ -114,7 +120,7 @@ trim_weights <- function(weights, cap, tol = 1e-12, warn_tol = 1e-8) {
     ))
   }
 
-# Feasibility: only entries that were originally positive can absorb mass.
+# Feasibility: only entries that are (originally) positive can absorb mass.
 # If total mass exceeds the maximum that can be assigned to these positions
 # under the cap, the total cannot be preserved.
   if (total > mpos * cap + warn_tol) {
@@ -137,6 +143,7 @@ trim_weights <- function(weights, cap, tol = 1e-12, warn_tol = 1e-8) {
 # (capped) entries and a common scaling factor for the remaining ones so
 # that the total sum is preserved and no weight exceeds the cap.
   v <- w[pos_idx]
+# Threshold t_i is the scaling factor at which weight i hits the cap.
   t <- cap / v
   ord <- order(t) # increasing thresholds
   v <- v[ord]; t <- t[ord]
@@ -149,6 +156,7 @@ trim_weights <- function(weights, cap, tol = 1e-12, warn_tol = 1e-8) {
     denom <- suf[k + 1L]
     s_k <- (total - k * cap) / denom
     if (s_k <= t[k + 1L] + tol) {
+# In feasible cases, preserving the total requires a scaling factor >= 1.
       s <- max(s_k, 1)
       k_cap <- k
       break

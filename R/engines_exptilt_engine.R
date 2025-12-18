@@ -6,12 +6,10 @@
 #'
 #' @param standardize logical; standardize predictors. Default \code{TRUE}.
 #' @param on_failure character; \code{"return"} or \code{"error"} on solver failure
-#' @param variance_method character; one of \code{"delta"}, \code{"bootstrap"}, or \code{"none"}.
+#' @param variance_method character; one of  \code{"bootstrap"}, or \code{"none"}.
 #' @param bootstrap_reps integer; number of bootstrap replicates when
 #'   \code{variance_method = "bootstrap"}.
 #' @param supress_warnings Logical; suppress variance-related warnings.
-#' @param auxiliary_means Optional named numeric vector of population moments for
-#'   auxiliary covariates.
 #' @param control Named list of control parameters passed to \code{nleqslv::nleqslv}.
 #'   Common parameters include:
 #'   \itemize{
@@ -28,7 +26,7 @@
 #'   of the score function falls below this threshold, the algorithm stops early (default: 1).
 #' @param family character; response model family, either \code{"logit"} or \code{"probit"},
 #'   or a family object created by \code{logit_family()} / \code{probit_family()}.
-#' @param y_dens Outcome density model (\code{"auto"}, \code{"normal"}, \code{"lognormal"}, or \code{"exponential"}).
+#' @param y_dens Outcome density model (\code{"auto"}, \code{"normal"}, \code{"lognormal"}, \code{"exponential"}, or \code{"binomial"}).
 #' @param sample_size Integer; maximum sample size for stratified random sampling (default: 2000).
 #'   When the dataset exceeds this size, a stratified random sample is drawn to optimize memory usage.
 #'   The sampling preserves the ratio of respondents to non-respondents in the original data.
@@ -114,13 +112,12 @@
 exptilt_engine <- function(
     standardize = FALSE,
     on_failure = c("return", "error"),
-    variance_method = c("delta", "bootstrap", 'none'),
+    variance_method = c("bootstrap", 'none'),
     bootstrap_reps = 10,
     supress_warnings = FALSE,
-    auxiliary_means = NULL,
     control = list(),
     family = c("logit", "probit"),
-    y_dens = c("normal", "lognormal", "exponential"),
+    y_dens = c("normal", "lognormal", "exponential", "binomial"),
     stopping_threshold = 1,
     sample_size = 2000
     ) {
@@ -134,8 +131,8 @@ exptilt_engine <- function(
   validator_assert_positive_integer(bootstrap_reps, name = "bootstrap_reps", is.finite = TRUE)
   validator_assert_logical(supress_warnings, name = "supress_warnings")
   validator_assert_choice(family, choices = c("logit", "probit"), name = "family")
-  validator_assert_choice(y_dens, choices = c("normal", "lognormal", "exponential"), name = "y_dens")
-  validator_assert_choice(variance_method, choices = c("delta", "bootstrap", 'none'), name = "variance_method")
+  validator_assert_choice(y_dens, choices = c("normal", "lognormal", "exponential", "binomial"), name = "y_dens")
+  validator_assert_choice(variance_method, choices = c("bootstrap", 'none'), name = "variance_method")
   validator_assert_number(stopping_threshold, name = "stopping_threshold", min = 0, max = Inf)
   validator_assert_list(control, name = "control")
   validator_assert_positive_integer(sample_size, name = "sample_size", is.finite = TRUE)
@@ -146,7 +143,6 @@ exptilt_engine <- function(
     variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,
     supress_warnings = supress_warnings,
-    auxiliary_means = auxiliary_means,
     control = control,
     prob_model_type = family,
     y_dens = y_dens,

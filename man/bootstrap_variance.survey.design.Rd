@@ -14,12 +14,13 @@ bootstrap_variance.survey.design(
 )
 }
 \arguments{
-\item{data}{a `data.frame` or a `survey.design`.}
+\item{data}{A \code{survey.design}.}
 
-\item{estimator_func}{function that returns an S3 result object; the primary
-estimate is extracted via `$y_hat` and convergence via `$converged`.}
+\item{estimator_func}{Function returning an object with a numeric scalar
+component \code{y_hat} and an optional logical component \code{converged}.}
 
-\item{point_estimate}{numeric; point estimate used for some survey variance formulas.}
+\item{point_estimate}{Numeric scalar; used for survey bootstrap variance
+(passed to \code{survey::svrVar()} as \code{coef}).}
 
 \item{bootstrap_reps}{integer; number of bootstrap replicates.}
 
@@ -27,69 +28,51 @@ estimate is extracted via `$y_hat` and convergence via `$converged`.}
 that fail to produce estimates. Options:
 \describe{
   \item{\code{"strict"}}{(default) Any failed replicate causes an error.
-    This ensures the full replicate design structure is maintained and
-    is required for proper calibration-based variance.}
+    This is a conservative default that makes instability explicit.}
   \item{\code{"omit"}}{Failed replicates are omitted. The corresponding
     \code{rscales} are also omitted to maintain correct variance scaling.
     Use with caution: if failures are non-random, variance may be biased.}
 }}
 
-\item{...}{passed through to `estimator_func`.}
+\item{...}{Additional arguments. Some are consumed by \code{bootstrap_variance()}
+itself (for example \code{resample_guard} for IID bootstrap or
+\code{bootstrap_settings}/\code{bootstrap_options}/\code{bootstrap_type}/\code{bootstrap_mse}
+for survey bootstrap); remaining arguments are forwarded to \code{estimator_func}.}
 }
 \value{
-a list with `se`, `variance`, and the vector of `replicates`.
+A list with components \code{se}, \code{variance}, and \code{replicates}.
 }
 \description{
 Bootstrap for survey designs via replicate weights
 }
 \details{
 This path constructs a replicate-weight design using
-  [svrep::as_bootstrap_design()] and rebuilds the original sampling design for
-  each replicate weight vector. The supplied design must have been created
-  directly with [survey::svydesign()].
+  \code{svrep::as_bootstrap_design()} and evaluates the estimator on each set of
+  bootstrap replicate analysis weights.
+
+  Replicate evaluation starts from a shallow template copy of the input survey
+  design (including its ids/strata/fpc structure) and injects each replicate's
+  analysis weights by
+  updating the design's probability slots (\code{prob}/\code{allprob}) so that
+  \code{weights(design)} returns the desired replicate weights (with
+  zero weights represented as \code{prob = Inf}). This avoids replaying or
+  reconstructing a \code{svydesign()} call and therefore supports designs
+  created via \code{subset()} and \code{update()}.
 
   \strong{NA policy:} By default, survey bootstrap uses a strict NA policy:
   if any replicate fails to produce a finite estimate, the entire bootstrap
-  fails with an error. This ensures that the full replicate design structure
-  is maintained for design-calibrated variance via \code{survey::svrVar()}.
-  In contrast, IID bootstrap allows up to 10\% failures before warning and
-  uses \code{stats::var()} on the successful replicates.
+  fails with an error. Setting \code{survey_na_policy = "omit"} drops failed
+  replicates (and their corresponding \code{rscales}) and proceeds with the
+  remaining replicates.
 }
 \section{Limitations}{
 
-  \strong{Design reconstruction:} Survey bootstrap currently supports only
-  designs created directly with \code{survey::svydesign()}. Post-hoc
-  adjustments applied via \code{survey::calibrate()},
-  \code{survey::postStratify()}, or \code{survey::rake()} cannot be
-  reconstructed across bootstrap replicates and will cause the function to
-  error.
-
-  Calibrated or post-stratified designs are not supported by this bootstrap
-  path. Start from the original `survey::svydesign()` object prior to
-  calibration/post-stratification.
-
-  \strong{Supported design features:} The following \code{svydesign()}
-  parameters are preserved during reconstruction:
-  \itemize{
-    \item \code{ids} (or \code{id}): Sampling unit identifiers
-    \item \code{strata}: Stratification variables
-    \item \code{fpc}: Finite population correction
-    \item \code{nest}: Nested vs non-nested strata
-  }
-
-  The following are not preserved (they conflict with replicate weights):
-  \itemize{
-    \item \code{probs}: Sampling probabilities (incompatible with direct weights)
-    \item \code{pps}: PPS sampling specification (incompatible with direct weights)
-  }
-
-  \strong{Rationale:} When reconstructing designs for each replicate, the
-  original analysis weights are replaced with bootstrap replicate weights.
-  Specifying both \code{weights} and \code{probs}/\code{pps} simultaneously
-  is undefined behavior in \code{survey::svydesign()}. The structural
-  design parameters (ids, strata, fpc, nest) define the sampling topology
-  and are preserved; the weights define the analysis weights and are
-  replaced.
+  \strong{Calibrated/post-stratified designs:} Post-hoc adjustments applied
+  via \code{survey::calibrate()}, \code{survey::postStratify()}, or
+  \code{survey::rake()} are not supported here and will cause the function to
+  error. These adjustments are not recomputed when replicate weights are
+  injected, so the replicate designs would not reflect the intended
+  calibrated/post-stratified analysis.
 }
 
 \keyword{internal}

@@ -29,4 +29,8 @@ Softly enforces nonnegativity of a numeric weight vector. Large negative
 values (beyond a tolerance) are treated as errors; small negative values
 (for example, from numerical noise) are truncated to zero.
 }
+\details{
+Values below \code{-tol} are treated as clearly negative. Values in
+\code{[-tol, 0)} are clipped to zero.
+}
 \keyword{internal}

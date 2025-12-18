@@ -7,13 +7,12 @@
 exptilt_engine(
   standardize = FALSE,
   on_failure = c("return", "error"),
-  variance_method = c("delta", "bootstrap", "none"),
+  variance_method = c("bootstrap", "none"),
   bootstrap_reps = 10,
   supress_warnings = FALSE,
-  auxiliary_means = NULL,
   control = list(),
   family = c("logit", "probit"),
-  y_dens = c("normal", "lognormal", "exponential"),
+  y_dens = c("normal", "lognormal", "exponential", "binomial"),
   stopping_threshold = 1,
   sample_size = 2000
 )
@@ -23,15 +22,12 @@ exptilt_engine(
 
 \item{on_failure}{character; \code{"return"} or \code{"error"} on solver failure}
 
-\item{variance_method}{character; one of \code{"delta"}, \code{"bootstrap"}, or \code{"none"}.}
+\item{variance_method}{character; one of  \code{"bootstrap"}, or \code{"none"}.}
 
 \item{bootstrap_reps}{integer; number of bootstrap replicates when
 \code{variance_method = "bootstrap"}.}
 
 \item{supress_warnings}{Logical; suppress variance-related warnings.}
-
-\item{auxiliary_means}{Optional named numeric vector of population moments for
-auxiliary covariates.}
 
 \item{control}{Named list of control parameters passed to \code{nleqslv::nleqslv}.
 Common parameters include:
@@ -49,7 +45,7 @@ See \code{?nleqslv::nleqslv} for full details.}
 \item{family}{character; response model family, either \code{"logit"} or \code{"probit"},
 or a family object created by \code{logit_family()} / \code{probit_family()}.}
 
-\item{y_dens}{Outcome density model (\code{"auto"}, \code{"normal"}, \code{"lognormal"}, or \code{"exponential"}).}
+\item{y_dens}{Outcome density model (\code{"auto"}, \code{"normal"}, \code{"lognormal"}, \code{"exponential"}, or \code{"binomial"}).}
 
 \item{stopping_threshold}{Numeric; early stopping threshold. If the maximum absolute value
 of the score function falls below this threshold, the algorithm stops early (default: 1).}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/shared_bootstrap.R
 \name{bootstrap_variance.data.frame}
 \alias{bootstrap_variance.data.frame}
-\title{Bootstrap for i.i.d. data.frames}
+\title{Bootstrap for IID data frames}
 \usage{
 bootstrap_variance.data.frame(
   data,
@@ -13,21 +13,25 @@ bootstrap_variance.data.frame(
 )
 }
 \arguments{
-\item{data}{a `data.frame` or a `survey.design`.}
+\item{data}{A \code{data.frame}.}
 
-\item{estimator_func}{function that returns an S3 result object; the primary
-estimate is extracted via `$y_hat` and convergence via `$converged`.}
+\item{estimator_func}{Function returning an object with a numeric scalar
+component \code{y_hat} and an optional logical component \code{converged}.}
 
-\item{point_estimate}{numeric; point estimate used for some survey variance formulas.}
+\item{point_estimate}{Unused for IID bootstrap; included for signature
+consistency.}
 
 \item{bootstrap_reps}{integer; number of resamples.}
 
-\item{...}{passed through to `estimator_func`.}
+\item{...}{Additional arguments. Some are consumed by \code{bootstrap_variance()}
+itself (for example \code{resample_guard} for IID bootstrap or
+\code{bootstrap_settings}/\code{bootstrap_options}/\code{bootstrap_type}/\code{bootstrap_mse}
+for survey bootstrap); remaining arguments are forwarded to \code{estimator_func}.}
 }
 \value{
-a list with `se`, `variance`, and the vector of `replicates`.
+A list with components \code{se}, \code{variance}, and \code{replicates}.
 }
 \description{
-Bootstrap for i.i.d. data.frames
+Bootstrap for IID data frames
 }
 \keyword{internal}

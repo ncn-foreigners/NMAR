@@ -12,8 +12,8 @@ estimation engines to ensure consistent, numerically stable behavior.
 \itemize{
   \item Provide an engine-agnostic API for standardizing design matrices and
     auxiliary moments before solving.
-  \item Return a minimal "recipe" (per-column mean and standard deviation)
-    for unscaling coefficients and covariance matrices after solving.
+  \item Return a minimal scaling recipe (\code{nmar_scaling_recipe}) used to
+    unscale coefficients and covariance matrices after solving.
 }
 }
 

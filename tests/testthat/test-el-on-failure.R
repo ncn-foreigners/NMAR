@@ -10,7 +10,7 @@ test_that("on_failure=return: inconsistent aux means yield a warning and diagnos
   bad_aux <- c(X1 = 10, X2 = -10)
   expect_warning(
     fit <- el.data.frame(df, Y_miss ~ X1 + X2,
-                                 auxiliary_means = bad_aux, on_failure = "return", variance_method = "delta"),
+                                 auxiliary_means = bad_aux, on_failure = "return", variance_method = "none"),
     regexp = "Auxiliary means appear far from respondents' support"
   )
 # Soft diagnostics fields must exist
@@ -24,7 +24,7 @@ test_that("trimming caps weights and sets trimmed_fraction > 0", {
   fit <- nmar(
     formula = Y_miss ~ X,
     data = df,
-    engine = make_engine(auxiliary_means = c(X = 0), trim_cap = 2, variance_method = "bootstrap", bootstrap_reps = 10)
+    engine = make_engine(auxiliary_means = c(X = 0), trim_cap = 2, variance_method = "none")
   )
   w <- weights(fit)
   expect_true(max(w) <= 2 + 1e-8)

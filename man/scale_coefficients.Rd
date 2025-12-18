@@ -8,16 +8,18 @@ scale_coefficients(beta_unscaled, recipe, columns)
 }
 \arguments{
 \item{beta_unscaled}{named numeric vector of coefficients for the response
-model on the original scale, including an intercept named `"(Intercept)"`.}
+model on the original scale, including an intercept named
+\code{"(Intercept)"}.}
 
-\item{recipe}{`nmar_scaling_recipe` returned by scaling utilities.}
+\item{recipe}{Scaling recipe of class \code{nmar_scaling_recipe}, or
+\code{NULL}.}
 
 \item{columns}{character vector of column names (order) for the scaled design
 matrix (including intercept).}
 }
 \value{
 numeric vector of coefficients in the scaled space, ordered by
-  `columns`.
+  \code{columns}.
 }
 \description{
 Map unscaled coefficients to scaled space

@@ -174,19 +174,51 @@ jobs:
           rm -f build_r_folder.R
           echo "Production environment ready."
 
-      - name: Commit and push to pre_prod branch
+      - name: Commit and push to pre_prod
         run: |
+          # 1. Configure Git
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add -A
+          # 2. Cleanup Build Artifacts (Prevents Repo Bloat)
+          rm -f *.tar.gz
+          rm -rf *.Rcheck
 
-          git checkout --orphan package-pre_prod_tmp
+          # 3. Prepare new content in a temp folder
+          mkdir -p ../new_package_content
+          rsync -av --exclude='.git' . ../new_package_content/
+
+          # 4. Switch to Target Branch (Clean Isolation)
+          mkdir -p ../target_branch_dir
+          cd ../target_branch_dir
+          git init
+          # Authenticated Remote URL
+          git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+
+          if git ls-remote --exit-code --heads origin package-pre_prod; then
+            echo "Branch exists, fetching history..."
+            git fetch origin package-pre_prod --depth=1 # Depth 1 is faster
+            git checkout package-pre_prod
+
+            # 5. WIPE old content (The "Replacement" Step)
+            # This ensures deleted files in dev are deleted in prod
+            find . -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} +
+          else
+            echo "Branch does not exist, creating orphan..."
+            git checkout --orphan package-pre_prod
+          fi
+
+          # 6. Fill with new content
+          cp -a ../new_package_content/. .
+
+          # 7. Commit and Push
           git add -A
-          git commit -m "Production release from CI: ${{ github.sha }}"
-          git push --force origin package-pre_prod_tmp:package-pre_prod
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if ! git diff --cached --quiet; then
+            git commit -m "Release from CI: ${{ github.sha }}"
+            git push origin package-pre_prod
+          else
+            echo "No changes detected, skipping push."
+          fi
 
 
       - name: Install dependencies

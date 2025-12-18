@@ -1,3 +1,8 @@
+#' Generate conditional density
+#' @importFrom stats binomial dbinom
+#' @param model An internal exptilt object
+#' @keywords internal
+#'
 generate_conditional_density <- function(model) {
 
   data_df <- data.frame(y = model$y_1, model$data_for_y_obs)
@@ -54,6 +59,30 @@ generate_conditional_density <- function(model) {
       },
       density = function(y, mean_val, coefs) {
         dexp(y, rate = 1 / mean_val)
+      }
+    )
+    ,
+    binomial = list(
+      family = binomial(link = "logit"),
+      fit = function(formula, data, weights = NULL) {
+# Ensure response is numeric 0/1 for glm
+        data <- data
+        if (!is.null(data$y)) {
+          data$y <- as.numeric(as.character(data$y))
+        }
+        if (!is.null(weights)) {
+          fit <- glm(formula, data = data, family = binomial(link = "logit"), weights = weights)
+        } else {
+          fit <- glm(formula, data = data, family = binomial(link = "logit"))
+        }
+        return(fit)
+      },
+      density = function(y, mean_val, coefs) {
+# mean_val is linear predictor; convert to probability via logistic
+        probs <- as.vector(1 / (1 + exp(-mean_val)))
+# coerce y to 0/1 integers; non 0/1 values will yield 0 probability
+        y_vec <- as.integer(as.numeric(as.character(y)))
+        dbinom(y_vec, size = 1, prob = probs)
       }
     )
   )

@@ -7,14 +7,18 @@
 bootstrap_variance(data, estimator_func, point_estimate, ...)
 }
 \arguments{
-\item{data}{a `data.frame` or a `survey.design`.}
+\item{data}{A \code{data.frame} or a \code{survey.design}.}
 
-\item{estimator_func}{function that returns an S3 result object; the primary
-estimate is extracted via `$y_hat` and convergence via `$converged`.}
+\item{estimator_func}{Function returning an object with a numeric scalar
+component \code{y_hat} and an optional logical component \code{converged}.}
 
-\item{point_estimate}{numeric; point estimate used for some survey variance formulas.}
+\item{point_estimate}{Numeric scalar; used for survey bootstrap variance
+(passed to \code{survey::svrVar()} as \code{coef}).}
 
-\item{...}{passed through to `estimator_func`.}
+\item{...}{Additional arguments. Some are consumed by \code{bootstrap_variance()}
+itself (for example \code{resample_guard} for IID bootstrap or
+\code{bootstrap_settings}/\code{bootstrap_options}/\code{bootstrap_type}/\code{bootstrap_mse}
+for survey bootstrap); remaining arguments are forwarded to \code{estimator_func}.}
 }
 \description{
 Internal helpers to estimate the variance of a scalar estimator
@@ -22,20 +26,41 @@ Internal helpers to estimate the variance of a scalar estimator
   (survey designs). Designed to be reused across NMAR engines.
 }
 \details{
-- For `data.frame` inputs, performs IID bootstrap by resampling rows and
-    rerunning `estimator_func` on each resample, then computing the empirical
-    variance of the replicate estimates.
-  - For `survey.design` inputs, converts the design to a bootstrap
-    replicate-weight design with `svrep::as_bootstrap_design()`, reconstructs
-    the original sampling design for each replicate weight vector, and passes
-    the resulting replicate estimates and replicate scaling factors to
-    `survey::svrVar()`.
+\itemize{
+    \item For \code{data.frame} inputs, performs IID bootstrap by resampling
+      rows and rerunning \code{estimator_func} on each resample, then
+      computing the empirical variance of the replicate estimates.
+    \item For \code{survey.design} inputs, converts the design to a bootstrap
+      replicate-weight design with \code{svrep::as_bootstrap_design()},
+      evaluates \code{estimator_func} on each replicate weight vector (by
+      injecting the replicate analysis weights into a copy of the input design), and
+      passes the resulting replicate estimates and replicate scaling factors
+      to \code{survey::svrVar()}.
+  }
 
-  `estimator_func` is typically an engine-level estimator (for example
+  \code{estimator_func} is typically an engine-level estimator (for example
   the EL engine) and is called with the same arguments used for the point
-  estimate, except that the `data` argument is replaced by the resampled data
-  (IID) or the replicate `survey.design` (survey).
+  estimate, except that the \code{data} argument is replaced by the resampled
+  data (IID) or a replicate-weighted \code{survey.design} (survey). Arguments
+  reserved for the bootstrap implementation are stripped from \code{...}
+  before forwarding.
 }
+\section{Bootstrap-specific options}{
+
+  \describe{
+    \item{\code{resample_guard}}{IID bootstrap only. A function
+      \code{function(indices, data)} that returns \code{TRUE} to accept a
+      resample and \code{FALSE} to reject it.}
+    \item{\code{bootstrap_settings}}{Survey bootstrap only. A list of
+      arguments forwarded to \code{svrep::as_bootstrap_design()}.}
+    \item{\code{bootstrap_options}}{Alias for \code{bootstrap_settings}.}
+    \item{\code{bootstrap_type}}{Shortcut for the \code{type} argument to
+      \code{svrep::as_bootstrap_design()}.}
+    \item{\code{bootstrap_mse}}{Shortcut for the \code{mse} argument to
+      \code{svrep::as_bootstrap_design()}.}
+  }
+}
+
 \section{Progress Reporting}{
 
   If the optional \code{progressr} package is installed, bootstrap calls

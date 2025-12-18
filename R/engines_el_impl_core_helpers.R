@@ -1,7 +1,8 @@
 #' EL core helpers
 #' @description Internal helpers for solving and post-processing the EL system.
-#'   `el_run_solver()` orchestrates `nleqslv` with a small, deterministic fallback
-#'   ladder; `el_post_solution()` computes masses and the point estimate with
+#'   \code{el_run_solver()} orchestrates \code{nleqslv::nleqslv()} with a small,
+#'   deterministic fallback ladder; \code{el_post_solution()} computes masses and
+#'   the point estimate with
 #'   denominator guards and optional trimming.
 #' @name el_core_helpers
 #' @keywords internal
@@ -16,8 +17,8 @@ NULL
 #' @param analytical_jac_func Analytic Jacobian function; may be NULL if
 #'   unavailable or when forcing Broyden.
 #' @param init Numeric vector of initial parameter values.
-#' @param final_control List passed to `nleqslv(control = ...)`.
-#' @param top_args List of top-level `nleqslv` args (e.g., `global`, `xscalm`).
+#' @param final_control List passed to \code{nleqslv::nleqslv(control = ...)}.
+#' @param top_args List of top-level \code{nleqslv::nleqslv} args (e.g., \code{global}, \code{xscalm}).
 #' @param solver_method Character; one of "auto", "newton", or "broyden".
 #' @param use_solver_jac Logical; whether to pass analytic Jacobian to Newton.
 #' @param K_beta Integer; number of response model parameters.
@@ -39,7 +40,6 @@ el_run_solver <- function(equation_system_func,
                           respondent_weights,
                           N_pop,
                           trace_level = 0) {
-# Create verboser for this function
   verboser <- create_verboser(trace_level)
   solver_method_used <- "Newton"
 # Curated defaults: Newton + analytic Jacobian, quadratic line search, auto scaling
@@ -62,6 +62,9 @@ el_run_solver <- function(equation_system_func,
   nl_args_b$jac <- NULL
   nl_args_b$method <- "Broyden"
 
+  global_used <- nl_args$global %||% NULL
+  xscalm_used <- nl_args$xscalm %||% NULL
+
   if (solver_method == "broyden") {
     broyden_control <- final_control
     if (!is.null(broyden_control$maxit) && is.finite(broyden_control$maxit) && broyden_control$maxit < 5) {
@@ -70,12 +73,15 @@ el_run_solver <- function(equation_system_func,
     nl_args_b$control <- broyden_control
     solution <- do.call(nleqslv::nleqslv, nl_args_b)
     solver_method_used <- "Broyden"
-    return(list(solution = solution, method = solver_method_used, used_top = list(global = top_args$global %||% NULL, xscalm = top_args$xscalm %||% NULL)))
+    global_used <- nl_args_b$global %||% NULL
+    xscalm_used <- nl_args_b$xscalm %||% NULL
+    return(list(solution = solution, method = solver_method_used, used_top = list(global = global_used, xscalm = xscalm_used)))
   }
 
   solution <- do.call(nleqslv::nleqslv, nl_args)
 
-# Small pool of perturbed restarts with the same configuration
+# Small pool of stochastic perturbed restarts, used only on solver failure.
+# For reproducibility across runs, set a seed before calling nmar().
   if (any(is.na(solution$x)) || solution$termcd > 2) {
     verboser("  Initial attempt failed, trying perturbed starts...", level = 3)
     for (i in seq_len(3)) {
@@ -107,6 +113,8 @@ el_run_solver <- function(equation_system_func,
       solution2 <- do.call(nleqslv::nleqslv, alt_args)
       if (!any(is.na(solution2$x)) && solution2$termcd <= 2) {
         solution <- solution2
+        global_used <- alt_args$global %||% NULL
+        xscalm_used <- alt_args$xscalm %||% NULL
       }
     }
   }
@@ -120,9 +128,11 @@ el_run_solver <- function(equation_system_func,
     nl_args_b$control <- broyden_control
     solution <- do.call(nleqslv::nleqslv, nl_args_b)
     solver_method_used <- "Broyden"
+    global_used <- nl_args_b$global %||% NULL
+    xscalm_used <- nl_args_b$xscalm %||% NULL
   }
 
-  list(solution = solution, method = solver_method_used, used_top = list(global = top_args$global %||% NULL, xscalm = top_args$xscalm %||% NULL))
+  list(solution = solution, method = solver_method_used, used_top = list(global = global_used, xscalm = xscalm_used))
 }
 
 
@@ -146,6 +156,7 @@ el_post_solution <- function(estimates,
   beta_hat_scaled <- estimates[1:K_beta]
   names(beta_hat_scaled) <- colnames(missingness_model_matrix_scaled)
   W_hat <- stats::plogis(estimates[K_beta + 1])
+  W_hat <- min(max(W_hat, 1e-12), 1 - 1e-12)
 # For survey designs the parameter vector includes lambda_W explicitly after z;
 # for IID designs lambda_W is derived from (N_pop, sum(weights)).
   if (!is.null(lambda_W)) {
@@ -267,6 +278,13 @@ el_compute_diagnostics <- function(estimates,
     A_condition <- NA_real_
   }
 
+  is_survey_system <- length(estimates) == (K_beta + 2L + K_aux)
+  constraint_sum_link <- if (is_survey_system && length(eq_residuals) == length(estimates)) {
+    as.numeric(eq_residuals[length(eq_residuals)])
+  } else {
+    NA_real_
+  }
+
   denom_floor <- nmar_get_el_denom_floor()
   denom_hat <- post$denominator_hat
   denom_stats <- list(
@@ -312,6 +330,7 @@ el_compute_diagnostics <- function(estimates,
     denom_stats = denom_stats,
     constraint_sum_W = cons$constraint_sum_W,
     constraint_sum_aux = cons$constraint_sum_aux,
+    constraint_sum_link = constraint_sum_link,
     normalization_ratio = normalization_ratio,
     sum_respondent_weights = sum_respondent_weights,
     sum_unnormalized_weights_untrimmed = sum_unnormalized_weights_untrimmed,

@@ -7,15 +7,15 @@
 el(data, ...)
 }
 \arguments{
-\item{data}{A `data.frame` or a `survey.design`.}
+\item{data}{A \code{data.frame} or a \code{survey.design}.}
 
 \item{...}{Passed to class-specific methods.}
 }
 \description{
 Generic for the empirical likelihood (EL) estimator under NMAR.
-  Methods are provided for `data.frame` and `survey.design`.
+  Methods are provided for \code{data.frame} and \code{survey.design}.
 }
 \seealso{
-`el.data.frame()`, `el.survey.design()`, `el_engine()`
+\code{\link{el_engine}}
 }
 \keyword{internal}

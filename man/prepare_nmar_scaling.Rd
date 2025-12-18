@@ -19,16 +19,18 @@ prepare_nmar_scaling(
 \item{X_un}{auxiliary model matrix (no intercept), or NULL.}
 
 \item{mu_x_un}{named numeric vector of auxiliary means on the original scale
-(names must match `colnames(X_un)`), or NULL.}
+(names must match \code{colnames(X_un)}), or \code{NULL}.}
 
 \item{standardize}{logical; apply standardization if TRUE.}
 
 \item{weights}{Optional numeric vector used for weighted scaling.}
 
-\item{weight_mask}{Optional logical/numeric mask applied to `weights`.}
+\item{weight_mask}{Optional logical mask or nonnegative numeric multipliers
+applied to \code{weights}.}
 }
 \value{
-a list with `Z`, `X`, `mu_x`, and `recipe`.
+A list with components \code{Z}, \code{X}, \code{mu_x}, and
+  \code{recipe}.
 }
 \description{
 Prepare scaled matrices and moments (low-level)

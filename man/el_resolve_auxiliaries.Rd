@@ -13,9 +13,9 @@ el_resolve_auxiliaries(
 }
 \description{
 Computes the respondent-side auxiliary matrix and the population means vector
-used for centering (X - mu_x). When `auxiliary_means` is supplied, only
+used for centering \eqn{X - \mu_x}. When \code{auxiliary_means} is supplied, only
 respondent rows are required to be fully observed; NA values are permitted on
-nonrespondent rows. When `auxiliary_means` is NULL, auxiliaries must be fully
+nonrespondent rows. When \code{auxiliary_means} is \code{NULL}, auxiliaries must be fully
 observed in the full data used to estimate population means.
 }
 \keyword{internal}
