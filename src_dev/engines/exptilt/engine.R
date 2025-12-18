@@ -10,8 +10,6 @@
 #' @param bootstrap_reps integer; number of bootstrap replicates when
 #'   \code{variance_method = "bootstrap"}.
 #' @param supress_warnings Logical; suppress variance-related warnings.
-#' @param auxiliary_means Optional named numeric vector of population moments for
-#'   auxiliary covariates.
 #' @param control Named list of control parameters passed to \code{nleqslv::nleqslv}.
 #'   Common parameters include:
 #'   \itemize{
@@ -117,7 +115,6 @@ exptilt_engine <- function(
     variance_method = c("bootstrap", 'none'),
     bootstrap_reps = 10,
     supress_warnings = FALSE,
-    auxiliary_means = NULL,
     control = list(),
     family = c("logit", "probit"),
     y_dens = c("normal", "lognormal", "exponential", "binomial"),
@@ -146,7 +143,6 @@ exptilt_engine <- function(
     variance_method = variance_method,
     bootstrap_reps = bootstrap_reps,
     supress_warnings = supress_warnings,
-    auxiliary_means = auxiliary_means,
     control = control,
     prob_model_type = family,
     y_dens = y_dens,

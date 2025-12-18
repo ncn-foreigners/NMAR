@@ -1,7 +1,8 @@
-##' Import specific stats functions used here to satisfy R CMD check
+#' Generate conditional density
 #' @importFrom stats binomial dbinom
-NULL
-
+#' @param model An internal exptilt object
+#' @keywords internal
+#'
 generate_conditional_density <- function(model) {
 
   data_df <- data.frame(y = model$y_1, model$data_for_y_obs)
