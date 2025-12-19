@@ -244,7 +244,7 @@ on the unobserved outcome.</p>
 <span><span class="co">#&gt;     y_hat std.error conf.low conf.high converged trimmed_fraction</span></span>
 <span><span class="co">#&gt; 1 1.87866        NA       NA        NA      TRUE                0</span></span>
 <span><span class="co">#&gt;   variance_method jacobian_condition_number max_equation_residual</span></span>
-<span><span class="co">#&gt; 1            none                  36.83019          5.191403e-13</span></span>
+<span><span class="co">#&gt; 1            none                  36.83019           5.17808e-13</span></span>
 <span><span class="co">#&gt;   min_denominator fraction_small_denominators nobs nobs_resp is_survey</span></span>
 <span><span class="co">#&gt; 1       0.4613402                           0  500       150     FALSE</span></span></code></pre></div>
 <p>Outputs and diagnostics at a glance (probability-scale weights sum to
@@ -268,7 +268,7 @@ on the unobserved outcome.</p>
 <span>  <span class="st">"fraction_small_denominators"</span></span>
 <span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $max_equation_residual</span></span>
-<span><span class="co">#&gt; [1] 5.191403e-13</span></span>
+<span><span class="co">#&gt; [1] 5.17808e-13</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $jacobian_condition_number</span></span>
 <span><span class="co">#&gt; [1] 36.83019</span></span>
@@ -361,7 +361,7 @@ are not constrained as auxiliaries) by placing them to the right of
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_resp_only</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Model Summary</span></span>
 <span><span class="co">#&gt; =================</span></span>
-<span><span class="co">#&gt; Y_miss mean: 1.136618</span></span>
+<span><span class="co">#&gt; Y_miss mean: 1.136991</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: none </span></span>
 <span><span class="co">#&gt; Variance notes: Variance skipped (variance_method='none') </span></span>
@@ -371,9 +371,9 @@ are not constrained as auxiliaries) by placing them to the right of
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Missingness-model coefficients:</span></span>
 <span><span class="co">#&gt;              Estimate</span></span>
-<span><span class="co">#&gt; (Intercept) -1.020140</span></span>
-<span><span class="co">#&gt; Y_miss       0.368913</span></span>
-<span><span class="co">#&gt; Z           -0.227569</span></span></code></pre></div>
+<span><span class="co">#&gt; (Intercept) -1.019139</span></span>
+<span><span class="co">#&gt; Y_miss       0.369372</span></span>
+<span><span class="co">#&gt; Z           -0.232795</span></span></code></pre></div>
 <p>Auxiliary means and formulas:</p>
 <ul>
 <li>Names of <code>auxiliary_means</code> must match the
@@ -420,7 +420,7 @@ so that population-scale EL weights are on the intended scale.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_svy</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Model Summary</span></span>
 <span><span class="co">#&gt; =================</span></span>
-<span><span class="co">#&gt; api00_miss mean: 667.708680</span></span>
+<span><span class="co">#&gt; api00_miss mean: 667.708681</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: none </span></span>
 <span><span class="co">#&gt; Variance notes: Variance skipped (variance_method='none') </span></span>
@@ -570,7 +570,7 @@ details.</li>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Maciej Beręsewicz, Igor Kołodziej, Mateusz Iwaniuk.</p>
+  <p>Developed by Maciej Beresewicz, Igor Kołodziej, Mateusz Iwaniuk.</p>
 </div>
 
 <div class="pkgdown-footer-right">

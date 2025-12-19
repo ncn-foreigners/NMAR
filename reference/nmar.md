@@ -92,7 +92,7 @@ fit_el <- nmar(Y_miss ~ X | Z, data = df_el, engine = eng_el)
 summary(fit_el)
 #> NMAR Model Summary
 #> =================
-#> Y_miss mean: 0.526843
+#> Y_miss mean: 0.527456
 #> Converged: TRUE 
 #> Variance method: none 
 #> Variance notes: Variance skipped (variance_method='none') 
@@ -102,9 +102,9 @@ summary(fit_el)
 #> 
 #> Missingness-model coefficients:
 #>              Estimate
-#> (Intercept)  2.436169
-#> Y_miss       0.127128
-#> Z           -0.852219
+#> (Intercept)  2.460382
+#> Y_miss       0.118914
+#> Z           -0.875952
 
 # \donttest{
 # Exponential tilting engine (illustrative)
@@ -163,6 +163,6 @@ if (requireNamespace("future.apply", quietly = TRUE)) {
   fit_boot <- nmar(Y_miss ~ X | Z, data = df_el, engine = eng_boot)
   se(fit_boot)
 }
-#> [1] 0.02885781
+#> [1] 0.0298057
 # }
 ```
