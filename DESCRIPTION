@@ -11,7 +11,7 @@ Description: Methods to estimate finite-population parameters under nonresponse 
     and supports independent samples and complex survey designs via objects from the 'survey' package.
     Provides diagnostics and optional variance estimates.
 License: MIT + file LICENSE
-URL: https://github.com/ncn-foreigners/NMAR, https://ncn-foreigners.ue.poznan.pl/NMAR
+URL: https://github.com/ncn-foreigners/NMAR, https://ncn-foreigners.ue.poznan.pl/NMAR/index.html
 BugReports: https://github.com/ncn-foreigners/NMAR/issues
 Encoding: UTF-8
 Imports: 
