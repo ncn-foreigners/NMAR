@@ -149,7 +149,7 @@ generics::glance(fit)
 #>     y_hat std.error conf.low conf.high converged trimmed_fraction
 #> 1 1.87866        NA       NA        NA      TRUE                0
 #>   variance_method jacobian_condition_number max_equation_residual
-#> 1            none                  36.83019           5.17808e-13
+#> 1            none                  36.83019          5.191403e-13
 #>   min_denominator fraction_small_denominators nobs nobs_resp is_survey
 #> 1       0.4613402                           0  500       150     FALSE
 ```
@@ -175,7 +175,7 @@ fit$diagnostics[c(
   "fraction_small_denominators"
 )]
 #> $max_equation_residual
-#> [1] 5.17808e-13
+#> [1] 5.191403e-13
 #> 
 #> $jacobian_condition_number
 #> [1] 36.83019
@@ -273,7 +273,7 @@ fit_resp_only <- nmar(
 summary(fit_resp_only)
 #> NMAR Model Summary
 #> =================
-#> Y_miss mean: 1.136991
+#> Y_miss mean: 1.136618
 #> Converged: TRUE 
 #> Variance method: none 
 #> Variance notes: Variance skipped (variance_method='none') 
@@ -283,9 +283,9 @@ summary(fit_resp_only)
 #> 
 #> Missingness-model coefficients:
 #>              Estimate
-#> (Intercept) -1.019139
-#> Y_miss       0.369372
-#> Z           -0.232795
+#> (Intercept) -1.020140
+#> Y_miss       0.368913
+#> Z           -0.227569
 ```
 
 Auxiliary means and formulas:
@@ -334,7 +334,7 @@ fit_svy <- nmar(
 summary(fit_svy)
 #> NMAR Model Summary
 #> =================
-#> api00_miss mean: 667.708681
+#> api00_miss mean: 667.708680
 #> Converged: TRUE 
 #> Variance method: none 
 #> Variance notes: Variance skipped (variance_method='none') 

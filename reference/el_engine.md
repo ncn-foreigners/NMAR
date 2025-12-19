@@ -233,7 +233,7 @@ fit <- nmar(Y_miss ~ X | X, data = df, engine = eng)
 summary(fit)
 #> NMAR Model Summary
 #> =================
-#> Y_miss mean: 2.250442
+#> Y_miss mean: 2.255538
 #> Converged: TRUE 
 #> Variance method: none 
 #> Variance notes: Variance skipped (variance_method='none') 
@@ -243,9 +243,9 @@ summary(fit)
 #> 
 #> Missingness-model coefficients:
 #>              Estimate
-#> (Intercept) -1.434576
-#> Y_miss       0.408022
-#> X            0.133420
+#> (Intercept) -1.410187
+#> Y_miss       0.396554
+#> X            0.138009
 
 # \donttest{
 # Response-only predictors can be placed to the right of |:
@@ -266,11 +266,11 @@ print(fit2)
 #> Sample size: 200 (respondents: 76)
 #> 
 #> Method: empirical_likelihood
-#> Max equation residual: 8.894e-09
-#> Constraint sum (W): 8.894e-09
+#> Max equation residual: 8.833e-09
+#> Constraint sum (W): 8.833e-09
 #> Constraint sums (aux):
 #>            X 
-#> 1.806571e-09 
+#> 1.796749e-09 
 
 # Survey design usage
 if (requireNamespace("survey", quietly = TRUE)) {
