@@ -62,15 +62,15 @@ jobs:
       - name: Check pkgdown
         run: |
           R -q -e "pkgdown::check_pkgdown()"
-      - name: Run R CMD check
-        run: |
-          R CMD check . --no-manual --as-cran
-
       - name: Build package tarball
         id: build
         run: |
-          PKG_NAME=$(R CMD build . --no-build-vignettes  | tail -1 | awk '{print $NF}')
+          PKG_NAME=$(R CMD build . --no-build-vignettes | tail -1 | awk '{print $NF}')
           echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
+
+      - name: Run R CMD check (on tarball)
+        run: |
+          R CMD check "${{ steps.build.outputs.pkg_name }}" --no-manual --as-cran --no-build-vignettes
 
       - uses: actions/upload-artifact@v4
         with:
