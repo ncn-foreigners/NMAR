@@ -26,7 +26,7 @@
 #' @details
 #' Orchestrates EL estimation for NMAR following Qin, Leung, and Shao (2002).
 #' For \code{data.frame} inputs (IID setting) the stacked system in
-#' \eqn{(\beta, z, \lambda_x)} with \eqn{z = \logit(W)} is solved by
+#' \eqn{(\beta, z, \lambda_x)} with \eqn{z = \mathrm{logit}(W)} is solved by
 #' \code{nleqslv::nleqslv()} using an analytic Jacobian. For \code{survey.design} inputs a
 #' design-weighted analogue in \eqn{(\beta, z, \lambda_W, \lambda_x)} is solved
 #' with an analytic Jacobian when the response family supplies second

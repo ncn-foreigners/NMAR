@@ -1,13 +1,8 @@
 Package: NMAR
 Type: Package
-Title: Estimation under Not Missing at Random Nonresponse
-Version: 0.1
-Maintainer: Maciej Beręsewicz <Maciej.Beresewicz@ue.poznan.pl>
-Author: Maciej Beręsewicz [aut, cre],
-    Igor Kołodziej [aut],
-    Mateusz Iwaniuk [aut]
-Authors@R: c(
-    person("Maciej", "Beręsewicz", email = "Maciej.Beresewicz@ue.poznan.pl", role = c("aut", "cre")),
+Title: Estimation under not Missing at Random Nonresponse
+Version: 0.1.0
+Authors@R: c(person("Maciej", "Beręsewicz", email = "Maciej.Beresewicz@ue.poznan.pl", role = c("aut", "cre")),
     person("Igor", "Kołodziej", email = "igor.kolodziej@proton.me", role = "aut"),
     person("Mateusz", "Iwaniuk", email = "mateusz.iwaniuk11@gmail.com", role = "aut"))
 Description: Methods to estimate finite-population parameters under nonresponse that is not missing at
