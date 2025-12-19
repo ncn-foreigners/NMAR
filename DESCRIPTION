@@ -1,6 +1,6 @@
 Package: NMAR
 Type: Package
-Title: Estimation under Not Missing at Random Nonresponse
+Title: Estimation under not Missing at Random Nonresponse
 Version: 0.1.0
 Authors@R: c(person("Maciej", "Beręsewicz", email = "Maciej.Beresewicz@ue.poznan.pl", role = c("aut", "cre")),
     person("Igor", "Kołodziej", email = "igor.kolodziej@proton.me", role = "aut"),

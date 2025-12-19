@@ -65,7 +65,7 @@ jobs:
       - name: Build package tarball
         id: build
         run: |
-          R CMD build . --no-build-vignettes
+          R CMD build .
           PKG_NAME=$(ls -1t *.tar.gz | head -n 1)
           echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
           echo "Built: $PKG_NAME"
