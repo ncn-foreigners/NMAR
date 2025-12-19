@@ -65,11 +65,14 @@ jobs:
       - name: Build package tarball
         id: build
         run: |
-          PKG_NAME=$(R CMD build . --no-build-vignettes | tail -1 | awk '{print $NF}')
+          R CMD build . --no-build-vignettes
+          PKG_NAME=$(ls -1t *.tar.gz | head -n 1)
           echo "pkg_name=$PKG_NAME" >> $GITHUB_OUTPUT
+          echo "Built: $PKG_NAME"
 
       - name: Run R CMD check (on tarball)
         run: |
+          ls -la *.tar.gz
           R CMD check "${{ steps.build.outputs.pkg_name }}" --no-manual --as-cran --no-build-vignettes
 
       - uses: actions/upload-artifact@v4
