@@ -2,10 +2,6 @@ Package: NMAR
 Type: Package
 Title: Estimation under Not Missing at Random Nonresponse
 Version: 0.1.0
-Maintainer: Maciej Beręsewicz <Maciej.Beresewicz@ue.poznan.pl>
-Author: Maciej Beręsewicz [aut, cre],
-    Igor Kołodziej [aut],
-    Mateusz Iwaniuk [aut]
 Authors@R: c(
     person("Maciej", "Beręsewicz", email = "Maciej.Beresewicz@ue.poznan.pl", role = c("aut", "cre")),
     person("Igor", "Kołodziej", email = "igor.kolodziej@proton.me", role = "aut"),
@@ -15,7 +11,7 @@ Description: Methods to estimate finite-population parameters under nonresponse 
     and supports independent samples and complex survey designs via objects from the 'survey' package.
     Provides diagnostics and optional variance estimates.
 License: MIT + file LICENSE
-URL: https://github.com/ncn-foreigners/NMAR, https://ncn-foreigners.ue.poznan.pl/NMAR/index.html
+URL: https://github.com/ncn-foreigners/NMAR, https://ncn-foreigners.ue.poznan.pl/NMAR
 BugReports: https://github.com/ncn-foreigners/NMAR/issues
 Encoding: UTF-8
 Imports: 
