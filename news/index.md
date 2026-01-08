@@ -1,5 +1,11 @@
 # Changelog
 
+## NMAR 0.1.1
+
+- CRAN release-related fixes
+- Fix `return` roxygen keyword in S3 Functions
+- Add research doi references to DESCRIPTION file
+
 ## NMAR 0.1.0
 
 ### Initial CRAN Release
