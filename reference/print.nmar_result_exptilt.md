@@ -21,3 +21,7 @@ print(x, ...)
 - ...:
 
   Ignored.
+
+## Value
+
+\`x\`, invisibly.

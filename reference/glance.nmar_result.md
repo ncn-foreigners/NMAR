@@ -18,3 +18,7 @@ glance(x, ...)
 - ...:
 
   Ignored.
+
+## Value
+
+A one-row data frame with diagnostics and metadata.

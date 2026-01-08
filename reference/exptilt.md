@@ -19,6 +19,11 @@ exptilt(data, ...)
 
   Passed to class-specific methods.
 
+## Value
+
+An engine-specific NMAR result object (for example
+`nmar_result_exptilt`).
+
 ## See also
 
 \`exptilt.data.frame()\`, \`exptilt.survey.design()\`,

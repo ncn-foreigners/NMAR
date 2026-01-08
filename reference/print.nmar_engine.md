@@ -20,3 +20,7 @@ print(x, ...)
 - ...:
 
   Unused.
+
+## Value
+
+\`x\`, invisibly.

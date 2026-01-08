@@ -18,3 +18,7 @@ vcov(object, ...)
 - ...:
 
   Ignored.
+
+## Value
+
+A 1x1 numeric matrix (the variance of the primary estimate).

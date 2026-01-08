@@ -18,3 +18,7 @@ summary(object, ...)
 - ...:
 
   Ignored.
+
+## Value
+
+An object of class `summary_nmar_result_el`.

@@ -23,3 +23,8 @@ tidy(x, conf.level = 0.95, ...)
 - ...:
 
   Ignored.
+
+## Value
+
+A data frame with one row for the primary estimate and, when available,
+additional rows for the response-model coefficients.

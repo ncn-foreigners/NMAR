@@ -17,3 +17,8 @@ exptilt_nonparam(data, ...)
 - ...:
 
   Other arguments passed to methods
+
+## Value
+
+An engine-specific NMAR result object for the nonparametric exponential
+tilting estimator.

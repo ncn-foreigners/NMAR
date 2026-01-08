@@ -452,13 +452,13 @@ sessionInfo()
 #>  [7] jquerylib_0.1.4     globals_0.18.0      splines_4.5.2      
 #> [10] systemfonts_1.3.1   textshaping_1.0.4   yaml_2.3.12        
 #> [13] fastmap_1.2.0       lattice_0.22-7      R6_2.6.1           
-#> [16] generics_0.1.4      Formula_1.2-5       knitr_1.50         
+#> [16] generics_0.1.4      Formula_1.2-5       knitr_1.51         
 #> [19] htmlwidgets_1.6.4   desc_1.4.3          DBI_1.2.3          
 #> [22] bslib_0.9.0         rlang_1.1.6         cachem_1.1.0       
 #> [25] xfun_0.55           fs_1.6.6            sass_0.4.10        
-#> [28] cli_3.6.5           progressr_0.18.0    pkgdown_2.2.0      
-#> [31] digest_0.6.39       lifecycle_1.0.4     evaluate_1.0.5     
-#> [34] listenv_0.10.0      codetools_0.2-20    ragg_1.5.0         
-#> [37] mitools_2.4         parallelly_1.46.0   rmarkdown_2.30     
-#> [40] tools_4.5.2         htmltools_0.5.9
+#> [28] otel_0.2.0          cli_3.6.5           progressr_0.18.0   
+#> [31] pkgdown_2.2.0       digest_0.6.39       lifecycle_1.0.5    
+#> [34] evaluate_1.0.5      listenv_0.10.0      codetools_0.2-20   
+#> [37] ragg_1.5.0          mitools_2.4         parallelly_1.46.1  
+#> [40] rmarkdown_2.30      tools_4.5.2         htmltools_0.5.9
 ```

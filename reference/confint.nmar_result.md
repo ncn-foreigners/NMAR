@@ -26,3 +26,7 @@ confint(object, parm, level = 0.95, ...)
 - ...:
 
   Ignored.
+
+## Value
+
+A 1x2 numeric matrix with confidence limits.

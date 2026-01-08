@@ -22,3 +22,7 @@ summary(object, conf.level = 0.95, ...)
 - ...:
 
   Additional parameters
+
+## Value
+
+An object of class \`summary_nmar_result\`.
