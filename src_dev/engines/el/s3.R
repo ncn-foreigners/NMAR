@@ -7,6 +7,7 @@ NULL
 #' @description Compact print for objects of class \code{nmar_result_el}.
 #' @param x An object of class \code{nmar_result_el}.
 #' @param ... Ignored.
+#' @return \code{x}, invisibly.
 #' @keywords result_view
 #' @export
 print.nmar_result_el <- function(x, ...) {
@@ -45,6 +46,7 @@ print.nmar_result_el <- function(x, ...) {
 #' @description Summarize estimation, standard error and missingness-model coefficients.
 #' @param object An object of class \code{nmar_result_el}.
 #' @param ... Ignored.
+#' @return An object of class \code{summary_nmar_result_el}.
 #' @keywords result_view
 #' @export
 summary.nmar_result_el <- function(object, ...) {

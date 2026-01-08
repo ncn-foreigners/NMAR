@@ -19,7 +19,8 @@ Authors@R:
 Description: Methods to estimate finite-population parameters under nonresponse that is not missing at
     random (NMAR, nonignorable). Incorporates auxiliary information and user-specified response models,
     and supports independent samples and complex survey designs via objects from the 'survey' package.
-    Provides diagnostics and optional variance estimates.
+    Provides diagnostics and optional variance estimates. For methodological background see
+    Qin, Leung and Shao (2002) <doi:10.1198/016214502753479338> and Riddles, Kim and Im (2016) <doi:10.1093/jssam/smv047>.
 License: MIT + file LICENSE
 URL: https://github.com/ncn-foreigners/NMAR, https://ncn-foreigners.ue.poznan.pl/NMAR/index.html
 BugReports: https://github.com/ncn-foreigners/NMAR/issues

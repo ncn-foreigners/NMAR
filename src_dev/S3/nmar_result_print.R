@@ -2,6 +2,7 @@
 #'
 #' @param x nmar_result object
 #' @param ... Additional parameters
+#' @return `x`, invisibly.
 #' @keywords result_view
 #' @export
 print.nmar_result <- function(x, ...) {
@@ -56,6 +57,7 @@ print.nmar_result <- function(x, ...) {
 #' @param object nmar_result object
 #' @param conf.level Confidence level for intervals.
 #' @param ... Additional parameters
+#' @return An object of class `summary_nmar_result`.
 #' @keywords result_view
 #' @export
 
@@ -90,6 +92,7 @@ summary.nmar_result <- function(object, conf.level = 0.95, ...) {
 #'
 #' @param x summary_nmar_result object
 #' @param ... Additional parameters
+#' @return `x`, invisibly.
 #' @keywords result_view
 #' @export
 

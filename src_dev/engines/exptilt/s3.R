@@ -13,6 +13,7 @@ NULL
 #'
 #' @param x An object of class `nmar_result_exptilt`.
 #' @param ... Ignored.
+#' @return `x`, invisibly.
 #' @keywords result_view
 #' @export
 print.nmar_result_exptilt <- function(x, ...) {
@@ -76,6 +77,7 @@ print.nmar_result_exptilt <- function(x, ...) {
 #' @param object An object of class `nmar_result_exptilt`.
 #' @param conf.level Confidence level for confidence interval (default 0.95).
 #' @param ... Ignored.
+#' @return An object of class `summary_nmar_result_exptilt`.
 #' @keywords result_view
 #' @export
 summary.nmar_result_exptilt <- function(object, conf.level = 0.95, ...) {

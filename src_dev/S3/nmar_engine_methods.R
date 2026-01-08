@@ -101,6 +101,7 @@ s3_engine_display_keys <- function(x) {
 #'
 #' @param x An engine object inheriting from `nmar_engine`.
 #' @param ... Unused.
+#' @return `x`, invisibly.
 #' @keywords engine_view
 #' @export
 print.nmar_engine <- function(x, ...) {
