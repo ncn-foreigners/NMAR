@@ -30,6 +30,7 @@ NULL
 #' Variance-covariance for base NMAR results
 #' @param object An object of class `nmar_result`.
 #' @param ... Ignored.
+#' @return A 1x1 numeric matrix (the variance of the primary estimate).
 #' @keywords result_param
 #' @export
 vcov.nmar_result <- function(object, ...) {
@@ -50,6 +51,7 @@ vcov.nmar_result <- function(object, ...) {
 #' @param parm Ignored.
 #' @param level Confidence level.
 #' @param ... Ignored.
+#' @return A 1x2 numeric matrix with confidence limits.
 #' @keywords result_param
 #' @export
 confint.nmar_result <- function(object, parm, level = 0.95, ...) {
@@ -80,6 +82,8 @@ confint.nmar_result <- function(object, parm, level = 0.95, ...) {
 #' @param x An object of class `nmar_result`.
 #' @param conf.level Confidence level for the primary estimate.
 #' @param ... Ignored.
+#' @return A data frame with one row for the primary estimate and, when
+#'   available, additional rows for the response-model coefficients.
 #' @keywords result_view
 #' @method tidy nmar_result
 #' @export
@@ -148,6 +152,7 @@ tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
 #' @description One-row diagnostics for NMAR fits.
 #' @param x An object of class `nmar_result`.
 #' @param ... Ignored.
+#' @return A one-row data frame with diagnostics and metadata.
 #' @keywords result_view
 #' @method glance nmar_result
 #' @export

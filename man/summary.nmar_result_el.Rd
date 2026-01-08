@@ -11,6 +11,9 @@
 
 \item{...}{Ignored.}
 }
+\value{
+An object of class \code{summary_nmar_result_el}.
+}
 \description{
 Summarize estimation, standard error and missingness-model coefficients.
 }

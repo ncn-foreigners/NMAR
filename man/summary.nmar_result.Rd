@@ -13,6 +13,9 @@
 
 \item{...}{Additional parameters}
 }
+\value{
+An object of class `summary_nmar_result`.
+}
 \description{
 Summary method for nmar_result
 }

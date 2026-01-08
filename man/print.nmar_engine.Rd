@@ -11,6 +11,9 @@
 
 \item{...}{Unused.}
 }
+\value{
+`x`, invisibly.
+}
 \description{
 Provides a compact, human-friendly summary for `nmar_engine` objects.
 Child classes inherit this method; they can override it if they need a

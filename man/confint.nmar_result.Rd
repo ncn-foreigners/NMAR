@@ -15,6 +15,9 @@
 
 \item{...}{Ignored.}
 }
+\value{
+A 1x2 numeric matrix with confidence limits.
+}
 \description{
 Wald confidence interval for base NMAR results
 }

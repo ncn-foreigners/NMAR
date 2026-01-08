@@ -11,6 +11,10 @@ exptilt(data, ...)
 
 \item{...}{Passed to class-specific methods.}
 }
+\value{
+An engine-specific NMAR result object (for example
+  \code{nmar_result_exptilt}).
+}
 \description{
 Generic for the exponential tilting (ET) estimator under NMAR.
   Methods are provided for `data.frame` and `survey.design`.

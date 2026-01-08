@@ -11,6 +11,9 @@
 
 \item{...}{Ignored.}
 }
+\value{
+\code{x}, invisibly.
+}
 \description{
 Compact print for objects of class \code{nmar_result_el}.
 }

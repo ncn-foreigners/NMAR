@@ -11,6 +11,9 @@
 
 \item{...}{Additional parameters}
 }
+\value{
+`x`, invisibly.
+}
 \description{
 Print method for nmar_result
 }

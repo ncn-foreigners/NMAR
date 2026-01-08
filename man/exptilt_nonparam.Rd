@@ -12,6 +12,10 @@ exptilt_nonparam(data, ...)
 
 \item{...}{Other arguments passed to methods}
 }
+\value{
+An engine-specific NMAR result object for the nonparametric
+  exponential tilting estimator.
+}
 \description{
 Nonparametric Exponential Tilting (Internal Generic)
 }
