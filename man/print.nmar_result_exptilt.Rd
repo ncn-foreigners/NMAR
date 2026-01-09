@@ -11,6 +11,9 @@
 
 \item{...}{Ignored.}
 }
+\value{
+`x`, invisibly.
+}
 \description{
 This print method is tailored for `nmar_result_exptilt` objects and shows a
 concise, human-friendly summary of the estimation result together with

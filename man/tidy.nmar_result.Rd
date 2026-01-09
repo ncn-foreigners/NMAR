@@ -13,6 +13,10 @@
 
 \item{...}{Ignored.}
 }
+\value{
+A data frame with one row for the primary estimate and, when
+  available, additional rows for the response-model coefficients.
+}
 \description{
 Return a data frame with the primary estimate and (if available) missingness-model coefficients.
 }

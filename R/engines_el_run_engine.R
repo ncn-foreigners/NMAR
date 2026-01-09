@@ -1,4 +1,12 @@
 #' Run method for EL engine
+#'
+#' @param engine An object of class \code{nmar_engine_el}.
+#' @param formula A two-sided formula passed through by \code{nmar()}.
+#' @param data A \code{data.frame} or \code{survey.design}.
+#' @param trace_level Integer 0-3 controlling verbosity.
+#'
+#' @return An object of class \code{nmar_result_el} (which also inherits from
+#'   \code{nmar_result}).
 #' @keywords internal
 #' @exportS3Method run_engine nmar_engine_el
 run_engine.nmar_engine_el <- function(engine, formula, data, trace_level = 0) {

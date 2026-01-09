@@ -6,6 +6,19 @@
 \usage{
 \method{run_engine}{nmar_engine_el}(engine, formula, data, trace_level = 0)
 }
+\arguments{
+\item{engine}{An object of class \code{nmar_engine_el}.}
+
+\item{formula}{A two-sided formula passed through by \code{nmar()}.}
+
+\item{data}{A \code{data.frame} or \code{survey.design}.}
+
+\item{trace_level}{Integer 0-3 controlling verbosity.}
+}
+\value{
+An object of class \code{nmar_result_el} (which also inherits from
+  \code{nmar_result}).
+}
 \description{
 Run method for EL engine
 }

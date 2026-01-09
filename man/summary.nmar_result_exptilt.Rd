@@ -13,6 +13,9 @@
 
 \item{...}{Ignored.}
 }
+\value{
+An object of class `summary_nmar_result_exptilt`.
+}
 \description{
 Summarize estimation, standard error and model coefficients.
 }

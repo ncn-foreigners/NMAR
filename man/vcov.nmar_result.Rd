@@ -11,6 +11,9 @@
 
 \item{...}{Ignored.}
 }
+\value{
+A 1x1 numeric matrix (the variance of the primary estimate).
+}
 \description{
 Variance-covariance for base NMAR results
 }

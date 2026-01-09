@@ -11,6 +11,9 @@
 
 \item{...}{Ignored.}
 }
+\value{
+A one-row data frame with diagnostics and metadata.
+}
 \description{
 One-row diagnostics for NMAR fits.
 }
