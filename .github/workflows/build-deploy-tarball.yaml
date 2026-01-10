@@ -21,23 +21,27 @@ jobs:
         with:
           r-version: 'release'
 
+      # Installs devtools AND system libraries (libcurl, etc.)
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            devtools
+            desc
+
       - name: Build with devtools
         id: pkg_info
         run: |
-          install.packages("devtools")
+          # 1. Clean up old files (R syntax)
+          unlink(list.files(pattern = "\\.tar\\.gz$"))
 
-          # Clean up any potential old files
-          rm -f *.tar.gz
-
-          # 1. Build using devtools
-          # This automatically creates 'PackageName_Version.tar.gz'
+          # 2. Build
           devtools::build(path = ".")
 
-          # 2. Capture that exact filename
-          TARBALL=$(ls *.tar.gz)
+          # 3. Capture filename (R syntax)
+          tarball_name <- list.files(pattern = "\\.tar\\.gz$")[1]
 
-          # 3. Save it for other jobs
-          echo "tarball=$TARBALL" >> $GITHUB_OUTPUT
+          # 4. Save to GitHub Output (R syntax)
+          cat(paste0("tarball=", tarball_name, "\n"), file = Sys.getenv("GITHUB_OUTPUT"))
         shell: Rscript {0}
 
       - name: Save Artifact
@@ -47,7 +51,7 @@ jobs:
           path: ${{ steps.pkg_info.outputs.tarball }}
 
   # -----------------------------------------------------------------------------
-  # JOB 2: WinBuilder (Release & Devel)
+  # JOB 2: WinBuilder
   # -----------------------------------------------------------------------------
   winbuilder:
     needs: build
@@ -56,7 +60,12 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
         with:
            r-version: 'release'
-           use-public-rspm: true
+           use-public-rspm: true # Speeds up installation
+
+      # ADDED: Ensures devtools installs without missing system library errors
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: devtools
 
       - name: Download Artifact
         uses: actions/download-artifact@v4
@@ -66,18 +75,14 @@ jobs:
 
       - name: Submit to WinBuilder
         run: |
-          install.packages("devtools")
           pkg_tarball <- "${{ needs.build.outputs.tarball }}"
+          print(paste("Submitting", pkg_tarball))
 
-          print(paste("Submitting", pkg_tarball, "to WinBuilder..."))
-
-          # 1. Check against R-release (Current Stable)
           tryCatch(
             devtools::check_win_release(pkg = pkg_tarball),
             error = function(e) message("Release upload failed: ", e$message)
           )
 
-          # 2. Check against R-devel (Future Version)
           tryCatch(
             devtools::check_win_devel(pkg = pkg_tarball),
             error = function(e) message("Devel upload failed: ", e$message)
@@ -85,21 +90,29 @@ jobs:
         shell: Rscript {0}
 
   # -----------------------------------------------------------------------------
-  # JOB 3: Validate (Install on all OSs)
+  # JOB 3: Validate
   # -----------------------------------------------------------------------------
   validate:
     needs: build
     runs-on: ${{ matrix.os }}
     strategy:
-      # fail-fast: false
+      #fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
+      # Checkout is REQUIRED for setup-r-dependencies to read your DESCRIPTION file
+      - uses: actions/checkout@v4
+
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: 'release'
           use-public-rspm: true
+
+      # ADDED: Installs dependencies safely on Linux (handles system libs like libxml2)
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          needs: check
 
       - name: Download Artifact
         uses: actions/download-artifact@v4
@@ -111,11 +124,10 @@ jobs:
         run: |
           pkg_tarball <- "${{ needs.build.outputs.tarball }}"
 
-          # Install dependencies & the package itself
-          install.packages("remotes")
-          remotes::install_local(pkg_tarball, dependencies = TRUE, force = TRUE)
+          # Install the tarball
+          install.packages(pkg_tarball, repos = NULL, type = "source")
 
-          # Quick load test to confirm it works
+          # Test load
           library(gsub("_.*", "", pkg_tarball), character.only = TRUE)
           print("SUCCESS: Package installed and loaded.")
         shell: Rscript {0}
