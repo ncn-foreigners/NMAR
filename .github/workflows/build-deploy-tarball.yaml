@@ -1,0 +1,121 @@
+name: Release Candidate
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # -----------------------------------------------------------------------------
+  # JOB 1: Build Artifact
+  # -----------------------------------------------------------------------------
+  build:
+    if: github.head_ref == 'package-pre_prod'
+    runs-on: ubuntu-latest
+    outputs:
+      tarball: ${{ steps.pkg_info.outputs.tarball }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+
+      - name: Build with devtools
+        id: pkg_info
+        run: |
+          install.packages("devtools")
+
+          # Clean up any potential old files
+          rm -f *.tar.gz
+
+          # 1. Build using devtools
+          # This automatically creates 'PackageName_Version.tar.gz'
+          devtools::build(path = ".")
+
+          # 2. Capture that exact filename
+          TARBALL=$(ls *.tar.gz)
+
+          # 3. Save it for other jobs
+          echo "tarball=$TARBALL" >> $GITHUB_OUTPUT
+        shell: Rscript {0}
+
+      - name: Save Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cran-tarball
+          path: ${{ steps.pkg_info.outputs.tarball }}
+
+  # -----------------------------------------------------------------------------
+  # JOB 2: WinBuilder (Release & Devel)
+  # -----------------------------------------------------------------------------
+  winbuilder:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: r-lib/actions/setup-r@v2
+        with:
+           r-version: 'release'
+           use-public-rspm: true
+
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cran-tarball
+          path: .
+
+      - name: Submit to WinBuilder
+        run: |
+          install.packages("devtools")
+          pkg_tarball <- "${{ needs.build.outputs.tarball }}"
+
+          print(paste("Submitting", pkg_tarball, "to WinBuilder..."))
+
+          # 1. Check against R-release (Current Stable)
+          tryCatch(
+            devtools::check_win_release(pkg = pkg_tarball),
+            error = function(e) message("Release upload failed: ", e$message)
+          )
+
+          # 2. Check against R-devel (Future Version)
+          tryCatch(
+            devtools::check_win_devel(pkg = pkg_tarball),
+            error = function(e) message("Devel upload failed: ", e$message)
+          )
+        shell: Rscript {0}
+
+  # -----------------------------------------------------------------------------
+  # JOB 3: Validate (Install on all OSs)
+  # -----------------------------------------------------------------------------
+  validate:
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cran-tarball
+          path: .
+
+      - name: Install & Verify
+        run: |
+          pkg_tarball <- "${{ needs.build.outputs.tarball }}"
+
+          # Install dependencies & the package itself
+          install.packages("remotes")
+          remotes::install_local(pkg_tarball, dependencies = TRUE, force = TRUE)
+
+          # Quick load test to confirm it works
+          library(gsub("_.*", "", pkg_tarball), character.only = TRUE)
+          print("SUCCESS: Package installed and loaded.")
+        shell: Rscript {0}
