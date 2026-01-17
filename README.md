@@ -5,6 +5,12 @@
 
 <!-- badges: start -->
 
+[![CRAN
+status](https://www.r-pkg.org/badges/version/NMAR)](https://CRAN.R-project.org/package=NMAR)
+[![CRAN
+downloads](https://cranlogs.r-pkg.org/badges/grand-total/NMAR)](https://cran.r-project.org/package=NMAR)
+[![CRAN monthly
+downloads](https://cranlogs.r-pkg.org/badges/NMAR)](https://cran.r-project.org/package=NMAR)
 [![Codecov test
 coverage](https://codecov.io/gh/ncn-foreigners/NMAR/graph/badge.svg)](https://app.codecov.io/gh/ncn-foreigners/NMAR)
 [![R-CMD-check](https://github.com/ncn-foreigners/NMAR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ncn-foreigners/NMAR/actions/workflows/R-CMD-check.yaml)
@@ -113,14 +119,14 @@ fit_et <- nmar(
 summary(fit_et)
 #> NMAR Model Summary (Exponential tilting)
 #> =================================
-#> y mean: -1.003955
+#> y mean: -1.003876
 #> Converged: TRUE 
 #> Variance method: none 
 #> Call: nmar(y ~ x, data = <data.frame: N=?>, engine = exponential_tilting)
 #> 
 #> Response-model (theta) coefficients:
-#>   (Intercept)          : 0.864047
-#>   y                    : -0.170264
+#>   (Intercept)          : 0.863908
+#>   y                    : -0.170470
 ```
 
 Result objects returned by `nmar()` support methods such as `summary()`,
