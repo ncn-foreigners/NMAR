@@ -203,6 +203,72 @@ test_that("iid-only resample_guard is ignored for survey designs", {
   expect_true(is.finite(res$variance))
 })
 
+test_that("bootstrap falls back to sequential lapply when future.apply is unavailable", {
+  testthat::local_mocked_bindings(
+    nmar_has_future_apply = function() FALSE,
+    .package = "NMAR"
+  )
+  opt <- "NMAR.bootstrap.warned_no_future_apply"
+  old_opt <- getOption(opt)
+  options(setNames(list(FALSE), opt))
+  on.exit(options(setNames(list(old_opt), opt)), add = TRUE)
+
+  set.seed(123)
+  df <- data.frame(y = c(1, 2, 3, 4))
+  point_est <- mean(df$y)
+
+  expect_warning(
+    res1 <- bootstrap_variance(df,
+      estimator_func = bootstrap_dummy_estimator,
+      point_estimate = point_est,
+      bootstrap_reps = 5
+    ),
+    "future\\.apply.*not installed|future\\.apply.*Install",
+    fixed = FALSE
+  )
+  expect_length(res1$replicates, 5)
+
+  expect_silent(
+    res2 <- bootstrap_variance(df,
+      estimator_func = bootstrap_dummy_estimator,
+      point_estimate = point_est,
+      bootstrap_reps = 5
+    )
+  )
+  expect_length(res2$replicates, 5)
+})
+
+test_that("survey bootstrap falls back to sequential lapply when future.apply is unavailable", {
+  skip_if_not_installed("survey")
+  skip_if_not_installed("svrep")
+
+  testthat::local_mocked_bindings(
+    nmar_has_future_apply = function() FALSE,
+    .package = "NMAR"
+  )
+  opt <- "NMAR.bootstrap.warned_no_future_apply"
+  old_opt <- getOption(opt)
+  options(setNames(list(FALSE), opt))
+  on.exit(options(setNames(list(old_opt), opt)), add = TRUE)
+
+  set.seed(123)
+  df <- data.frame(y = c(1, 2, 3, 4), w = c(1, 2, 1, 3))
+  design <- survey::svydesign(ids = ~1, data = df, weights = ~w)
+  point_est <- sum(df$y * df$w) / sum(df$w)
+
+  expect_warning(
+    res <- bootstrap_variance(design,
+      estimator_func = bootstrap_dummy_estimator,
+      point_estimate = point_est,
+      bootstrap_reps = 5
+    ),
+    "future\\.apply.*not installed|future\\.apply.*Install",
+    fixed = FALSE
+  )
+  expect_length(res$replicates, 5)
+  expect_true(is.finite(res$se))
+})
+
 test_that("IID bootstrap is reproducible across future backends", {
   skip_if_not_installed("future")
   skip_if_not_installed("future.apply")

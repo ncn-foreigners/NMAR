@@ -55,11 +55,13 @@
 #'                                     bootstrap_reps = 500))
 #'   }
 #'
-#'   The \code{future} framework (via \code{future.seed = TRUE} in
-#'   \code{future.apply::future_lapply()}) ensures that each bootstrap replicate
-#'   uses an independent L'Ecuyer-CMRG random number stream derived from this
-#'   seed. This gives reproducible results across supported future backends
-#'   (sequential, multisession, cluster, and so on).
+#'   If the optional \code{future.apply} package is installed, bootstrap uses
+#'   \code{future.apply::future_lapply(future.seed = TRUE)} which provides
+#'   backend-independent, parallel-safe random number streams under the
+#'   \code{future} framework. If \code{future.apply} is not installed, bootstrap
+#'   falls back to sequential evaluation via \code{base::lapply()}, which is
+#'   still reproducible under \code{set.seed()} but may not match the
+#'   \code{future.seed} stream.
 #'
 #' @param data A \code{data.frame} or a \code{survey.design}.
 #' @param estimator_func Function returning an object with a numeric scalar
@@ -91,6 +93,71 @@ bootstrap_variance <- function(data, estimator_func, point_estimate, ...) {
   stop("Unsupported data type for bootstrap_variance().", call. = FALSE)
 }
 
+# Internal helper: detect whether future.apply is available.
+nmar_has_future_apply <- function() {
+  requireNamespace("future.apply", quietly = TRUE)
+}
+
+# Internal helper: warn once per R session that we are falling back to sequential
+# evaluation because future.apply is not installed.
+nmar_warn_no_future_apply_once <- function() {
+  opt <- "NMAR.bootstrap.warned_no_future_apply"
+  if (isTRUE(getOption(opt, FALSE))) return(invisible(FALSE))
+  warning(
+    "Package 'future.apply' is not installed. Running bootstrap sequentially via base::lapply().\n  ",
+    "Install 'future.apply' to enable future-based parallel execution and future-seeded RNG (future.seed = TRUE).",
+    call. = FALSE,
+    immediate. = TRUE
+  )
+  options(setNames(list(TRUE), opt))
+  invisible(TRUE)
+}
+
+# Internal helper: apply over X using future.apply (if installed) or base::lapply
+# (sequential fallback). Progress is reported via progressr if installed.
+nmar_bootstrap_apply <- function(X, FUN, use_progress, future_globals = NULL, future_packages = NULL) {
+  use_future <- nmar_has_future_apply()
+  if (!use_future) nmar_warn_no_future_apply_once()
+
+  if (isTRUE(use_progress) && requireNamespace("progressr", quietly = TRUE)) {
+    progressr::with_progress({
+      p <- progressr::progressor(steps = length(X))
+      wrapper <- function(x) {
+        res <- FUN(x)
+        p()
+        res
+      }
+      if (use_future) {
+        fg <- future_globals
+        if (is.null(fg) || identical(fg, TRUE)) fg <- list()
+        fg <- c(fg, list(FUN = FUN, p = p))
+        future.apply::future_lapply(
+          X,
+          wrapper,
+          future.seed = TRUE,
+          future.globals = fg,
+          future.packages = future_packages
+        )
+      } else {
+        lapply(X, wrapper)
+      }
+    })
+  } else {
+    if (use_future) {
+      if (is.null(future_globals)) future_globals <- TRUE
+      future.apply::future_lapply(
+        X,
+        FUN,
+        future.seed = TRUE,
+        future.globals = future_globals,
+        future.packages = future_packages
+      )
+    } else {
+      lapply(X, FUN)
+    }
+  }
+}
+
 #' Default method dispatch (internal safety net)
 #' @keywords internal
 bootstrap_variance.default <- function(data, estimator_func, point_estimate, ...) {
@@ -120,6 +187,8 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
   dot_args <- list(...)
   est_fun <- estimator_func
   resample_guard <- NULL
+  if (!is.null(dot_args$bootstrap_cores)) dot_args$bootstrap_cores <- NULL
+  if (!is.null(dot_args$bootstrap_workers)) dot_args$bootstrap_workers <- NULL
   if (!is.null(dot_args$bootstrap_settings)) dot_args$bootstrap_settings <- NULL
   if (!is.null(dot_args$bootstrap_options)) dot_args$bootstrap_options <- NULL
   if (!is.null(dot_args$bootstrap_type)) dot_args$bootstrap_type <- NULL
@@ -168,32 +237,12 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
     val
   }
 
-  if (!requireNamespace("future.apply", quietly = TRUE)) {
-    stop("Package 'future.apply' is required for bootstrap variance.", call. = FALSE)
-  }
-
   use_progress <- requireNamespace("progressr", quietly = TRUE)
-
-  if (use_progress) {
-    lst <- progressr::with_progress({
-      p <- progressr::progressor(steps = bootstrap_reps)
-      future.apply::future_lapply(
-        seq_len(bootstrap_reps),
-        function(i) {
-          res <- replicate_fn(i)
-          p() # Signal progress
-          res
-        },
-        future.seed = TRUE
-      )
-    })
-  } else {
-    lst <- future.apply::future_lapply(
-      seq_len(bootstrap_reps),
-      replicate_fn,
-      future.seed = TRUE
-    )
-  }
+  lst <- nmar_bootstrap_apply(
+    X = seq_len(bootstrap_reps),
+    FUN = replicate_fn,
+    use_progress = use_progress
+  )
 
   estimates <- vapply(lst, identity, numeric(1))
 
@@ -424,55 +473,25 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
     val
   }
 
-  if (!requireNamespace("future.apply", quietly = TRUE)) {
-    stop("Package 'future.apply' is required for bootstrap variance.", call. = FALSE)
-  }
-
   use_progress <- requireNamespace("progressr", quietly = TRUE)
 
   J <- seq_len(ncol(repw))
 
-  if (use_progress) {
-    lst <- progressr::with_progress({
-      p <- progressr::progressor(steps = length(J))
-      future.apply::future_lapply(
-        J,
-        function(j) {
-          res <- replicate_eval(j)
-          p() # Signal progress
-          res
-        },
-        future.seed = TRUE,
-        future.globals = list(
-          replicate_eval = replicate_eval,
-          repw = repw,
-          data_vars = data_vars,
-          nmar_inject_design_weights = nmar_inject_design_weights,
-          design_template = design_template,
-          estimator_args = estimator_args,
-          est_fun = est_fun,
-          p = p
-        ),
-        future.packages = "survey"
-      )
-    })
-  } else {
-    lst <- future.apply::future_lapply(
-      J,
-      replicate_eval,
-      future.seed = TRUE,
-      future.globals = list(
-        replicate_eval = replicate_eval,
-        repw = repw,
-        data_vars = data_vars,
-        nmar_inject_design_weights = nmar_inject_design_weights,
-        design_template = design_template,
-        estimator_args = estimator_args,
-        est_fun = est_fun
-      ),
-      future.packages = "survey"
-    )
-  }
+  lst <- nmar_bootstrap_apply(
+    X = J,
+    FUN = replicate_eval,
+    use_progress = use_progress,
+    future_globals = list(
+      replicate_eval = replicate_eval,
+      repw = repw,
+      data_vars = data_vars,
+      nmar_inject_design_weights = nmar_inject_design_weights,
+      design_template = design_template,
+      estimator_args = estimator_args,
+      est_fun = est_fun
+    ),
+    future_packages = "survey"
+  )
 
   replicate_estimates <- vapply(lst, identity, numeric(1))
 
