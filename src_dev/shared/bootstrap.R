@@ -129,8 +129,13 @@ nmar_bootstrap_apply <- function(X, FUN, use_progress, future_globals = NULL, fu
       }
       if (use_future) {
         fg <- future_globals
-        if (is.null(fg) || identical(fg, TRUE)) fg <- list()
-        fg <- c(fg, list(FUN = FUN, p = p))
+        if (is.null(fg)) {
+          fg <- TRUE
+        } else if (isTRUE(fg)) {
+          fg <- TRUE
+        } else if (is.list(fg)) {
+          fg <- c(fg, list(FUN = FUN, p = p))
+        }
         future.apply::future_lapply(
           X,
           wrapper,
