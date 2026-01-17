@@ -444,7 +444,7 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#> [1] survey_4.4-8   survival_3.8-3 Matrix_1.7-4   future_1.68.0  NMAR_0.1.1    
+#> [1] survey_4.4-8   survival_3.8-3 Matrix_1.7-4   future_1.69.0  NMAR_0.1.2    
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] future.apply_1.20.1 jsonlite_2.0.0      compiler_4.5.2     

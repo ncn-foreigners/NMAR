@@ -1,6 +1,17 @@
 # Changelog
 
+## NMAR 0.1.2
+
+- Bootstrap variance no longer hard-requires ‘future.apply’; it now
+  falls back to sequential execution via base::lapply() when
+  ‘future.apply’ is not installed (emits a one-time warning).
+- When ‘future.apply’ is installed, bootstrap uses future-seeded RNG
+  streams (future.seed = TRUE) for reproducibility across future
+  backends.
+
 ## NMAR 0.1.1
+
+CRAN release: 2026-01-16
 
 - CRAN release-related fixes
 - Fix `return` roxygen keyword in S3 Functions

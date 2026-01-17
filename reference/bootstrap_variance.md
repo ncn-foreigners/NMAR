@@ -108,9 +108,11 @@ estimation function:
                                         bootstrap_reps = 500))
       
 
-The `future` framework (via `future.seed = TRUE` in
-[`future.apply::future_lapply()`](https://future.apply.futureverse.org/reference/future_lapply.html))
-ensures that each bootstrap replicate uses an independent L'Ecuyer-CMRG
-random number stream derived from this seed. This gives reproducible
-results across supported future backends (sequential, multisession,
-cluster, and so on).
+If the optional `future.apply` package is installed, bootstrap uses
+`future.apply::future_lapply(future.seed = TRUE)` which provides
+backend-independent, parallel-safe random number streams under the
+`future` framework. If `future.apply` is not installed, bootstrap falls
+back to sequential evaluation via
+[`base::lapply()`](https://rdrr.io/r/base/lapply.html), which is still
+reproducible under [`set.seed()`](https://rdrr.io/r/base/Random.html)
+but may not match the `future.seed` stream.

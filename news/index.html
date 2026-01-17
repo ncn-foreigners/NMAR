@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">NMAR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,7 +47,12 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.1.1" id="nmar-011">NMAR 0.1.1<a class="anchor" aria-label="anchor" href="#nmar-011"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.1.2" id="nmar-012">NMAR 0.1.2<a class="anchor" aria-label="anchor" href="#nmar-012"></a></h2>
+<ul><li>Bootstrap variance no longer hard-requires ‘future.apply’; it now falls back to sequential execution via base::lapply() when ‘future.apply’ is not installed (emits a one-time warning).</li>
+<li>When ‘future.apply’ is installed, bootstrap uses future-seeded RNG streams (future.seed = TRUE) for reproducibility across future backends.</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.1" id="nmar-011">NMAR 0.1.1<a class="anchor" aria-label="anchor" href="#nmar-011"></a></h2><p class="text-muted">CRAN release: 2026-01-16</p>
 <ul><li>CRAN release-related fixes</li>
 <li>Fix <code>return</code> roxygen keyword in S3 Functions</li>
 <li>Add research doi references to DESCRIPTION file</li>
