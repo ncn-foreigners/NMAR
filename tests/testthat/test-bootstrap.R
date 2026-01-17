@@ -20,6 +20,14 @@ bootstrap_dummy_estimator <- function(data, on_failure = "return") {
     class = c("bootstrap_dummy_result", "nmar_result")
   )
 }
+
+suppress_bootstrap_assumption_warning <- function(expr) {
+  withCallingHandlers(expr, warning = function(w) {
+    if (grepl("injects replicate analysis weights", conditionMessage(w), fixed = TRUE)) {
+      invokeRestart("muffleWarning")
+    }
+  })
+}
 test_that("bootstrap_variance handles iid data", {
   set.seed(123)
   df <- data.frame(y = c(1, 2, 3, 4))
@@ -341,17 +349,21 @@ test_that("Survey bootstrap is reproducible across backends", {
 # Sequential baseline
   future::plan(future::sequential)
   set.seed(999)
-  res_seq1 <- bootstrap_variance(
-    dstrat, estimator, point_estimate = mean(apistrat$api00),
-    bootstrap_reps = 50
+  res_seq1 <- suppress_bootstrap_assumption_warning(
+    bootstrap_variance(
+      dstrat, estimator, point_estimate = mean(apistrat$api00),
+      bootstrap_reps = 50
+    )
   )
 
 # Sequential with same seed should be identical
   future::plan(future::sequential)
   set.seed(999)
-  res_seq2 <- bootstrap_variance(
-    dstrat, estimator, point_estimate = mean(apistrat$api00),
-    bootstrap_reps = 50
+  res_seq2 <- suppress_bootstrap_assumption_warning(
+    bootstrap_variance(
+      dstrat, estimator, point_estimate = mean(apistrat$api00),
+      bootstrap_reps = 50
+    )
   )
 
   future::plan(future::sequential)

@@ -113,6 +113,43 @@ nmar_warn_no_future_apply_once <- function() {
   invisible(TRUE)
 }
 
+# Internal helper: warn when survey bootstrap assumptions may be violated.
+nmar_warn_survey_bootstrap_assumptions <- function(design) {
+  if (!inherits(design, "survey.design")) return(invisible(FALSE))
+
+  allprob <- design$allprob
+  has_multistage_probs <- is.data.frame(allprob) && ncol(allprob) > 1L
+  has_pps <- isTRUE(design$pps)
+  has_fpc_arg <- FALSE
+  has_fpc_popsize <- FALSE
+  has_probs_arg <- FALSE
+  has_pps_arg <- FALSE
+
+  fpc <- design$fpc
+  has_fpc_popsize <- is.list(fpc) && !is.null(fpc$popsize)
+
+  dc <- try(getCall(design), silent = TRUE)
+  if (!inherits(dc, "try-error") && !is.null(dc)) {
+    args <- as.list(dc)[-1]
+    has_fpc_arg <- !is.null(args$fpc) || !is.null(args$fpctype)
+    has_probs_arg <- !is.null(args$probs)
+    has_pps_arg <- !is.null(args$pps)
+  }
+
+  if (has_multistage_probs || has_pps || has_fpc_arg || has_fpc_popsize || has_probs_arg || has_pps_arg) {
+    warning(
+      "Survey bootstrap injects replicate analysis weights into the design.\n  ",
+      "This is valid when the estimator depends on weights (and optionally strata/cluster)\n  ",
+      "but does not recompute stage-specific probabilities or FPC. This design appears\n  ",
+      "to include PPS/multistage probabilities or FPC; if the estimator uses those\n  ",
+      "fields directly, bootstrap variance may be incorrect.",
+      call. = FALSE
+    )
+    return(invisible(TRUE))
+  }
+  invisible(FALSE)
+}
+
 # Internal helper: apply over X using future.apply (if installed) or base::lapply
 # (sequential fallback). Progress is reported via progressr if installed.
 nmar_bootstrap_apply <- function(X, FUN, use_progress, future_globals = NULL, future_packages = NULL) {
@@ -411,12 +448,25 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
     )
   }
 
+  nmar_warn_survey_bootstrap_assumptions(data)
+
 # Extract replicate analysis weights matrix (one column per replicate).
   repw <- weights(rep_design, type = "analysis")
 
 # Check replicate count (may differ from the requested number in stratified
 # designs). The variance formula is valid for the actual count produced.
-  J_actual <- ncol(repw)
+  J_actual <- if (is.null(dim(repw))) 1L else ncol(repw)
+  if (!is.finite(J_actual) || J_actual < 2L) {
+    stop(
+      sprintf(
+        "Bootstrap replicate design produced %d replicate(s). Variance estimation requires at least 2 replicates.\n  ",
+        J_actual
+      ),
+      "This can happen with very small strata or restrictive design settings. ",
+      "Consider increasing per-stratum sample size or adjusting bootstrap settings.",
+      call. = FALSE
+    )
+  }
   if (J_actual != bootstrap_reps) {
     warning(sprintf(
       paste0(
@@ -478,7 +528,7 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
 
   use_progress <- requireNamespace("progressr", quietly = TRUE)
 
-  J <- seq_len(ncol(repw))
+  J <- seq_len(J_actual)
 
   lst <- nmar_bootstrap_apply(
     X = J,
