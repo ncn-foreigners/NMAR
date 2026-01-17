@@ -187,8 +187,6 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
   dot_args <- list(...)
   est_fun <- estimator_func
   resample_guard <- NULL
-  if (!is.null(dot_args$bootstrap_cores)) dot_args$bootstrap_cores <- NULL
-  if (!is.null(dot_args$bootstrap_workers)) dot_args$bootstrap_workers <- NULL
   if (!is.null(dot_args$bootstrap_settings)) dot_args$bootstrap_settings <- NULL
   if (!is.null(dot_args$bootstrap_options)) dot_args$bootstrap_options <- NULL
   if (!is.null(dot_args$bootstrap_type)) dot_args$bootstrap_type <- NULL
