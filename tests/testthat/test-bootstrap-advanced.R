@@ -21,8 +21,7 @@ test_that("svyrep.design is rejected with clear error", {
     bootstrap_variance(
       drep, estimator,
       point_estimate = mean(apistrat$api00),
-      bootstrap_reps = 10,
-      bootstrap_cores = 1
+      bootstrap_reps = 10
     ),
     "replicate design|svyrep"
   )
@@ -52,8 +51,7 @@ test_that("replicate count mismatch warns but proceeds", {
       bootstrap_variance(
         dstrat, estimator,
         point_estimate = mean(apistrat$api00),
-        bootstrap_reps = 200,
-        bootstrap_cores = 1
+        bootstrap_reps = 200
       )
     ),
     error = function(e) list(error = TRUE, message = e$message)
@@ -96,7 +94,6 @@ test_that("survey NA policy 'strict' shows detailed error", {
       dstrat, estimator,
       point_estimate = mean(apistrat$api00),
       bootstrap_reps = 10,
-      bootstrap_cores = 1,
       survey_na_policy = "strict"
     ),
     error = function(e) e$message
@@ -138,7 +135,6 @@ test_that("survey NA policy 'omit' handles failures correctly", {
       dstrat, estimator,
       point_estimate = mean(apistrat$api00),
       bootstrap_reps = 15,
-      bootstrap_cores = 1,
       survey_na_policy = "omit"
     ),
     "3/15.*failed.*omitted"
@@ -174,7 +170,6 @@ test_that("survey NA policy 'omit' requires at least 2 successes", {
       dstrat, estimator,
       point_estimate = mean(apistrat$api00),
       bootstrap_reps = 10,
-      bootstrap_cores = 1,
       survey_na_policy = "omit"
     ),
     "Too few successful"
@@ -210,15 +205,14 @@ test_that("survey NA policy 'omit' shows failure pattern", {
   res <- tryCatch(
     withCallingHandlers(
       bootstrap_variance(
-        dstrat, estimator,
-        point_estimate = mean(apistrat$api00),
-        bootstrap_reps = 20,
-        bootstrap_cores = 1,
-        survey_na_policy = "omit"
-      ),
-      warning = function(w) {
-        warn_msg <<- conditionMessage(w)
-        invokeRestart("muffleWarning")
+      dstrat, estimator,
+      point_estimate = mean(apistrat$api00),
+      bootstrap_reps = 20,
+      survey_na_policy = "omit"
+    ),
+    warning = function(w) {
+      warn_msg <<- conditionMessage(w)
+      invokeRestart("muffleWarning")
       }
     ),
     error = function(e) list(error = TRUE)
@@ -256,8 +250,7 @@ test_that("mathematical correctness: variance has correct properties", {
   res <- bootstrap_variance(
     dstrat, estimator,
     point_estimate = mean(apistrat$api00),
-    bootstrap_reps = 30,
-    bootstrap_cores = 1
+    bootstrap_reps = 30
   )
 
 # Property 1: Variance must be non-negative
@@ -291,8 +284,7 @@ test_that("mathematical correctness: variance has correct properties", {
   res_iid <- bootstrap_variance(
     data_iid, estimator_mean,
     point_estimate = mean(x),
-    bootstrap_reps = 500,
-    bootstrap_cores = 1
+    bootstrap_reps = 500
   )
 
 # Bootstrap estimate should be close to analytical value
@@ -327,8 +319,7 @@ test_that("boundary cases: minimum replicates and edge conditions", {
   res_min <- bootstrap_variance(
     dstrat, estimator,
     point_estimate = mean(apistrat$api00),
-    bootstrap_reps = 2,
-    bootstrap_cores = 1
+    bootstrap_reps = 2
   )
   expect_equal(length(res_min$replicates), 2)
   expect_true(is.finite(res_min$variance))
@@ -340,8 +331,7 @@ test_that("boundary cases: minimum replicates and edge conditions", {
     bootstrap_variance(
       dstrat, estimator,
       point_estimate = mean(apistrat$api00),
-      bootstrap_reps = 1,
-      bootstrap_cores = 1
+      bootstrap_reps = 1
     ),
     error = function(e) list(error = TRUE, message = e$message)
   )
@@ -358,8 +348,7 @@ test_that("boundary cases: minimum replicates and edge conditions", {
   res_small <- bootstrap_variance(
     small_data, estimator_simple,
     point_estimate = mean(small_data$y),
-    bootstrap_reps = 10,
-    bootstrap_cores = 1
+    bootstrap_reps = 10
   )
   expect_equal(length(res_small$replicates), 10)
   expect_true(is.finite(res_small$variance))
@@ -370,8 +359,7 @@ test_that("boundary cases: minimum replicates and edge conditions", {
   res_single <- bootstrap_variance(
     single_data, estimator_simple,
     point_estimate = 5,
-    bootstrap_reps = 10,
-    bootstrap_cores = 1
+    bootstrap_reps = 10
   )
 # With single observation, all bootstrap samples are identical
   expect_equal(length(res_single$replicates), 10)
@@ -442,7 +430,6 @@ test_that("omit policy correctly subsets rscales for mathematical correctness", 
       dstrat, estimator,
       point_estimate = mean(apistrat$api00),
       bootstrap_reps = 20,
-      bootstrap_cores = 1,
       survey_na_policy = "omit"
     ),
     "5/20.*failed.*omitted"
@@ -487,7 +474,6 @@ test_that("omit policy correctly subsets rscales for mathematical correctness", 
       dstrat, estimator_random,
       point_estimate = mean(apistrat$api00),
       bootstrap_reps = 30,
-      bootstrap_cores = 1,
       survey_na_policy = "omit"
     ),
     "12/30.*failed"
@@ -530,8 +516,7 @@ test_that("survey NA policy default is 'strict'", {
     bootstrap_variance(
       dstrat, estimator,
       point_estimate = mean(apistrat$api00),
-      bootstrap_reps = 10,
-      bootstrap_cores = 1
+      bootstrap_reps = 10
     ),
     error = function(e) e$message
   )

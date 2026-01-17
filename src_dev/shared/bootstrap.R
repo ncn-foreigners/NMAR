@@ -120,6 +120,11 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
   dot_args <- list(...)
   est_fun <- estimator_func
   resample_guard <- NULL
+  if (!is.null(dot_args$bootstrap_settings)) dot_args$bootstrap_settings <- NULL
+  if (!is.null(dot_args$bootstrap_options)) dot_args$bootstrap_options <- NULL
+  if (!is.null(dot_args$bootstrap_type)) dot_args$bootstrap_type <- NULL
+  if (!is.null(dot_args$bootstrap_mse)) dot_args$bootstrap_mse <- NULL
+  if (!is.null(dot_args$survey_na_policy)) dot_args$survey_na_policy <- NULL
   if (!is.null(dot_args$resample_guard)) {
 # Some NMAR estimators require each resample to contain at least one respondent.
 # Allow callers to supply a guard that rejects unsuitable resamples.
@@ -298,6 +303,9 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
 
   dot_args <- list(...)
   est_fun <- estimator_func
+  if (!is.null(dot_args$bootstrap_cores)) dot_args$bootstrap_cores <- NULL
+  if (!is.null(dot_args$bootstrap_workers)) dot_args$bootstrap_workers <- NULL
+  if (!is.null(dot_args$resample_guard)) dot_args$resample_guard <- NULL
   bootstrap_settings <- list()
   if (!is.null(dot_args$bootstrap_settings)) {
     if (!is.list(dot_args$bootstrap_settings)) {
@@ -320,6 +328,14 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
   if (!is.null(dot_args$bootstrap_mse)) {
     bootstrap_settings$mse <- dot_args$bootstrap_mse
     dot_args$bootstrap_mse <- NULL
+  }
+
+  if (!is.null(bootstrap_settings$design) || !is.null(bootstrap_settings$replicates)) {
+    stop(
+      "`bootstrap_settings` must not include `design` or `replicates`.\n  ",
+      "Use `data = <survey.design>` and `bootstrap_reps = <int>` instead.",
+      call. = FALSE
+    )
   }
 
   rep_design <- do.call(svrep::as_bootstrap_design, c(list(design = data, replicates = bootstrap_reps), bootstrap_settings))
@@ -366,6 +382,12 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
   rep_scale <- rep_design$scale
   rep_rscales <- rep_design$rscales
   rep_mse <- rep_design$mse
+  if (isTRUE(rep_mse) && (!is.numeric(point_estimate) || length(point_estimate) != 1L || !is.finite(point_estimate))) {
+    stop(
+      "`point_estimate` must be a finite numeric scalar when bootstrap replicate design uses mse = TRUE.",
+      call. = FALSE
+    )
+  }
 
 # Extract data frame only (not full survey design) to reduce serialization.
   data_vars <- data$variables
