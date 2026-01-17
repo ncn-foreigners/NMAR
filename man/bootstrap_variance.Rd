@@ -83,11 +83,13 @@ Internal helpers to estimate the variance of a scalar estimator
                                     bootstrap_reps = 500))
   }
 
-  The \code{future} framework (via \code{future.seed = TRUE} in
-  \code{future.apply::future_lapply()}) ensures that each bootstrap replicate
-  uses an independent L'Ecuyer-CMRG random number stream derived from this
-  seed. This gives reproducible results across supported future backends
-  (sequential, multisession, cluster, and so on).
+  If the optional \code{future.apply} package is installed, bootstrap uses
+  \code{future.apply::future_lapply(future.seed = TRUE)} which provides
+  backend-independent, parallel-safe random number streams under the
+  \code{future} framework. If \code{future.apply} is not installed, bootstrap
+  falls back to sequential evaluation via \code{base::lapply()}, which is
+  still reproducible under \code{set.seed()} but may not match the
+  \code{future.seed} stream.
 }
 
 \keyword{internal}

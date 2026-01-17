@@ -1,7 +1,7 @@
 Package: NMAR
 Type: Package
 Title: Estimation under not Missing at Random Nonresponse
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: 
     c(person(given = "Maciej",
              family = "Beresewicz",

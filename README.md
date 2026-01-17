@@ -113,14 +113,14 @@ fit_et <- nmar(
 summary(fit_et)
 #> NMAR Model Summary (Exponential tilting)
 #> =================================
-#> y mean: -1.003974
+#> y mean: -1.003955
 #> Converged: TRUE 
 #> Variance method: none 
 #> Call: nmar(y ~ x, data = <data.frame: N=?>, engine = exponential_tilting)
 #> 
 #> Response-model (theta) coefficients:
-#>   (Intercept)          : 0.864080
-#>   y                    : -0.170216
+#>   (Intercept)          : 0.864047
+#>   y                    : -0.170264
 ```
 
 Result objects returned by `nmar()` support methods such as `summary()`,
