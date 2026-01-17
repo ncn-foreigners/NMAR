@@ -149,6 +149,7 @@ nmar_warn_survey_bootstrap_assumptions <- function(design) {
   }
   invisible(FALSE)
 }
+
 # Internal helper: apply over X using future.apply (if installed) or base::lapply
 # (sequential fallback). Progress is reported via progressr if installed.
 nmar_bootstrap_apply <- function(X, FUN, use_progress, future_globals = NULL, future_packages = NULL) {
