@@ -1,3 +1,11 @@
+suppress_bootstrap_assumption_warning <- function(expr) {
+  withCallingHandlers(expr, warning = function(w) {
+    if (grepl("injects replicate analysis weights", conditionMessage(w), fixed = TRUE)) {
+      invokeRestart("muffleWarning")
+    }
+  })
+}
+
 test_that("svyrep.design is rejected with clear error", {
   skip_if_not_installed("survey")
   skip_if_not_installed("svrep")
@@ -21,8 +29,7 @@ test_that("svyrep.design is rejected with clear error", {
     bootstrap_variance(
       drep, estimator,
       point_estimate = mean(apistrat$api00),
-      bootstrap_reps = 10,
-      bootstrap_cores = 1
+      bootstrap_reps = 10
     ),
     "replicate design|svyrep"
   )
@@ -52,8 +59,7 @@ test_that("replicate count mismatch warns but proceeds", {
       bootstrap_variance(
         dstrat, estimator,
         point_estimate = mean(apistrat$api00),
-        bootstrap_reps = 200,
-        bootstrap_cores = 1
+        bootstrap_reps = 200
       )
     ),
     error = function(e) list(error = TRUE, message = e$message)
@@ -64,6 +70,46 @@ test_that("replicate count mismatch warns but proceeds", {
   expect_true(is.finite(result$variance))
   expect_true(result$variance > 0)
   expect_true(length(result$replicates) >= 2)
+})
+
+test_that("survey bootstrap errors when replicate design has too few replicates", {
+  skip_if_not_installed("survey")
+  skip_if_not_installed("svrep")
+
+  df <- data.frame(y = 1:4, w = 1)
+  design <- survey::svydesign(ids = ~1, data = df, weights = ~w)
+
+  estimator <- function(data, ...) {
+    est <- survey::svymean(~y, data)
+    list(y_hat = as.numeric(est), converged = TRUE)
+  }
+
+  testthat::local_mocked_bindings(
+    as_bootstrap_design = function(design, replicates, ...) {
+      repw <- matrix(stats::weights(design), ncol = 1)
+      survey::svrepdesign(
+        variables = design$variables,
+        repweights = repw,
+        weights = stats::weights(design),
+        type = "bootstrap",
+        scale = 1,
+        rscales = 1,
+        combined.weights = FALSE,
+        mse = FALSE
+      )
+    },
+    .package = "svrep"
+  )
+
+  expect_error(
+    bootstrap_variance(
+      design, estimator,
+      point_estimate = mean(df$y),
+      bootstrap_reps = 10
+    ),
+    "at least 2 replicates",
+    fixed = TRUE
+  )
 })
 
 test_that("survey NA policy 'strict' shows detailed error", {
@@ -92,12 +138,13 @@ test_that("survey NA policy 'strict' shows detailed error", {
   future::plan(future::sequential)
 
   err <- tryCatch(
-    bootstrap_variance(
-      dstrat, estimator,
-      point_estimate = mean(apistrat$api00),
-      bootstrap_reps = 10,
-      bootstrap_cores = 1,
-      survey_na_policy = "strict"
+    suppress_bootstrap_assumption_warning(
+      bootstrap_variance(
+        dstrat, estimator,
+        point_estimate = mean(apistrat$api00),
+        bootstrap_reps = 10,
+        survey_na_policy = "strict"
+      )
     ),
     error = function(e) e$message
   )
@@ -134,12 +181,13 @@ test_that("survey NA policy 'omit' handles failures correctly", {
   future::plan(future::sequential)
 
   expect_warning(
-    res <- bootstrap_variance(
-      dstrat, estimator,
-      point_estimate = mean(apistrat$api00),
-      bootstrap_reps = 15,
-      bootstrap_cores = 1,
-      survey_na_policy = "omit"
+    res <- suppress_bootstrap_assumption_warning(
+      bootstrap_variance(
+        dstrat, estimator,
+        point_estimate = mean(apistrat$api00),
+        bootstrap_reps = 15,
+        survey_na_policy = "omit"
+      )
     ),
     "3/15.*failed.*omitted"
   )
@@ -170,12 +218,13 @@ test_that("survey NA policy 'omit' requires at least 2 successes", {
   future::plan(future::sequential)
 
   expect_error(
-    bootstrap_variance(
-      dstrat, estimator,
-      point_estimate = mean(apistrat$api00),
-      bootstrap_reps = 10,
-      bootstrap_cores = 1,
-      survey_na_policy = "omit"
+    suppress_bootstrap_assumption_warning(
+      bootstrap_variance(
+        dstrat, estimator,
+        point_estimate = mean(apistrat$api00),
+        bootstrap_reps = 10,
+        survey_na_policy = "omit"
+      )
     ),
     "Too few successful"
   )
@@ -209,16 +258,17 @@ test_that("survey NA policy 'omit' shows failure pattern", {
   warn_msg <- NULL
   res <- tryCatch(
     withCallingHandlers(
-      bootstrap_variance(
-        dstrat, estimator,
-        point_estimate = mean(apistrat$api00),
-        bootstrap_reps = 20,
-        bootstrap_cores = 1,
-        survey_na_policy = "omit"
+      suppress_bootstrap_assumption_warning(
+        bootstrap_variance(
+          dstrat, estimator,
+          point_estimate = mean(apistrat$api00),
+          bootstrap_reps = 20,
+          survey_na_policy = "omit"
+        )
       ),
-      warning = function(w) {
-        warn_msg <<- conditionMessage(w)
-        invokeRestart("muffleWarning")
+    warning = function(w) {
+      warn_msg <<- conditionMessage(w)
+      invokeRestart("muffleWarning")
       }
     ),
     error = function(e) list(error = TRUE)
@@ -253,11 +303,12 @@ test_that("mathematical correctness: variance has correct properties", {
   future::plan(future::sequential)
   set.seed(424242)
 
-  res <- bootstrap_variance(
-    dstrat, estimator,
-    point_estimate = mean(apistrat$api00),
-    bootstrap_reps = 30,
-    bootstrap_cores = 1
+  res <- suppress_bootstrap_assumption_warning(
+    bootstrap_variance(
+      dstrat, estimator,
+      point_estimate = mean(apistrat$api00),
+      bootstrap_reps = 30
+    )
   )
 
 # Property 1: Variance must be non-negative
@@ -291,8 +342,7 @@ test_that("mathematical correctness: variance has correct properties", {
   res_iid <- bootstrap_variance(
     data_iid, estimator_mean,
     point_estimate = mean(x),
-    bootstrap_reps = 500,
-    bootstrap_cores = 1
+    bootstrap_reps = 500
   )
 
 # Bootstrap estimate should be close to analytical value
@@ -324,11 +374,12 @@ test_that("boundary cases: minimum replicates and edge conditions", {
   future::plan(future::sequential)
 
 # Test 1: bootstrap_reps = 2 (minimum for variance calculation)
-  res_min <- bootstrap_variance(
-    dstrat, estimator,
-    point_estimate = mean(apistrat$api00),
-    bootstrap_reps = 2,
-    bootstrap_cores = 1
+  res_min <- suppress_bootstrap_assumption_warning(
+    bootstrap_variance(
+      dstrat, estimator,
+      point_estimate = mean(apistrat$api00),
+      bootstrap_reps = 2
+    )
   )
   expect_equal(length(res_min$replicates), 2)
   expect_true(is.finite(res_min$variance))
@@ -337,11 +388,12 @@ test_that("boundary cases: minimum replicates and edge conditions", {
 # Test 2: bootstrap_reps = 1 should still work but variance may be problematic
 # (svrVar should handle this, but it's an edge case)
   res_one <- tryCatch(
-    bootstrap_variance(
-      dstrat, estimator,
-      point_estimate = mean(apistrat$api00),
-      bootstrap_reps = 1,
-      bootstrap_cores = 1
+    suppress_bootstrap_assumption_warning(
+      bootstrap_variance(
+        dstrat, estimator,
+        point_estimate = mean(apistrat$api00),
+        bootstrap_reps = 1
+      )
     ),
     error = function(e) list(error = TRUE, message = e$message)
   )
@@ -358,8 +410,7 @@ test_that("boundary cases: minimum replicates and edge conditions", {
   res_small <- bootstrap_variance(
     small_data, estimator_simple,
     point_estimate = mean(small_data$y),
-    bootstrap_reps = 10,
-    bootstrap_cores = 1
+    bootstrap_reps = 10
   )
   expect_equal(length(res_small$replicates), 10)
   expect_true(is.finite(res_small$variance))
@@ -370,8 +421,7 @@ test_that("boundary cases: minimum replicates and edge conditions", {
   res_single <- bootstrap_variance(
     single_data, estimator_simple,
     point_estimate = 5,
-    bootstrap_reps = 10,
-    bootstrap_cores = 1
+    bootstrap_reps = 10
   )
 # With single observation, all bootstrap samples are identical
   expect_equal(length(res_single$replicates), 10)
@@ -438,12 +488,13 @@ test_that("omit policy correctly subsets rscales for mathematical correctness", 
   set.seed(999)
 
   expect_warning(
-    res <- bootstrap_variance(
-      dstrat, estimator,
-      point_estimate = mean(apistrat$api00),
-      bootstrap_reps = 20,
-      bootstrap_cores = 1,
-      survey_na_policy = "omit"
+    res <- suppress_bootstrap_assumption_warning(
+      bootstrap_variance(
+        dstrat, estimator,
+        point_estimate = mean(apistrat$api00),
+        bootstrap_reps = 20,
+        survey_na_policy = "omit"
+      )
     ),
     "5/20.*failed.*omitted"
   )
@@ -483,12 +534,13 @@ test_that("omit policy correctly subsets rscales for mathematical correctness", 
   set.seed(888)
 
   expect_warning(
-    res_random <- bootstrap_variance(
-      dstrat, estimator_random,
-      point_estimate = mean(apistrat$api00),
-      bootstrap_reps = 30,
-      bootstrap_cores = 1,
-      survey_na_policy = "omit"
+    res_random <- suppress_bootstrap_assumption_warning(
+      bootstrap_variance(
+        dstrat, estimator_random,
+        point_estimate = mean(apistrat$api00),
+        bootstrap_reps = 30,
+        survey_na_policy = "omit"
+      )
     ),
     "12/30.*failed"
   )
@@ -527,15 +579,46 @@ test_that("survey NA policy default is 'strict'", {
 
 # Without specifying survey_na_policy, should default to strict and error
   err <- tryCatch(
-    bootstrap_variance(
-      dstrat, estimator,
-      point_estimate = mean(apistrat$api00),
-      bootstrap_reps = 10,
-      bootstrap_cores = 1
+    suppress_bootstrap_assumption_warning(
+      bootstrap_variance(
+        dstrat, estimator,
+        point_estimate = mean(apistrat$api00),
+        bootstrap_reps = 10
+      )
     ),
     error = function(e) e$message
   )
 
   expect_match(err, "strict")
   expect_match(err, "1/10.*failed")
+})
+
+test_that("survey bootstrap warns for multistage/FPC designs", {
+  skip_if_not_installed("survey")
+  skip_if_not_installed("svrep")
+
+  data(mu284, package = "survey")
+  multistage_design <- survey::svydesign(
+    data = mu284,
+    ids = ~ id1 + id2,
+    fpc = ~ n1 + n2
+  )
+
+  estimator <- function(data, ...) {
+    est <- survey::svymean(~y1, data)
+    list(y_hat = as.numeric(est), converged = TRUE)
+  }
+
+  future::plan(future::sequential)
+
+  expect_warning(
+    bootstrap_variance(
+      multistage_design,
+      estimator,
+      point_estimate = mean(mu284$y1),
+      bootstrap_reps = 10
+    ),
+    "injects replicate analysis weights",
+    fixed = TRUE
+  )
 })

@@ -55,11 +55,13 @@
 #'                                     bootstrap_reps = 500))
 #'   }
 #'
-#'   The \code{future} framework (via \code{future.seed = TRUE} in
-#'   \code{future.apply::future_lapply()}) ensures that each bootstrap replicate
-#'   uses an independent L'Ecuyer-CMRG random number stream derived from this
-#'   seed. This gives reproducible results across supported future backends
-#'   (sequential, multisession, cluster, and so on).
+#'   If the optional \code{future.apply} package is installed, bootstrap uses
+#'   \code{future.apply::future_lapply(future.seed = TRUE)} which provides
+#'   backend-independent, parallel-safe random number streams under the
+#'   \code{future} framework. If \code{future.apply} is not installed, bootstrap
+#'   falls back to sequential evaluation via \code{base::lapply()}, which is
+#'   still reproducible under \code{set.seed()} but may not match the
+#'   \code{future.seed} stream.
 #'
 #' @param data A \code{data.frame} or a \code{survey.design}.
 #' @param estimator_func Function returning an object with a numeric scalar
@@ -91,6 +93,113 @@ bootstrap_variance <- function(data, estimator_func, point_estimate, ...) {
   stop("Unsupported data type for bootstrap_variance().", call. = FALSE)
 }
 
+# Internal helper: detect whether future.apply is available.
+nmar_has_future_apply <- function() {
+  requireNamespace("future.apply", quietly = TRUE)
+}
+
+# Internal helper: warn once per R session that we are falling back to sequential
+# evaluation because future.apply is not installed.
+nmar_warn_no_future_apply_once <- function() {
+  opt <- "NMAR.bootstrap.warned_no_future_apply"
+  if (isTRUE(getOption(opt, FALSE))) return(invisible(FALSE))
+  warning(
+    "Package 'future.apply' is not installed. Running bootstrap sequentially via base::lapply().\n  ",
+    "Install 'future.apply' to enable future-based parallel execution and future-seeded RNG (future.seed = TRUE).",
+    call. = FALSE,
+    immediate. = TRUE
+  )
+  options(setNames(list(TRUE), opt))
+  invisible(TRUE)
+}
+
+# Internal helper: warn when survey bootstrap assumptions may be violated.
+nmar_warn_survey_bootstrap_assumptions <- function(design) {
+  if (!inherits(design, "survey.design")) return(invisible(FALSE))
+
+  allprob <- design$allprob
+  has_multistage_probs <- is.data.frame(allprob) && ncol(allprob) > 1L
+  has_pps <- isTRUE(design$pps)
+  has_fpc_arg <- FALSE
+  has_fpc_popsize <- FALSE
+  has_probs_arg <- FALSE
+  has_pps_arg <- FALSE
+
+  fpc <- design$fpc
+  has_fpc_popsize <- is.list(fpc) && !is.null(fpc$popsize)
+
+  dc <- try(getCall(design), silent = TRUE)
+  if (!inherits(dc, "try-error") && !is.null(dc)) {
+    args <- as.list(dc)[-1]
+    has_fpc_arg <- !is.null(args$fpc) || !is.null(args$fpctype)
+    has_probs_arg <- !is.null(args$probs)
+    has_pps_arg <- !is.null(args$pps)
+  }
+
+  if (has_multistage_probs || has_pps || has_fpc_arg || has_fpc_popsize || has_probs_arg || has_pps_arg) {
+    warning(
+      "Survey bootstrap injects replicate analysis weights into the design.\n  ",
+      "This is valid when the estimator depends on weights (and optionally strata/cluster)\n  ",
+      "but does not recompute stage-specific probabilities or FPC. This design appears\n  ",
+      "to include PPS/multistage probabilities or FPC; if the estimator uses those\n  ",
+      "fields directly, bootstrap variance may be incorrect.",
+      call. = FALSE
+    )
+    return(invisible(TRUE))
+  }
+  invisible(FALSE)
+}
+
+# Internal helper: apply over X using future.apply (if installed) or base::lapply
+# (sequential fallback). Progress is reported via progressr if installed.
+nmar_bootstrap_apply <- function(X, FUN, use_progress, future_globals = NULL, future_packages = NULL) {
+  use_future <- nmar_has_future_apply()
+  if (!use_future) nmar_warn_no_future_apply_once()
+
+  if (isTRUE(use_progress) && requireNamespace("progressr", quietly = TRUE)) {
+    progressr::with_progress({
+      p <- progressr::progressor(steps = length(X))
+      wrapper <- function(x) {
+        res <- FUN(x)
+        p()
+        res
+      }
+      if (use_future) {
+        fg <- future_globals
+        if (is.null(fg)) {
+          fg <- TRUE
+        } else if (isTRUE(fg)) {
+          fg <- TRUE
+        } else if (is.list(fg)) {
+          fg <- c(fg, list(FUN = FUN, p = p))
+        }
+        future.apply::future_lapply(
+          X,
+          wrapper,
+          future.seed = TRUE,
+          future.globals = fg,
+          future.packages = future_packages
+        )
+      } else {
+        lapply(X, wrapper)
+      }
+    })
+  } else {
+    if (use_future) {
+      if (is.null(future_globals)) future_globals <- TRUE
+      future.apply::future_lapply(
+        X,
+        FUN,
+        future.seed = TRUE,
+        future.globals = future_globals,
+        future.packages = future_packages
+      )
+    } else {
+      lapply(X, FUN)
+    }
+  }
+}
+
 #' Default method dispatch (internal safety net)
 #' @keywords internal
 bootstrap_variance.default <- function(data, estimator_func, point_estimate, ...) {
@@ -120,6 +229,11 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
   dot_args <- list(...)
   est_fun <- estimator_func
   resample_guard <- NULL
+  if (!is.null(dot_args$bootstrap_settings)) dot_args$bootstrap_settings <- NULL
+  if (!is.null(dot_args$bootstrap_options)) dot_args$bootstrap_options <- NULL
+  if (!is.null(dot_args$bootstrap_type)) dot_args$bootstrap_type <- NULL
+  if (!is.null(dot_args$bootstrap_mse)) dot_args$bootstrap_mse <- NULL
+  if (!is.null(dot_args$survey_na_policy)) dot_args$survey_na_policy <- NULL
   if (!is.null(dot_args$resample_guard)) {
 # Some NMAR estimators require each resample to contain at least one respondent.
 # Allow callers to supply a guard that rejects unsuitable resamples.
@@ -163,32 +277,12 @@ bootstrap_variance.data.frame <- function(data, estimator_func, point_estimate, 
     val
   }
 
-  if (!requireNamespace("future.apply", quietly = TRUE)) {
-    stop("Package 'future.apply' is required for bootstrap variance.", call. = FALSE)
-  }
-
   use_progress <- requireNamespace("progressr", quietly = TRUE)
-
-  if (use_progress) {
-    lst <- progressr::with_progress({
-      p <- progressr::progressor(steps = bootstrap_reps)
-      future.apply::future_lapply(
-        seq_len(bootstrap_reps),
-        function(i) {
-          res <- replicate_fn(i)
-          p() # Signal progress
-          res
-        },
-        future.seed = TRUE
-      )
-    })
-  } else {
-    lst <- future.apply::future_lapply(
-      seq_len(bootstrap_reps),
-      replicate_fn,
-      future.seed = TRUE
-    )
-  }
+  lst <- nmar_bootstrap_apply(
+    X = seq_len(bootstrap_reps),
+    FUN = replicate_fn,
+    use_progress = use_progress
+  )
 
   estimates <- vapply(lst, identity, numeric(1))
 
@@ -298,6 +392,9 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
 
   dot_args <- list(...)
   est_fun <- estimator_func
+  if (!is.null(dot_args$bootstrap_cores)) dot_args$bootstrap_cores <- NULL
+  if (!is.null(dot_args$bootstrap_workers)) dot_args$bootstrap_workers <- NULL
+  if (!is.null(dot_args$resample_guard)) dot_args$resample_guard <- NULL
   bootstrap_settings <- list()
   if (!is.null(dot_args$bootstrap_settings)) {
     if (!is.list(dot_args$bootstrap_settings)) {
@@ -322,6 +419,14 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
     dot_args$bootstrap_mse <- NULL
   }
 
+  if (!is.null(bootstrap_settings$design) || !is.null(bootstrap_settings$replicates)) {
+    stop(
+      "`bootstrap_settings` must not include `design` or `replicates`.\n  ",
+      "Use `data = <survey.design>` and `bootstrap_reps = <int>` instead.",
+      call. = FALSE
+    )
+  }
+
   rep_design <- do.call(svrep::as_bootstrap_design, c(list(design = data, replicates = bootstrap_reps), bootstrap_settings))
 
   estimator_args <- dot_args
@@ -343,12 +448,25 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
     )
   }
 
+  nmar_warn_survey_bootstrap_assumptions(data)
+
 # Extract replicate analysis weights matrix (one column per replicate).
   repw <- weights(rep_design, type = "analysis")
 
 # Check replicate count (may differ from the requested number in stratified
 # designs). The variance formula is valid for the actual count produced.
-  J_actual <- ncol(repw)
+  J_actual <- if (is.null(dim(repw))) 1L else ncol(repw)
+  if (!is.finite(J_actual) || J_actual < 2L) {
+    stop(
+      sprintf(
+        "Bootstrap replicate design produced %d replicate(s). Variance estimation requires at least 2 replicates.\n  ",
+        J_actual
+      ),
+      "This can happen with very small strata or restrictive design settings. ",
+      "Consider increasing per-stratum sample size or adjusting bootstrap settings.",
+      call. = FALSE
+    )
+  }
   if (J_actual != bootstrap_reps) {
     warning(sprintf(
       paste0(
@@ -366,6 +484,12 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
   rep_scale <- rep_design$scale
   rep_rscales <- rep_design$rscales
   rep_mse <- rep_design$mse
+  if (isTRUE(rep_mse) && (!is.numeric(point_estimate) || length(point_estimate) != 1L || !is.finite(point_estimate))) {
+    stop(
+      "`point_estimate` must be a finite numeric scalar when bootstrap replicate design uses mse = TRUE.",
+      call. = FALSE
+    )
+  }
 
 # Extract data frame only (not full survey design) to reduce serialization.
   data_vars <- data$variables
@@ -402,55 +526,25 @@ bootstrap_variance.survey.design <- function(data, estimator_func, point_estimat
     val
   }
 
-  if (!requireNamespace("future.apply", quietly = TRUE)) {
-    stop("Package 'future.apply' is required for bootstrap variance.", call. = FALSE)
-  }
-
   use_progress <- requireNamespace("progressr", quietly = TRUE)
 
-  J <- seq_len(ncol(repw))
+  J <- seq_len(J_actual)
 
-  if (use_progress) {
-    lst <- progressr::with_progress({
-      p <- progressr::progressor(steps = length(J))
-      future.apply::future_lapply(
-        J,
-        function(j) {
-          res <- replicate_eval(j)
-          p() # Signal progress
-          res
-        },
-        future.seed = TRUE,
-        future.globals = list(
-          replicate_eval = replicate_eval,
-          repw = repw,
-          data_vars = data_vars,
-          nmar_inject_design_weights = nmar_inject_design_weights,
-          design_template = design_template,
-          estimator_args = estimator_args,
-          est_fun = est_fun,
-          p = p
-        ),
-        future.packages = "survey"
-      )
-    })
-  } else {
-    lst <- future.apply::future_lapply(
-      J,
-      replicate_eval,
-      future.seed = TRUE,
-      future.globals = list(
-        replicate_eval = replicate_eval,
-        repw = repw,
-        data_vars = data_vars,
-        nmar_inject_design_weights = nmar_inject_design_weights,
-        design_template = design_template,
-        estimator_args = estimator_args,
-        est_fun = est_fun
-      ),
-      future.packages = "survey"
-    )
-  }
+  lst <- nmar_bootstrap_apply(
+    X = J,
+    FUN = replicate_eval,
+    use_progress = use_progress,
+    future_globals = list(
+      replicate_eval = replicate_eval,
+      repw = repw,
+      data_vars = data_vars,
+      nmar_inject_design_weights = nmar_inject_design_weights,
+      design_template = design_template,
+      estimator_args = estimator_args,
+      est_fun = est_fun
+    ),
+    future_packages = "survey"
+  )
 
   replicate_estimates <- vapply(lst, identity, numeric(1))
 
