@@ -61,6 +61,39 @@ et_validate_df <- function(X, Y, Z) {
     stop("Validation Error (4): Z contains NA values.")
   }
 
+# --- 5. Finite numeric values in X, Y (observed), Z ---
+# The exptilt estimator assumes numeric, finite design matrices. NA handling in
+# Y is special: NA values are allowed and required (at least one NA) to encode
+# nonresponse; observed Y values must be finite.
+
+  if (!is_X_empty) {
+    if (!is.numeric(X)) {
+      stop("Validation Error (5): X must be numeric.")
+    }
+    if (any(!is.finite(X))) {
+      stop("Validation Error (5): X contains non-finite values.")
+    }
+  }
+
+  if (!is_Z_empty) {
+    if (!is.numeric(Z)) {
+      stop("Validation Error (5): Z must be numeric.")
+    }
+    if (any(!is.finite(Z))) {
+      stop("Validation Error (5): Z contains non-finite values.")
+    }
+  }
+
+  if (!is_Y_empty) {
+    if (!is.numeric(Y)) {
+      stop("Validation Error (5): Y must be numeric.")
+    }
+    y_obs <- Y[!is.na(Y)]
+    if (length(y_obs) > 0 && any(!is.finite(y_obs))) {
+      stop("Validation Error (5): Observed Y contains non-finite values.")
+    }
+  }
+
 # --- Success ---
 #   message("Validation successful.")
   return(invisible(TRUE))
