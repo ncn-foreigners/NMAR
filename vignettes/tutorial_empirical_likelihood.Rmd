@@ -116,10 +116,12 @@ fit$diagnostics[c(
 )]
 ```
 
-Bootstrap variance (keep reps small for speed). This example requires the optional
-future.apply package; the chunk is skipped if it is not installed:
+Bootstrap variance (keep reps small for speed). IID bootstrap runs sequentially
+by default; if the optional future.apply package is installed, it can use the
+user's future plan for parallel execution.
+You can control this via `options(nmar.bootstrap_apply = "auto"|"base"|"future")`.
 
-```{r, eval = requireNamespace("future.apply", quietly = TRUE)}
+```{r}
 set.seed(123)
 engine <- el_engine(
   auxiliary_means = c(X = 0),

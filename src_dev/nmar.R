@@ -77,15 +77,15 @@
 #' }
 #'
 #' # Bootstrap variance usage
-#' if (requireNamespace("future.apply", quietly = TRUE)) {
-#'   set.seed(2)
-#'   eng_boot <- el_engine(
-#'     variance_method = "bootstrap",
-#'     bootstrap_reps = 20
-#'   )
-#'   fit_boot <- nmar(Y_miss ~ X | Z, data = df_el, engine = eng_boot)
-#'   se(fit_boot)
-#' }
+#' # (future.apply is optional; if installed, bootstrap may run in parallel under
+#' # the user's future::plan())
+#' set.seed(2)
+#' eng_boot <- el_engine(
+#'   variance_method = "bootstrap",
+#'   bootstrap_reps = 20
+#' )
+#' fit_boot <- nmar(Y_miss ~ X | Z, data = df_el, engine = eng_boot)
+#' se(fit_boot)
 #' }
 #' @keywords nmar
 #' @export
