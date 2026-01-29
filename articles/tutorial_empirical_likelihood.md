@@ -190,9 +190,11 @@ fit$diagnostics[c(
 #> [1] 0
 ```
 
-Bootstrap variance (keep reps small for speed). This example requires
-the optional future.apply package; the chunk is skipped if it is not
-installed:
+Bootstrap variance (keep reps small for speed). IID bootstrap runs
+sequentially by default; if the optional future.apply package is
+installed, it can use the user’s future plan for parallel execution. You
+can control this via
+`options(nmar.bootstrap_apply = "auto"|"base"|"future")`.
 
 ``` r
 set.seed(123)
@@ -208,10 +210,10 @@ fit_boot <- nmar(
   data = dat
 )
 se(fit_boot)
-#> [1] 0.2817672
+#> [1] 0.2761284
 confint(fit_boot)
 #>           2.5 %   97.5 %
-#> Y_miss 1.326407 2.430914
+#> Y_miss 1.337458 2.419862
 ```
 
 ## Respondents-only data (n_total)
@@ -444,21 +446,18 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#> [1] survey_4.4-8   survival_3.8-3 Matrix_1.7-4   future_1.69.0  NMAR_0.1.2    
+#> [1] survey_4.4-8   survival_3.8-3 Matrix_1.7-4   NMAR_0.1.2    
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] future.apply_1.20.1 jsonlite_2.0.0      compiler_4.5.2     
-#>  [4] Rcpp_1.1.1          nleqslv_3.3.5       parallel_4.5.2     
-#>  [7] jquerylib_0.1.4     globals_0.18.0      splines_4.5.2      
-#> [10] systemfonts_1.3.1   textshaping_1.0.4   yaml_2.3.12        
-#> [13] fastmap_1.2.0       lattice_0.22-7      R6_2.6.1           
-#> [16] generics_0.1.4      Formula_1.2-5       knitr_1.51         
-#> [19] htmlwidgets_1.6.4   desc_1.4.3          DBI_1.2.3          
-#> [22] bslib_0.9.0         rlang_1.1.7         cachem_1.1.0       
-#> [25] xfun_0.55           fs_1.6.6            sass_0.4.10        
-#> [28] otel_0.2.0          cli_3.6.5           progressr_0.18.0   
-#> [31] pkgdown_2.2.0       digest_0.6.39       lifecycle_1.0.5    
-#> [34] evaluate_1.0.5      listenv_0.10.0      codetools_0.2-20   
-#> [37] ragg_1.5.0          mitools_2.4         parallelly_1.46.1  
-#> [40] rmarkdown_2.30      tools_4.5.2         htmltools_0.5.9
+#>  [1] jsonlite_2.0.0    compiler_4.5.2    Rcpp_1.1.1        nleqslv_3.3.5    
+#>  [5] parallel_4.5.2    jquerylib_0.1.4   globals_0.18.0    splines_4.5.2    
+#>  [9] systemfonts_1.3.1 textshaping_1.0.4 yaml_2.3.12       fastmap_1.2.0    
+#> [13] lattice_0.22-7    R6_2.6.1          generics_0.1.4    Formula_1.2-5    
+#> [17] knitr_1.51        htmlwidgets_1.6.4 future_1.69.0     desc_1.4.3       
+#> [21] DBI_1.2.3         bslib_0.10.0      rlang_1.1.7       cachem_1.1.0     
+#> [25] xfun_0.56         fs_1.6.6          sass_0.4.10       otel_0.2.0       
+#> [29] cli_3.6.5         pkgdown_2.2.0     progressr_0.18.0  digest_0.6.39    
+#> [33] lifecycle_1.0.5   evaluate_1.0.5    listenv_0.10.0    codetools_0.2-20 
+#> [37] ragg_1.5.0        mitools_2.4       parallelly_1.46.1 rmarkdown_2.30   
+#> [41] tools_4.5.2       htmltools_0.5.9
 ```

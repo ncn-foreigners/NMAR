@@ -76,7 +76,7 @@
 </div>
 <!-- badges: start -->
 
-<p>NMAR provides estimators for finite-population means when outcomes are subject to nonignorable nonresponse (Not Missing at Random, NMAR). It supports iid <code>data.frame</code> inputs and complex survey designs via <code>survey::survey.design</code>, and exposes a unified interface through <code><a href="reference/nmar.html">nmar()</a></code>.</p>
+<p>NMAR provides estimators for finite-population means when outcomes are subject to nonignorable nonresponse (Not Missing at Random, NMAR). It supports iid <code>data.frame</code> inputs and complex survey designs via <code>survey.design</code> objects from the <code>survey</code> package, and exposes a unified interface through <code><a href="reference/nmar.html">nmar()</a></code>.</p>
 <div class="section level2">
 <h2 id="methods">Methods<a class="anchor" aria-label="anchor" href="#methods"></a>
 </h2>
@@ -101,16 +101,19 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>Install the development version from GitHub:</p>
+<p>Install the CRAN release:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"NMAR"</span><span class="op">)</span></span></code></pre></div>
+<p>Install the development version from GitHub:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"ncn-foreigners/NMAR"</span><span class="op">)</span></span></code></pre></div>
 <p>Or with remotes:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"ncn-foreigners/NMAR"</span><span class="op">)</span></span></code></pre></div>
 <p>To build vignettes locally:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"ncn-foreigners/NMAR"</span>, build_vignettes <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -125,7 +128,7 @@
 <div class="section level3">
 <h3 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
 </h3>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressPackageStartupMessages</a></span><span class="op">(</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ncn-foreigners/NMAR" class="external-link">NMAR</a></span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"riddles_case1"</span>, package <span class="op">=</span> <span class="st">"NMAR"</span><span class="op">)</span></span>
@@ -161,20 +164,20 @@
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_et</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NMAR Model Summary (Exponential tilting)</span></span>
 <span><span class="co">#&gt; =================================</span></span>
-<span><span class="co">#&gt; y mean: -1.003876</span></span>
+<span><span class="co">#&gt; y mean: -1.003930</span></span>
 <span><span class="co">#&gt; Converged: TRUE </span></span>
 <span><span class="co">#&gt; Variance method: none </span></span>
 <span><span class="co">#&gt; Call: nmar(y ~ x, data = &lt;data.frame: N=?&gt;, engine = exponential_tilting)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response-model (theta) coefficients:</span></span>
-<span><span class="co">#&gt;   (Intercept)          : 0.863908</span></span>
-<span><span class="co">#&gt;   y                    : -0.170470</span></span></code></pre></div>
-<p>Result objects returned by <code><a href="reference/nmar.html">nmar()</a></code> support methods such as <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code><a href="reference/se.html">se()</a></code>, and <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, and broom-style <code>tidy()</code> / <code>glance()</code> via the <code>generics</code> package.</p>
+<span><span class="co">#&gt;   (Intercept)          : 0.863992</span></span>
+<span><span class="co">#&gt;   y                    : -0.170328</span></span></code></pre></div>
+<p>Result objects returned by <code><a href="reference/nmar.html">nmar()</a></code> support methods such as <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code><a href="reference/se.html">se()</a></code>, and <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, and <code>tidy()</code> / <code>glance()</code> via the <code>generics</code> package.</p>
 </div>
 <div class="section level3">
 <h3 id="survey-designs">Survey designs<a class="anchor" aria-label="anchor" href="#survey-designs"></a>
 </h3>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"survey"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressPackageStartupMessages</a></span><span class="op">(</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://r-survey.r-forge.r-project.org/survey/" class="external-link">survey</a></span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
@@ -210,7 +213,7 @@
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
 <p>If you use NMAR in academic work, please cite the package and the relevant method paper(s):</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"NMAR"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">

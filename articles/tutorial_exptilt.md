@@ -85,7 +85,7 @@ the weights are derived from the fitted nonignorable response model
 print(res)
 #> NMAR Result (Exponential tilting)
 #> -------------------------------
-#> y mean: -1.003197 (0.039987)
+#> y mean: -1.003197 (0.077755)
 #> Converged: TRUE 
 #> Variance method: bootstrap 
 #> Estimator: exponential_tilting 
@@ -114,7 +114,7 @@ se <- res$se
 
 cat('Estimated (NMAR) Mean:', sprintf('%.4f', est_mean),
     ' (SE:', sprintf('%.4f', se), ')\n')
-#> Estimated (NMAR) Mean: -1.0032  (SE: 0.0400 )
+#> Estimated (NMAR) Mean: -1.0032  (SE: 0.0778 )
 cat('True Y Mean:          ', sprintf('%.4f', y_true_mean), '\n')
 #> True Y Mean:           -1.0105
 cat('Naive (MCAR) Mean:     ', sprintf('%.4f', mean(riddles_case1$y, na.rm = TRUE)), '\n')
@@ -161,11 +161,6 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> Loading required package: Matrix
 #> Loading required package: survival
 #> 
-#> Attaching package: 'survival'
-#> The following object is masked from 'package:future':
-#> 
-#>     cluster
-#> 
 #> Attaching package: 'survey'
 #> The following object is masked from 'package:graphics':
 #> 
@@ -193,8 +188,8 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> [INFO]   Number of parameters:    2 
 #> [DETAIL-3]  
 #> [INFO]   Initial values: 
-#> [INFO]     (Intercept)               =  0.0481  [response model intercept] 
-#> [INFO]     y                         =  0.0928  [outcome effect on response] 
+#> [INFO]     (Intercept)               = -0.0496  [response model intercept] 
+#> [INFO]     y                         =  0.0673  [outcome effect on response] 
 #> [INFO]  
 #> [INFO] -- CONDITIONAL DENSITY ESTIMATION -- 
 #> [INFO]   Selected distribution:   normal 
@@ -234,28 +229,28 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> [INFO]   Termination code:         1 
 #> [INFO]   Max |score|:              0.000000 
 #> [INFO]   Final parameter estimates (scaled): 
-#> [INFO]     (Intercept)          =  0.865942  [response intercept] 
-#> [INFO]     y                    = -0.159226  [outcome -> response] 
+#> [INFO]     (Intercept)          =  0.853226  [response intercept] 
+#> [INFO]     y                    = -0.179754  [outcome -> response] 
 #> [INFO]  
 #> [INFO] -- VARIANCE ESTIMATION (Bootstrap) -- 
 #> [INFO]   Bootstrap replications:   5 
 #> [INFO]   OK Bootstrap complete 
-#> [INFO]   Standard error:           0.054672 
+#> [INFO]   Standard error:           0.072753 
 #> [INFO]  
 #> [RESULT] ============================================================ 
 #> [RESULT]   ESTIMATION COMPLETE 
 #> [RESULT] ============================================================ 
-#> [RESULT]   Mean estimate:            -1.004793 
-#> [RESULT]   Standard error:           0.054672 
-#> [RESULT]   95% CI:                   [-1.111949, -0.897637] 
+#> [RESULT]   Mean estimate:            -0.998354 
+#> [RESULT]   Standard error:           0.072753 
+#> [RESULT]   95% CI:                   [-1.140950, -0.855758] 
 #> [INFO]  
 #> [INFO]   Response model coefficients: 
-#> [INFO]     (Intercept)         :  0.865942  (Intercept) 
-#> [INFO]     y                   : -0.159226  (Effect of y on response prob.) 
+#> [INFO]     (Intercept)         :  0.853226  (Intercept) 
+#> [INFO]     y                   : -0.179754  (Effect of y on response prob.) 
 #> [RESULT] ============================================================ 
 #> NMAR Result (Exponential tilting)
 #> -------------------------------
-#> y mean: -1.004793 (0.054672)
+#> y mean: -0.998354 (0.072753)
 #> Converged: TRUE 
 #> Variance method: bootstrap 
 #> Estimator: exponential_tilting 

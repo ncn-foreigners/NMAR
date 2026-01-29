@@ -48,8 +48,8 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.2" id="nmar-012">NMAR 0.1.2<a class="anchor" aria-label="anchor" href="#nmar-012"></a></h2>
-<ul><li>Bootstrap variance no longer hard-requires ‘future.apply’; it now falls back to sequential execution via base::lapply() when ‘future.apply’ is not installed (emits a one-time warning).</li>
-<li>When ‘future.apply’ is installed, bootstrap uses future-seeded RNG streams (future.seed = TRUE) for reproducibility across future backends.</li>
+<ul><li>Bootstrap replicate evaluation backend is now configurable via <code>options(nmar.bootstrap_apply = "auto"|"base"|"future")</code>. Default bootstrap behavior (<code>nmar.bootstrap_apply = "auto"</code>) uses <code><a href="https://rdrr.io/r/base/lapply.html" class="external-link">base::lapply()</a></code> unless the current future plan has more than one worker; if so, it uses <code>future.apply::future_lapply(future.seed = TRUE)</code> when available.</li>
+<li>Exptilt validation now rejects non-finite values (e.g., <code>Inf</code>, <code>-Inf</code>) in covariates (and non-finite observed outcomes).</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.1" id="nmar-011">NMAR 0.1.1<a class="anchor" aria-label="anchor" href="#nmar-011"></a></h2><p class="text-muted">CRAN release: 2026-01-16</p>

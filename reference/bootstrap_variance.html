@@ -156,13 +156,35 @@ for survey bootstrap); remaining arguments are forwarded to <code>estimator_func
 <span>                                    bootstrap_reps <span class="op">=</span> <span class="fl">500</span><span class="op">)</span><span class="op">)</span></span>
 <span>  </span></code></pre></div>
 
-<p>If the optional <code>future.apply</code> package is installed, bootstrap uses
-  <code>future.apply::future_lapply(future.seed = TRUE)</code> which provides
-  backend-independent, parallel-safe random number streams under the
-  <code>future</code> framework. If <code>future.apply</code> is not installed, bootstrap
-  falls back to sequential evaluation via <code><a href="https://rdrr.io/r/base/lapply.html" class="external-link">base::lapply()</a></code>, which is
-  still reproducible under <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> but may not match the
-  <code>future.seed</code> stream.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="parallelization">Parallelization<a class="anchor" aria-label="anchor" href="#parallelization"></a></h2>
+
+
+<p>By default, bootstrap replicate evaluation runs sequentially via
+  <code><a href="https://rdrr.io/r/base/lapply.html" class="external-link">base::lapply()</a></code> for both IID resampling and survey replicate-weight
+  bootstrap.
+  If the optional <code>future.apply</code> package is installed, bootstrap can use
+  <code>future.apply::future_lapply(future.seed = TRUE)</code> when the user has set
+  a parallel <code><a href="https://future.futureverse.org/reference/plan.html" class="external-link">future::plan()</a></code>.</p>
+<p>The backend is controlled by the package option <code>nmar.bootstrap_apply</code>:</p><dl><dt><code>"auto"</code></dt>
+<dd><p>(default) Use <code><a href="https://rdrr.io/r/base/lapply.html" class="external-link">base::lapply()</a></code> unless the current
+      future plan has more than one worker, in which case use
+      <code><a href="https://future.apply.futureverse.org/reference/future_lapply.html" class="external-link">future.apply::future_lapply()</a></code> if available.</p></dd>
+
+    <dt><code>"base"</code></dt>
+<dd><p>Always use <code><a href="https://rdrr.io/r/base/lapply.html" class="external-link">base::lapply()</a></code> (never use
+      <code>future.apply</code>, even if installed).</p></dd>
+
+    <dt><code>"future"</code></dt>
+<dd><p>Always use <code><a href="https://future.apply.futureverse.org/reference/future_lapply.html" class="external-link">future.apply::future_lapply()</a></code>
+      (requires <code>future.apply</code> to be installed).</p></dd>
+
+
+</dl><p>When <code>future.apply</code> is used, random-number streams are parallel-safe and
+  backend-independent under the <code>future</code> framework. When <code><a href="https://rdrr.io/r/base/lapply.html" class="external-link">base::lapply()</a></code>
+  is used, results are reproducible under <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> but will not match
+  the <code>future.seed</code> streams.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

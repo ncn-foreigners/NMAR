@@ -216,9 +216,14 @@ diagnostics such as <code>jacobian_condition_number</code> and consider supplyin
 <code>variance_method = "bootstrap"</code> or can skip variance with
 <code>variance_method = "none"</code>.
 Set a seed for reproducible bootstrap results.</p>
-<p>Bootstrap requires suggested packages: for IID resampling it requires
-<code>future.apply</code> (and <code>future</code>); for survey replicate-weight bootstrap
-it requires <code>survey</code> and <code>svrep</code>.</p>
+<p>Bootstrap uses no additional packages for IID resampling (it will run
+sequentially by default). If the suggested <code>future.apply</code> package is
+installed, IID bootstrap can use <code><a href="https://future.apply.futureverse.org/reference/future_lapply.html" class="external-link">future.apply::future_lapply()</a></code> (honoring
+the user's <code><a href="https://future.futureverse.org/reference/plan.html" class="external-link">future::plan()</a></code>) for parallel execution and parallel-safe RNG.
+The bootstrap backend can be controlled via <code>options(nmar.bootstrap_apply = ...)</code>
+(see <code><a href="bootstrap_variance.html">bootstrap_variance</a></code> for details).
+For <code>survey.design</code> inputs, replicate-weight bootstrap requires the
+suggested packages <code>survey</code> and <code>svrep</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

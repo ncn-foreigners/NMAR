@@ -2,12 +2,14 @@
 
 ## NMAR 0.1.2
 
-- Bootstrap variance no longer hard-requires ‘future.apply’; it now
-  falls back to sequential execution via base::lapply() when
-  ‘future.apply’ is not installed (emits a one-time warning).
-- When ‘future.apply’ is installed, bootstrap uses future-seeded RNG
-  streams (future.seed = TRUE) for reproducibility across future
-  backends.
+- Bootstrap replicate evaluation backend is now configurable via
+  `options(nmar.bootstrap_apply = "auto"|"base"|"future")`. Default
+  bootstrap behavior (`nmar.bootstrap_apply = "auto"`) uses
+  [`base::lapply()`](https://rdrr.io/r/base/lapply.html) unless the
+  current future plan has more than one worker; if so, it uses
+  `future.apply::future_lapply(future.seed = TRUE)` when available.
+- Exptilt validation now rejects non-finite values (e.g., `Inf`, `-Inf`)
+  in covariates (and non-finite observed outcomes).
 
 ## NMAR 0.1.1
 

@@ -108,11 +108,40 @@ estimation function:
                                         bootstrap_reps = 500))
       
 
-If the optional `future.apply` package is installed, bootstrap uses
-`future.apply::future_lapply(future.seed = TRUE)` which provides
-backend-independent, parallel-safe random number streams under the
-`future` framework. If `future.apply` is not installed, bootstrap falls
-back to sequential evaluation via
-[`base::lapply()`](https://rdrr.io/r/base/lapply.html), which is still
-reproducible under [`set.seed()`](https://rdrr.io/r/base/Random.html)
-but may not match the `future.seed` stream.
+## Parallelization
+
+By default, bootstrap replicate evaluation runs sequentially via
+[`base::lapply()`](https://rdrr.io/r/base/lapply.html) for both IID
+resampling and survey replicate-weight bootstrap. If the optional
+`future.apply` package is installed, bootstrap can use
+`future.apply::future_lapply(future.seed = TRUE)` when the user has set
+a parallel
+[`future::plan()`](https://future.futureverse.org/reference/plan.html).
+
+The backend is controlled by the package option `nmar.bootstrap_apply`:
+
+- `"auto"`:
+
+  (default) Use [`base::lapply()`](https://rdrr.io/r/base/lapply.html)
+  unless the current future plan has more than one worker, in which case
+  use
+  [`future.apply::future_lapply()`](https://future.apply.futureverse.org/reference/future_lapply.html)
+  if available.
+
+- `"base"`:
+
+  Always use [`base::lapply()`](https://rdrr.io/r/base/lapply.html)
+  (never use `future.apply`, even if installed).
+
+- `"future"`:
+
+  Always use
+  [`future.apply::future_lapply()`](https://future.apply.futureverse.org/reference/future_lapply.html)
+  (requires `future.apply` to be installed).
+
+When `future.apply` is used, random-number streams are parallel-safe and
+backend-independent under the `future` framework. When
+[`base::lapply()`](https://rdrr.io/r/base/lapply.html) is used, results
+are reproducible under
+[`set.seed()`](https://rdrr.io/r/base/Random.html) but will not match
+the `future.seed` streams.
