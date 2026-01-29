@@ -19,8 +19,8 @@ coverage](https://codecov.io/gh/ncn-foreigners/NMAR/graph/badge.svg)](https://ap
 NMAR provides estimators for finite-population means when outcomes are
 subject to nonignorable nonresponse (Not Missing at Random, NMAR). It
 supports iid `data.frame` inputs and complex survey designs via
-`survey::survey.design`, and exposes a unified interface through
-`nmar()`.
+`survey.design` objects from the `survey` package, and exposes a unified
+interface through `nmar()`.
 
 ## Methods
 
@@ -47,6 +47,12 @@ examples and engine-specific assumptions:
 <https://ncn-foreigners.ue.poznan.pl/NMAR/>.
 
 ## Installation
+
+Install the CRAN release:
+
+``` r
+install.packages("NMAR")
+```
 
 Install the development version from GitHub:
 
@@ -119,19 +125,19 @@ fit_et <- nmar(
 summary(fit_et)
 #> NMAR Model Summary (Exponential tilting)
 #> =================================
-#> y mean: -1.003876
+#> y mean: -1.003930
 #> Converged: TRUE 
 #> Variance method: none 
 #> Call: nmar(y ~ x, data = <data.frame: N=?>, engine = exponential_tilting)
 #> 
 #> Response-model (theta) coefficients:
-#>   (Intercept)          : 0.863908
-#>   y                    : -0.170470
+#>   (Intercept)          : 0.863992
+#>   y                    : -0.170328
 ```
 
 Result objects returned by `nmar()` support methods such as `summary()`,
-`weights()`, `se()`, and `confint()`, and broom-style `tidy()` /
-`glance()` via the `generics` package.
+`weights()`, `se()`, and `confint()`, and `tidy()` / `glance()` via the
+`generics` package.
 
 ### Survey designs
 

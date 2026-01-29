@@ -82,14 +82,32 @@ Internal helpers to estimate the variance of a scalar estimator
                  engine = el_engine(variance_method = "bootstrap",
                                     bootstrap_reps = 500))
   }
+}
 
-  If the optional \code{future.apply} package is installed, bootstrap uses
-  \code{future.apply::future_lapply(future.seed = TRUE)} which provides
-  backend-independent, parallel-safe random number streams under the
-  \code{future} framework. If \code{future.apply} is not installed, bootstrap
-  falls back to sequential evaluation via \code{base::lapply()}, which is
-  still reproducible under \code{set.seed()} but may not match the
-  \code{future.seed} stream.
+\section{Parallelization}{
+
+  By default, bootstrap replicate evaluation runs sequentially via
+  \code{base::lapply()} for both IID resampling and survey replicate-weight
+  bootstrap.
+  If the optional \code{future.apply} package is installed, bootstrap can use
+  \code{future.apply::future_lapply(future.seed = TRUE)} when the user has set
+  a parallel \code{future::plan()}.
+
+  The backend is controlled by the package option \code{nmar.bootstrap_apply}:
+  \describe{
+    \item{\code{"auto"}}{(default) Use \code{base::lapply()} unless the current
+      future plan has more than one worker, in which case use
+      \code{future.apply::future_lapply()} if available.}
+    \item{\code{"base"}}{Always use \code{base::lapply()} (never use
+      \code{future.apply}, even if installed).}
+    \item{\code{"future"}}{Always use \code{future.apply::future_lapply()}
+      (requires \code{future.apply} to be installed).}
+  }
+
+  When \code{future.apply} is used, random-number streams are parallel-safe and
+  backend-independent under the \code{future} framework. When \code{base::lapply()}
+  is used, results are reproducible under \code{set.seed()} but will not match
+  the \code{future.seed} streams.
 }
 
 \keyword{internal}

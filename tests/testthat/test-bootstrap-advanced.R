@@ -622,3 +622,118 @@ test_that("survey bootstrap warns for multistage/FPC designs", {
     fixed = TRUE
   )
 })
+
+test_that("nmar.bootstrap_apply option controls future.apply usage", {
+  skip_if_not_installed("future")
+  skip_if_not_installed("future.apply")
+
+  df <- data.frame(y = c(1, 2, 3, 4))
+  estimator_mean <- function(data, ...) list(y_hat = mean(data$y), converged = TRUE)
+
+  future::plan(future::sequential)
+
+  old_opt <- getOption("nmar.bootstrap_apply", NULL)
+  on.exit(options(nmar.bootstrap_apply = old_opt), add = TRUE)
+
+  called <- new.env(parent = emptyenv())
+  called$future_lapply <- FALSE
+
+  testthat::local_mocked_bindings(
+    future_lapply = function(X, FUN, ...) {
+      called$future_lapply <- TRUE
+      lapply(X, FUN)
+    },
+    .package = "future.apply"
+  )
+
+  options(nmar.bootstrap_apply = "base")
+  res_base <- bootstrap_variance(
+    df,
+    estimator_func = estimator_mean,
+    point_estimate = mean(df$y),
+    bootstrap_reps = 5
+  )
+  expect_false(isTRUE(called$future_lapply))
+  expect_true(is.finite(res_base$variance))
+
+  called$future_lapply <- FALSE
+  options(nmar.bootstrap_apply = "future")
+  res_future <- bootstrap_variance(
+    df,
+    estimator_func = estimator_mean,
+    point_estimate = mean(df$y),
+    bootstrap_reps = 5
+  )
+  expect_true(isTRUE(called$future_lapply))
+  expect_true(is.finite(res_future$variance))
+})
+
+test_that("nmar.bootstrap_apply='auto' uses base unless parallel is configured", {
+  skip_if_not_installed("future")
+  skip_if_not_installed("future.apply")
+
+  df <- data.frame(y = c(1, 2, 3, 4))
+  estimator_mean <- function(data, ...) list(y_hat = mean(data$y), converged = TRUE)
+
+  future::plan(future::sequential)
+
+  old_opt <- getOption("nmar.bootstrap_apply", NULL)
+  on.exit(options(nmar.bootstrap_apply = old_opt), add = TRUE)
+
+  testthat::local_mocked_bindings(
+    future_lapply = function(...) stop("future_lapply should not be called in auto+sequential"),
+    .package = "future.apply"
+  )
+  options(nmar.bootstrap_apply = "auto")
+
+  res_auto <- bootstrap_variance(
+    df,
+    estimator_func = estimator_mean,
+    point_estimate = mean(df$y),
+    bootstrap_reps = 5
+  )
+  expect_true(is.finite(res_auto$variance))
+
+  called <- new.env(parent = emptyenv())
+  called$future_lapply <- FALSE
+
+  testthat::local_mocked_bindings(
+    future_lapply = function(X, FUN, ...) {
+      called$future_lapply <- TRUE
+      lapply(X, FUN)
+    },
+    .package = "future.apply"
+  )
+  testthat::local_mocked_bindings(
+    nmar_future_workers = function() 2L,
+    .package = "NMAR"
+  )
+
+  res_auto_parallel <- bootstrap_variance(
+    df,
+    estimator_func = estimator_mean,
+    point_estimate = mean(df$y),
+    bootstrap_reps = 5
+  )
+  expect_true(isTRUE(called$future_lapply))
+  expect_true(is.finite(res_auto_parallel$variance))
+})
+
+test_that("nmar.bootstrap_apply validates option value", {
+  df <- data.frame(y = c(1, 2, 3, 4))
+  estimator_mean <- function(data, ...) list(y_hat = mean(data$y), converged = TRUE)
+
+  old_opt <- getOption("nmar.bootstrap_apply", NULL)
+  on.exit(options(nmar.bootstrap_apply = old_opt), add = TRUE)
+  options(nmar.bootstrap_apply = "nope")
+  expect_error(
+    bootstrap_variance(
+      df,
+      estimator_func = estimator_mean,
+      point_estimate = mean(df$y),
+      bootstrap_reps = 5
+    ),
+    "nmar.bootstrap_apply",
+    fixed = TRUE
+  )
+})

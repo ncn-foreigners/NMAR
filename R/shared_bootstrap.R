@@ -55,13 +55,29 @@
 #'                                     bootstrap_reps = 500))
 #'   }
 #'
-#'   If the optional \code{future.apply} package is installed, bootstrap uses
-#'   \code{future.apply::future_lapply(future.seed = TRUE)} which provides
-#'   backend-independent, parallel-safe random number streams under the
-#'   \code{future} framework. If \code{future.apply} is not installed, bootstrap
-#'   falls back to sequential evaluation via \code{base::lapply()}, which is
-#'   still reproducible under \code{set.seed()} but may not match the
-#'   \code{future.seed} stream.
+#' @section Parallelization:
+#'   By default, bootstrap replicate evaluation runs sequentially via
+#'   \code{base::lapply()} for both IID resampling and survey replicate-weight
+#'   bootstrap.
+#'   If the optional \code{future.apply} package is installed, bootstrap can use
+#'   \code{future.apply::future_lapply(future.seed = TRUE)} when the user has set
+#'   a parallel \code{future::plan()}.
+#'
+#'   The backend is controlled by the package option \code{nmar.bootstrap_apply}:
+#'   \describe{
+#'     \item{\code{"auto"}}{(default) Use \code{base::lapply()} unless the current
+#'       future plan has more than one worker, in which case use
+#'       \code{future.apply::future_lapply()} if available.}
+#'     \item{\code{"base"}}{Always use \code{base::lapply()} (never use
+#'       \code{future.apply}, even if installed).}
+#'     \item{\code{"future"}}{Always use \code{future.apply::future_lapply()}
+#'       (requires \code{future.apply} to be installed).}
+#'   }
+#'
+#'   When \code{future.apply} is used, random-number streams are parallel-safe and
+#'   backend-independent under the \code{future} framework. When \code{base::lapply()}
+#'   is used, results are reproducible under \code{set.seed()} but will not match
+#'   the \code{future.seed} streams.
 #'
 #' @param data A \code{data.frame} or a \code{survey.design}.
 #' @param estimator_func Function returning an object with a numeric scalar
@@ -98,17 +114,43 @@ nmar_has_future_apply <- function() {
   requireNamespace("future.apply", quietly = TRUE)
 }
 
+# Internal helper: how many future workers are configured?
+# This is used only to decide whether to use future.apply in "auto" mode.
+nmar_future_workers <- function() {
+  if (!requireNamespace("future", quietly = TRUE)) return(1L)
+  w <- tryCatch(future::nbrOfWorkers(), error = function(e) 1L)
+  w <- suppressWarnings(as.integer(w))
+  if (!is.finite(w) || w < 1L) w <- 1L
+  w
+}
+
+# Internal helper: choose the bootstrap apply backend.
+nmar_bootstrap_apply_backend <- function() {
+  opt <- getOption("nmar.bootstrap_apply", "auto")
+  if (is.null(opt)) opt <- "auto"
+  if (!is.character(opt) || length(opt) != 1L || is.na(opt) || !nzchar(opt)) {
+    stop("Option `nmar.bootstrap_apply` must be one of: 'auto', 'base', 'future'.", call. = FALSE)
+  }
+  opt <- tolower(opt)
+  if (!opt %in% c("auto", "base", "future")) {
+    stop("Option `nmar.bootstrap_apply` must be one of: 'auto', 'base', 'future'.", call. = FALSE)
+  }
+  opt
+}
+
 # Internal helper: warn once per R session that we are falling back to sequential
 # evaluation because future.apply is not installed.
-nmar_warn_no_future_apply_once <- function() {
+nmar_warn_no_future_apply_once <- function(context = NULL) {
   opt <- "NMAR.bootstrap.warned_no_future_apply"
   if (isTRUE(getOption(opt, FALSE))) return(invisible(FALSE))
-  warning(
+  msg <- paste0(
     "Package 'future.apply' is not installed. Running bootstrap sequentially via base::lapply().\n  ",
-    "Install 'future.apply' to enable future-based parallel execution and future-seeded RNG (future.seed = TRUE).",
-    call. = FALSE,
-    immediate. = TRUE
+    "Install 'future.apply' to enable future-based parallel execution and future-seeded RNG (future.seed = TRUE)."
   )
+  if (is.character(context) && length(context) == 1L && nzchar(context)) {
+    msg <- paste0(msg, "\n  Context: ", context)
+  }
+  warning(msg, call. = FALSE, immediate. = TRUE)
   options(setNames(list(TRUE), opt))
   invisible(TRUE)
 }
@@ -153,8 +195,28 @@ nmar_warn_survey_bootstrap_assumptions <- function(design) {
 # Internal helper: apply over X using future.apply (if installed) or base::lapply
 # (sequential fallback). Progress is reported via progressr if installed.
 nmar_bootstrap_apply <- function(X, FUN, use_progress, future_globals = NULL, future_packages = NULL) {
-  use_future <- nmar_has_future_apply()
-  if (!use_future) nmar_warn_no_future_apply_once()
+  backend <- nmar_bootstrap_apply_backend()
+
+  use_future <- FALSE
+  if (backend == "future") {
+    if (!nmar_has_future_apply()) {
+      stop(
+        "Option `nmar.bootstrap_apply = 'future'` requires the suggested package 'future.apply'.",
+        call. = FALSE
+      )
+    }
+    use_future <- TRUE
+  } else if (backend == "auto") {
+    if (nmar_future_workers() > 1L) {
+      if (nmar_has_future_apply()) {
+        use_future <- TRUE
+      } else {
+        nmar_warn_no_future_apply_once(context = "future plan has >1 worker")
+      }
+    }
+  } else if (backend == "base") {
+    use_future <- FALSE
+  }
 
   if (isTRUE(use_progress) && requireNamespace("progressr", quietly = TRUE)) {
     progressr::with_progress({

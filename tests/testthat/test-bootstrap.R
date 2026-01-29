@@ -216,6 +216,10 @@ test_that("bootstrap falls back to sequential lapply when future.apply is unavai
     nmar_has_future_apply = function() FALSE,
     .package = "NMAR"
   )
+  testthat::local_mocked_bindings(
+    nmar_future_workers = function() 1L,
+    .package = "NMAR"
+  )
   opt <- "NMAR.bootstrap.warned_no_future_apply"
   old_opt <- getOption(opt)
   options(setNames(list(FALSE), opt))
@@ -225,14 +229,10 @@ test_that("bootstrap falls back to sequential lapply when future.apply is unavai
   df <- data.frame(y = c(1, 2, 3, 4))
   point_est <- mean(df$y)
 
-  expect_warning(
-    res1 <- bootstrap_variance(df,
-      estimator_func = bootstrap_dummy_estimator,
-      point_estimate = point_est,
-      bootstrap_reps = 5
-    ),
-    "future\\.apply.*not installed|future\\.apply.*Install",
-    fixed = FALSE
+  res1 <- bootstrap_variance(df,
+    estimator_func = bootstrap_dummy_estimator,
+    point_estimate = point_est,
+    bootstrap_reps = 5
   )
   expect_length(res1$replicates, 5)
 
@@ -244,6 +244,20 @@ test_that("bootstrap falls back to sequential lapply when future.apply is unavai
     )
   )
   expect_length(res2$replicates, 5)
+
+  testthat::local_mocked_bindings(
+    nmar_future_workers = function() 2L,
+    .package = "NMAR"
+  )
+  expect_warning(
+    bootstrap_variance(df,
+      estimator_func = bootstrap_dummy_estimator,
+      point_estimate = point_est,
+      bootstrap_reps = 5
+    ),
+    "future\\.apply.*not installed|future\\.apply.*Install",
+    fixed = FALSE
+  )
 })
 
 test_that("survey bootstrap falls back to sequential lapply when future.apply is unavailable", {
@@ -252,6 +266,10 @@ test_that("survey bootstrap falls back to sequential lapply when future.apply is
 
   testthat::local_mocked_bindings(
     nmar_has_future_apply = function() FALSE,
+    .package = "NMAR"
+  )
+  testthat::local_mocked_bindings(
+    nmar_future_workers = function() 1L,
     .package = "NMAR"
   )
   opt <- "NMAR.bootstrap.warned_no_future_apply"
@@ -264,8 +282,20 @@ test_that("survey bootstrap falls back to sequential lapply when future.apply is
   design <- survey::svydesign(ids = ~1, data = df, weights = ~w)
   point_est <- sum(df$y * df$w) / sum(df$w)
 
+  res <- bootstrap_variance(design,
+    estimator_func = bootstrap_dummy_estimator,
+    point_estimate = point_est,
+    bootstrap_reps = 5
+  )
+  expect_length(res$replicates, 5)
+  expect_true(is.finite(res$se))
+
+  testthat::local_mocked_bindings(
+    nmar_future_workers = function() 2L,
+    .package = "NMAR"
+  )
   expect_warning(
-    res <- bootstrap_variance(design,
+    bootstrap_variance(design,
       estimator_func = bootstrap_dummy_estimator,
       point_estimate = point_est,
       bootstrap_reps = 5
@@ -273,8 +303,6 @@ test_that("survey bootstrap falls back to sequential lapply when future.apply is
     "future\\.apply.*not installed|future\\.apply.*Install",
     fixed = FALSE
   )
-  expect_length(res$replicates, 5)
-  expect_true(is.finite(res$se))
 })
 
 test_that("IID bootstrap is reproducible across future backends", {
@@ -285,6 +313,11 @@ test_that("IID bootstrap is reproducible across future backends", {
   estimator <- function(data, ...) {
     list(y_hat = mean(data$y), converged = TRUE)
   }
+
+# Force future.apply for all backends so the RNG stream matches.
+  old_opt <- getOption("nmar.bootstrap_apply", NULL)
+  on.exit(options(nmar.bootstrap_apply = old_opt), add = TRUE)
+  options(nmar.bootstrap_apply = "future")
 
 # Sequential backend
   future::plan(future::sequential)

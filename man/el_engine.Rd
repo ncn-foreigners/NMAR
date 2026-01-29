@@ -155,9 +155,14 @@ diagnostics such as \code{jacobian_condition_number} and consider supplying
 \code{variance_method = "none"}.
 Set a seed for reproducible bootstrap results.
 
-Bootstrap requires suggested packages: for IID resampling it requires
-\code{future.apply} (and \code{future}); for survey replicate-weight bootstrap
-it requires \code{survey} and \code{svrep}.
+Bootstrap uses no additional packages for IID resampling (it will run
+sequentially by default). If the suggested \code{future.apply} package is
+installed, IID bootstrap can use \code{future.apply::future_lapply()} (honoring
+the user's \code{future::plan()}) for parallel execution and parallel-safe RNG.
+The bootstrap backend can be controlled via \code{options(nmar.bootstrap_apply = ...)}
+(see \code{\link{bootstrap_variance}} for details).
+For \code{survey.design} inputs, replicate-weight bootstrap requires the
+suggested packages \code{survey} and \code{svrep}.
 }
 \examples{
 set.seed(1)
