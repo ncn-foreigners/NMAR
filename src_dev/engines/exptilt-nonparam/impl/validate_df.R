@@ -58,6 +58,18 @@ et_np_validate_df <- function(X, Y, Z, refuse_col) {
     stop("Validation Error (3): Z contains NA values.")
   }
 
+# --- 3b. No non-finite values in numeric inputs ---
+# After ruling out NA, also reject Inf/-Inf/NaN to avoid silent propagation
+# through likelihood and EM steps.
+
+  if (!is_X_empty && any(!is.finite(as.matrix(X)))) {
+    stop("Validation Error (3b): X contains non-finite values.")
+  }
+
+  if (!is_Y_empty && any(!is.finite(as.matrix(Y)))) {
+    stop("Validation Error (3b): Y contains non-finite values.")
+  }
+
 # --- 4. All columns (Expect Z) must be numeric ---
 # This check only applies to non-empty data frames.
 
