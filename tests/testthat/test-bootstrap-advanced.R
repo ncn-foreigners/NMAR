@@ -16,7 +16,6 @@ test_that("svyrep.design is rejected with clear error", {
     data = apistrat, fpc = ~fpc
   )
 
-# Create replicate design
   drep <- svrep::as_bootstrap_design(dstrat, replicates = 10)
 
   estimator <- function(data, ...) {
@@ -24,7 +23,6 @@ test_that("svyrep.design is rejected with clear error", {
     list(y_hat = as.numeric(est), converged = TRUE)
   }
 
-# Should error with informative message
   expect_error(
     bootstrap_variance(
       drep, estimator,
@@ -52,8 +50,6 @@ test_that("replicate count mismatch warns but proceeds", {
 
   future::plan(future::sequential)
 
-# Request a large number - may produce fewer
-# This test verifies we warn and proceed (not error)
   result <- tryCatch(
     suppressWarnings(
       bootstrap_variance(
@@ -65,7 +61,6 @@ test_that("replicate count mismatch warns but proceeds", {
     error = function(e) list(error = TRUE, message = e$message)
   )
 
-# Should succeed (not error)
   expect_false(isTRUE(result$error))
   expect_true(is.finite(result$variance))
   expect_true(result$variance > 0)
@@ -165,7 +160,7 @@ test_that("survey NA policy 'omit' handles failures correctly", {
     data = apistrat, fpc = ~fpc
   )
 
-# Controlled failure pattern
+# Controlled failure
   fail_at <- c(3, 7, 12)
   counter <- 0
   estimator <- function(data, ...) {
@@ -311,16 +306,9 @@ test_that("mathematical correctness: variance has correct properties", {
     )
   )
 
-# Property 1: Variance must be non-negative
   expect_true(res$variance >= 0)
-
-# Property 2: SE = sqrt(variance)
   expect_equal(res$se, sqrt(res$variance))
-
-# Property 3: All replicates are finite
   expect_true(all(is.finite(res$replicates)))
-
-# Property 4: Correct number of replicates
   expect_equal(length(res$replicates), 30)
 
 # Test 2: Compare to analytical ground truth for IID normal data
@@ -345,14 +333,9 @@ test_that("mathematical correctness: variance has correct properties", {
     bootstrap_reps = 500
   )
 
-# Bootstrap estimate should be close to analytical value
-# With 500 bootstrap reps, allow 30% tolerance due to Monte Carlo error
+# Bootstrap estimate should be close to analytical value with 500 bootstrap reps
   expect_equal(res_iid$variance, true_variance_of_mean, tolerance = 0.3)
-
-# Variance should be positive
   expect_true(res_iid$variance > 0)
-
-# SE should match
   expect_equal(res_iid$se, sqrt(res_iid$variance))
 })
 
@@ -386,7 +369,7 @@ test_that("boundary cases: minimum replicates and edge conditions", {
   expect_true(res_min$variance >= 0)
 
 # Test 2: bootstrap_reps = 1 should still work but variance may be problematic
-# (svrVar should handle this, but it's an edge case)
+# svrVar should handle this, but it's an edge case
   res_one <- tryCatch(
     suppress_bootstrap_assumption_warning(
       bootstrap_variance(
@@ -416,7 +399,7 @@ test_that("boundary cases: minimum replicates and edge conditions", {
   expect_true(is.finite(res_small$variance))
   expect_true(res_small$variance >= 0)
 
-# Test 4: Single observation (edge case)
+# Test 4: Single observation edge case
   single_data <- data.frame(y = 5)
   res_single <- bootstrap_variance(
     single_data, estimator_simple,
@@ -471,7 +454,7 @@ test_that("omit policy correctly subsets rscales for mathematical correctness", 
 # must be subsetted to the same indices for svrVar formula to be correct:
 # V = scale * sum(rscales[j] * (theta[j] - theta_0)^2)
 
-# Create controlled failure pattern with specific indices
+# Create controlled failure pattern
   fail_at <- c(2, 5, 8, 11, 14) # 5 failures out of 20
   counter <- 0
   estimator <- function(data, ...) {
@@ -499,24 +482,21 @@ test_that("omit policy correctly subsets rscales for mathematical correctness", 
     "5/20.*failed.*omitted"
   )
 
-# Critical verification 1: Number of replicates matches expected successes
+# Number of replicates matches expected successes
   expect_equal(length(res$replicates), 15) # 20 - 5 failed
 
-# Critical verification 2: All returned replicates are finite
+# All returned replicates are finite
 # (If rscales weren't subsetted correctly, NA values might slip through)
   expect_true(all(is.finite(res$replicates)))
 
-# Critical verification 3: Variance is finite and positive
+# Variance is finite and positive
 # If rscales length didn't match replicates length, svrVar would fail or
 # produce NA/Inf, or use wrong scaling factors
   expect_true(is.finite(res$variance))
   expect_true(res$variance > 0)
-
-# Critical verification 4: SE is consistent with variance
   expect_equal(res$se, sqrt(res$variance))
 
-# Verification 5: Test with different failure patterns to ensure robustness
-# Pattern: Random failures
+# Test with different failure patterns to ensure robustness
   set.seed(777)
   fail_randomly <- sample(1:30, 12) # 12 random failures out of 30
   counter <- 0

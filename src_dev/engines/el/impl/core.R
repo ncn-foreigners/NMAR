@@ -1,43 +1,23 @@
-#' Core Empirical Likelihood Estimator
+#' Core of the empirical likelihood estimator
 #'
-#' Implements the core computational engine for empirical likelihood estimation
-#' under nonignorable nonresponse, including parameter solving, variance calculation,
-#' and diagnostic computation.
-#'
-#' @param missingness_design Respondent-side missingness (response) model design matrix (intercept + predictors).
+#' @param missingness_design Respondent-side missingness model design matrix (intercept + predictors).
 #' @param aux_matrix Auxiliary design matrix on respondents (may have zero columns).
 #' @param aux_means Named numeric vector of auxiliary population means (aligned to columns of \code{aux_matrix}).
-#' @param auxiliary_means Named numeric vector of known population means supplied by the user (optional; used for diagnostics).
+#' @param auxiliary_means Named numeric vector of known population means supplied by the user.
 #' @param respondent_weights Numeric vector of respondent weights aligned with \code{missingness_design} rows.
-#' @param analysis_data Data object used for logging and variance (survey designs supply the design object).
+#' @param analysis_data Data object used for logging and variance.
 #' @param outcome_expr Character string identifying the outcome expression displayed in outputs.
 #' @param N_pop Population size on the analysis scale.
 #' @param formula Original model formula used for estimation.
 #' @param standardize Logical. Whether to standardize predictors during estimation.
 #' @param trim_cap Numeric. Upper bound for empirical likelihood weight trimming.
 #' @param control List of control parameters for the nonlinear equation solver.
-#' @param on_failure Character. Action when solver fails: "return" or "error".
-#' @param family List. Link function specification (typically logit).
+#' @param on_failure Character. Action when solver fails.
+#' @param family List. Link function specification.
 #' @param variance_method Character. Variance estimation method.
 #' @param bootstrap_reps Integer. Number of bootstrap replications.
 #'
 #' @return List containing estimation results, diagnostics, and metadata.
-#'
-#' @details
-#' Orchestrates EL estimation for NMAR following Qin, Leung, and Shao (2002).
-#' For \code{data.frame} inputs (IID setting) the stacked system in
-#' \eqn{(\beta, z, \lambda_x)} with \eqn{z = \mathrm{logit}(W)} is solved by
-#' \code{nleqslv::nleqslv()} using an analytic Jacobian. For \code{survey.design} inputs a
-#' design-weighted analogue in \eqn{(\beta, z, \lambda_W, \lambda_x)} is solved
-#' with an analytic Jacobian when the response family supplies second
-#' derivatives, or with numeric/Broyden Jacobians otherwise. Numerical
-#' safeguards are applied consistently across equations, Jacobian, and
-#' post-solution weights: bounded linear predictors, probability clipping in
-#' ratios, and a small floor on denominators \eqn{D_i(\theta)} with an
-#' active-set mask in derivatives. After solving, unnormalized masses
-#' \eqn{d_i/D_i(\theta)} are formed, optional trimming may be applied (with
-#' normalization only for reporting), and optional variance is computed via
-#' bootstrap when \code{variance_method = "bootstrap"}.
 #'
 #' @keywords internal
 el_estimator_core <- function(missingness_design,
@@ -51,8 +31,6 @@ el_estimator_core <- function(missingness_design,
                               variance_method, bootstrap_reps,
                               start = NULL, trace_level = 0,
                               auxiliary_means = NULL) {
-
-# Setup
   force(family)
   if (!is.matrix(missingness_design)) {
     stop("Internal error: missingness_design must be a matrix.", call. = FALSE)
@@ -69,12 +47,11 @@ el_estimator_core <- function(missingness_design,
   el_log_banner(verboser, "EMPIRICAL LIKELIHOOD ESTIMATION STARTED")
   el_log_trace(verboser, trace_level)
 
-# Unscaled matrices and outcome extraction
   missingness_model_matrix_unscaled <- missingness_design
   aux_matrix_unscaled <- aux_matrix
   mu_x_unscaled <- aux_means
   K_aux <- if (has_aux) ncol(aux_matrix_unscaled) else 0
-# Outcome is carried as a dedicated predictor column in the missingness design.
+
   if (!is.null(outcome_expr) && outcome_expr %in% colnames(missingness_model_matrix_unscaled)) {
     response_outcome <- missingness_model_matrix_unscaled[, outcome_expr]
   } else {
@@ -96,7 +73,6 @@ el_estimator_core <- function(missingness_design,
     n_resp_weighted = n_resp_weighted
   )
 
-# Scaling / standardization
   scaling_result <- validate_and_apply_nmar_scaling(
     standardize = standardize,
     has_aux = has_aux,
@@ -112,7 +88,6 @@ el_estimator_core <- function(missingness_design,
 
   n_resp_weighted <- sum(respondent_weights)
 
-# Heuristic inconsistency check for user-supplied auxiliary means
   auxiliary_inconsistency_max_z <- NA_real_
   auxiliary_inconsistency_cols <- character(0)
   if (has_aux && !is.null(auxiliary_means)) {
@@ -128,7 +103,7 @@ el_estimator_core <- function(missingness_design,
       ), call. = FALSE)
     }
   }
-# Build equation system and analytic Jacobian (if available)
+
   is_survey_design <- inherits(analysis_data, "survey.design")
   if (is_survey_design) {
     equation_system_func <- el_build_equation_system_survey(
@@ -169,11 +144,10 @@ el_estimator_core <- function(missingness_design,
       mu_x_scaled = mu_x_scaled
     )
   }
-# Solve the stacked estimating equations
+
   K_beta <- ncol(missingness_model_matrix_scaled)
   K_aux <- ncol(auxiliary_matrix_scaled)
 
-# Starting values: (beta, z, lambda_x); lambda_W is explicit for survey designs.
   st <- el_build_start(
     missingness_model_matrix_scaled = missingness_model_matrix_scaled,
     auxiliary_matrix_scaled = auxiliary_matrix_scaled,
@@ -245,7 +219,6 @@ el_estimator_core <- function(missingness_design,
     }
   }
 
-# Post-processing and point estimate
   estimates <- solution$x
   beta_hat_scaled <- estimates[1:K_beta]
   if (is_survey_design) {
@@ -296,7 +269,7 @@ el_estimator_core <- function(missingness_design,
     }
   }
   y_hat <- post$y_hat
-  w_unnorm_trimmed <- post$weights # Unnormalized (trimmed) EL masses: d_i/D_i
+  w_unnorm_trimmed <- post$weights
   beta_hat_unscaled <- post$beta_hat_unscaled
   W_hat <- post$W_hat
   lambda_hat <- post$lambda_hat
@@ -308,7 +281,6 @@ el_estimator_core <- function(missingness_design,
   el_log_weight_diagnostics(verboser, W_hat, w_unnorm_trimmed, post$trimmed_fraction)
   el_log_detailed_diagnostics(verboser, beta_hat_unscaled, W_hat, lambda_W_hat, lambda_hat, denominator_hat)
 
-# Diagnostics at the solution
   diag_pack <- el_compute_diagnostics(
     estimates = estimates,
     equation_system_func = equation_system_func,
@@ -327,7 +299,6 @@ el_estimator_core <- function(missingness_design,
   sum_unnormalized_weights_untrimmed <- diag_pack$sum_unnormalized_weights_untrimmed
   normalization_ratio <- diag_pack$normalization_ratio
 
-# Check if trimming forced a loss of total mass (cap too tight)
   if (is.finite(post$trimmed_fraction) && post$trimmed_fraction > 0) {
     sum_w_trimmed <- sum(w_unnorm_trimmed)
     sum_w_untrimmed <- sum_unnormalized_weights_untrimmed
@@ -356,7 +327,6 @@ el_estimator_core <- function(missingness_design,
   weight_top5_share <- diag_pack$weight_top5_share
   weight_ess <- diag_pack$weight_ess
 
-# Variance calculation (bootstrap or none)
   se_y_hat <- NA
   vcov_unscaled <- NULL
   vcov_message <- "Calculation successful"

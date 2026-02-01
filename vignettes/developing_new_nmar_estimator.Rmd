@@ -1,7 +1,7 @@
 ---
 title: "Developing a New NMAR Estimator"
 description: >
-  Guide for adding a new NMAR estimator to the `NMAR` package
+  Guide for adding a new NMAR estimator to the NMAR package
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Developing a New NMAR Estimator}
@@ -36,16 +36,16 @@ Empirical Likelihood (EL) engine and emphasizing a clean separation of concerns:
 > - Recommended before publishing: `R CMD check . --no-manual --as-cran`.
 > - Optional repo tooling: `pre-commit run --all-files` (styling, README render,
 >   roxygenize, and other guards).
-> - Use roxygen2 for documentation; do not edit `NAMESPACE` directly.
+> - Use roxygen2 for documentation. Do not edit `NAMESPACE` directly.
 
 ***
 ## 0) General guidelines
-1. Prefer small, pure functions with clear inputs/outputs; fail loudly with informative `stop()` messages.
+1. Prefer small, pure functions with clear inputs/outputs. Fail loudly with informative `stop()` messages.
 2. Prefer type-stable iteration (`vapply()`, `lapply()`, explicit loops) over `sapply()`.
-3. Avoid adding new dependencies without prior discussion; prefer base R and existing shared infrastructure.
+3. Avoid adding new dependencies without prior discussion. Prefer base R and existing shared infrastructure.
 4. Reuse `src_dev/shared/` for method-agnostic components (scaling, families, bootstrap, numerics).
 5. Use S3 with explicit constructors and validators for engine and result objects.
-6. Keep a single, predictable execution path; avoid unnecessary nesting and multi-modal behavior (KISS/YAGNI).
+6. Keep a single, predictable execution path. Avoid unnecessary nesting and multi-modal behavior (KISS/YAGNI).
 
 ## 0.1) Minimal developer checklist
 
@@ -232,7 +232,7 @@ Call `new_nmar_result()` inside your constructor so the object carries class
 - Lists: `model` (coefficients/vcov), `weights_info`, `sample`, `inference`,
   `diagnostics`, `meta`, `extra`.
 
-Populate only fields in the shared schema; put engine-specific objects under `extra`.
+Populate only fields in the shared schema. Put engine-specific objects under `extra`.
 Call `new_nmar_result(estimate = ...)` rather than assigning `y_hat` directly.
 The helper attaches classes, adds the parent `"nmar_result"` class, and routes the
 object through `validate_nmar_result()` so missing pieces are filled with safe defaults.
@@ -293,7 +293,7 @@ Use these shared modules in `src_dev/shared/`:
   before solving, returning an `nmar_scaling_recipe` for unscaling.
 - `unscale_coefficients()` to map scaled coefficients and vcov back to the
   original scale for reporting.
-- Intercept is never scaled; constant columns get sd = 1.
+- Intercept is never scaled. Constant columns get sd = 1.
 
 ### Families (response model)
 
@@ -361,7 +361,7 @@ has the following schema:
   - `extra`: list for any additional engine-specific objects (for example
     `nmar_scaling_recipe`, fitted probabilities, or cached raw structures).
 
-`validate_nmar_result()` is the single authority on this schema; it normalises
+`validate_nmar_result()` is the single authority on this schema. It normalises
 and type-checks objects so that parent S3 methods can rely on the presence and
 shape of these fields. Engine constructors supply whatever information they
 have and let the validator back-fill missing components with safe defaults.
@@ -380,7 +380,7 @@ Two conventions are important for engines that want to reuse the parent methods:
 - **Inference:** parent methods (`confint()`, `tidy()`, `glance()`,
   `coef(summary())`, `confint(summary())`) use `inference$df` together with
   `sample$is_survey` to decide between t- and normal-based quantiles. Engines
-  that provide design-based degrees of freedom should populate `df`; those
+  that provide design-based degrees of freedom should populate `df`. Those
   that do not can leave it as `NA_real_`, in which case normal-based inference
   is used.
 
