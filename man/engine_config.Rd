@@ -13,6 +13,8 @@ engine_config(x)
 A named list of configuration fields.
 }
 \description{
-Extract engine configuration
+Returns the underlying configuration of an engine as a named list. This is
+intended for programmatic inspection (e.g., parameter tuning, logging). The
+returned object should be treated as read-only.
 }
 \keyword{engine_view}

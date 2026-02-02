@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_el_impl_utils_math.R
 \name{el_masses}
 \alias{el_masses}
-\title{Compute probability masses}
+\title{EL masses and probabilities from denominators}
 \usage{
 el_masses(weights, denom, floor, trim_cap)
 }
@@ -11,7 +11,7 @@ el_masses(weights, denom, floor, trim_cap)
 
 \item{denom}{numeric denominators Di after floor guard}
 
-\item{floor}{numeric small positive guard}
+\item{floor}{numeric small positive guard (unused in core logic here, kept for API symmetry)}
 
 \item{trim_cap}{numeric cap (>0) or Inf}
 }
@@ -19,6 +19,6 @@ el_masses(weights, denom, floor, trim_cap)
 list with mass_untrim, mass_trimmed, prob_mass, trimmed_fraction
 }
 \description{
-Compute probability masses
+EL masses and probabilities from denominators
 }
 \keyword{internal}

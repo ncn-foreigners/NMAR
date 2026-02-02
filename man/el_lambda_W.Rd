@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_el_impl_utils_math.R
 \name{el_lambda_W}
 \alias{el_lambda_W}
-\title{Compute lambda_W}
+\title{Compute lambda_W from C_const and W}
 \usage{
 el_lambda_W(C_const, W)
 }
@@ -12,6 +12,6 @@ el_lambda_W(C_const, W)
 \item{W}{numeric scalar in (0,1)}
 }
 \description{
-Compute lambda_W
+Compute lambda_W from C_const and W
 }
 \keyword{internal}

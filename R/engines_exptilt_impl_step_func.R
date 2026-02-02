@@ -23,11 +23,20 @@ step_func <- function(model, theta, O_matrix_nieobs) {
 # Unobserved contribution
   s_values_unobs_expanded <- s_function(model, 0, model$data_0[, model$cols_delta, drop = FALSE], theta_numeric)
 
+# Optimize: avoid transpose and multiple copies
+# common_term is n_x0 × n_y1
+# We need it in row-major order matching s_values_unobs_expanded
+# s_values_unobs_expanded rows correspond to: all y for x[1], all y for x[2], ...
+# which matches t(common_term) vectorized
 
   common_term_vec <- as.vector(t(common_term)) # length n_x0 * n_y1
 
+# Weight the scores
   s_values_unobs_weighted <- common_term_vec * s_values_unobs_expanded
 
+# Reshape and sum
+# Each column k is the score for parameter k at all (i,j) pairs
+# Need to sum within each i (across all j), then sum across i
 
   numerators <- matrix(0, nrow = n_x0, ncol = p)
   for (k in 1:p) {

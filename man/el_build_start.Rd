@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_el_impl_core_helpers.R
 \name{el_build_start}
 \alias{el_build_start}
-\title{Build starting values}
+\title{Build starting values for the EL solver (beta, z, lambda)}
 \usage{
 el_build_start(
   missingness_model_matrix_scaled,
@@ -14,6 +14,6 @@ el_build_start(
 )
 }
 \description{
-Build starting values
+Build starting values for the EL solver (beta, z, lambda)
 }
 \keyword{internal}

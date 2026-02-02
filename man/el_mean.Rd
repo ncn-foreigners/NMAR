@@ -2,11 +2,11 @@
 % Please edit documentation in R/engines_el_impl_utils_math.R
 \name{el_mean}
 \alias{el_mean}
-\title{Compute the mean}
+\title{Mean from probability masses}
 \usage{
 el_mean(prob_mass, y)
 }
 \description{
-Compute the mean
+Mean from probability masses
 }
 \keyword{internal}

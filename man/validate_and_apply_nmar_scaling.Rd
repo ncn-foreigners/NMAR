@@ -2,7 +2,7 @@
 % Please edit documentation in R/shared_scaling.R
 \name{validate_and_apply_nmar_scaling}
 \alias{validate_and_apply_nmar_scaling}
-\title{Validate and apply scaling for engines}
+\title{Validate and apply scaling (engine-friendly)}
 \usage{
 validate_and_apply_nmar_scaling(
   standardize,
@@ -32,9 +32,10 @@ applied to \code{weights}.}
 }
 \value{
 A list with components \code{nmar_scaling_recipe},
-\code{response_model_matrix_scaled}, \code{auxiliary_matrix_scaled}, and \code{mu_x_scaled}.
+  \code{response_model_matrix_scaled}, \code{auxiliary_matrix_scaled}, and
+  \code{mu_x_scaled}.
 }
 \description{
-Validate and apply scaling for engines
+Validate and apply scaling (engine-friendly)
 }
 \keyword{internal}

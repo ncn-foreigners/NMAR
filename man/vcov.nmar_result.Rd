@@ -2,7 +2,7 @@
 % Please edit documentation in R/S3_nmar_result_methods.R
 \name{vcov.nmar_result}
 \alias{vcov.nmar_result}
-\title{Variance-covariance for NMAR results}
+\title{Variance-covariance for base NMAR results}
 \usage{
 \method{vcov}{nmar_result}(object, ...)
 }
@@ -15,6 +15,6 @@
 A 1x1 numeric matrix (the variance of the primary estimate).
 }
 \description{
-Variance-covariance for NMAR results
+Variance-covariance for base NMAR results
 }
 \keyword{result_param}

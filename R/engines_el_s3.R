@@ -4,7 +4,7 @@
 NULL
 
 #' Print method for EL results
-#' @description Print for objects of class \code{nmar_result_el}.
+#' @description Compact print for objects of class \code{nmar_result_el}.
 #' @param x An object of class \code{nmar_result_el}.
 #' @param ... Ignored.
 #' @return \code{x}, invisibly.
@@ -12,6 +12,7 @@ NULL
 #' @export
 print.nmar_result_el <- function(x, ...) {
   meta <- x$meta %||% list()
+# Print an abridged call line to avoid dumping large embedded objects.
   call_line <- nmar_format_call_line(x)
   if (is.character(call_line) && nzchar(call_line)) {
     cat(call_line, "\n\n", sep = "")
@@ -53,6 +54,7 @@ summary.nmar_result_el <- function(object, ...) {
   model <- nmar_result_get_model(object)
   base$response_model <- model$coefficients
   base$response_vcov <- model$vcov
+# Keep an abridged call string for printing (full calls may embed data).
   base$call_line <- nmar_format_call_line(object)
   base$df <- nmar_result_get_inference(object)$df
   class(base) <- c("summary_nmar_result_el", class(base))
@@ -77,6 +79,7 @@ print.summary_nmar_result_el <- function(x, ...) {
       pval <- if (use_t) 2 * stats::pt(-abs(stat), df = df) else 2 * stats::pnorm(-abs(stat))
       stat_label <- if (use_t) "t value" else "z value"
       p_label <- if (use_t) "Pr(>|t|)" else "Pr(>|z|)"
+# Apply nmar.digits formatting for visual consistency
       d <- nmar_get_digits()
       tab <- data.frame(
         Estimate = nmar_fmt_num(beta, d),

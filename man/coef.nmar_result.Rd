@@ -15,6 +15,6 @@
 A named numeric vector or `NULL`.
 }
 \description{
-Returns missingness-model coefficients.
+Returns missingness-model coefficients if available.
 }
 \keyword{result_param}

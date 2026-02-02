@@ -4,7 +4,7 @@ estim_mean.nmar_exptilt <- function(model) {
 
   x_mat <- as.matrix(model$data_1[, model$cols_delta])
   x_aug <- cbind(1, x_mat, model$data_1[, model$col_y])
-  x_aug <- apply(x_aug, 2, as.numeric)
+  x_aug <- apply(x_aug, 2, as.numeric) # Convert each column to numeric
 
   theta <- unname(model$theta) # Remove names
 

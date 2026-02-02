@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_el_impl_result.R
 \name{el_build_result}
 \alias{el_build_result}
-\title{Build EL result object}
+\title{Build EL result object (success or failure)}
 \usage{
 el_build_result(
   core_results,
@@ -13,6 +13,6 @@ el_build_result(
 )
 }
 \description{
-Build EL result object
+Build EL result object (success or failure)
 }
 \keyword{internal}

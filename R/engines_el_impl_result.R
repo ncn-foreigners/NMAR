@@ -1,4 +1,4 @@
-#' Build EL result object
+#' Build EL result object (success or failure)
 #' @keywords internal
 el_build_result <- function(core_results, inputs, call, formula, engine_name = "empirical_likelihood") {
   diag_list <- core_results$diagnostics %||% list()

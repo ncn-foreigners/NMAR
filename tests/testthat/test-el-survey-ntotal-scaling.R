@@ -4,6 +4,7 @@ test_that("EL survey uses user-supplied n_total as N_pop without rescaling weigh
   N <- 600
   x <- rnorm(N)
   y <- 1 + x + rnorm(N)
+# NMAR response
   pr <- plogis(0.5 - 0.3 * y)
   R <- rbinom(N, 1, pr)
   df <- data.frame(y_miss = ifelse(R == 1, y, NA_real_), x = x)
@@ -13,7 +14,7 @@ test_that("EL survey uses user-supplied n_total as N_pop without rescaling weigh
   d2 <- base_w / mean(base_w) # still 1s here, but keep structure
   des <- survey::svydesign(ids = ~1, weights = ~d2, data = df)
 
-# Supply n_total that differs from sum(weights(design))
+# Supply n_total that differs from sum(weights(design)).
   n_total <- N * 2 # mismatch by 100%
   eng <- el_engine(auxiliary_means = c(x = mean(df$x)), variance_method = "none", standardize = TRUE, n_total = n_total)
   fit <- nmar(y_miss ~ x, data = des, engine = eng, trace_level = 0)

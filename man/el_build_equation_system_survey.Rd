@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_el_impl_equations.R
 \name{el_build_equation_system_survey}
 \alias{el_build_equation_system_survey}
-\title{Empirical likelihood equations for survey designs}
+\title{Empirical likelihood equations for survey designs (design-weighted QLS system)}
 \usage{
 el_build_equation_system_survey(
   family,
@@ -15,21 +15,24 @@ el_build_equation_system_survey(
 )
 }
 \description{
-Returns a function that evaluates the stacked EL system for survey designs
-using design weights. Unknowns are
-\eqn{\theta = (\beta, z, \lambda_W, \lambda_x)} with \eqn{z = \operatorname{logit}(W)}.
-Blocks correspond to:
-\itemize{
-\item response-model score equations in \eqn{\beta},
-\item the response-rate equation in \eqn{W} based on \eqn{\sum d_i (w_i - W)/D_i = 0},
-\item auxiliary moment constraints \eqn{\sum d_i (X_i - \mu_x)/D_i = 0},
-\item and the design-based linkage between \eqn{\lambda_W} and the
-nonrespondent total: \eqn{T_0/(1-W) - \lambda_W \sum d_i / D_i = 0},
-where \eqn{T_0 = N_{\mathrm{pop}} - \sum d_i} on the analysis scale.
-}
+Empirical likelihood equations for survey designs (design-weighted QLS system)
 }
 \details{
-When all design weights are equal and \eqn{N_{\mathrm{pop}}} and the respondent
-count match the simple random sampling setup, this system reduces to the QLS equations 6-10.
+Returns a function that evaluates the stacked EL system for complex survey
+  designs using design weights. Unknowns are
+  \eqn{\theta = (\beta, z, \lambda_W, \lambda_x)} with \eqn{z = \operatorname{logit}(W)}.
+  Blocks correspond to:
+  \itemize{
+    \item response-model score equations in \eqn{\beta},
+    \item the response-rate equation in \eqn{W} based on \eqn{\sum d_i (w_i - W)/D_i = 0},
+    \item auxiliary moment constraints \eqn{\sum d_i (X_i - \mu_x)/D_i = 0},
+    \item and the design-based linkage between \eqn{\lambda_W} and the
+      nonrespondent total: \eqn{T_0/(1-W) - \lambda_W \sum d_i / D_i = 0},
+      where \eqn{T_0 = N_{\mathrm{pop}} - \sum d_i} on the analysis scale.
+  }
+
+  When all design weights are equal and \eqn{N_{\mathrm{pop}}} and the respondent
+  count match the simple random sampling setup, this system reduces to the
+  Qin, Leung, and Shao (2002) equations (6)-(10).
 }
 \keyword{internal}

@@ -8,11 +8,12 @@ scale_aux_multipliers(lambda_unscaled, recipe, columns)
 }
 \arguments{
 \item{lambda_unscaled}{named numeric vector of auxiliary multipliers aligned
-to auxiliary design columns on original scale.}
+to auxiliary design columns (no intercept) on original scale.}
 
 \item{recipe}{Scaling recipe of class \code{nmar_scaling_recipe}.}
 
-\item{columns}{character vector of auxiliary column names (order) for the scaled design.}
+\item{columns}{character vector of auxiliary column names (order) for the
+scaled design.}
 }
 \value{
 numeric vector of multipliers in the scaled space.

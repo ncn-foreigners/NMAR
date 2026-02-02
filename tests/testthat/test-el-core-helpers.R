@@ -53,3 +53,5 @@ test_that("el_post_solution returns sane weights and mean in trivial case", {
   expect_equal(out$weights, wts)
   expect_equal(out$y_hat, mean(df$y))
 })
+
+## Removed: variance Jacobian selection; runtime is analytic-only

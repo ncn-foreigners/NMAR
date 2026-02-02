@@ -2,7 +2,7 @@
 % Please edit documentation in R/S3_nmar_result_methods.R
 \name{confint.summary_nmar_result}
 \alias{confint.summary_nmar_result}
-\title{Confidence intervals for summary objects}
+\title{Confidence intervals for coefficient table (summary objects)}
 \usage{
 \method{confint}{summary_nmar_result}(object, parm, level = 0.95, ...)
 }
@@ -10,7 +10,7 @@
 \item{object}{An object of class `summary_nmar_result` (or subclass).}
 
 \item{parm}{A specification of which coefficients are to be given confidence intervals,
-either a vector of names or a vector of indices. By default, all coefficients are considered.}
+either a vector of names or a vector of indices; by default, all coefficients are considered.}
 
 \item{level}{The confidence level required.}
 
@@ -18,7 +18,7 @@ either a vector of names or a vector of indices. By default, all coefficients ar
 }
 \value{
 A numeric matrix with columns giving lower and upper confidence limits for each parameter.
-Row names correspond to coefficient names. Returns `NULL` if coefficients are unavailable.
+  Row names correspond to coefficient names. Returns `NULL` if coefficients are unavailable.
 }
 \description{
 Returns Wald-style confidence intervals for missingness-model coefficients from

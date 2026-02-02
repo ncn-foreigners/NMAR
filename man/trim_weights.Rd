@@ -9,23 +9,26 @@ trim_weights(weights, cap, tol = 1e-12, warn_tol = 1e-08)
 \arguments{
 \item{weights}{numeric vector of weights.}
 
-\item{cap}{positive numeric scalar; maximum allowed weight, or \code{Inf} to disable trimming.}
+\item{cap}{positive numeric scalar; maximum allowed weight, or \code{Inf}
+to disable trimming.}
 
-\item{tol}{numeric tolerance used when testing whether a rescaling step respects the cap.}
+\item{tol}{numeric tolerance used when testing whether a rescaling step
+respects the cap.}
 
-\item{warn_tol}{numeric tolerance used when testing whether the total sum has been preserved.}
+\item{warn_tol}{numeric tolerance used when testing whether the total sum
+has been preserved.}
 }
 \value{
 A list with components:
-\describe{
-\item{\code{weights}}{numeric vector of trimmed weights.}
-\item{\code{trimmed_fraction}}{fraction of entries at or very close to
-the cap (within \code{tol}).}
-\item{\code{preserved_sum}}{logical; \code{TRUE} if the total sum of
-weights is preserved to within \code{warn_tol}.}
-\item{\code{total_before}}{numeric; sum of the original weights.}
-\item{\code{total_after}}{numeric; sum of the trimmed weights.}
-}
+  \describe{
+    \item{\code{weights}}{numeric vector of trimmed weights.}
+    \item{\code{trimmed_fraction}}{fraction of entries at or very close to
+      the cap (within \code{tol}).}
+    \item{\code{preserved_sum}}{logical; \code{TRUE} if the total sum of
+      weights is preserved to within \code{warn_tol}.}
+    \item{\code{total_before}}{numeric; sum of the original weights.}
+    \item{\code{total_after}}{numeric; sum of the trimmed weights.}
+  }
 }
 \description{
 Applies a cap to a nonnegative weight vector and, when feasible, redistributes
@@ -34,7 +37,7 @@ preserved. When the requested cap is too tight to preserve the total mass,
 all positive entries are set to the cap and the total sum decreases.
 }
 \details{
-Zero weights remain zero. Only entries that are positive after nonnegativity
+Zero weights remain zero; only entries that are positive after nonnegativity
 enforcement can absorb redistributed mass.
 
 Internally, a simple water-filling style algorithm is used on the positive

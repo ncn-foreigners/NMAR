@@ -2,11 +2,11 @@
 % Please edit documentation in R/shared_numerics.R
 \name{validate_nleqslv_top}
 \alias{validate_nleqslv_top}
-\title{Validate top-level nleqslv arguments and coerce invalid to defaults}
+\title{Validate top-level nleqslv arguments (coerce invalid to defaults)}
 \usage{
 validate_nleqslv_top(top)
 }
 \description{
-Validate top-level nleqslv arguments and coerce invalid to defaults
+Validate top-level nleqslv arguments (coerce invalid to defaults)
 }
 \keyword{internal}

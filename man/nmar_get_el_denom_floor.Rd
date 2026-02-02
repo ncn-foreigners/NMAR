@@ -2,12 +2,15 @@
 % Please edit documentation in R/shared_numerics.R
 \name{nmar_get_el_denom_floor}
 \alias{nmar_get_el_denom_floor}
-\title{EL denominator floor}
+\title{EL denominator floor (global, consistent)}
 \usage{
 nmar_get_el_denom_floor()
 }
 \description{
 Returns the small positive floor \eqn{\delta} used to guard the empirical
-likelihood denominator \eqn{D_i(\theta)} away from zero.
+likelihood denominator \eqn{D_i(\theta)} away from zero. This guard must be
+applied consistently in the estimating equations, analytic Jacobian, and
+post-solution weight construction. Advanced users can override via
+`options(nmar.el_denom_floor = 1e-8)`.
 }
 \keyword{internal}

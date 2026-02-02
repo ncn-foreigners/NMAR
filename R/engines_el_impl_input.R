@@ -1,31 +1,33 @@
-#' Input preprocessing
+#' Prepare EL inputs for IID and survey designs
 #'
 #' Parses the two-part Formula, constructs EL design matrices, injects the
-#' respondent delta indicator, attaches weights and survey metadata,
-#' and returns the pieces needed by the EL core.
+#' respondent delta indicator, attaches weights and (optionally) survey metadata,
+#' and returns the pieces needed by the EL core. The outcome enters the
+#' missingness design only through the evaluated LHS expression; any explicit
+#' use of the outcome variable on RHS2 is rejected.
 #'
-#' Enforeces the following format required by the rest of el code:
+#' Invariants enforced here (relied on by all downstream EL code):
 #' \itemize{
-#' \item LHS references exactly one outcome source variable in \code{data}; any
-#' transforms are applied via the formula environment and must be defined
-#' for all respondent rows.
-#' \item The outcome is never allowed to appear on RHS1 (auxiliaries) or RHS2
-#' (missingness predictors), either explicitly in the formula or implicitly
-#' via dot (\code{.}) expansion. The missingness model uses the evaluated LHS
-#' expression as a dedicated predictor column instead.
-#' \item RHS1 always yields an intercept-free auxiliary design matrix with
-#' k-1 coding for factor auxiliaries, regardless of user \code{+0}/\code{-1} syntax or
-#' custom contrasts. Auxiliary columns are validated to be fully observed
-#' and non-constant among respondents.
-#' \item RHS2 always yields a missingness-design matrix for respondents that
-#' includes an intercept column and zero-variance predictors emit
-#' warnings. NA among respondents is rejected.
-#' \item \code{respondent_mask} is defined from the raw outcome in \code{data}, not from
-#' the transformed LHS. An injected \code{..nmar_delta..} indicator in
-#' \code{analysis_data} must match this mask.
-#' \item \code{N_pop} is the analysis-scale population size:
-#' for IID it is \code{nrow(data)} unless overridden by \code{n_total}.
-#' For survey designs it is \code{sum(weights)} or \code{n_total} when supplied.
+#'   \item LHS references exactly one outcome source variable in \code{data}; any
+#'     transforms are applied via the formula environment and must be defined
+#'     for all respondent rows.
+#'   \item The outcome is never allowed to appear on RHS1 (auxiliaries) or RHS2
+#'     (missingness predictors), either explicitly in the formula or implicitly
+#'     via dot (\code{.}) expansion. The missingness model uses the evaluated LHS
+#'     expression as a dedicated predictor column instead.
+#'   \item RHS1 always yields an intercept-free auxiliary design matrix with
+#'     k-1 coding for factor auxiliaries, regardless of user \code{+0}/\code{-1} syntax or
+#'     custom contrasts. Auxiliary columns are validated to be fully observed
+#'     and non-constant among respondents.
+#'   \item RHS2 always yields a missingness-design matrix for respondents that
+#'     includes an intercept column and zero-variance predictors only emit
+#'     warnings (not errors); NA among respondents is rejected.
+#'   \item \code{respondent_mask} is defined from the raw outcome in \code{data}, not from
+#'     the transformed LHS; an injected \code{..nmar_delta..} indicator in
+#'     \code{analysis_data} matches this mask exactly.
+#'   \item \code{N_pop} is the analysis-scale population size used in the EL system:
+#'     for IID it is \code{nrow(data)} unless overridden by \code{n_total}; for survey
+#'     designs it is \code{sum(weights)} or \code{n_total} when supplied.
 #' }
 #'
 #' @keywords internal
@@ -34,6 +36,8 @@ el_prepare_inputs <- function(formula,
                               weights = NULL,
                               n_total = NULL,
                               design_object = NULL) {
+
+# Phase 1: parse formula and outcome
   if (missing(formula)) stop("`formula` must be supplied.", call. = FALSE)
 
   fml <- Formula::as.Formula(formula)
@@ -107,13 +111,15 @@ el_prepare_inputs <- function(formula,
 
   outcome_names <- c(outcome_source, outcome_label)
 
+# Phase 2: build auxiliary (RHS1) design on full data
   rhs1_formula <- stats::formula(fml, lhs = 0, rhs = 1)
   rhs1_expr <- rhs1_formula[[2L]]
   rhs1_vars_explicit <- setdiff(all.vars(rhs1_expr), ".")
   rhs1_terms <- stats::terms(rhs1_formula, data = model_frame)
   el_assert_no_offset(rhs1_terms, "auxiliary predictors")
-
-# Forces k-1 factor coding while keeping an intercept-free auxiliary block
+# Reconstruct RHS1 with an intercept for contrast coding, then drop it.
+# This guarantees k-1 factor coding regardless of user +0/-1 syntax or
+# non-default contrasts, while keeping an intercept-free auxiliary block.
   rhs1_tlabs <- attr(rhs1_terms, "term.labels")
   rhs1_forced <- if (length(rhs1_tlabs)) {
     stats::reformulate(rhs1_tlabs, response = NULL, intercept = TRUE)
@@ -137,12 +143,17 @@ el_prepare_inputs <- function(formula,
     )
   }
 
+# Phase 3: build missingness (RHS2) design on respondents
   if (n_rhs_parts >= 2L) {
     rhs2_formula <- stats::formula(fml, lhs = 0, rhs = 2)
     rhs2_expr <- rhs2_formula[[2L]]
     rhs2_terms <- stats::terms(rhs2_formula, data = model_frame)
     el_assert_no_offset(rhs2_terms, "missingness predictors")
 
+# For a clean, unsurprising API we forbid any explicit use of the outcome
+# variable in the missingness predictors. Users must encode the outcome
+# effect via the LHS expression; RHS2 is reserved for additional covariates.
+# Dot notation (.) is interpreted via Formula to exclude the response.
     rhs2_vars_explicit <- setdiff(all.vars(rhs2_expr), ".")
     if (outcome_source %in% rhs2_vars_explicit || outcome_label %in% rhs2_vars_explicit) {
       stop(
@@ -151,8 +162,12 @@ el_prepare_inputs <- function(formula,
       )
     }
 
+# Build RHS2 design using Formula semantics so that '.' expands to
+# non-response variables only. Dispatch via the generic `model.matrix()`
+# with a Formula object.
     rhs2_mat_full <- stats::model.matrix(fml, data = model_frame, rhs = 2)
 
+# Safety guard: ensure no outcome-derived columns sneak in via custom coding.
     if (any(colnames(rhs2_mat_full) %in% outcome_names)) {
       stop(
         "Outcome cannot appear in missingness predictors; encode its effect via the left-hand side.",
@@ -189,6 +204,8 @@ el_prepare_inputs <- function(formula,
   colnames(outcome_col) <- outcome_label
   missingness_design <- cbind(intercept_col, outcome_col, rhs2_predictors)
 
+# Phase 4: augment data with respondent indicator and weights
+# Create NMAR delta indicator column and avoid collisions with existing names
   if (length(respondent_mask) != nrow(data)) {
     stop("Internal error: respondent mask must align with data.", call. = FALSE)
   }
@@ -210,6 +227,7 @@ el_prepare_inputs <- function(formula,
     rep(1, sum(respondent_mask))
   }
 
+# Phase 5: wrap survey design (if present) and compute N_pop
   is_survey <- !is.null(design_object) && inherits(design_object, "survey.design")
   analysis_object <- if (isTRUE(is_survey)) {
     design_object$variables <- data_aug

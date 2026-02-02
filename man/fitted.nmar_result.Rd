@@ -15,6 +15,6 @@
 A numeric vector (possibly length 0).
 }
 \description{
-Returns fitted response probabilities.
+Returns fitted response probabilities if available.
 }
 \keyword{result_param}

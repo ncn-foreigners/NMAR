@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_exptilt_engine.R
 \name{exptilt_engine}
 \alias{exptilt_engine}
-\title{Exponential tilting engine for NMAR}
+\title{Exponential tilting  (ET) engine for NMAR estimation}
 \usage{
 exptilt_engine(
   standardize = FALSE,
@@ -60,7 +60,7 @@ An engine object of class \code{c("nmar_engine_exptilt","nmar_engine")}.
 }
 \description{
 Constructs a configuration for the exponential tilting estimator under
-nonignorable nonresponse.
+nonignorable nonresponse (NMAR).
 The estimator solves \eqn{S_2(\boldsymbol{\phi}, \hat{\boldsymbol{\gamma}}) = 0,} using nleqslv to apply EM algorithm.
 }
 \details{

@@ -2,14 +2,14 @@
 % Please edit documentation in R/engines_el_impl_survey.R
 \name{el_extract_strata_factor}
 \alias{el_extract_strata_factor}
-\title{Extract strata factor}
+\title{Extract a strata factor from a survey.design object}
 \usage{
 el_extract_strata_factor(design)
 }
 \description{
-Looks for strata already materialized in the \code{survey.design} object.
-When unavailable, attempts to reconstruct strata from the original
-\code{svydesign()} call. When multiple stratification variables are supplied,
-their interaction is used.
+Prefers strata already materialized in the \code{survey.design} object
+(typically \code{design$strata}). When unavailable, attempts to reconstruct
+strata from the original \code{svydesign()} call. When multiple
+stratification variables are supplied, their interaction is used.
 }
 \keyword{internal}

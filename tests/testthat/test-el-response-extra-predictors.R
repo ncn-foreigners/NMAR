@@ -2,7 +2,7 @@ test_that("response_predictors can include non-auxiliary variables", {
   set.seed(4242)
   df <- make_iid_nmar(n = 350, alpha = 0.6, include_z = TRUE, seed = 4242)
 
-# Outcome RHS contains only X auxiliary, include Z as response-only predictor via |
+# Outcome RHS contains only X (auxiliary). Include Z as response-only predictor via `|`.
   res <- el.data.frame(
     data = df,
     formula = Y_miss ~ X | Z,

@@ -16,7 +16,8 @@
 \item{trace_level}{Integer 0-3 controlling verbosity.}
 }
 \value{
-An object of class \code{nmar_result_el}.
+An object of class \code{nmar_result_el} (which also inherits from
+  \code{nmar_result}).
 }
 \description{
 Run method for EL engine

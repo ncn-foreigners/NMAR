@@ -2,11 +2,11 @@
 % Please edit documentation in R/engines_el_impl_core_helpers.R
 \name{el_prepare_nleqslv}
 \alias{el_prepare_nleqslv}
-\title{Prepare nleqslv args}
+\title{Prepare nleqslv top-level args and control}
 \usage{
 el_prepare_nleqslv(control)
 }
 \description{
-Prepare nleqslv args
+Prepare nleqslv top-level args and control
 }
 \keyword{internal}

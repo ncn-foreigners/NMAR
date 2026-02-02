@@ -2,7 +2,7 @@
 % Please edit documentation in R/S3_nmar_engine_methods.R
 \name{format.nmar_engine}
 \alias{format.nmar_engine}
-\title{Formatter for engines}
+\title{One-line formatter for NMAR engines}
 \usage{
 \method{format}{nmar_engine}(x, ...)
 }

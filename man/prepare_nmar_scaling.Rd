@@ -2,7 +2,7 @@
 % Please edit documentation in R/shared_scaling.R
 \name{prepare_nmar_scaling}
 \alias{prepare_nmar_scaling}
-\title{Prepare scaled matrices and moments}
+\title{Prepare scaled matrices and moments (low-level)}
 \usage{
 prepare_nmar_scaling(
   Z_un,
@@ -30,9 +30,9 @@ applied to \code{weights}.}
 }
 \value{
 A list with components \code{Z}, \code{X}, \code{mu_x}, and
-\code{recipe}.
+  \code{recipe}.
 }
 \description{
-Prepare scaled matrices and moments
+Prepare scaled matrices and moments (low-level)
 }
 \keyword{internal}

@@ -2,15 +2,15 @@
 % Please edit documentation in R/shared_families.R
 \name{probit_family}
 \alias{probit_family}
-\title{Construct probit response family}
+\title{Construct a probit response family bundle}
 \usage{
 probit_family()
 }
 \value{
 A list with components \code{name}, \code{linkinv}, \code{mu.eta},
-\code{d2mu.deta2}, and \code{score_eta}.
+  \code{d2mu.deta2}, and \code{score_eta}.
 }
 \description{
-Construct probit response family
+Construct a probit response family bundle
 }
 \keyword{internal}

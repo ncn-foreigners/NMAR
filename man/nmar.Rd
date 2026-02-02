@@ -2,12 +2,12 @@
 % Please edit documentation in R/nmar.R
 \name{nmar}
 \alias{nmar}
-\title{Not Missing at Random Estimation}
+\title{Not Missing at Random (NMAR) Estimation}
 \usage{
 nmar(formula, data, engine, trace_level = 0)
 }
 \arguments{
-\item{formula}{A two-sided formula. Engines support a partitioned
+\item{formula}{A two-sided formula. Many engines support a partitioned
 right-hand side via \code{|}, for example
 \code{y_miss ~ block1_vars | block2_vars}. The meaning of these blocks is
 engine-specific (see the engine documentation). In the common
@@ -17,32 +17,34 @@ outcome with \code{NA} values for nonrespondents.}
 \item{data}{A \code{data.frame} or a \code{survey.design} containing the
 variables referenced by \code{formula}.}
 
-\item{engine}{An NMAR engine configuration object created by
+\item{engine}{An NMAR engine configuration object, typically created by
 \code{\link{el_engine}}, \code{\link{exptilt_engine}}, or
 \code{\link{exptilt_nonparam_engine}}. This object defines the estimation
-method and tuning parameters.}
+method and tuning parameters and must inherit from class
+\code{"nmar_engine"}.}
 
 \item{trace_level}{Integer 0-3; controls verbosity during estimation
 (default \code{0}):
 \itemize{
-\item 0: no output,
-\item 1: major steps only (initialization, convergence, final results),
-\item 2: iteration summaries and key diagnostics,
-\item 3: full diagnostic output.
+  \item 0: no output (silent mode);
+  \item 1: major steps only (initialization, convergence, final results);
+  \item 2: iteration summaries and key diagnostics;
+  \item 3: full diagnostic output.
 }}
 }
 \value{
 An object of class \code{"nmar_result"} with an engine-specific subclass
-(for example \code{"nmar_result_el"}). Use \code{summary()},
-\code{\link{se}}, \code{confint()}, \code{weights()}, \code{coef()},
-\code{fitted()}, and \code{generics::tidy()} / \code{generics::glance()} to
-access estimates, standard errors, weights, and diagnostics.
+  (for example \code{"nmar_result_el"}). Use \code{summary()},
+  \code{\link{se}}, \code{confint()}, \code{weights()}, \code{coef()},
+  \code{fitted()}, and \code{generics::tidy()} / \code{generics::glance()} to
+  access estimates, standard errors, weights, and diagnostics.
 }
 \description{
-Interface for NMAR estimation.
+High-level interface for NMAR estimation.
+
 \code{nmar()} validates basic inputs and dispatches to an engine (for example
 \code{\link{el_engine}}). The engine controls the estimation method and
-interprets \code{formula}. See the engine documentation for model-specific
+interprets \code{formula}; see the engine documentation for model-specific
 requirements.
 }
 \examples{
@@ -62,7 +64,7 @@ fit_el <- nmar(Y_miss ~ X | Z, data = df_el, engine = eng_el)
 summary(fit_el)
 
 \donttest{
-# Exponential tilting engine
+# Exponential tilting engine (illustrative)
 dat_et <- data.frame(y = y_obs, x2 = z1, x1 = x1)
 eng_et <- exptilt_engine(
   y_dens = "normal",
@@ -72,7 +74,7 @@ eng_et <- exptilt_engine(
 fit_et <- nmar(y ~ x2 | x1, data = dat_et, engine = eng_et)
 summary(fit_et)
 
-# Survey design
+# Survey design example (same outcome, random weights)
 if (requireNamespace("survey", quietly = TRUE)) {
   w <- runif(n, 0.5, 2)
   des <- survey::svydesign(ids = ~1, weights = ~w,
@@ -83,8 +85,8 @@ if (requireNamespace("survey", quietly = TRUE)) {
 }
 
 # Bootstrap variance usage
-# future.apply is optional, if installed, bootstrap may run in parallel under
-# the user's future::plan()
+# (future.apply is optional; if installed, bootstrap may run in parallel under
+# the user's future::plan())
 set.seed(2)
 eng_boot <- el_engine(
   variance_method = "bootstrap",
@@ -96,7 +98,7 @@ se(fit_boot)
 }
 \seealso{
 \code{\link{el_engine}}, \code{\link{exptilt_engine}},
-\code{\link{exptilt_nonparam_engine}}, \code{\link{summary.nmar_result}},
-\code{\link{weights.nmar_result}}
+  \code{\link{exptilt_nonparam_engine}}, \code{\link{summary.nmar_result}},
+  \code{\link{weights.nmar_result}}
 }
 \keyword{nmar}

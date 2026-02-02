@@ -2,11 +2,11 @@
 % Please edit documentation in R/shared_bootstrap.R
 \name{bootstrap_variance.default}
 \alias{bootstrap_variance.default}
-\title{Default dispatch}
+\title{Default method dispatch (internal safety net)}
 \usage{
-\method{bootstrap_variance}{default}(data, estimator_func, point_estimate, ...)
+bootstrap_variance.default(data, estimator_func, point_estimate, ...)
 }
 \description{
-Default dispatch
+Default method dispatch (internal safety net)
 }
 \keyword{internal}

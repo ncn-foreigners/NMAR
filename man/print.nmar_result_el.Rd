@@ -15,6 +15,6 @@
 \code{x}, invisibly.
 }
 \description{
-Print for objects of class \code{nmar_result_el}.
+Compact print for objects of class \code{nmar_result_el}.
 }
 \keyword{result_view}

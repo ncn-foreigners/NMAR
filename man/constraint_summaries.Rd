@@ -2,11 +2,11 @@
 % Please edit documentation in R/engines_el_impl_constraints.R
 \name{constraint_summaries}
 \alias{constraint_summaries}
-\title{Constraint summaries for diagnostics}
+\title{Constraint summaries for EL diagnostics}
 \usage{
 constraint_summaries(w_i_hat, W_hat, mass_untrim, X_centered)
 }
 \description{
-Reports the constraint sums used in the estimating equations.
+Constraint summaries for EL diagnostics
 }
 \keyword{internal}

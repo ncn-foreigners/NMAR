@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_el_impl_core_helpers.R
 \name{el_compute_diagnostics}
 \alias{el_compute_diagnostics}
-\title{Compute diagnostics}
+\title{Compute diagnostics at the EL solution}
 \usage{
 el_compute_diagnostics(
   estimates,
@@ -17,6 +17,6 @@ el_compute_diagnostics(
 )
 }
 \description{
-Compute diagnostics
+Compute diagnostics at the EL solution
 }
 \keyword{internal}

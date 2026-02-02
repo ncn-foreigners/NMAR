@@ -2,13 +2,17 @@
 #'
 #' @details
 #' Centralized access to numeric thresholds used across the package.
-#'
+#' These settings can be overridden via options() for advanced users:
 #' - `nmar.eta_cap`: scalar > 0. Caps the response-model linear predictor
-#' to avoid extreme link values in Newton updates. Default 50.
+#'   to avoid extreme link values in Newton updates. Default 50.
 #' - `nmar.grad_eps`: finite-difference step size epsilon for numeric
-#' gradients of smooth functionals. Default 1e-6.
+#'   gradients of smooth functionals. Default 1e-6.
 #' - `nmar.grad_d`: relative step adjustment for numeric gradients.
-#' Default 1e-3.
+#'   Default 1e-3.
+#'
+#' The defaults are chosen to be conservative and stable across typical
+#' NMAR problems. Engines should retrieve values via this helper rather
+#' than hard-coding numbers, so documentation stays consistent.
 #'
 #' @return A named list with entries `eta_cap`, `grad_eps`, and `grad_d`.
 #' @keywords internal
@@ -27,24 +31,25 @@ get_eta_cap <- function() {
   nmar_get_numeric_settings()$eta_cap
 }
 
-#' EL denominator floor
+#' EL denominator floor (global, consistent)
 #'
 #' Returns the small positive floor \eqn{\delta} used to guard the empirical
-#' likelihood denominator \eqn{D_i(\theta)} away from zero.
-#'
+#' likelihood denominator \eqn{D_i(\theta)} away from zero. This guard must be
+#' applied consistently in the estimating equations, analytic Jacobian, and
+#' post-solution weight construction. Advanced users can override via
+#' `options(nmar.el_denom_floor = 1e-8)`.
 #' @keywords internal
 nmar_get_el_denom_floor <- function() {
   val <- getOption("nmar.el_denom_floor", 1e-8)
   if (!is.numeric(val) || length(val) != 1L || !is.finite(val) || val <= 0) 1e-8 else val
 }
 
-#' Weighted linear algebra
-#'
-#' Compute X' diag(w) X efficiently. If w >= 0, use SPD crossprod(X*sqrt(w)).
-#' Otherwise, fall back to X' (diag(w) X) via crossprod(X, X*w).
+#' Weighted linear algebra helpers
 #'
 #' @keywords internal
 shared_weighted_gram <- function(X, w) {
+# Compute X' diag(w) X efficiently. If w >= 0, use SPD crossprod(X*sqrt(w))
+# Otherwise, fall back to X' (diag(w) X) via crossprod(X, X*w)
   w <- as.numeric(w)
   if (length(w) != nrow(X)) stop("shared_weighted_gram: length(w) must equal nrow(X)", call. = FALSE)
   if (all(is.finite(w)) && all(w >= 0)) {
@@ -73,20 +78,20 @@ shared_weighted_XtY <- function(X, w, Y) {
 
 
 
-#' Parse nleqslv control list for compatibility
+#' Sanitize nleqslv control list for compatibility
 #' @keywords internal
 sanitize_nleqslv_control <- function(ctrl) {
   if (is.null(ctrl) || !is.list(ctrl)) return(list())
-
+# Keep a conservative whitelist to avoid unknown-name errors on older versions
   allowed <- c("xtol", "ftol", "btol", "maxit", "trace", "stepmax", "delta", "allowSing")
-
+# Treat top-level keys 'global' and 'xscalm' as handled elsewhere; drop silently here
   ctrl <- ctrl[setdiff(names(ctrl), c("global", "xscalm", "method"))]
   unknown <- setdiff(names(ctrl), allowed)
   if (length(unknown) > 0) {
     warning(sprintf("Ignoring unknown nleqslv control fields: %s", paste(unknown, collapse = ", ")), call. = FALSE)
   }
   out <- ctrl[names(ctrl) %in% allowed]
-
+# Light range checks with coercion warnings
   num_pos <- function(x, nm) {
     if (!is.null(x) && (!is.finite(x) || x <= 0)) {
       warning(sprintf("Coercing control$%s to a positive finite value; using default.", nm), call. = FALSE)
@@ -121,7 +126,7 @@ extract_nleqslv_top <- function(ctrl) {
   out
 }
 
-#' Validate top-level nleqslv arguments and coerce invalid to defaults
+#' Validate top-level nleqslv arguments (coerce invalid to defaults)
 #' @keywords internal
 validate_nleqslv_top <- function(top) {
   if (is.null(top) || !is.list(top)) return(list())
@@ -144,7 +149,7 @@ validate_nleqslv_top <- function(top) {
       out$xscalm <- "auto"
     }
   }
-
+# We ignore method from user-facing API to keep a single solver path
   out
 }
 

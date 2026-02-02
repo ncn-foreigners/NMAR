@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_el_impl_utils_math.R
 \name{el_denominator}
 \alias{el_denominator}
-\title{Compute denominator}
+\title{Build denominator and floor pack}
 \usage{
 el_denominator(lambda_W, W, Xc_lambda, p_i, floor)
 }
@@ -21,6 +21,6 @@ el_denominator(lambda_W, W, Xc_lambda, p_i, floor)
 list with denom, active, inv, inv_sq
 }
 \description{
-Compute denominator
+Build denominator and floor pack
 }
 \keyword{internal}

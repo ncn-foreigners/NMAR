@@ -13,7 +13,9 @@ el_augment_strata_aux(
 )
 }
 \description{
-Augments the auxiliary design with strata dummies and appends stratum-share
-means when user-supplied \code{auxiliary_means} are present.
+Augments the auxiliary design with strata dummies (dropping one level) and
+appends stratum-share means when user-supplied \code{auxiliary_means} are
+present. This is the Wu-style strategy of adding stratum indicators to the
+auxiliary calibration block in pseudo empirical likelihood for surveys.
 }
 \keyword{internal}

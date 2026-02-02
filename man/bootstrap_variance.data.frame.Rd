@@ -4,7 +4,7 @@
 \alias{bootstrap_variance.data.frame}
 \title{Bootstrap for IID data frames}
 \usage{
-\method{bootstrap_variance}{data.frame}(
+bootstrap_variance.data.frame(
   data,
   estimator_func,
   point_estimate,
@@ -18,7 +18,7 @@
 \item{estimator_func}{Function returning an object with a numeric scalar
 component \code{y_hat} and an optional logical component \code{converged}.}
 
-\item{point_estimate}{Unused for IID bootstrap, included for signature
+\item{point_estimate}{Unused for IID bootstrap; included for signature
 consistency.}
 
 \item{bootstrap_reps}{integer; number of resamples.}
@@ -26,7 +26,7 @@ consistency.}
 \item{...}{Additional arguments. Some are consumed by \code{bootstrap_variance()}
 itself (for example \code{resample_guard} for IID bootstrap or
 \code{bootstrap_settings}/\code{bootstrap_options}/\code{bootstrap_type}/\code{bootstrap_mse}
-or survey bootstrap). Remaining arguments are forwarded to \code{estimator_func}.}
+for survey bootstrap); remaining arguments are forwarded to \code{estimator_func}.}
 }
 \value{
 A list with components \code{se}, \code{variance}, and \code{replicates}.

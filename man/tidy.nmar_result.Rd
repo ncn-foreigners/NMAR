@@ -15,9 +15,9 @@
 }
 \value{
 A data frame with one row for the primary estimate and, when
-available, additional rows for the response-model coefficients.
+  available, additional rows for the response-model coefficients.
 }
 \description{
-Return a data frame with the primary estimate and missingness-model coefficients.
+Return a data frame with the primary estimate and (if available) missingness-model coefficients.
 }
 \keyword{result_view}

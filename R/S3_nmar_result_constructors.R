@@ -1,6 +1,7 @@
-#' Construct for result objects
+#' Construct Result Object (parent helper)
 #'
 #' Builds an `nmar_result` list using the shared schema and validates it.
+#' Engines must pass named fields; no legacy positional signature is supported.
 #'
 #' @details
 #' Engine-level constructors should call this helper with named arguments rather
@@ -8,17 +9,17 @@
 #' \code{estimate} (numeric scalar) and \code{converged} (logical). All other
 #' fields are optional:
 #' \itemize{
-#' \item \code{estimate_name}: label for the primary estimand (defaults to
-#' \code{NA_character_} if omitted).
-#' \item \code{se}: standard error for the primary estimand (defaults to
-#' \code{NA_real_} when not available).
-#' \item \code{model}, \code{weights_info}, \code{sample}, \code{inference},
-#' \code{diagnostics}, \code{meta}, \code{extra}: lists that may be partially
-#' pecified or \code{NULL}; \code{validate_nmar_result()} will back-fill
-#' missing subfields with safe defaults.
-#' item \code{class}: engine-specific result subclass name, e.g.
-#' \code{"nmar_result_el"}; it is combined with the parent class
-#' \code{"nmar_result"}.
+#'   \item \code{estimate_name}: label for the primary estimand (defaults to
+#'     \code{NA_character_} if omitted).
+#'   \item \code{se}: standard error for the primary estimand (defaults to
+#'     \code{NA_real_} when not available).
+#'   \item \code{model}, \code{weights_info}, \code{sample}, \code{inference},
+#'     \code{diagnostics}, \code{meta}, \code{extra}: lists that may be partially
+#'     specified or \code{NULL}; \code{validate_nmar_result()} will back-fill
+#'     missing subfields with safe defaults.
+#'   \item \code{class}: engine-specific result subclass name, e.g.
+#'     \code{"nmar_result_el"}; it is combined with the parent class
+#'     \code{"nmar_result"}.
 #' }
 #'
 #' Calling \code{new_nmar_result()} ensures that every engine returns objects
@@ -50,6 +51,7 @@ new_nmar_result <- function(...) {
   validate_nmar_result(result, class_name)
 }
 
+# Fallback definition for the `%||%` helper used across the S3 stack
 if (!exists("%||%")) {
   `%||%` <- function(a, b) if (!is.null(a)) a else b
 }

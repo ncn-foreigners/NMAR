@@ -2,7 +2,7 @@
 % Please edit documentation in R/shared_weights.R
 \name{enforce_nonneg_weights}
 \alias{enforce_nonneg_weights}
-\title{Enforce nonnegativity of weights}
+\title{Enforce (near-)nonnegativity of weights}
 \usage{
 enforce_nonneg_weights(weights, tol = 1e-08)
 }
@@ -14,20 +14,20 @@ numerical noise and clipped to zero.}
 }
 \value{
 A list with components:
-\describe{
-\item{\code{ok}}{logical; \code{TRUE} if no clearly negative weights
-were found.}
-\item{\code{message}}{character; diagnostic message when \code{ok} is
-\code{FALSE}, otherwise \code{NULL}.}
-\item{\code{weights}}{numeric vector of adjusted weights (original if
-\code{ok} is \code{FALSE}, otherwise with small negatives clipped to
-zero).}
-}
+  \describe{
+    \item{\code{ok}}{logical; \code{TRUE} if no clearly negative weights
+      were found.}
+    \item{\code{message}}{character; diagnostic message when \code{ok} is
+      \code{FALSE}, otherwise \code{NULL}.}
+    \item{\code{weights}}{numeric vector of adjusted weights (original if
+      \code{ok} is \code{FALSE}, otherwise with small negatives clipped to
+      zero).}
+  }
 }
 \description{
 Softly enforces nonnegativity of a numeric weight vector. Large negative
-values are treated as errors, while small negative values
-are truncated to zero.
+values (beyond a tolerance) are treated as errors; small negative values
+(for example, from numerical noise) are truncated to zero.
 }
 \details{
 Values below \code{-tol} are treated as clearly negative. Values in

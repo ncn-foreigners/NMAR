@@ -14,12 +14,16 @@ NMAR numeric settings
 }
 \details{
 Centralized access to numeric thresholds used across the package.
-
+These settings can be overridden via options() for advanced users:
 - `nmar.eta_cap`: scalar > 0. Caps the response-model linear predictor
-to avoid extreme link values in Newton updates. Default 50.
+  to avoid extreme link values in Newton updates. Default 50.
 - `nmar.grad_eps`: finite-difference step size epsilon for numeric
-gradients of smooth functionals. Default 1e-6.
+  gradients of smooth functionals. Default 1e-6.
 - `nmar.grad_d`: relative step adjustment for numeric gradients.
-Default 1e-3.
+  Default 1e-3.
+
+The defaults are chosen to be conservative and stable across typical
+NMAR problems. Engines should retrieve values via this helper rather
+than hard-coding numbers, so documentation stays consistent.
 }
 \keyword{internal}

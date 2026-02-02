@@ -22,6 +22,6 @@ coefficients, returns `NULL`.
 }
 \details{
 The statistic column is labelled "t value" when finite degrees of freedom
-are present in survey designs, otherwise it is labelled "z value".
+are available (e.g., survey designs); otherwise, it is labelled "z value".
 }
 \keyword{result_view}

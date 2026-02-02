@@ -86,23 +86,27 @@ nmar_fmt_num <- function(x, digits = nmar_get_digits()) {
 #' use by print/summary methods.
 #'
 #' Uses option `nmar.show_call` (default TRUE). Width can be tuned via
-#' option `nmar.call_width` (default 120).
+#' option `nmar.call_width` (default 120), but the formatter aims to keep
+#' the line compact regardless of width.
 #'
 #' @keywords internal
 nmar_format_call_line <- function(x) {
   if (!isTRUE(getOption("nmar.show_call", TRUE))) return(NULL)
   meta <- x$meta %||% list()
   sample <- nmar_result_get_sample(x)
-
+# Formula
   fml <- meta$formula %||% NULL
   fml_str <- if (!is.null(fml) && inherits(fml, "formula")) {
     paste(deparse(fml, width.cutoff = max(60L, getOption("nmar.call_width", 120L))), collapse = " ")
   } else {
     "<formula>"
   }
-
+# Data descriptor (avoid printing the object itself). Display N using a
+# rounded/cleaned representation to avoid showing floating-point noise.
   N_raw <- sample$n_total
   if (is.finite(N_raw)) {
+# Treat N as integer when it is very close to one, using a relative
+# tolerance to avoid spurious decimals from floating-point arithmetic.
     if (abs(N_raw - round(N_raw)) < 1e-6 * max(1, abs(N_raw))) {
       n_str <- paste0("N=", as.integer(round(N_raw)))
     } else {
@@ -114,7 +118,7 @@ nmar_format_call_line <- function(x) {
     n_str <- "N=?"
   }
   data_desc <- if (isTRUE(sample$is_survey)) paste0("<survey.design: ", n_str, ">") else paste0("<data.frame: ", n_str, ">")
-
+# Engine label
   eng <- meta$engine_name %||% "nmar_engine"
   sprintf("Call: nmar(%s, data = %s, engine = %s)", fml_str, data_desc, eng)
 }
