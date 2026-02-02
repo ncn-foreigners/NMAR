@@ -1,7 +1,21 @@
-#' Solver orchestration
+#' EL core helpers
+#' @description Internal helpers for solving and post-processing the EL system.
+#'   \code{el_run_solver()} orchestrates \code{nleqslv::nleqslv()} with a small,
+#'   deterministic fallback ladder; \code{el_post_solution()} computes masses and
+#'   the point estimate with
+#'   denominator guards and optional trimming.
+#' @name el_core_helpers
+#' @keywords internal
+NULL
+
+
+
+#' Solver orchestration with staged policy
 #'
-#' @param equation_system_func Function mapping parameter vector to equation residuals.
-#' @param analytical_jac_func Analytic Jacobian function; may be NULL if unavailable or when forcing Broyden.
+#' @param equation_system_func Function mapping parameter vector to equation
+#'   residuals.
+#' @param analytical_jac_func Analytic Jacobian function; may be NULL if
+#'   unavailable or when forcing Broyden.
 #' @param init Numeric vector of initial parameter values.
 #' @param final_control List passed to \code{nleqslv::nleqslv(control = ...)}.
 #' @param top_args List of top-level \code{nleqslv::nleqslv} args (e.g., \code{global}, \code{xscalm}).
@@ -10,8 +24,8 @@
 #' @param K_beta Integer; number of response model parameters.
 #' @param K_aux Integer; number of auxiliary constraints.
 #' @param respondent_weights Numeric vector of base sampling weights.
-#' @param N_pop Numeric; population total.
-#' @param trace_level Integer; verbosity level.
+#' @param N_pop Numeric; population total (weighted when survey design).
+#' @param trace_level Integer; verbosity level (0 silent, 1-3 increasingly verbose).
 #'
 #' @keywords internal
 el_run_solver <- function(equation_system_func,
@@ -28,7 +42,7 @@ el_run_solver <- function(equation_system_func,
                           trace_level = 0) {
   verboser <- create_verboser(trace_level)
   solver_method_used <- "Newton"
-
+# Curated defaults: Newton + analytic Jacobian, quadratic line search, auto scaling
   user_specified_global <- !is.null(top_args$global)
   user_specified_xscalm <- !is.null(top_args$xscalm)
 
@@ -39,7 +53,7 @@ el_run_solver <- function(equation_system_func,
     method = "Newton",
     control = final_control
   )
-
+# Defaults if user did not specify: prefer robust line search and auto scaling
   if (!is.null(top_args$global)) nl_args$global <- top_args$global else nl_args$global <- "qline"
   if (!is.null(top_args$xscalm)) nl_args$xscalm <- top_args$xscalm else nl_args$xscalm <- "auto"
 
@@ -66,6 +80,8 @@ el_run_solver <- function(equation_system_func,
 
   solution <- do.call(nleqslv::nleqslv, nl_args)
 
+# Small pool of stochastic perturbed restarts, used only on solver failure.
+# For reproducibility across runs, set a seed before calling nmar().
   if (any(is.na(solution$x)) || solution$termcd > 2) {
     verboser("  Initial attempt failed, trying perturbed starts...", level = 3)
     for (i in seq_len(3)) {
@@ -74,6 +90,7 @@ el_run_solver <- function(equation_system_func,
       W_seed <- sum(respondent_weights) / N_pop
       W_seed <- min(max(W_seed, 1e-12), 1 - 1e-12)
       z_seed <- stats::qlogis(W_seed)
+# Preserve generic tail structure: parameters after (beta, z) are reset to 0
       tail_len <- max(length(init) - K_beta - 1L, 0L)
       tail_zeros <- if (tail_len > 0L) rep(0, tail_len) else numeric(0)
       init_perturbed <- c(init_beta_perturbed, z_seed, tail_zeros)
@@ -86,7 +103,9 @@ el_run_solver <- function(equation_system_func,
     }
   }
 
+# Minimal, deterministic fallback ladder
   if (solver_method == "auto" && (any(is.na(solution$x)) || solution$termcd > 2)) {
+# If the user did not choose a global strategy, try an alternative globalization before switching method
     if (!user_specified_global) {
       alt_args <- nl_args
       alt_args$global <- if (identical(nl_args$global, "qline")) "dbldog" else "qline"
@@ -138,15 +157,15 @@ el_post_solution <- function(estimates,
   names(beta_hat_scaled) <- colnames(missingness_model_matrix_scaled)
   W_hat <- stats::plogis(estimates[K_beta + 1])
   W_hat <- min(max(W_hat, 1e-12), 1 - 1e-12)
-
-# For survey designs the parameter vector includes lambda_W after z
+# For survey designs the parameter vector includes lambda_W explicitly after z;
+# for IID designs lambda_W is derived from (N_pop, sum(weights)).
   if (!is.null(lambda_W)) {
     lambda_hat <- if (K_aux > 0) estimates[(K_beta + 3):length(estimates)] else numeric(0)
   } else {
     lambda_hat <- if (K_aux > 0) estimates[(K_beta + 2):length(estimates)] else numeric(0)
   }
-
   eta_i_hat <- as.vector(missingness_model_matrix_scaled %*% beta_hat_scaled)
+# Clip eta consistently with equations/Jacobian for diagnostic coherence
   ETA_CAP <- get_eta_cap()
   eta_i_hat_capped <- pmax(pmin(eta_i_hat, ETA_CAP), -ETA_CAP)
   w_i_hat <- family$linkinv(eta_i_hat_capped)
@@ -158,6 +177,7 @@ el_post_solution <- function(estimates,
   }
   if (K_aux > 0) {
     if (is.null(X_centered)) {
+# Fallback centering (should be provided by caller for efficiency)
       X_centered <- sweep(auxiliary_matrix_scaled, 2, mu_x_scaled, "-")
     }
     Xc_lambda <- as.vector(X_centered %*% lambda_hat)
@@ -178,7 +198,7 @@ el_post_solution <- function(estimates,
   list(
     error = FALSE,
     y_hat = y_hat,
-    weights = masses$mass_trimmed,
+    weights = masses$mass_trimmed, # Store unnormalized (trimmed) EL masses as single source of truth
     mass_untrim = masses$mass_untrim,
     trimmed_fraction = masses$trimmed_fraction,
     beta_hat_scaled = beta_hat_scaled,
@@ -192,7 +212,7 @@ el_post_solution <- function(estimates,
   )
 }
 
-#' Build starting values
+#' Build starting values for the EL solver (beta, z, lambda)
 #' @keywords internal
 el_build_start <- function(missingness_model_matrix_scaled,
                            auxiliary_matrix_scaled,
@@ -230,7 +250,7 @@ el_build_start <- function(missingness_model_matrix_scaled,
   list(init = init, init_beta = init_beta, init_z = init_z, init_lambda = init_lambda)
 }
 
-#' Prepare nleqslv args
+#' Prepare nleqslv top-level args and control
 #' @keywords internal
 el_prepare_nleqslv <- function(control) {
   control_top <- validate_nleqslv_top(extract_nleqslv_top(control))
@@ -239,7 +259,7 @@ el_prepare_nleqslv <- function(control) {
   list(top = control_top, control = final_control)
 }
 
-#' Compute diagnostics
+#' Compute diagnostics at the EL solution
 #' @keywords internal
 el_compute_diagnostics <- function(estimates,
                                    equation_system_func,
@@ -250,6 +270,7 @@ el_compute_diagnostics <- function(estimates,
                                    K_beta,
                                    K_aux,
                                    X_centered) {
+# Equation residuals and Jacobian conditioning
   eq_residuals <- tryCatch(equation_system_func(estimates), error = function(e) rep(NA_real_, length(estimates)))
   max_eq_resid <- suppressWarnings(max(abs(eq_residuals), na.rm = TRUE))
   A_condition <- tryCatch({ kappa(analytical_jac_func(estimates)) }, error = function(e) NA_real_)
@@ -272,6 +293,7 @@ el_compute_diagnostics <- function(estimates,
     p_floor = mean(denom_hat <= denom_floor)
   )
 
+# Constraint summaries using untrimmed masses (m_i = d_i / D_i)
   cons <- tryCatch(
     constraint_summaries(post$w_i_hat, post$W_hat, post$mass_untrim, X_centered),
     error = function(e) {
@@ -321,7 +343,7 @@ el_compute_diagnostics <- function(estimates,
   )
 }
 
-#' Variance driver
+#' Variance driver for EL (bootstrap or none)
 #' @keywords internal
 el_compute_variance <- function(y_hat,
                                 full_data,
@@ -350,7 +372,7 @@ el_compute_variance <- function(y_hat,
       start = start,
       family = family
     )
-
+# Construct a local estimator closure to avoid cross-namespace calls
     est_closure <- function(data, formula, engine_args, ...) {
       engine_args$variance_method <- "none"
       eng <- do.call(el_engine, engine_args)
@@ -374,6 +396,6 @@ el_compute_variance <- function(y_hat,
       return(list(se = NA_real_, message = boot_try$message))
     }
   }
-
+# Unknown method -> treat as none (defensive)
   list(se = NA_real_, message = sprintf("Unknown variance method '%s'", as.character(variance_method)))
 }

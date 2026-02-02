@@ -1,7 +1,7 @@
-#' Nonparametric exponential tilting engine for NMAR
+#' Nonparametric exponential tilting (EM) engine for NMAR
 #'
 #' Constructs a configuration for the nonparametric exponential tilting estimator
-#' under nonignorable nonresponse.
+#' under nonignorable nonresponse (NMAR).
 #' This engine implements the "Fully Nonparametric Approach" from **Appendix 2**
 #' of Riddles et al. (2016). The estimator uses an
 #' Expectation-Maximization (EM) algorithm to directly estimate the

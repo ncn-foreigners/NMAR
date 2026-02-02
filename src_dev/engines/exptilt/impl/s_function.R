@@ -19,6 +19,9 @@ s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta) {
 
   } else if (delta == 0) {
 # Unobserved case: use outer product to avoid expansion
+# Goal: compute score for each (x[i], y[j]) pair
+# score[row, param] where row = (i-1)*n_y1 + j (expanded index)
+
     x_mat <- as.matrix(x)
     y_vec <- as.vector(model$y_1)
     n_x0 <- nrow(x_mat)
@@ -31,7 +34,7 @@ s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta) {
     theta_delta <- if (p_delta > 0) theta_numeric[2:(1 + p_delta)] else numeric(0)
     theta_y <- theta_numeric[p]
 
-# Compute eta[i,j]
+# Compute eta[i,j] using outer product
     if (p_delta > 0) {
       x_contrib <- theta_intercept + as.vector(x_mat %*% theta_delta)
     } else {
@@ -47,7 +50,8 @@ s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta) {
 # Score factor: -pi_deriv / (1 - pi)
     score_factor <- -pi_deriv_matrix / one_minus_pi_safe # n_x0 × n_y1
 
-# expanded output: (n_x0 * n_y1) × p matrix
+# Now create expanded output: (n_x0 * n_y1) × p matrix
+# Row ordering: all j for i=1, then all j for i=2, etc.
     n_expanded <- n_x0 * n_y1
     result_matrix <- matrix(0, nrow = n_expanded, ncol = p)
 
@@ -57,12 +61,16 @@ s_function.nmar_exptilt <- function(model, delta, x, theta = model$theta) {
 # Parameters 2 to (1+p_delta): Delta coefficients
     if (p_delta > 0) {
       for (k in 1:p_delta) {
-        score_k <- score_factor * x_mat[, k]
+# score[i,j,k] = score_factor[i,j] * x[i,k]
+# Multiply each row i of score_factor by x[i,k]
+        score_k <- score_factor * x_mat[, k] # R recycles x_mat[,k] across columns
         result_matrix[, 1 + k] <- as.vector(t(score_k))
       }
     }
 
-# Y coefficient
+# Last parameter: Y coefficient
+# score[i,j,p] = score_factor[i,j] * y[j]
+# Multiply each column j of score_factor by y[j]
     score_y <- sweep(score_factor, 2, y_vec, "*")
     result_matrix[, p] <- as.vector(t(score_y))
 

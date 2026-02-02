@@ -1,7 +1,7 @@
 et_np_validate_df <- function(X, Y, Z, refuse_col) {
 
-
-
+# --- Helper function and checks for empty data frames ---
+# We define "empty" as NULL, or having 0 rows, or 0 columns
   is_df_empty <- function(df) {
     is.null(df) || nrow(df) == 0 || ncol(df) == 0
   }
@@ -10,7 +10,7 @@ et_np_validate_df <- function(X, Y, Z, refuse_col) {
   is_Y_empty <- is_df_empty(Y)
   is_Z_empty <- is_df_empty(Z)
 
-# --- validate 'refuse_col' ---
+# --- 1. Validate 'refuse_col' itself ---
 # Must be a single, non-empty, non-NA string
   if (is.null(refuse_col) ||
       !is.character(refuse_col) ||
@@ -21,24 +21,30 @@ et_np_validate_df <- function(X, Y, Z, refuse_col) {
                "non-empty, non-NA string."))
   }
 
-# --- validate column names (disjoint sets) ---
+# --- 2. Validate Column Names (Disjoint Sets) ---
+# Colnames across all *non-empty* dfs + refuse_col must be unique.
 
   all_sets <- list()
   if (!is_X_empty) all_sets$X <- colnames(X)
   if (!is_Y_empty) all_sets$Y <- colnames(Y)
   if (!is_Z_empty) all_sets$Z <- colnames(Z)
 
+# Add the refuse_col as its own "set"
   all_sets$refuse <- refuse_col
 
+# Combine all names into a single vector
   all_names_vector <- unlist(all_sets, use.names = FALSE)
 
+# Check if the length of unique names is less than the total length
+# (or, more simply, if any are duplicated)
   if (any(duplicated(all_names_vector))) {
     duplicates <- unique(all_names_vector[duplicated(all_names_vector)])
     stop(paste("Validation Error (2): Column names and 'refuse_col' must be disjoint.",
                "Found shared names:", paste(duplicates, collapse = ", ")))
   }
 
-# --- no NA values in any data frame ---
+# --- 3. No NA values in any data frame ---
+# This check only applies to non-empty data frames.
 
   if (!is_X_empty && any(is.na(X))) {
     stop("Validation Error (3): X contains NA values.")
@@ -52,7 +58,9 @@ et_np_validate_df <- function(X, Y, Z, refuse_col) {
     stop("Validation Error (3): Z contains NA values.")
   }
 
-# --- no non-finite values in numeric inputs ---
+# --- 3b. No non-finite values in numeric inputs ---
+# After ruling out NA, also reject Inf/-Inf/NaN to avoid silent propagation
+# through likelihood and EM steps.
 
   if (!is_X_empty && any(!is.finite(as.matrix(X)))) {
     stop("Validation Error (3b): X contains non-finite values.")
@@ -62,7 +70,8 @@ et_np_validate_df <- function(X, Y, Z, refuse_col) {
     stop("Validation Error (3b): Y contains non-finite values.")
   }
 
-# --- all columns (expect Z) must be numeric ---
+# --- 4. All columns (Expect Z) must be numeric ---
+# This check only applies to non-empty data frames.
 
   if (!is_X_empty && !all(sapply(X, is.numeric))) {
     stop("Validation Error (4): Not all columns in X are numeric.")

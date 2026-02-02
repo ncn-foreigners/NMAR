@@ -72,6 +72,7 @@ exptilt.data.frame <- function(data, formula,
   n_nonresp <- length(nonrespondent_idx)
 
   sampling_performed <- FALSE
+# sampled_idx initially entire dataset
   sampled_idx <- seq_len(n_total)
   original_n_total <- n_total
   original_n_resp <- n_resp
@@ -136,7 +137,7 @@ exptilt.data.frame <- function(data, formula,
     original_n_nonresp = original_n_nonresp
   )
 
-
+# Create verboser
   model$verboser <- create_verboser(trace_level)
 
   class(model) <- "nmar_exptilt"
@@ -197,7 +198,7 @@ exptilt_fit_model <- function(data, model, ...) {
   verboser(sprintf("  Respondents:             %d (%.1f%%)", model$original_n_resp, 100 - pct_nonresp), level = 1)
   verboser(sprintf("  Non-respondents:         %d (%.1f%%)", model$original_n_nonresp, pct_nonresp), level = 1)
 
-
+# Display sampling information if sampling was performed
   if (isTRUE(model$sampling_performed)) {
     verboser("", level = 1)
     verboser("-- STRATIFIED SAMPLING --", level = 1)
@@ -236,6 +237,8 @@ exptilt_fit_model <- function(data, model, ...) {
   verboser(sprintf("  Outcome density:         %s", model$y_dens), level = 2)
   verboser(sprintf("  Standardization:         %s", if (model$standardize) "enabled" else "disabled"), level = 2)
 
+# When scaling we only want respondent rows to contribute; pass a mask so the
+# helper can zero-out nonrespondents without reallocating weights
 
   scaling_result <- validate_and_apply_nmar_scaling(
     standardize = model$standardize,
@@ -273,7 +276,7 @@ exptilt_fit_model <- function(data, model, ...) {
   verboser("-- PARAMETER INITIALIZATION --", level = 2)
   verboser(sprintf("  Number of parameters:    %d", length(model$theta)), level = 2)
 
-
+# Pretty print theta with meaningful names at level 3
   if (model$verboser("", level = 3, type = "detail") != invisible(NULL) || TRUE) {
     verboser("  Initial values:", level = 3)
     theta_names <- names(model$theta)
@@ -306,7 +309,7 @@ exptilt_fit_model <- function(data, model, ...) {
   verboser(sprintf("  Selected distribution:   %s", model$chosen_y_dens), level = 1)
   verboser(sprintf("  Density parameters:      %d", model$density_num_of_coefs), level = 2)
 
-
+# Show density model details at level 3
   if (!is.null(dens_response$density_model)) {
     verboser("  Fitted density model summary:", level = 3)
     verboser("", level = 3, obj = summary(dens_response$density_model))
@@ -360,6 +363,7 @@ exptilt_estimator_core <- function(data, model, ...) {
     return(result)
   }
 
+# Use nleqslv with user-provided control parameters
   nleqslv_args <- list(
     x = model$theta,
     fn = target_function
@@ -453,7 +457,9 @@ exptilt_estimator_core <- function(data, model, ...) {
 
   model$data_for_y_obs <- model$data_1[, model$cols_y_observed, drop = FALSE]
   model$data_for_y_unobs <- model$data_0[, model$cols_y_observed, drop = FALSE]
-
+# From this point the feature matrices are on the original (unscaled) space
+# density helpers will internally re-apply the scaling recipe captured during
+# model fitting so that gamma_hat remains consistent
   model$features_are_scaled <- FALSE
 
 
@@ -541,7 +547,20 @@ exptilt_estimator_core <- function(data, model, ...) {
 # bootstrap_model$verbose <- FALSE
       bootstrap_model$trace_level = 0
 
+# If 'data' is a survey.design, extract variables and weights to reuse the
+# unified data.frame path (avoids recursion and enforces consistent internals)
+# if(model$is_survey) {
+#   # design_vars <- data$variables
+#   # design_weights <- as.numeric(stats::weights(data))
+#   # bootstrap_model$is_survey <- TRUE
+#   # bootstrap_model$design <- data
+#   # bootstrap_model$design_weights <- design_weights
+#   # data <- design_vars
+# } else {
+#   bootstrap_model$is_survey <- FALSE
+# }
 
+# Call without passing on_failure explicitly to avoid duplicate argument issues
       call_args <- list(
         data = data,
         model = bootstrap_model

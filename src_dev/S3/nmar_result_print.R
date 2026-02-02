@@ -39,6 +39,7 @@ print.nmar_result <- function(x, ...) {
     cat("\n")
   }
 
+# Display sampling information if stratified sampling was performed
   if (isTRUE(diagnostics$sampling_performed)) {
     cat("Stratified sampling:\n")
     cat(sprintf("  Original size: %d (resp: %d, non-resp: %d)\n",
@@ -59,6 +60,7 @@ print.nmar_result <- function(x, ...) {
 #' @return An object of class `summary_nmar_result`.
 #' @keywords result_view
 #' @export
+
 summary.nmar_result <- function(object, conf.level = 0.95, ...) {
   est <- nmar_result_get_estimate(object)
   se <- nmar_result_get_se(object)
@@ -93,6 +95,7 @@ summary.nmar_result <- function(object, conf.level = 0.95, ...) {
 #' @return `x`, invisibly.
 #' @keywords result_view
 #' @export
+
 print.summary_nmar_result <- function(x, ...) {
   cat("NMAR Model Summary\n")
   cat("=================\n")
@@ -124,6 +127,7 @@ print.summary_nmar_result <- function(x, ...) {
     }
   }
 
+# Display sampling information if available
   if (is.list(x$diagnostics) && isTRUE(x$diagnostics$sampling_performed)) {
     cat("Stratified sampling applied:\n")
     cat(sprintf("  Original data: %d observations (resp: %d, non-resp: %d)\n",

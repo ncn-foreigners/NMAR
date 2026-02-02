@@ -1,8 +1,8 @@
-#' Auxiliary design computation
+#' EL auxiliary design resolution and population means
 #'
 #' Computes the respondent-side auxiliary matrix and the population means vector
 #' used for centering \eqn{X - \mu_x}. When \code{auxiliary_means} is supplied, only
-#' respondent rows are required to be fully observed. NA values are permitted on
+#' respondent rows are required to be fully observed; NA values are permitted on
 #' nonrespondent rows. When \code{auxiliary_means} is \code{NULL}, auxiliaries must be fully
 #' observed in the full data used to estimate population means.
 #'
@@ -70,8 +70,10 @@ el_resolve_auxiliaries <- function(aux_design_full,
 
 #' Strata augmentation for survey designs
 #'
-#' Augments the auxiliary design with strata dummies and appends stratum-share
-#' means when user-supplied \code{auxiliary_means} are present.
+#' Augments the auxiliary design with strata dummies (dropping one level) and
+#' appends stratum-share means when user-supplied \code{auxiliary_means} are
+#' present. This is the Wu-style strategy of adding stratum indicators to the
+#' auxiliary calibration block in pseudo empirical likelihood for surveys.
 #'
 #' @keywords internal
 el_augment_strata_aux <- function(aux_design_full,

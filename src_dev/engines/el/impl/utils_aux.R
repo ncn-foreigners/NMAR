@@ -1,12 +1,20 @@
-#' Check auxiliary means consistency against respondents sample support.
+#' EL utility helpers
+#'
+#' Internal helpers for auxiliary consistency checks and shared validation
+#' routines used during input parsing.
+#' @name el_utils_aux
+#' @keywords internal
+NULL
+
+#' Check auxiliary means consistency against respondents' sample support.
 #'
 #' Computes a simple z-score diagnostic comparing user-supplied auxiliary means
-#' to the respondents' sample means.
+#' to the respondents' sample means. The caller is responsible for comparing the
+#' returned maximum z-score to any desired threshold.
 #'
 #' @param auxiliary_matrix_resp Respondent-side auxiliary design matrix.
 #' @param provided_means Optional named numeric vector of auxiliary means aligned to the matrix columns.
 #' @return list(max_z = numeric(1) or NA, cols = character())
-#'
 #' @keywords internal
 el_check_auxiliary_inconsistency_matrix <- function(auxiliary_matrix_resp, provided_means = NULL) {
   out <- list(max_z = NA_real_, cols = character(0))
@@ -105,7 +113,7 @@ el_validate_matrix <- function(mat,
   stop(msg, call. = FALSE)
 }
 
-#' Validate design dimensions
+#' Validate design spec dimensions
 #' @keywords internal
 el_validate_design_spec <- function(design, data_nrow) {
   mask <- design$respondent_mask

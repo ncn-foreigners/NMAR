@@ -1,26 +1,25 @@
-#' Enforce nonnegativity of weights
+#' Enforce (near-)nonnegativity of weights
 #'
 #' Softly enforces nonnegativity of a numeric weight vector. Large negative
-#' values are treated as errors, while small negative values
-#' are truncated to zero.
+#' values (beyond a tolerance) are treated as errors; small negative values
+#' (for example, from numerical noise) are truncated to zero.
 #'
 #' Values below \code{-tol} are treated as clearly negative. Values in
 #' \code{[-tol, 0)} are clipped to zero.
 #'
 #' @param weights numeric vector of weights.
 #' @param tol numeric tolerance below which negative values are treated as
-#' numerical noise and clipped to zero.
+#'   numerical noise and clipped to zero.
 #' @return A list with components:
-#' \describe{
-#' \item{\code{ok}}{logical; \code{TRUE} if no clearly negative weights
-#' were found.}
-#' \item{\code{message}}{character; diagnostic message when \code{ok} is
-#' \code{FALSE}, otherwise \code{NULL}.}
-#' \item{\code{weights}}{numeric vector of adjusted weights (original if
-#' \code{ok} is \code{FALSE}, otherwise with small negatives clipped to
-#' zero).}
-#' }
-#'
+#'   \describe{
+#'     \item{\code{ok}}{logical; \code{TRUE} if no clearly negative weights
+#'       were found.}
+#'     \item{\code{message}}{character; diagnostic message when \code{ok} is
+#'       \code{FALSE}, otherwise \code{NULL}.}
+#'     \item{\code{weights}}{numeric vector of adjusted weights (original if
+#'       \code{ok} is \code{FALSE}, otherwise with small negatives clipped to
+#'       zero).}
+#'   }
 #' @keywords internal
 enforce_nonneg_weights <- function(weights, tol = 1e-8) {
   if (!is.numeric(weights)) stop("`weights` must be numeric.", call. = FALSE)
@@ -45,7 +44,7 @@ enforce_nonneg_weights <- function(weights, tol = 1e-8) {
 #' preserved. When the requested cap is too tight to preserve the total mass,
 #' all positive entries are set to the cap and the total sum decreases.
 #'
-#' Zero weights remain zero. Only entries that are positive after nonnegativity
+#' Zero weights remain zero; only entries that are positive after nonnegativity
 #' enforcement can absorb redistributed mass.
 #'
 #' Internally, a simple water-filling style algorithm is used on the positive
@@ -54,22 +53,25 @@ enforce_nonneg_weights <- function(weights, tol = 1e-8) {
 #' total sum.
 #'
 #' @param weights numeric vector of weights.
-#' @param cap positive numeric scalar; maximum allowed weight, or \code{Inf} to disable trimming.
-#' @param tol numeric tolerance used when testing whether a rescaling step respects the cap.
-#' @param warn_tol numeric tolerance used when testing whether the total sum has been preserved.
+#' @param cap positive numeric scalar; maximum allowed weight, or \code{Inf}
+#'   to disable trimming.
+#' @param tol numeric tolerance used when testing whether a rescaling step
+#'   respects the cap.
+#' @param warn_tol numeric tolerance used when testing whether the total sum
+#'   has been preserved.
 #' @return A list with components:
-#' \describe{
-#' \item{\code{weights}}{numeric vector of trimmed weights.}
-#' \item{\code{trimmed_fraction}}{fraction of entries at or very close to
-#' the cap (within \code{tol}).}
-#' \item{\code{preserved_sum}}{logical; \code{TRUE} if the total sum of
-#' weights is preserved to within \code{warn_tol}.}
-#' \item{\code{total_before}}{numeric; sum of the original weights.}
-#' \item{\code{total_after}}{numeric; sum of the trimmed weights.}
-#' }
-#'
+#'   \describe{
+#'     \item{\code{weights}}{numeric vector of trimmed weights.}
+#'     \item{\code{trimmed_fraction}}{fraction of entries at or very close to
+#'       the cap (within \code{tol}).}
+#'     \item{\code{preserved_sum}}{logical; \code{TRUE} if the total sum of
+#'       weights is preserved to within \code{warn_tol}.}
+#'     \item{\code{total_before}}{numeric; sum of the original weights.}
+#'     \item{\code{total_after}}{numeric; sum of the trimmed weights.}
+#'   }
 #' @keywords internal
 trim_weights <- function(weights, cap, tol = 1e-12, warn_tol = 1e-8) {
+# Validate inputs.
   if (!is.numeric(weights)) stop("`weights` must be numeric.", call. = FALSE)
   if (length(cap) != 1L || !is.numeric(cap) || is.na(cap) || cap <= 0)
     stop("`cap` must be a single positive number or +Inf.", call. = FALSE)
@@ -87,10 +89,12 @@ trim_weights <- function(weights, cap, tol = 1e-12, warn_tol = 1e-8) {
     ))
   }
 
+# Nonnegativity (soft enforcement).
   nn <- enforce_nonneg_weights(weights)
   if (!nn$ok) stop(nn$message, call. = FALSE)
   w <- nn$weights
 
+# No cap: return original nonnegative weights.
   if (is.infinite(cap)) {
     tot <- sum(w)
     return(list(
@@ -116,7 +120,7 @@ trim_weights <- function(weights, cap, tol = 1e-12, warn_tol = 1e-8) {
     ))
   }
 
-# Only entries that are originally positive can absorb mass.
+# Feasibility: only entries that are (originally) positive can absorb mass.
 # If total mass exceeds the maximum that can be assigned to these positions
 # under the cap, the total cannot be preserved.
   if (total > mpos * cap + warn_tol) {
@@ -135,11 +139,11 @@ trim_weights <- function(weights, cap, tol = 1e-12, warn_tol = 1e-8) {
     ))
   }
 
-# Water-filling on positive subset: search over the number of the
-# capped entries and a common scaling factor for the remaining ones so
-# that the total sum is preserved and no weight exceeds the cap
+# Water-filling on positive subset: search over the number of saturated
+# (capped) entries and a common scaling factor for the remaining ones so
+# that the total sum is preserved and no weight exceeds the cap.
   v <- w[pos_idx]
-# Threshold t_i is the scaling factor at which weight i hits the cap
+# Threshold t_i is the scaling factor at which weight i hits the cap.
   t <- cap / v
   ord <- order(t) # increasing thresholds
   v <- v[ord]; t <- t[ord]
@@ -152,7 +156,7 @@ trim_weights <- function(weights, cap, tol = 1e-12, warn_tol = 1e-8) {
     denom <- suf[k + 1L]
     s_k <- (total - k * cap) / denom
     if (s_k <= t[k + 1L] + tol) {
-# In feasible cases, preserving the total requires a scaling factor >= 1
+# In feasible cases, preserving the total requires a scaling factor >= 1.
       s <- max(s_k, 1)
       k_cap <- k
       break

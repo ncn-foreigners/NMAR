@@ -15,8 +15,8 @@ test_that("EL handles factor auxiliaries and response predictors; intercept poli
   nonresp <- which(is.na(df2$Y_miss))[1]
   df2$G[nonresp] <- NA
   eng <- el_engine(auxiliary_means = c(X = 0, Ga = 0, Gb = 0, Gc = 0), variance_method = "none")
-# Use a model where RHS expands factor(G) in auxiliaries, extra auxiliary_means
-# names (e.g., Ga) are ignored with a warning
+# Use a model where RHS expands factor(G) in auxiliaries; extra auxiliary_means
+# names (e.g., Ga) are ignored with a warning.
   expect_warning(
     fit <- nmar(Y_miss ~ X + G | Z, data = df2, engine = eng),
     regexp = "Ignoring unused names in 'auxiliary_means'",
