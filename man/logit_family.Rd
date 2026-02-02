@@ -2,15 +2,15 @@
 % Please edit documentation in R/shared_families.R
 \name{logit_family}
 \alias{logit_family}
-\title{Construct a logit response family bundle}
+\title{Construct logit response family}
 \usage{
 logit_family()
 }
 \value{
 A list with components \code{name}, \code{linkinv}, \code{mu.eta},
-  \code{d2mu.deta2}, and \code{score_eta}.
+\code{d2mu.deta2}, and \code{score_eta}.
 }
 \description{
-Construct a logit response family bundle
+Construct logit response family
 }
 \keyword{internal}

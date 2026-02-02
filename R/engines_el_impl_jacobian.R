@@ -1,26 +1,8 @@
-#' Analytical Jacobian for empirical likelihood
-#' @details Builds the block Jacobian \eqn{A = \partial F/\partial \theta} for the
-#'   EL system with \eqn{\theta = (\beta, z, \lambda_x)} and \eqn{z = \operatorname{logit}(W)}.
-#'   Blocks follow Qin, Leung, and Shao (2002, Eqs. 7-10). The derivative with
-#'   respect to the linear predictor for the missingness (response) model uses the Bernoulli score form
-#'   \eqn{\partial/\partial\eta\, \log w(\eta) = \mu.\eta(\eta)/w(\eta)} with
-#'   link-inverse clipping. Denominator guards are applied consistently when
-#'   forming terms depending on \eqn{D_i(\theta)}.
+#' Empirical likelihood analytical jacobian for srs
 #'
-#'   \strong{Guarding policy (must remain consistent across equations/Jacobian/post):}
-#'   \itemize{
-#'     \item Cap \eqn{\eta}:
-#'       \code{eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())}.
-#'     \item Compute \code{w <- family$linkinv(eta)} and clip to
-#'       \code{[1e-12, 1 - 1e-12]} when used in ratios.
-#'     \item Denominator floor:
-#'       \code{Di <- pmax(Di_raw, nmar_get_el_denom_floor())}. Terms that depend
-#'       on \code{d(1/Di)/d(.)} are multiplied by \code{active = 1(Di_raw > floor)}
-#'       to match the clamped equations.
-#'   }
-#'
-#' @references Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
-#' nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
+#' Builds the block Jacobian \eqn{A = \partial F/\partial \theta} for the
+#' EL system with \eqn{\theta = (\beta, z, \lambda_x)} and \eqn{z = \operatorname{logit}(W)}.
+#' Blocks follow QLS equations 7-10.
 #'
 #' @keywords internal
 el_build_jacobian <- function(family, missingness_model_matrix, auxiliary_matrix,
@@ -51,10 +33,11 @@ el_build_jacobian <- function(family, missingness_model_matrix, auxiliary_matrix
     mu_x_scaled_vec <- as.numeric(mu_x_scaled[colnames(auxiliary_matrix_mat)])
     names(mu_x_scaled_vec) <- colnames(auxiliary_matrix_mat)
   }
-# Precompute centered auxiliary design once (avoids per-call sweep)
+
   X_centered_base <- if (K_aux > 0) sweep(auxiliary_matrix_mat, 2, mu_x_scaled_vec, "-") else NULL
   C_const <- (N_pop / n_resp_weighted) - 1
   ETA_CAP <- get_eta_cap()
+
   function(params) {
     if (length(params) != (K_beta + 1 + K_aux)) stop("Parameter vector length mismatch.")
     beta_vec <- as.numeric(params[1:K_beta])
@@ -74,7 +57,7 @@ el_build_jacobian <- function(family, missingness_model_matrix, auxiliary_matrix
     mu_eta_i <- eta_state$mu_eta
     d2mu_eta2_i <- eta_state$d2mu
     X_centered <- if (K_aux > 0) X_centered_base else NULL
-# QLS Eq. (5): Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
+# QLS eq. 5: Di = 1 + lambda_W * (w_i - W) + (Xc %*% lambda_x)
     Xc_lambda <- if (K_aux > 0) as.vector(X_centered %*% lambda_x) else 0
     dpack <- el_denominator(lambda_W, W_bounded, Xc_lambda, w_i, nmar_get_el_denom_floor())
     denominator <- dpack$denom
@@ -83,10 +66,10 @@ el_build_jacobian <- function(family, missingness_model_matrix, auxiliary_matrix
     active <- dpack$active
     dden_dTheta <- active * (d_lambda_W_dTheta * (w_i - W_bounded) - lambda_W * dWb_dTheta)
     dden_deta <- active * (lambda_W * mu_eta_i)
-# Score wrt eta and its derivative (via shared core helper)
+# Score wrt eta and its derivative
     s_eta_i <- eta_state$s_eta
     ds_eta_deta <- eta_state$ds_eta_deta
-# beta block term (QLS Eq. 9)
+# beta block term (QLS eq. 9)
     beta_eq_term <- s_eta_i - lambda_W * mu_eta_i * inv_denom
 # Respect denominator floor: terms depending on d(1/Di)/deta vanish when clamped
     d_betaeq_deta <- ds_eta_deta - lambda_W * d2mu_eta2_i * inv_denom + active * (lambda_W^2) * (mu_eta_i^2) * inv_denom_sq
@@ -107,7 +90,7 @@ el_build_jacobian <- function(family, missingness_model_matrix, auxiliary_matrix
     full_mat[idx_beta, idx_W] <- as.numeric(j12_vec)
 # J13: d beta eqs / d lambda
     if (K_aux > 0) {
-# Respect denominator floor via 'active' mask
+# Respect denominator floor via active mask
       d_betaeq_dlambda_mat <- active * lambda_W * mu_eta_i * inv_denom_sq * X_centered
       full_mat[idx_beta, idx_lambda] <- shared_weighted_XtY(missingness_model_matrix, respondent_weights, as.matrix(d_betaeq_dlambda_mat))
     }
@@ -129,10 +112,10 @@ el_build_jacobian <- function(family, missingness_model_matrix, auxiliary_matrix
 # J32: d aux eq / d W
       term32 <- -dden_dTheta * inv_denom_sq
       full_mat[idx_lambda, idx_W] <- as.numeric(shared_weighted_Xty(X_centered, respondent_weights, term32))
-# J33: d aux eq / d lambda (SPD, negative definite of weighted Gram)
+# J33: d aux eq / d lambda (negative definite of weighted Gram)
       full_mat[idx_lambda, idx_lambda] <- -shared_weighted_gram(X_centered, as.numeric(respondent_weights * (inv_denom_sq * active)))
     }
-# Optional names (kept minimal to reduce overhead)
+
     param_names <- c(colnames(missingness_model_matrix), "(W) (logit)", if (K_aux > 0) paste0("lambda_", colnames(auxiliary_matrix_mat)) else NULL)
     if (!is.null(param_names) && length(param_names) == ncol(full_mat)) {
       colnames(full_mat) <- rownames(full_mat) <- param_names
@@ -141,25 +124,11 @@ el_build_jacobian <- function(family, missingness_model_matrix, auxiliary_matrix
   }
 }
 
-#' Analytical Jacobian for survey EL system (design-weighted QLS analogue)
+#' Empirical likelihood analytical jacobian for survey designs
 #'
 #' @details Builds the block Jacobian \eqn{A = \partial g/\partial \theta} for the
-#'   survey EL system with \eqn{\theta = (\beta, z, \lambda_W, \lambda_x)} and
-#'   \eqn{z = \operatorname{logit}(W)}. Blocks follow the design-weighted analogue
-#'   of Qin, Leung, and Shao (2002) used in \code{el_build_equation_system_survey()}.
-#'   Guarding policy matches the IID Jacobian:
-#'   \itemize{
-#'     \item cap eta: \code{eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())}
-#'     \item compute \code{w <- family$linkinv(eta)} and clip to \code{[1e-12, 1-1e-12]}
-#'       when used in ratios
-#'     \item denominator floor: \code{Di <- pmax(Di_raw, nmar_get_el_denom_floor())};
-#'       multiply terms depending on \code{d(1/Di)/d(.)} by \code{active = 1(Di_raw > floor)}
-#'   }
-#'
-#'   The Jacobian uses the same score and second-derivative machinery as
-#'   \code{el_build_jacobian()}; when \code{family$d2mu.deta2} is missing, this
-#'   function returns \code{NULL} and the solver falls back to numeric/Broyden
-#'   Jacobians.
+#' survey EL system with \eqn{\theta = (\beta, z, \lambda_W, \lambda_x)}
+#' and \eqn{z = \operatorname{logit}(W)}.
 #'
 #' @keywords internal
 el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary_matrix,
@@ -196,9 +165,11 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
     mu_x_scaled_vec <- as.numeric(mu_x_scaled[colnames(auxiliary_matrix_mat)])
     names(mu_x_scaled_vec) <- colnames(auxiliary_matrix_mat)
   }
+
   X_centered_base <- if (K_aux > 0) sweep(auxiliary_matrix_mat, 2, mu_x_scaled_vec, "-") else NULL
   T0 <- N_pop - n_resp_weighted
   ETA_CAP <- get_eta_cap()
+
   function(params) {
     expected_len <- K_beta + 1L + 1L + K_aux
     if (length(params) != expected_len) {
@@ -226,11 +197,11 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
     inv_denom_sq <- dpack$inv_sq
     active <- dpack$active
 
-# Score wrt eta and its derivative (same pattern as IID Jacobian)
+# Score wrt eta and its derivative
     s_eta_i <- eta_state$s_eta
     ds_eta_deta <- eta_state$ds_eta_deta
 
-# Precompute some terms
+# Precompute
     w_minus_W <- w_i - W_bounded
 # g_beta block: g_beta = sum d_i x_i [s_eta_i - lambda_W * mu_eta_i / D_i]
     beta_eq_term <- s_eta_i - lambda_W * mu_eta_i * inv_denom
@@ -254,8 +225,8 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
     idx_lambdaW <- K_beta + 2L
     idx_lambda_x <- if (K_aux > 0) (K_beta + 3L):p_dim else integer(0)
 
-# Equation row indices (equations are ordered as in el_build_equation_system_survey):
-#   [beta equations] [W constraint] [aux constraints] [W link]
+# equations are ordered as in el_build_equation_system_survey:
+# [beta equations] [W constraint] [aux constraints] [W link]
     idx_eq_beta <- idx_beta
     idx_eq_W <- idx_z
     idx_eq_aux <- if (K_aux > 0) (K_beta + 2L):(K_beta + 1L + K_aux) else integer(0)
@@ -335,9 +306,8 @@ el_build_jacobian_survey <- function(family, missingness_model_matrix, auxiliary
       t(shared_weighted_Xty(missingness_model_matrix, respondent_weights, term_link_beta))
     )
 # J_link,z: d/dz[T0/(1-W) - lambda_W * S(z)]
-# First term: T0 * dW_dz / (1-W)^2 (reduces to T0 * W/(1-W) when W is not clamped);
-# second term: -lambda_W * dS/dz with
-# dS/dz = sum d_i * lambda_W * dW_dz * active / D_i^2.
+# First term: T0 * dW_dz / (1-W)^2 reduces to T0 * W/(1-W) when W is not clamped
+# second term: -lambda_W * dS/dz with dS/dz = sum d_i * lambda_W * dW_dz * active / D_i^2
     term_link_z_S <- lambda_W^2 * dW_dz * inv_denom_sq * active
     dS_dz <- sum(respondent_weights * term_link_z_S)
     term_link_z_T0 <- T0 * dW_dz / ((1 - W_bounded)^2)

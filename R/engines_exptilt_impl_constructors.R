@@ -26,9 +26,7 @@ new_nmar_result_exptilt <- function(estimate, se, coefficients
     original_n_nonresp = model$original_n_nonresp %||% NA_integer_
   )
 
-# The unified data-frame/survey path populates model$is_survey, we also
-# honor designs that arrive directly via the survey method so result
-# metadata reflects the original call
+
   is_survey <- isTRUE(model$is_survey) || inherits(model$design, "survey.design")
   sample <- list(
     n_total = n_total,
@@ -93,7 +91,7 @@ new_nmar_result_exptilt <- function(estimate, se, coefficients
       loss_value = model$loss_value,
       iterations = model$iterations,
       fitted_values = fitted_vals,
-      raw = list(model = model) # allow post-hoc diagnostics (e.g. score checks)
+      raw = list(model = model)
     ),
     class = "nmar_result_exptilt"
   )

@@ -7,14 +7,12 @@
 apply_nmar_scaling(matrix_to_scale, recipe)
 }
 \arguments{
-\item{matrix_to_scale}{A numeric matrix with column names present in
-\code{recipe}.}
+\item{matrix_to_scale}{A numeric matrix with column names present in \code{recipe}.}
 
 \item{recipe}{An object of class \code{nmar_scaling_recipe}.}
 }
 \value{
-A numeric matrix with each column centered and scaled using
-  \code{recipe}.
+A numeric matrix with each column centered and scaled using \code{recipe}.
 }
 \description{
 Apply scaling to a matrix using a recipe

@@ -2,11 +2,11 @@
 % Please edit documentation in R/engines_el_impl_utils_aux.R
 \name{el_validate_design_spec}
 \alias{el_validate_design_spec}
-\title{Validate design spec dimensions}
+\title{Validate design dimensions}
 \usage{
 el_validate_design_spec(design, data_nrow)
 }
 \description{
-Validate design spec dimensions
+Validate design dimensions
 }
 \keyword{internal}

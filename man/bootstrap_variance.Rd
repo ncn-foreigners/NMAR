@@ -2,7 +2,7 @@
 % Please edit documentation in R/shared_bootstrap.R
 \name{bootstrap_variance}
 \alias{bootstrap_variance}
-\title{Shared bootstrap variance helpers}
+\title{Bootstrap variance estimation module}
 \usage{
 bootstrap_variance(data, estimator_func, point_estimate, ...)
 }
@@ -18,96 +18,68 @@ component \code{y_hat} and an optional logical component \code{converged}.}
 \item{...}{Additional arguments. Some are consumed by \code{bootstrap_variance()}
 itself (for example \code{resample_guard} for IID bootstrap or
 \code{bootstrap_settings}/\code{bootstrap_options}/\code{bootstrap_type}/\code{bootstrap_mse}
-for survey bootstrap); remaining arguments are forwarded to \code{estimator_func}.}
+or survey bootstrap). Remaining arguments are forwarded to \code{estimator_func}.}
 }
 \description{
-Internal helpers to estimate the variance of a scalar estimator
-  via bootstrap resampling (IID data) or bootstrap replicate weights
-  (survey designs). Designed to be reused across NMAR engines.
+Estimates the variance of a scalar estimator via bootstrap
+resampling for IID data or bootstrap replicate weights for survey designs.
 }
 \details{
 \itemize{
-    \item For \code{data.frame} inputs, performs IID bootstrap by resampling
-      rows and rerunning \code{estimator_func} on each resample, then
-      computing the empirical variance of the replicate estimates.
-    \item For \code{survey.design} inputs, converts the design to a bootstrap
-      replicate-weight design with \code{svrep::as_bootstrap_design()},
-      evaluates \code{estimator_func} on each replicate weight vector (by
-      injecting the replicate analysis weights into a copy of the input design), and
-      passes the resulting replicate estimates and replicate scaling factors
-      to \code{survey::svrVar()}.
-  }
-
-  \code{estimator_func} is typically an engine-level estimator (for example
-  the EL engine) and is called with the same arguments used for the point
-  estimate, except that the \code{data} argument is replaced by the resampled
-  data (IID) or a replicate-weighted \code{survey.design} (survey). Arguments
-  reserved for the bootstrap implementation are stripped from \code{...}
-  before forwarding.
+\item For \code{data.frame} inputs, performs IID bootstrap by resampling
+rows and rerunning \code{estimator_func} on each resample, then
+computing the empirical variance of the replicate estimates.
+\item For \code{survey.design} inputs, converts the design to a bootstrap
+replicate-weight design with \code{svrep::as_bootstrap_design()},
+evaluates \code{estimator_func} on each replicate weight vector by
+injecting the replicate analysis weights into a copy of the input design,
+and passes the resulting replicate estimates and replicate scaling factors
+to \code{survey::svrVar()}.
+}
 }
 \section{Bootstrap-specific options}{
 
-  \describe{
-    \item{\code{resample_guard}}{IID bootstrap only. A function
-      \code{function(indices, data)} that returns \code{TRUE} to accept a
-      resample and \code{FALSE} to reject it.}
-    \item{\code{bootstrap_settings}}{Survey bootstrap only. A list of
-      arguments forwarded to \code{svrep::as_bootstrap_design()}.}
-    \item{\code{bootstrap_options}}{Alias for \code{bootstrap_settings}.}
-    \item{\code{bootstrap_type}}{Shortcut for the \code{type} argument to
-      \code{svrep::as_bootstrap_design()}.}
-    \item{\code{bootstrap_mse}}{Shortcut for the \code{mse} argument to
-      \code{svrep::as_bootstrap_design()}.}
-  }
+\describe{
+\item{\code{resample_guard}}{IID bootstrap only. A function
+\code{function(indices, data)} that returns \code{TRUE} to accept a resample
+and \code{FALSE} to reject it.}
+\item{\code{bootstrap_settings}}{A list of arguments forwarded to \code{svrep::as_bootstrap_design()}.}
+\item{\code{bootstrap_options}}{Alias for \code{bootstrap_settings}.}
+\item{\code{bootstrap_type}}{The \code{type} argument for \code{svrep::as_bootstrap_design()}.}
+\item{\code{bootstrap_mse}}{The \code{mse} argument for \code{svrep::as_bootstrap_design()}.}
+}
 }
 
 \section{Progress Reporting}{
 
-  If the optional \code{progressr} package is installed, bootstrap calls
-  signal progress via a \code{progressr::progressor} inside
-  \code{progressr::with_progress()}. Users control whether progress is shown
-  (and how) by registering handlers with \code{progressr::handlers()}. When
-  \code{progressr} is not installed or no handlers are active, bootstrap runs
-  silently. Progress reporting is compatible with all future backends.
-}
-
-\section{Reproducibility}{
-
-  For reproducible bootstrap results, always set a seed before calling
-  the estimation function:
-
-  \preformatted{
-  set.seed(123)  # Set seed for reproducibility
-  result <- nmar(Y ~ X, data = df,
-                 engine = el_engine(variance_method = "bootstrap",
-                                    bootstrap_reps = 500))
-  }
+If the optional \code{progressr} package is installed, bootstrap calls
+indicate progress via a \code{progressr::progressor} inside
+\code{progressr::with_progress()}. Users control if and how progress is shown
+by registering handlers with \code{progressr::handlers()}. When
+\code{progressr} is not installed or no handlers are active, bootstrap runs
+silently.
 }
 
 \section{Parallelization}{
 
-  By default, bootstrap replicate evaluation runs sequentially via
-  \code{base::lapply()} for both IID resampling and survey replicate-weight
-  bootstrap.
-  If the optional \code{future.apply} package is installed, bootstrap can use
-  \code{future.apply::future_lapply(future.seed = TRUE)} when the user has set
-  a parallel \code{future::plan()}.
-
-  The backend is controlled by the package option \code{nmar.bootstrap_apply}:
-  \describe{
-    \item{\code{"auto"}}{(default) Use \code{base::lapply()} unless the current
-      future plan has more than one worker, in which case use
-      \code{future.apply::future_lapply()} if available.}
-    \item{\code{"base"}}{Always use \code{base::lapply()} (never use
-      \code{future.apply}, even if installed).}
-    \item{\code{"future"}}{Always use \code{future.apply::future_lapply()}
-      (requires \code{future.apply} to be installed).}
-  }
-
-  When \code{future.apply} is used, random-number streams are parallel-safe and
-  backend-independent under the \code{future} framework. When \code{base::lapply()}
-  is used, results are reproducible under \code{set.seed()} but will not match
-  the \code{future.seed} streams.
+By default, bootstrap replicate evaluation runs sequentially via
+\code{base::lapply()} for both IID resampling and survey replicate-weight bootstrap.
+If the optional \code{future.apply} package is installed, bootstrap can use
+\code{future.apply::future_lapply(future.seed = TRUE)} when the user has set
+a parallel \code{future::plan()}.
+The backend is controlled by the package option \code{nmar.bootstrap_apply}:
+\describe{
+\item{\code{"auto"}}{(default) Use \code{base::lapply()} unless the current
+future plan has more than one worker, in which case use
+\code{future.apply::future_lapply()} if available.}
+\item{\code{"base"}}{Always use \code{base::lapply()}, even
+if \code{future.apply} is installed.}
+\item{\code{"future"}}{Always use \code{future.apply::future_lapply()}.}
+}
+When \code{future.apply} is used, random-number streams are parallel-safe and
+backend-independent under the \code{future} framework. When \code{base::lapply()}
+is used, results are reproducible under \code{set.seed()} but will
+likely not match the \code{future.seed} streams.
 }
 
 \keyword{internal}

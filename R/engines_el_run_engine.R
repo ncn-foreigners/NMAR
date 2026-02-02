@@ -5,12 +5,10 @@
 #' @param data A \code{data.frame} or \code{survey.design}.
 #' @param trace_level Integer 0-3 controlling verbosity.
 #'
-#' @return An object of class \code{nmar_result_el} (which also inherits from
-#'   \code{nmar_result}).
+#' @return An object of class \code{nmar_result_el}.
 #' @keywords internal
 #' @exportS3Method run_engine nmar_engine_el
 run_engine.nmar_engine_el <- function(engine, formula, data, trace_level = 0) {
-# Build argument list for EL implementation directly from engine config
   args <- list(
     data = data,
     formula = formula,
@@ -31,17 +29,15 @@ run_engine.nmar_engine_el <- function(engine, formula, data, trace_level = 0) {
     args$strata_augmentation <- engine$strata_augmentation %||% TRUE
   }
 
-# Dispatch to EL implementation (data.frame or survey.design)
   res <- do.call(el, args)
 
-# Ensure class includes the NMAR parent for downstream compatibility
   if (!inherits(res, "nmar_result_el")) {
     stop("EL engine did not return an 'nmar_result_el' object.")
   }
-# Preserve the engine-level call. The outer nmar() wrapper overwrites meta$call.
   if (is.list(res$meta)) {
     engine_call <- res$meta$call %||% NULL
     res$meta$engine_call <- engine_call
   }
+
   res
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_exptilt-nonparam_engine.R
 \name{exptilt_nonparam_engine}
 \alias{exptilt_nonparam_engine}
-\title{Nonparametric exponential tilting (EM) engine for NMAR}
+\title{Nonparametric exponential tilting engine for NMAR}
 \usage{
 exptilt_nonparam_engine(refusal_col = "", max_iter = 100, tol_value = 1e-06)
 }
@@ -22,7 +22,7 @@ An engine object of class \code{c("nmar_engine_exptilt_nonparam","nmar_engine")}
 }
 \description{
 Constructs a configuration for the nonparametric exponential tilting estimator
-under nonignorable nonresponse (NMAR).
+under nonignorable nonresponse.
 This engine implements the "Fully Nonparametric Approach" from **Appendix 2**
 of Riddles et al. (2016). The estimator uses an
 Expectation-Maximization (EM) algorithm to directly estimate the

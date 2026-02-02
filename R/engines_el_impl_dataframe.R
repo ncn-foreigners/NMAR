@@ -1,45 +1,5 @@
-#' Empirical likelihood for data frames (NMAR)
-#' @description Internal method dispatched by \code{el()} when \code{data} is a
-#'   \code{data.frame}. Returns \code{c("nmar_result_el","nmar_result")} with the
-#'   point estimate, optional
-#'   bootstrap SE, weights, coefficients, diagnostics, and metadata.
-#' @param data A \code{data.frame} where the outcome column contains \code{NA}
-#'   for nonrespondents.
-#' @param formula Two-sided formula \code{Y_miss ~ auxiliaries} or
-#'   \code{Y_miss ~ auxiliaries | missingness_predictors}.
-#' @param auxiliary_means Named numeric vector of population means for auxiliary
-#'   design columns. Names must match the materialized \code{model.matrix} columns on
-#'   the first RHS (after formula expansion), including factor indicators and
-#'   transformed terms. The intercept is always excluded.
-#' @param standardize Logical; whether to standardize predictors prior to estimation.
-#' @param trim_cap Numeric; cap for EL weights (\code{Inf} = no trimming).
-#' @param control List; optional solver control parameters for
-#'   \code{nleqslv::nleqslv(control = ...)}.
-#' @param on_failure Character; one of \code{"return"} or \code{"error"} on solver failure.
-#' @param variance_method Character; one of \code{"bootstrap"} or \code{"none"}.
-#' @param bootstrap_reps Integer; number of bootstrap reps if
-#'   \code{variance_method = "bootstrap"}.
-#' @param n_total Optional analysis-scale population total \code{N_pop}. When the
-#'   outcome contains at least one \code{NA}, \code{n_total} defaults to
-#'   \code{nrow(data)}. When respondents-only data are supplied (no \code{NA} in
-#'   the outcome), \code{n_total} must be provided.
-#' @param start Optional list of starting values passed to the solver helpers.
-#' @param trace_level Integer 0-3 controlling estimator logging detail.
-#' @param family Missingness (response) model family specification (defaults to the logit bundle).
-#' @param ... Additional arguments passed to the solver.
-#' @details Implements the empirical likelihood estimator for IID data with
-#'   optional auxiliary moment constraints. The missingness-model score is the
-#'   Bernoulli derivative with respect to the linear predictor, supporting logit
-#'   and probit links. When respondents-only data are supplied (no \code{NA} in the
-#'   outcome), \code{n_total} is required so the response-rate equation targets the
-#'   full sample size. When missingness is observed (\code{NA} present), the default
-#'   population total is \code{nrow(data)}. If respondents-only data are used and
-#'   auxiliaries are requested, you must also provide population auxiliary
-#'   means via \code{auxiliary_means}. Result weights are the unnormalized EL
-#'   masses \eqn{a_i / D_i(\theta)} on the analysis scale, where \eqn{a_i \equiv 1}
-#'   for IID data.
+#' Empirical likelihood for data frames
 #'
-#' @name el_dataframe
 #' @keywords internal
 el.data.frame <- function(data, formula,
                           auxiliary_means = NULL, standardize = TRUE,

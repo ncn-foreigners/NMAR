@@ -2,7 +2,7 @@
 % Please edit documentation in R/S3_nmar_result_methods.R
 \name{confint.nmar_result}
 \alias{confint.nmar_result}
-\title{Wald confidence interval for base NMAR results}
+\title{Wald confidence interval for NMAR results}
 \usage{
 \method{confint}{nmar_result}(object, parm, level = 0.95, ...)
 }
@@ -19,6 +19,6 @@
 A 1x2 numeric matrix with confidence limits.
 }
 \description{
-Wald confidence interval for base NMAR results
+Wald confidence interval for NMAR results
 }
 \keyword{result_param}

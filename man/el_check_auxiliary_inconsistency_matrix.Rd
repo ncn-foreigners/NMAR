@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_el_impl_utils_aux.R
 \name{el_check_auxiliary_inconsistency_matrix}
 \alias{el_check_auxiliary_inconsistency_matrix}
-\title{Check auxiliary means consistency against respondents' sample support.}
+\title{Check auxiliary means consistency against respondents sample support.}
 \usage{
 el_check_auxiliary_inconsistency_matrix(
   auxiliary_matrix_resp,
@@ -19,7 +19,6 @@ list(max_z = numeric(1) or NA, cols = character())
 }
 \description{
 Computes a simple z-score diagnostic comparing user-supplied auxiliary means
-to the respondents' sample means. The caller is responsible for comparing the
-returned maximum z-score to any desired threshold.
+to the respondents' sample means.
 }
 \keyword{internal}

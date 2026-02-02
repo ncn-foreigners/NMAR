@@ -13,8 +13,6 @@ engine_name(x)
 A single character string, e.g. "empirical_likelihood".
 }
 \description{
-Returns a stable, machine-friendly identifier for an engine object. This
-identifier is also used in `nmar_result$meta$engine_name` to keep a
-consistent naming scheme between configurations and results.
+Returns identifier for an engine object.
 }
 \keyword{engine_view}

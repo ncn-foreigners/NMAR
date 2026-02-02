@@ -401,7 +401,7 @@ test_that("Survey bootstrap is reproducible across backends", {
 
   future::plan(future::sequential)
 
-# Test reproducibility within sequential mode (this is the critical property)
+# Test reproducibility within sequential mode
   expect_identical(res_seq1$replicates, res_seq2$replicates,
                    label = "Survey sequential reproducibility")
   expect_equal(res_seq1$variance, res_seq2$variance,

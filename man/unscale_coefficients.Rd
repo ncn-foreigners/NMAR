@@ -2,7 +2,7 @@
 % Please edit documentation in R/shared_scaling.R
 \name{unscale_coefficients}
 \alias{unscale_coefficients}
-\title{Unscale regression coefficients and covariance}
+\title{Unscale coefficients and covariance}
 \usage{
 unscale_coefficients(scaled_coeffs, scaled_vcov, recipe)
 }
@@ -17,6 +17,6 @@ unscale_coefficients(scaled_coeffs, scaled_vcov, recipe)
 A list with components \code{coefficients} and \code{vcov}.
 }
 \description{
-Unscale regression coefficients and covariance
+Unscale coefficients and covariance
 }
 \keyword{internal}

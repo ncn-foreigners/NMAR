@@ -2,13 +2,12 @@
 % Please edit documentation in R/S3_nmar_result_constructors.R
 \name{new_nmar_result}
 \alias{new_nmar_result}
-\title{Construct Result Object (parent helper)}
+\title{Construct for result objects}
 \usage{
 new_nmar_result(...)
 }
 \description{
 Builds an `nmar_result` list using the shared schema and validates it.
-Engines must pass named fields; no legacy positional signature is supported.
 }
 \details{
 Engine-level constructors should call this helper with named arguments rather
@@ -16,17 +15,17 @@ than assembling result lists by hand. At minimum, engines should supply
 \code{estimate} (numeric scalar) and \code{converged} (logical). All other
 fields are optional:
 \itemize{
-  \item \code{estimate_name}: label for the primary estimand (defaults to
-    \code{NA_character_} if omitted).
-  \item \code{se}: standard error for the primary estimand (defaults to
-    \code{NA_real_} when not available).
-  \item \code{model}, \code{weights_info}, \code{sample}, \code{inference},
-    \code{diagnostics}, \code{meta}, \code{extra}: lists that may be partially
-    specified or \code{NULL}; \code{validate_nmar_result()} will back-fill
-    missing subfields with safe defaults.
-  \item \code{class}: engine-specific result subclass name, e.g.
-    \code{"nmar_result_el"}; it is combined with the parent class
-    \code{"nmar_result"}.
+\item \code{estimate_name}: label for the primary estimand (defaults to
+\code{NA_character_} if omitted).
+\item \code{se}: standard error for the primary estimand (defaults to
+\code{NA_real_} when not available).
+\item \code{model}, \code{weights_info}, \code{sample}, \code{inference},
+\code{diagnostics}, \code{meta}, \code{extra}: lists that may be partially
+pecified or \code{NULL}; \code{validate_nmar_result()} will back-fill
+missing subfields with safe defaults.
+item \code{class}: engine-specific result subclass name, e.g.
+\code{"nmar_result_el"}; it is combined with the parent class
+\code{"nmar_result"}.
 }
 
 Calling \code{new_nmar_result()} ensures that every engine returns objects

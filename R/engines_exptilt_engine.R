@@ -1,7 +1,7 @@
-#' Exponential tilting  (ET) engine for NMAR estimation
+#' Exponential tilting engine for NMAR
 #'
 #' Constructs a configuration for the exponential tilting estimator under
-#' nonignorable nonresponse (NMAR).
+#' nonignorable nonresponse.
 #' The estimator solves \eqn{S_2(\boldsymbol{\phi}, \hat{\boldsymbol{\gamma}}) = 0,} using nleqslv to apply EM algorithm.
 #'
 #' @param standardize logical; standardize predictors. Default \code{TRUE}.

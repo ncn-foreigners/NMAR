@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_el_impl_core_helpers.R
 \name{el_run_solver}
 \alias{el_run_solver}
-\title{Solver orchestration with staged policy}
+\title{Solver orchestration}
 \usage{
 el_run_solver(
   equation_system_func,
@@ -20,11 +20,9 @@ el_run_solver(
 )
 }
 \arguments{
-\item{equation_system_func}{Function mapping parameter vector to equation
-residuals.}
+\item{equation_system_func}{Function mapping parameter vector to equation residuals.}
 
-\item{analytical_jac_func}{Analytic Jacobian function; may be NULL if
-unavailable or when forcing Broyden.}
+\item{analytical_jac_func}{Analytic Jacobian function; may be NULL if unavailable or when forcing Broyden.}
 
 \item{init}{Numeric vector of initial parameter values.}
 
@@ -42,11 +40,11 @@ unavailable or when forcing Broyden.}
 
 \item{respondent_weights}{Numeric vector of base sampling weights.}
 
-\item{N_pop}{Numeric; population total (weighted when survey design).}
+\item{N_pop}{Numeric; population total.}
 
-\item{trace_level}{Integer; verbosity level (0 silent, 1-3 increasingly verbose).}
+\item{trace_level}{Integer; verbosity level.}
 }
 \description{
-Solver orchestration with staged policy
+Solver orchestration
 }
 \keyword{internal}

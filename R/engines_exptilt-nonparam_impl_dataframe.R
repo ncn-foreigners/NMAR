@@ -32,7 +32,7 @@ exptilt_nonparam.data.frame <- function(
   if (!is.null(res$Z)) {
     Z <- as.data.frame(res$Z)
   } else {
-# If no instrument provided, create dummy intercept
+# if no instrument provided, create dummy intercept
     Z <- data.frame(`(Intercept)` = rep(1, nrow(data)))
     colnames(Z) <- "(Intercept)"
   }
@@ -46,12 +46,12 @@ exptilt_nonparam.data.frame <- function(
 
   data_orig <- data[, c(outcome_cols, x1_cols, x2_cols, refusal_col)]
 
-# Build working dataset (numeric X/Y, potentially categorical Z)
+# build working dataset (numeric X/Y, potentially categorical Z)
   refusal_vec <- data[[refusal_col]]
   data_working <- cbind(Y, X, Z)
   data_working[[refusal_col]] <- refusal_vec
 
-# Data Summary
+# data summary for stats
   n_strata <- nrow(data_working)
   total_resp <- sum(data_working[, outcome_cols], na.rm = TRUE)
   total_nonresp <- sum(data_working[, refusal_col], na.rm = TRUE)
@@ -63,7 +63,6 @@ exptilt_nonparam.data.frame <- function(
   verboser(sprintf("  Total strata:         %d", n_strata), level = 1)
   verboser(sprintf("  Total observations:   %d", n_total), level = 1)
 
-# Model Spec
   verboser("", level = 2)
   verboser("-- MODEL SPECIFICATION --", level = 2)
   verboser(sprintf("  Outcome columns:      %s", paste(outcome_cols, collapse = ", ")), level = 2)
@@ -103,7 +102,7 @@ exptilt_nonparam.data.frame <- function(
   verboser("", level = 2)
   verboser("-- PRE-COMPUTATION (Weighted Aggregation) --", level = 2)
 
-# Apply weights
+# apply weights
   weighted_n_data <- as.matrix(data_working[, outcome_cols]) * design_weights
   weighted_m_data <- data_working[[refusal_col]] * design_weights
 
@@ -114,30 +113,30 @@ exptilt_nonparam.data.frame <- function(
   )
   agg_df <- cbind(agg_df, weighted_n_data)
 
-# "n matrix" (n_{y*x*})
+# n matrix
   n_y_x_df <- stats::aggregate(. ~ x_key, data = agg_df[, c("x_key", outcome_cols)], FUN = sum)
   rownames(n_y_x_df) <- n_y_x_df$x_key
   n_y_x_matrix <- as.matrix(n_y_x_df[unique_x_keys, outcome_cols])
 
-# "m vector" (m_{x*})
+# m vector
   m_x_df <- stats::aggregate(m_weighted ~ x_key, data = agg_df[, c("x_key", "m_weighted")], FUN = sum)
   rownames(m_x_df) <- m_x_df$x_key
   m_x_vec <- m_x_df[unique_x_keys, "m_weighted"]
   names(m_x_vec) <- unique_x_keys
 
-# "p matrix" (p_hat_{y*|x*})
+# p matrix
   total_resp_x <- rowSums(n_y_x_matrix)
   total_resp_x[total_resp_x == 0] <- 1
   p_hat_matrix <- n_y_x_matrix / total_resp_x
 
-# "n_y_x1 matrix" (n_{y*x1*})
+# n_y_x1 matrix
   n_y_x1_df <- stats::aggregate(. ~ x1_key, data = agg_df[, c("x1_key", outcome_cols)], FUN = sum)
   rownames(n_y_x1_df) <- n_y_x1_df$x1_key
   n_y_x1_matrix <- as.matrix(n_y_x1_df[unique_x1_keys, outcome_cols])
 
   verboser("  OK Fixed matrices computed.", level = 2)
 
-# THE EM ALGORITHM ---
+# EM
   verboser("", level = 1)
   verboser("-- EM ALGORITHM --", level = 1)
   verboser(sprintf("  Solving... (max_iter = %d, tol_value = %s)", max_iter, tol_value), level = 1)
@@ -151,13 +150,13 @@ exptilt_nonparam.data.frame <- function(
   for (iter in 1:max_iter) {
     odds_old <- odds_matrix
 
-# E-STEP
+# E
     odds_joined_matrix <- odds_matrix[p_hat_x1_keys, , drop = FALSE]
     denominator <- rowSums(p_hat_matrix * odds_joined_matrix)
     denominator[denominator == 0] <- 1
     m_y_x_matrix <- m_x_vec * (p_hat_matrix * odds_joined_matrix) / denominator
 
-# M-STEP
+# M
     m_agg_df <- as.data.frame(m_y_x_matrix)
     m_agg_df$x1_key <- p_hat_x1_keys
     m_y_x1_df <- stats::aggregate(. ~ x1_key, data = m_agg_df, FUN = sum)
@@ -173,34 +172,26 @@ exptilt_nonparam.data.frame <- function(
   }
 
 
-# Recalculate final m_y_x matrix
   odds_joined_matrix <- odds_matrix[p_hat_x1_keys, , drop = FALSE]
   denominator <- rowSums(p_hat_matrix * odds_joined_matrix)
   denominator[denominator == 0] <- 1
   m_y_x_matrix <- m_x_vec * (p_hat_matrix * odds_joined_matrix) / denominator
   rownames(m_y_x_matrix) <- rownames(p_hat_matrix)
 
-# Use ORIGINAL data for return to preserve formatting (Male/Female vs 1/0)
   data_to_return <- data_orig
 
-# Map calculated m values back to original rows using keys
   m_y_x_mapped <- m_y_x_matrix[data_working$x_key, ]
 
-# Prepare original counts
   original_counts <- as.matrix(data_to_return[, outcome_cols])
 
-# If weights were used, scale the original counts so addition is consistent (Total Weighted)
   if (!is.null(design_weights) && !all(design_weights == 1)) {
     original_counts <- original_counts * design_weights
   }
 
-# Update columns: Original (Weighted) + Expected Missing
   data_to_return[, outcome_cols] <- original_counts + m_y_x_mapped
 
-# Remove refusal column
   data_to_return[, refusal_col] <- NULL
 
-# Matrices for S3 object
   final_n_y_x_matrix <- n_y_x_matrix[rownames(m_y_x_matrix), , drop = FALSE]
 
   verboser("", level = 1, type = "result")

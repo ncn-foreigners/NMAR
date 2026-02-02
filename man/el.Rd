@@ -12,10 +12,6 @@ el(data, ...)
 \item{...}{Passed to class-specific methods.}
 }
 \description{
-Generic for the empirical likelihood (EL) estimator under NMAR.
-  Methods are provided for \code{data.frame} and \code{survey.design}.
-}
-\seealso{
-\code{\link{el_engine}}
+Empirical likelihood estimator
 }
 \keyword{internal}
