@@ -32,7 +32,7 @@ test_that("analytic vs numeric Jacobian agree across links and scaling", {
     wts <- rep(1, n_resp_wt)
     eq_fun <- el_build_equation_system(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
     jac_fun <- el_build_jacobian(fam, Z, Xc, wts, N_pop, n_resp_wt, mu_x)
-# Solve to the root using a better init and controls; allow Broyden fallback
+# Solve to the root using a better init and controls, allow Broyden fallback
     W0 <- sum(wts) / N_pop
     W0 <- min(max(W0, 1e-12), 1 - 1e-12)
     z0 <- stats::qlogis(W0)
