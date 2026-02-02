@@ -2,7 +2,7 @@ test_that("EL Jacobian respects denominator floor (active mask)", {
   skip_on_cran()
   set.seed(42)
 
-# Setup: choose parameters so many Di are below the floor
+# Choose parameters so many Di are below the floor
   n <- 60
   X <- cbind(`(Intercept)` = rep(1, n))
   aux <- matrix(nrow = n, ncol = 0)
@@ -37,7 +37,7 @@ test_that("EL Jacobian respects denominator floor (active mask)", {
   z <- qlogis(W)
   theta <- c(beta, z)
 
-# Sanity: verify that many denominators would be below floor without clamping
+# Verify that many denominators would be below floor without clamping
 # Reconstruct denominator components mirroring engine logic
   C_const <- (N_pop / n_resp_wt) - 1
   eta <- as.numeric(X %*% beta)

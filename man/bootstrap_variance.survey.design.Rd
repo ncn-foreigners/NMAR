@@ -2,9 +2,9 @@
 % Please edit documentation in R/shared_bootstrap.R
 \name{bootstrap_variance.survey.design}
 \alias{bootstrap_variance.survey.design}
-\title{Bootstrap for survey designs via replicate weights}
+\title{Bootstrap for survey designs}
 \usage{
-bootstrap_variance.survey.design(
+\method{bootstrap_variance}{survey.design}(
   data,
   estimator_func,
   point_estimate,
@@ -27,52 +27,47 @@ component \code{y_hat} and an optional logical component \code{converged}.}
 \item{survey_na_policy}{Character string specifying how to handle replicates
 that fail to produce estimates. Options:
 \describe{
-  \item{\code{"strict"}}{(default) Any failed replicate causes an error.
-    This is a conservative default that makes instability explicit.}
-  \item{\code{"omit"}}{Failed replicates are omitted. The corresponding
-    \code{rscales} are also omitted to maintain correct variance scaling.
-    Use with caution: if failures are non-random, variance may be biased.}
+\item{\code{"strict"}}{(default) Any failed replicate causes an error.
+This is a conservative default that makes instability explicit.}
+\item{\code{"omit"}}{Failed replicates are omitted. The corresponding
+\code{rscales} are also omitted to maintain correct variance scaling.
+Use with caution: if failures are non-random, variance may be biased.}
 }}
 
 \item{...}{Additional arguments. Some are consumed by \code{bootstrap_variance()}
 itself (for example \code{resample_guard} for IID bootstrap or
 \code{bootstrap_settings}/\code{bootstrap_options}/\code{bootstrap_type}/\code{bootstrap_mse}
-for survey bootstrap); remaining arguments are forwarded to \code{estimator_func}.}
+or survey bootstrap). Remaining arguments are forwarded to \code{estimator_func}.}
 }
 \value{
 A list with components \code{se}, \code{variance}, and \code{replicates}.
 }
 \description{
-Bootstrap for survey designs via replicate weights
+Bootstrap for survey designs
 }
 \details{
 This path constructs a replicate-weight design using
-  \code{svrep::as_bootstrap_design()} and evaluates the estimator on each set of
-  bootstrap replicate analysis weights.
-
-  Replicate evaluation starts from a shallow template copy of the input survey
-  design (including its ids/strata/fpc structure) and injects each replicate's
-  analysis weights by
-  updating the design's probability slots (\code{prob}/\code{allprob}) so that
-  \code{weights(design)} returns the desired replicate weights (with
-  zero weights represented as \code{prob = Inf}). This avoids replaying or
-  reconstructing a \code{svydesign()} call and therefore supports designs
-  created via \code{subset()} and \code{update()}.
-
-  \strong{NA policy:} By default, survey bootstrap uses a strict NA policy:
-  if any replicate fails to produce a finite estimate, the entire bootstrap
-  fails with an error. Setting \code{survey_na_policy = "omit"} drops failed
-  replicates (and their corresponding \code{rscales}) and proceeds with the
-  remaining replicates.
+\code{svrep::as_bootstrap_design()} and evaluates the estimator on each set of
+bootstrap replicate analysis weights.
+Replicate evaluation starts from a shallow template copy of the input survey
+design (including its ids/strata/fpc structure) and injects each replicate's
+analysis weights by updating the design's probability slots (\code{prob}/\code{allprob}) so that
+\code{weights(design)} returns the desired replicate weights.
+This avoids replaying or reconstructing a \code{svydesign()} call and therefore
+supports designs created via \code{subset()} and \code{update()}.
+\strong{NA policy:} By default, survey bootstrap uses a strict NA policy:
+if any replicate fails to produce a finite estimate, the entire bootstrap
+fails with an error. Setting \code{survey_na_policy = "omit"} drops failed
+replicates and proceeds with the remaining replicates.
 }
 \section{Limitations}{
 
-  \strong{Calibrated/post-stratified designs:} Post-hoc adjustments applied
-  via \code{survey::calibrate()}, \code{survey::postStratify()}, or
-  \code{survey::rake()} are not supported here and will cause the function to
-  error. These adjustments are not recomputed when replicate weights are
-  injected, so the replicate designs would not reflect the intended
-  calibrated/post-stratified analysis.
+\strong{Calibrated/post-stratified designs:} Post-hoc adjustments applied
+via \code{survey::calibrate()}, \code{survey::postStratify()}, or
+\code{survey::rake()} are not supported here and will cause the function to
+error. These adjustments are not recomputed when replicate weights are
+injected, so the replicate designs would not reflect the intended
+calibrated/post-stratified analysis.
 }
 
 \keyword{internal}

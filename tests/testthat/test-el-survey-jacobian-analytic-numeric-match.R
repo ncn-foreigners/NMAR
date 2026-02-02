@@ -109,7 +109,7 @@ test_that("survey link Jacobian wrt z respects W clamping", {
     fam, Zs, Xs, spec$respondent_weights, N_pop, n_resp_weighted, mu_x
   )
 
-# Force W to be clamped at the upper bound; derivative wrt z must be 0.
+# Force W to be clamped at the upper bound; derivative wrt z must be 0
   z_big <- 40
   theta <- c(rep(0, ncol(Zs)), z_big, 0.1)
   idx_z <- ncol(Zs) + 1L

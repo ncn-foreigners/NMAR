@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_el_impl_jacobian.R
 \name{el_build_jacobian}
 \alias{el_build_jacobian}
-\title{Analytical Jacobian for empirical likelihood}
+\title{Empirical likelihood analytical jacobian for srs}
 \usage{
 el_build_jacobian(
   family,
@@ -15,31 +15,8 @@ el_build_jacobian(
 )
 }
 \description{
-Analytical Jacobian for empirical likelihood
-}
-\details{
 Builds the block Jacobian \eqn{A = \partial F/\partial \theta} for the
-  EL system with \eqn{\theta = (\beta, z, \lambda_x)} and \eqn{z = \operatorname{logit}(W)}.
-  Blocks follow Qin, Leung, and Shao (2002, Eqs. 7-10). The derivative with
-  respect to the linear predictor for the missingness (response) model uses the Bernoulli score form
-  \eqn{\partial/\partial\eta\, \log w(\eta) = \mu.\eta(\eta)/w(\eta)} with
-  link-inverse clipping. Denominator guards are applied consistently when
-  forming terms depending on \eqn{D_i(\theta)}.
-
-  \strong{Guarding policy (must remain consistent across equations/Jacobian/post):}
-  \itemize{
-    \item Cap \eqn{\eta}:
-      \code{eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())}.
-    \item Compute \code{w <- family$linkinv(eta)} and clip to
-      \code{[1e-12, 1 - 1e-12]} when used in ratios.
-    \item Denominator floor:
-      \code{Di <- pmax(Di_raw, nmar_get_el_denom_floor())}. Terms that depend
-      on \code{d(1/Di)/d(.)} are multiplied by \code{active = 1(Di_raw > floor)}
-      to match the clamped equations.
-  }
-}
-\references{
-Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under
-nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200.
+EL system with \eqn{\theta = (\beta, z, \lambda_x)} and \eqn{z = \operatorname{logit}(W)}.
+Blocks follow QLS equations 7-10.
 }
 \keyword{internal}

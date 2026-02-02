@@ -2,7 +2,7 @@
 % Please edit documentation in R/S3_nmar_engine_methods.R
 \name{print.nmar_engine}
 \alias{print.nmar_engine}
-\title{Print method for NMAR engines}
+\title{Print method for engines}
 \usage{
 \method{print}{nmar_engine}(x, ...)
 }
@@ -15,8 +15,6 @@
 `x`, invisibly.
 }
 \description{
-Provides a compact, human-friendly summary for `nmar_engine` objects.
-Child classes inherit this method; they can override it if they need a
-different presentation.
+Compact summary for `nmar_engine` objects.
 }
 \keyword{engine_view}

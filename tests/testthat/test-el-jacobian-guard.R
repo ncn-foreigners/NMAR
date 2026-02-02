@@ -1,5 +1,3 @@
-# Simple Jacobian check for EL equations with unified denominator floor
-
 test_that("EL analytic Jacobian matches numeric (no aux, logit)", {
   skip_on_cran()
   set.seed(123)

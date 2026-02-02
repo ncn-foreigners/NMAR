@@ -28,7 +28,7 @@ test_that("EL survey estimator is invariant to uniform rescaling of design weigh
   fit1 <- nmar(Y_miss ~ X, data = des1, engine = eng)
   fit2 <- nmar(Y_miss ~ X, data = des2, engine = eng)
 
-# Point estimate invariance (QLS Eq. 11 with weighted generalization)
+# Point estimate invariance (QLS eq. 11 with weighted generalization)
   expect_equal(as.numeric(fit1$y_hat), as.numeric(fit2$y_hat), tolerance = 1e-8)
 
 # Probability-scale weights should be identical

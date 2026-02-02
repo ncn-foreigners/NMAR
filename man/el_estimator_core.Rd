@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_el_impl_core.R
 \name{el_estimator_core}
 \alias{el_estimator_core}
-\title{Core Empirical Likelihood Estimator}
+\title{Core of the empirical likelihood estimator}
 \usage{
 el_estimator_core(
   missingness_design,
@@ -26,7 +26,7 @@ el_estimator_core(
 )
 }
 \arguments{
-\item{missingness_design}{Respondent-side missingness (response) model design matrix (intercept + predictors).}
+\item{missingness_design}{Respondent-side missingness model design matrix (intercept + predictors).}
 
 \item{aux_matrix}{Auxiliary design matrix on respondents (may have zero columns).}
 
@@ -34,7 +34,7 @@ el_estimator_core(
 
 \item{respondent_weights}{Numeric vector of respondent weights aligned with \code{missingness_design} rows.}
 
-\item{analysis_data}{Data object used for logging and variance (survey designs supply the design object).}
+\item{analysis_data}{Data object used for logging and variance.}
 
 \item{outcome_expr}{Character string identifying the outcome expression displayed in outputs.}
 
@@ -48,38 +48,20 @@ el_estimator_core(
 
 \item{control}{List of control parameters for the nonlinear equation solver.}
 
-\item{on_failure}{Character. Action when solver fails: "return" or "error".}
+\item{on_failure}{Character. Action when solver fails.}
 
-\item{family}{List. Link function specification (typically logit).}
+\item{family}{List. Link function specification.}
 
 \item{variance_method}{Character. Variance estimation method.}
 
 \item{bootstrap_reps}{Integer. Number of bootstrap replications.}
 
-\item{auxiliary_means}{Named numeric vector of known population means supplied by the user (optional; used for diagnostics).}
+\item{auxiliary_means}{Named numeric vector of known population means supplied by the user.}
 }
 \value{
 List containing estimation results, diagnostics, and metadata.
 }
 \description{
-Implements the core computational engine for empirical likelihood estimation
-under nonignorable nonresponse, including parameter solving, variance calculation,
-and diagnostic computation.
-}
-\details{
-Orchestrates EL estimation for NMAR following Qin, Leung, and Shao (2002).
-For \code{data.frame} inputs (IID setting) the stacked system in
-\eqn{(\beta, z, \lambda_x)} with \eqn{z = \mathrm{logit}(W)} is solved by
-\code{nleqslv::nleqslv()} using an analytic Jacobian. For \code{survey.design} inputs a
-design-weighted analogue in \eqn{(\beta, z, \lambda_W, \lambda_x)} is solved
-with an analytic Jacobian when the response family supplies second
-derivatives, or with numeric/Broyden Jacobians otherwise. Numerical
-safeguards are applied consistently across equations, Jacobian, and
-post-solution weights: bounded linear predictors, probability clipping in
-ratios, and a small floor on denominators \eqn{D_i(\theta)} with an
-active-set mask in derivatives. After solving, unnormalized masses
-\eqn{d_i/D_i(\theta)} are formed, optional trimming may be applied (with
-normalization only for reporting), and optional variance is computed via
-bootstrap when \code{variance_method = "bootstrap"}.
+Core of the empirical likelihood estimator
 }
 \keyword{internal}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_el_impl_core_helpers.R
 \name{el_compute_variance}
 \alias{el_compute_variance}
-\title{Variance driver for EL (bootstrap or none)}
+\title{Variance driver}
 \usage{
 el_compute_variance(
   y_hat,
@@ -21,6 +21,6 @@ el_compute_variance(
 )
 }
 \description{
-Variance driver for EL (bootstrap or none)
+Variance driver
 }
 \keyword{internal}

@@ -2,11 +2,12 @@
 % Please edit documentation in R/shared_numerics.R
 \name{shared_weighted_gram}
 \alias{shared_weighted_gram}
-\title{Weighted linear algebra helpers}
+\title{Weighted linear algebra}
 \usage{
 shared_weighted_gram(X, w)
 }
 \description{
-Weighted linear algebra helpers
+Compute X' diag(w) X efficiently. If w >= 0, use SPD crossprod(X*sqrt(w)).
+Otherwise, fall back to X' (diag(w) X) via crossprod(X, X*w).
 }
 \keyword{internal}
