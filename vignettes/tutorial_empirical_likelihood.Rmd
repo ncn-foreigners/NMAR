@@ -3,7 +3,7 @@ title: "Empirical Likelihood"
 description: >
   Demonstrates the empirical likelihood estimator for Not Missing at Random
   outcomes implemented in the NMAR package, targeting the full-data mean under the
-  Qin–Leung–Shao (2002) model. Includes data-frame and survey-design usage, optional
+  Qin–Leung–Shao (2002) model. Includes data-frame and survey-design usage,
   auxiliary constraints, and bootstrap variance.
 output: rmarkdown::html_vignette
 vignette: >
@@ -14,7 +14,7 @@ vignette: >
 
 # Overview
 
-This vignette demonstrates the empirical likelihood (EL) estimator for Not Missing at Random (NMAR) data in the NMAR package. The primary estimand is the full-data mean of the outcome \(Y\) under the QLS NMAR model. The method implements the estimator of Qin, Leung, and Shao (2002), using empirical likelihood weights that satisfy estimating equations for the response mechanism and (optionally) auxiliary moment constraints. For full derivations, the analytic Jacobian, and variance discussion (bootstrap), see the companion article "Empirical Likelihood Theory for NMAR".
+This vignette demonstrates the empirical likelihood estimator for Not Missing at Random data in the `NMAR` package. The primary estimand is the full-data mean of the outcome \(Y\) under the QLS NMAR model. The method implements the estimator of Qin, Leung, and Shao (2002), using empirical likelihood weights that satisfy estimating equations for the response mechanism and auxiliary moment constraints. For full derivations, see the companion article "Empirical Likelihood Theory for NMAR".
 
 Key features:
 
@@ -37,7 +37,7 @@ Key features:
 - Fit: `nmar(formula = Y_miss ~ X1 + X2 | Z1 + Z2, data = df_or_design, engine = el_engine(...))`.
 - Inspect: `summary()`, `confint()`, `weights()`, `fitted()`, and `fit$diagnostics`.
 
-# Data-frame example (IID)
+# Data-frame example
 
 We simulate an NMAR mechanism where the response probability depends on the unobserved outcome.
 
@@ -70,7 +70,7 @@ dat$Y_miss[!R] <- NA_real_
 
 ```{r}
 engine <- el_engine(auxiliary_means = c(X = 0), variance_method = "none", standardize = TRUE)
-# Fit EL estimator (no variance for speed in vignette)
+# Fit EL estimator
 fit <- nmar(
   formula = Y_miss ~ X,
   data = dat,
@@ -78,10 +78,9 @@ fit <- nmar(
 )
 
 summary(fit)
-# For confidence intervals, use bootstrap variance (see example below).
 ```
 
-Probit family (optional):
+Probit family:
 
 ```{r}
 engine <- el_engine(auxiliary_means = c(X = 0), family = "probit", variance_method = "none", standardize = TRUE)
@@ -117,9 +116,8 @@ fit$diagnostics[c(
 )]
 ```
 
-Bootstrap variance (keep reps small for speed). IID bootstrap runs sequentially
-by default. If the optional future.apply package is installed, it can use the
-user's future plan for parallel execution.
+Bootstrap variance runs sequentially by default.
+If the optional future.apply package is installed, it can use the user's future plan for parallel execution.
 You can control this via `options(nmar.bootstrap_apply = "auto"|"base"|"future")`.
 
 ```{r}
@@ -139,7 +137,7 @@ se(fit_boot)
 confint(fit_boot)
 ```
 
-# Respondents-only data (n_total)
+# Respondents-only data
 
 If you pass respondents-only data (the outcome contains no NA), provide the total sample size via `n_total` in the engine so the estimator can recover the population response rate:
 
@@ -188,7 +186,7 @@ Auxiliary means and formulas:
 - When `standardize = TRUE`, the engine automatically transforms `auxiliary_means` to the standardized scale internally and reports coefficients on the original scale.
 - Response-only predictors (to the right of `|`) do not need auxiliary means.
 
-# Survey design example (optional)
+# Survey design example
 
 The estimator supports complex surveys via `survey::svydesign()`. This chunk runs only if the `survey` package is available. If the survey weights were normalized (for example, rescaled to sum to the sample size), pass an appropriate population total via `el_engine(n_total = ...)` so that population-scale EL weights are on the intended scale.
 
@@ -204,8 +202,8 @@ miss <- runif(nrow(apiclus1)) > prob
 apiclus1$api00_miss[miss] <- NA_real_
 
 dclus1 <- svydesign(id = ~dnum, weights = ~pw, data = apiclus1, fpc = ~fpc)
-# Let the engine infer auxiliary means from the full design (design-weighted).
-# Alternatively, you can supply known population means via auxiliary_means.
+# The engine can infer design-weighted auxiliary means from the full design, 
+# or you can supply known population means via auxiliary_means.
 engine <- el_engine(auxiliary_means = NULL, variance_method = "none", standardize = TRUE)
 
 fit_svy <- nmar(
@@ -223,12 +221,12 @@ summary(fit_svy)
 - Standardization: `standardize = TRUE` typically improves numerical stability and comparability across predictors and auxiliary means.
 - Diagnostics: Inspect `fit$diagnostics` (Jacobian condition number, max equation residuals, trimming fraction) to assess numerical health and identification strength.
 - Response-only predictors: Variables to the right of `|` do not need to appear on the RHS of the outcome formula. They enter only the response model. Auxiliary means must be supplied only for variables on the outcome RHS.
-- Inconsistent auxiliaries: If provided auxiliary means are grossly inconsistent with the respondent support, the engine will issue a warning via auxiliary inconsistency diagnostics and the solver may fail or yield highly concentrated weights. Consider revisiting the constraints, relaxing them, or using `trim_cap` and bootstrap variance.
+- Inconsistent auxiliaries: If provided auxiliary means are grossly inconsistent with the respondent support, the engine will issue a warning via auxiliary inconsistency diagnostics and the solver may fail or yield highly concentrated weights. Consider revisiting the constraints, relaxing them, or using `trim_cap`.
 
 Troubleshooting:
 
-- Extreme weights: set a finite `trim_cap`.
-- Ill-conditioned Jacobian (large `fit$diagnostics$jacobian_condition_number`): prefer `variance_method = "bootstrap"`. You may also tighten solver tolerances via `control = list(xtol=..., ftol=..., maxit=...)`.
+- Extreme weights: You can set a finite `trim_cap`.
+- Ill-conditioned Jacobian (large `fit$diagnostics$jacobian_condition_number`): You may tighten solver tolerances via `control = list(xtol=..., ftol=..., maxit=...)`.
 - Convergence issues: check `fit$diagnostics$max_equation_residual`, rescale predictors (`standardize = TRUE`), or reduce the number of constraints.
 
 # Solver control and notes
@@ -246,12 +244,7 @@ invisible(nmar(Y_miss ~ X, data = dat, engine = eng_ctrl))
 - Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data under nonignorable nonresponse or informative sampling. Journal of the American Statistical Association, 97(457), 193-200. doi:10.1198/016214502753479338
 - Chen, J. and Sitter, R. R. (1999). A pseudo empirical likelihood approach to the effective use of auxiliary information in complex surveys. Statistica Sinica, 9, 385-406.
 - Wu, C. (2005). Algorithms and R codes for the pseudo empirical likelihood method in survey sampling. Survey Methodology, 31(2), 239-243.
-
-# Families and numerical stability
-
-- Family: `el_engine(family = "logit")` (default) or `family = "probit"`.
-- Probit stability: the response-model score is evaluated as the Mills ratio $\phi(\eta)/\Phi(\eta)$ in the log domain for numerical stability. The logit score simplifies to $1-\mathrm{plogis}(\eta)$. We also cap the linear predictor and clip probabilities used in ratios.
-- Theory mapping: see the companion article "Empirical Likelihood Theory for NMAR" for equations, Jacobian blocks, and variance details.
+- For implementation details, see the companion article "Empirical Likelihood Theory for NMAR".
 
 ```{r}
 sessionInfo()

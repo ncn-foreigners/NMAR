@@ -16,13 +16,14 @@ editor_options:
 
 This guide explains how to add and integrate a new Not Missing at Random (NMAR)
 statistical estimator into `NMAR`, following the architecture used by the
-Empirical Likelihood (EL) engine and emphasizing a clean separation of concerns:
+empirical likelihood engine and emphasizing a clean separation of concerns:
 
 - Shared, reusable utilities live in `src_dev/shared/` (scaling, families,
   bootstrap, numerics, weights, verbosity).
 - Estimator-specific math and code live in `src_dev/engines/<method>/`.
 
 > Repository conventions
+>
 > - Always edit source under `src_dev/`. Do not edit generated artifacts in `R/`,
 >   `man/`, or `NAMESPACE` by hand.
 > - Before running tests, vignettes, or pkgdown, refresh generated sources with
@@ -145,7 +146,7 @@ method <- function(data, ...) UseMethod("method")
 ```{r eval=FALSE}
 #' @keywords internal
 method.data.frame <- function(data, formula, standardize = TRUE, auxiliary_means = NULL, ...) {
-  # Prepare inputs. You may adapt from EL's el_prepare_inputs() pattern.
+  # Prepare inputs, you may adapt from EL's el_prepare_inputs() pattern
   parsed <- build_method_inputs(data, formula)
   estimation_data <- parsed$data
   obs_idx <- which(parsed$respondent_mask)
@@ -155,8 +156,8 @@ method.data.frame <- function(data, formula, standardize = TRUE, auxiliary_means
   X_un <- parsed$auxiliary_matrix
   has_aux <- !is.null(X_un) && ncol(X_un) > 0
 
-  # Resolve auxiliary means before scaling.
-  # If your estimator uses auxiliary moment constraints, you must define what
+  # Resolve auxiliary means before scaling,
+  # if your estimator uses auxiliary moment constraints, you must define what
   # "population means" mean in your workflow:
   # - If auxiliaries are observed for all sampled units, a common default is
   #   colMeans(X_un) (iid) or design-weighted means (survey).
@@ -181,7 +182,7 @@ method.data.frame <- function(data, formula, standardize = TRUE, auxiliary_means
     mu_x_unscaled = mu_x
   )
 
-  # Solve on the scaled space (method-specific code)
+  # Solve on the scaled space
   fit <- method_solve_core(
     full_data = estimation_data,
     respondent_data = estimation_data[obs_idx, ],
@@ -191,10 +192,10 @@ method.data.frame <- function(data, formula, standardize = TRUE, auxiliary_means
     ...
   )
 
-  # Unscale coefficients/vcov if you report missingness-model parameters.
+  # Unscale coefficients/vcov if you report missingness-model parameters
   # beta_unscaled <- unscale_coefficients(fit$beta_scaled, fit$vcov_scaled, sc$recipe)
 
-  # Wrap into a standard result object (see Section 5)
+  # Wrap into a standard result object
   new_nmar_result_method(
     y_hat = fit$y_hat,
     se = fit$se,
@@ -214,12 +215,12 @@ Follow EL's `el.survey.design` pattern:
 - For design-based degrees of freedom, consider `survey::degf(design)` (when available).
 - For design-based variance built from score totals, you may compute `survey::svytotal(~ scores, design)` and use `vcov()`.
 
-### 6) `impl/equations.R` / `impl/jacobian.R` (optional)
+### 6) `impl/equations.R` / `impl/jacobian.R`
 
 If your estimator uses a system of estimating equations and an analytic Jacobian (like EL),
 define and document them here.
 
-### 7) `impl/variance.R` (optional)
+### 7) `impl/variance.R`
 
 Add an option to use shared bootstrap variance helpers (`bootstrap_variance()`) for IID or survey designs.
 
@@ -271,7 +272,7 @@ new_nmar_result_method <- function(y_hat, se,
 
 ### 9) `s3.R` - S3 methods for your result class
 
-Implement (or rely on parent defaults):
+Implement, or rely on parent defaults:
 
 - `print.nmar_result_<method>()`, `summary.nmar_result_<method>()` (optional).
   When overriding, call `NextMethod()` first to reuse the parent output and then
@@ -295,7 +296,7 @@ Use these shared modules in `src_dev/shared/`:
   original scale for reporting.
 - Intercept is never scaled. Constant columns get sd = 1.
 
-### Families (response model)
+### Response model families
 
 - `logit_family()` / `probit_family()` expose `linkinv`, `mu.eta`, `d2mu.deta2`,
   and `score_eta` for link-agnostic estimating equations and Jacobians.
