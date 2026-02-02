@@ -6,26 +6,25 @@ et_extract_formula <- function(formula_str, data, allow_z_categorical = FALSE) {
   f <- Formula::Formula(as.formula(formula_str))
   num_rhs_parts <- length(f)[2]
 
-# --- Y: Left-Hand Side (LHS) ---
+# --- Y:  (LHS) ---
   mf_Y <- model.frame(f, data = data, lhs = 1, rhs = 0, na.action = na.pass)
   Y_mat <- data.matrix(mf_Y)
 
-# --- X: Right-Hand Side (RHS), Part 1 ---
+# --- X:  (RHS), Part 1 ---
   f_X <- formula(f, lhs = 0, rhs = 1)
   X_terms <- attr(terms(f_X), "term.labels")
 
   X_mat <- model.matrix(f_X, data = data)
   X_mat <- X_mat[, colnames(X_mat) != "(Intercept)", drop = FALSE]
 
-# Check for name mismatch and force-assign if needed
+# Check for name mismatch
   if (ncol(X_mat) == length(X_terms)) {
     colnames(X_mat) <- X_terms
   }
 
-# --- Z: Right-Hand Side (RHS), Part 2 ---
+# --- Z: (RHS), Part 2 ---
   if (num_rhs_parts > 1) {
     f_Z <- formula(f, lhs = 0, rhs = 2)
-# This will be c("Y", "x3")
     Z_terms <- attr(terms(f_Z), "term.labels")
     if (allow_z_categorical) {
      Z_mat = data[, Z_terms, drop = FALSE]
@@ -39,7 +38,7 @@ et_extract_formula <- function(formula_str, data, allow_z_categorical = FALSE) {
 # This removes the intercept, leaving the two broken columns
     Z_mat <- Z_mat[, colnames(Z_mat) != "(Intercept)", drop = FALSE]
 }
-# *** THIS IS THE FIX ***
+
 # It checks if 2 columns exist (they do: "" and "x3")
 # It then renames them to c("Y", "x3")
     if (ncol(Z_mat) == length(Z_terms)) {
