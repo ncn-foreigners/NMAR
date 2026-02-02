@@ -450,7 +450,7 @@ sessionInfo()
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] jsonlite_2.0.0    compiler_4.5.2    Rcpp_1.1.1        nleqslv_3.3.5    
-#>  [5] parallel_4.5.2    jquerylib_0.1.4   globals_0.18.0    splines_4.5.2    
+#>  [5] parallel_4.5.2    jquerylib_0.1.4   globals_0.19.0    splines_4.5.2    
 #>  [9] systemfonts_1.3.1 textshaping_1.0.4 yaml_2.3.12       fastmap_1.2.0    
 #> [13] lattice_0.22-7    R6_2.6.1          generics_0.1.4    Formula_1.2-5    
 #> [17] knitr_1.51        htmlwidgets_1.6.4 future_1.69.0     desc_1.4.3       
