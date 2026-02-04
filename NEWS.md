@@ -1,3 +1,7 @@
+# NMAR 0.1.2
+- Bootstrap replicate evaluation backend is now configurable via `options(nmar.bootstrap_apply = "auto"|"base"|"future")`. Default bootstrap behavior (`nmar.bootstrap_apply = "auto"`) uses `base::lapply()` unless the current future plan has more than one worker; if so, it uses `future.apply::future_lapply(future.seed = TRUE)` when available.
+- Exptilt validation now rejects non-finite values (e.g., `Inf`, `-Inf`) in covariates (and non-finite observed outcomes).
+
 # NMAR 0.1.1
 * CRAN release-related fixes
 - Fix `return` roxygen keyword in S3 Functions
@@ -25,4 +29,3 @@
 
 * **Refactored Architecture:** The `exptilt` and `el` engines share a unified structural design, ensuring consistent behavior for controls, standardization, and error handling.
 * **Standardization:** Added `standardize = TRUE` argument to engines to improve numerical stability during optimization.
-

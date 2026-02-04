@@ -1,37 +1,10 @@
-#' S3 surface for base `nmar_result`
+#' Variance-covariance for NMAR results
 #'
-#' @title Parent S3 surface for NMAR results
-#' @description Methods that apply to the parent `nmar_result` class and are not
-#'   specific to a particular engine (e.g., EL). Engines return a child class
-#'   (e.g., `nmar_result_el`) that inherits from `nmar_result` and may override
-#'   or extend behavior.
-#' @details
-#'   Result objects expose a universal schema:
-#'   - `y_hat`, `estimate_name`, `se`, `converged`.
-#'   - `model`: list with `coefficients`, `vcov`, plus optional extras.
-#'   - `weights_info`: list with respondent weights and trimming metadata.
-#'   - `sample`: list with total units, respondent count, survey flag, and `design`.
-#'   - `inference`: variance metadata (`variance_method`, `df`, diagnostic flags).
-#'   - `diagnostics`, `meta`, and `extra` for estimator-specific details.
-#'
-#'   New engines should populate these components in their constructors and rely
-#'   on the `nmar_result_get_*` utilities when implementing child-specific S3
-#'   methods.
-#'
-#' @name nmar_result_s3_parent
-#' @keywords internal
-#' @import generics
-#' @importFrom generics tidy glance
-#' @importFrom stats fitted weights coef
-NULL
-
-
-
-#' Variance-covariance for base NMAR results
 #' @param object An object of class `nmar_result`.
 #' @param ... Ignored.
 #' @return A 1x1 numeric matrix (the variance of the primary estimate).
 #' @keywords result_param
+#'
 #' @export
 vcov.nmar_result <- function(object, ...) {
   se <- nmar_result_get_se(object)
@@ -46,13 +19,15 @@ vcov.nmar_result <- function(object, ...) {
 }
 
 
-#' Wald confidence interval for base NMAR results
+#' Wald confidence interval for NMAR results
+#'
 #' @param object An object of class `nmar_result`.
 #' @param parm Ignored.
 #' @param level Confidence level.
 #' @param ... Ignored.
 #' @return A 1x2 numeric matrix with confidence limits.
 #' @keywords result_param
+#'
 #' @export
 confint.nmar_result <- function(object, parm, level = 0.95, ...) {
   se <- nmar_result_get_se(object)
@@ -78,14 +53,17 @@ confint.nmar_result <- function(object, parm, level = 0.95, ...) {
 }
 
 #' Tidy summary for NMAR results
-#' @description Return a data frame with the primary estimate and (if available) missingness-model coefficients.
+#'
+#' Return a data frame with the primary estimate and missingness-model coefficients.
+#'
 #' @param x An object of class `nmar_result`.
 #' @param conf.level Confidence level for the primary estimate.
 #' @param ... Ignored.
 #' @return A data frame with one row for the primary estimate and, when
-#'   available, additional rows for the response-model coefficients.
+#' available, additional rows for the response-model coefficients.
 #' @keywords result_view
 #' @method tidy nmar_result
+#'
 #' @export
 tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
   est <- nmar_result_get_estimate(x)
@@ -149,12 +127,15 @@ tidy.nmar_result <- function(x, conf.level = 0.95, ...) {
 }
 
 #' Glance summary for NMAR results
-#' @description One-row diagnostics for NMAR fits.
+#'
+#' One-row diagnostics for NMAR fits.
+#'
 #' @param x An object of class `nmar_result`.
 #' @param ... Ignored.
 #' @return A one-row data frame with diagnostics and metadata.
 #' @keywords result_view
 #' @method glance nmar_result
+#'
 #' @export
 glance.nmar_result <- function(x, ...) {
   est <- nmar_result_get_estimate(x)
@@ -191,22 +172,26 @@ glance.nmar_result <- function(x, ...) {
 }
 
 #' Default coefficients for NMAR results
-#' @description Returns missingness-model coefficients if available.
+#'
+#' @description Returns missingness-model coefficients.
 #' @param object An `nmar_result` object.
 #' @param ... Ignored.
 #' @return A named numeric vector or `NULL`.
 #' @keywords result_param
+#'
 #' @export
 coef.nmar_result <- function(object, ...) {
   nmar_result_get_model(object)$coefficients
 }
 
 #' Default fitted values for NMAR results
-#' @description Returns fitted response probabilities if available.
+#'
+#' @description Returns fitted response probabilities.
 #' @param object An `nmar_result` object.
 #' @param ... Ignored.
 #' @return A numeric vector (possibly length 0).
 #' @keywords result_param
+#'
 #' @export
 fitted.nmar_result <- function(object, ...) {
   fv <- object$extra$fitted_values %||% object$fitted_values
@@ -235,18 +220,10 @@ weights.nmar_result <- function(object,
                                 scale = c("probability", "population"),
                                 ...) {
   scale <- match.arg(scale)
-
-# Validate input
   if (!inherits(object, "nmar_result")) {
     stop("'object' must be of class 'nmar_result'", call. = FALSE)
   }
 
-# Do not warn on nonconvergence here to keep downstream
-# code (including tests) quiet. Convergence is reported
-# in print/summary and stored in diagnostics; callers
-# can inspect object$converged and diagnostics as needed.
-
-# Extract stored unnormalized masses (single source of truth)
   info <- nmar_result_get_weights_info(object)
   w_unnorm <- info$values
 
@@ -260,27 +237,18 @@ weights.nmar_result <- function(object,
     stop("Non-finite weights detected in result object", call. = FALSE)
   }
 
-# Compute sum
   sum_w <- sum(w_unnorm)
 
   if (sum_w <= 0) {
     stop(sprintf("Invalid weight sum: %g", sum_w), call. = FALSE)
   }
 
-# Scale according to user request
   if (scale == "probability") {
-# Paper's canonical form: p_i = w_tilde_i / sum_j w_tilde_j
-# GUARANTEE: sum_i p_i = 1 (within machine precision)
     weights_out <- w_unnorm / sum_w
-
-  } else { # scale == "population"
-# Survey convention: w_i = N_pop * p_i
-# GUARANTEE: sum_i w_i = N_pop (within machine precision)
-
+  } else {
     sample <- nmar_result_get_sample(object)
     N_pop <- sample$n_total
 
-# Defensive check
     if (is.null(N_pop) || !is.finite(N_pop) || N_pop <= 0) {
       stop(sprintf(
         "Invalid or missing N_pop in result object: %s",
@@ -288,11 +256,9 @@ weights.nmar_result <- function(object,
       ), call. = FALSE)
     }
 
-# This formula guarantees sum = N_pop even with trimming
     weights_out <- N_pop * w_unnorm / sum_w
   }
 
-# Add informative attributes
   attr(weights_out, "scale") <- scale
   attr(weights_out, "trimmed_fraction") <- info$trimmed_fraction
   if (scale == "population") {
@@ -300,11 +266,13 @@ weights.nmar_result <- function(object,
     attr(weights_out, "N_pop") <- sample$n_total
   }
 
-  return(weights_out)
+  weights_out
 }
 
 #' Default formula for NMAR results
-#' @description Returns the estimation formula if available.
+#'
+#' Returns the estimation formula if available.
+#'
 #' @param x An `nmar_result` object.
 #' @param ... Ignored.
 #' @return A formula or `NULL`.
@@ -330,10 +298,6 @@ se <- function(object, ...) {
 #' @exportS3Method se nmar_result
 se.nmar_result <- function(object, ...) nmar_result_get_se(object)
 
-
-
-
-
 #' Coefficient table for summary objects
 #'
 #' Returns a coefficients table (Estimate, Std. Error, statistic, p-value)
@@ -342,12 +306,13 @@ se.nmar_result <- function(object, ...) nmar_result_get_se(object)
 #' coefficients, returns `NULL`.
 #'
 #' The statistic column is labelled "t value" when finite degrees of freedom
-#' are available (e.g., survey designs); otherwise, it is labelled "z value".
+#' are present in survey designs, otherwise it is labelled "z value".
 #'
 #' @param object An object of class `summary_nmar_result` (or subclass).
 #' @param ... Ignored.
 #' @return A data.frame with rows named by coefficient, or `NULL` if not available.
 #' @keywords result_view
+#'
 #' @export
 coef.summary_nmar_result <- function(object, ...) {
   beta <- object$response_model
@@ -373,7 +338,7 @@ coef.summary_nmar_result <- function(object, ...) {
   tab
 }
 
-#' Confidence intervals for coefficient table (summary objects)
+#' Confidence intervals for summary objects
 #'
 #' Returns Wald-style confidence intervals for missingness-model coefficients from
 #' a `summary_nmar_result*` object. Uses t-quantiles when finite degrees of
@@ -381,11 +346,11 @@ coef.summary_nmar_result <- function(object, ...) {
 #'
 #' @param object An object of class `summary_nmar_result` (or subclass).
 #' @param parm A specification of which coefficients are to be given confidence intervals,
-#'   either a vector of names or a vector of indices; by default, all coefficients are considered.
+#' either a vector of names or a vector of indices. By default, all coefficients are considered.
 #' @param level The confidence level required.
 #' @param ... Ignored.
 #' @return A numeric matrix with columns giving lower and upper confidence limits for each parameter.
-#'   Row names correspond to coefficient names. Returns `NULL` if coefficients are unavailable.
+#' Row names correspond to coefficient names. Returns `NULL` if coefficients are unavailable.
 #' @keywords result_view
 #' @export
 confint.summary_nmar_result <- function(object, parm, level = 0.95, ...) {
@@ -395,7 +360,6 @@ confint.summary_nmar_result <- function(object, parm, level = 0.95, ...) {
   beta_vec <- as.numeric(beta)
   vc <- object$response_vcov
   if (is.null(vc) || !is.matrix(vc)) {
-# No variance; return NA intervals with proper shape
     idx <- seq_along(beta_vec)
     if (!missing(parm)) {
       if (is.character(parm)) idx <- match(parm, beta_names, nomatch = 0L) else idx <- as.integer(parm)
@@ -407,7 +371,6 @@ confint.summary_nmar_result <- function(object, parm, level = 0.95, ...) {
     return(out)
   }
   se <- sqrt(diag(vc))
-# Subset if requested
   idx <- seq_along(beta_vec)
   if (!missing(parm)) {
     if (is.character(parm)) idx <- match(parm, beta_names, nomatch = 0L) else idx <- as.integer(parm)

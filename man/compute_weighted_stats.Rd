@@ -2,11 +2,11 @@
 % Please edit documentation in R/shared_scaling.R
 \name{compute_weighted_stats}
 \alias{compute_weighted_stats}
-\title{Compute (possibly weighted) mean and standard deviation}
+\title{Compute mean and standard deviation}
 \usage{
 compute_weighted_stats(values, weights = NULL)
 }
 \description{
-Compute (possibly weighted) mean and standard deviation
+Compute mean and standard deviation
 }
 \keyword{internal}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_el_impl_auxiliaries.R
 \name{el_resolve_auxiliaries}
 \alias{el_resolve_auxiliaries}
-\title{EL auxiliary design resolution and population means}
+\title{Auxiliary design computation}
 \usage{
 el_resolve_auxiliaries(
   aux_design_full,
@@ -14,7 +14,7 @@ el_resolve_auxiliaries(
 \description{
 Computes the respondent-side auxiliary matrix and the population means vector
 used for centering \eqn{X - \mu_x}. When \code{auxiliary_means} is supplied, only
-respondent rows are required to be fully observed; NA values are permitted on
+respondent rows are required to be fully observed. NA values are permitted on
 nonrespondent rows. When \code{auxiliary_means} is \code{NULL}, auxiliaries must be fully
 observed in the full data used to estimate population means.
 }

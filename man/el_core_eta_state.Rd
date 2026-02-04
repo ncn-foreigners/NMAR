@@ -2,13 +2,12 @@
 % Please edit documentation in R/engines_el_impl_utils_math.R
 \name{el_core_eta_state}
 \alias{el_core_eta_state}
-\title{Core eta-state computation for EL engines}
+\title{Core computations}
 \usage{
 el_core_eta_state(family, eta_raw, eta_cap)
 }
 \arguments{
-\item{family}{List-like response family bundle (see \code{logit_family()} and
-\code{probit_family()}).}
+\item{family}{Response family.}
 
 \item{eta_raw}{Numeric vector of unconstrained linear predictors.}
 
@@ -16,21 +15,22 @@ el_core_eta_state(family, eta_raw, eta_cap)
 }
 \value{
 A list with components:
-  \describe{
-    \item{\code{eta}}{Capped linear predictor.}
-    \item{\code{w}}{Mean function \code{family$linkinv(eta)}.}
-    \item{\code{w_clipped}}{\code{w} clipped to \code{[1e-12, 1-1e-12]} for use in ratios.}
-    \item{\code{mu_eta}}{Derivative \code{family$mu.eta(eta)}.}
-    \item{\code{d2mu}}{Second derivative \code{family$d2mu.deta2(eta)} when available, otherwise \code{NULL}.}
-    \item{\code{s_eta}}{Score with respect to \code{eta}, using stable logit/probit forms where possible.}
-    \item{\code{ds_eta_deta}}{Derivative of \code{s_eta} with respect to \code{eta} when \code{d2mu} is available, otherwise \code{NULL}.}
-  }
+\describe{
+\item{\code{eta}}{Capped linear predictor.}
+\item{\code{w}}{Mean function \code{family$linkinv(eta)}.}
+\item{\code{w_clipped}}{\code{w} clipped to \code{[1e-12, 1-1e-12]} for use in ratios.}
+\item{\code{mu_eta}}{Derivative \code{family$mu.eta(eta)}.}
+\item{\code{d2mu}}{Second derivative \code{family$d2mu.deta2(eta)}
+when available, otherwise \code{NULL}.}
+\item{\code{s_eta}}{Score with respect to \code{eta}.}
+\item{\code{ds_eta_deta}}{Derivative of \code{s_eta} with respect to \code{eta}
+when \code{d2mu} is available, otherwise \code{NULL}.}
+}
 }
 \description{
 Computes the capped linear predictor, response probabilities, derivatives,
 and stable scores with respect to the linear predictor for a given family.
-This helper centralizes the numerically delicate pieces (capping, clipping,
-Mills ratios, and score derivatives) and is used consistently across the
-EL equation system and analytical Jacobians for both IID and survey designs.
+Centralizes the numerically delicate pieces (capping, clipping, score derivatives)
+to be reused in EL equations and jacobian.
 }
 \keyword{internal}

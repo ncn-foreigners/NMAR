@@ -2,7 +2,7 @@
 % Please edit documentation in R/S3_nmar_result_validator.R
 \name{validate_nmar_result}
 \alias{validate_nmar_result}
-\title{Validate nmar_result structure}
+\title{Validate nmar_result}
 \usage{
 validate_nmar_result(x, class_name)
 }
@@ -15,23 +15,23 @@ presence of optional components without defensive checks.
 This helper is the single authority on the `nmar_result` schema. It expects
 a list that already carries class \code{c(class_name, "nmar_result")} and
 at least a primary estimate stored in \code{y_hat}. All other components are
-optional; when they are \code{NULL} or missing, the validator supplies safe
+optional. When they are \code{NULL} or missing, the validator supplies safe
 defaults:
 \itemize{
-  \item Core scalars: \code{se} (numeric, default \code{NA_real_}),
-    \code{estimate_name} (character, default \code{NA_character_}),
-    \code{converged} (logical, default \code{NA}).
-  \item \code{model}: list with \code{coefficients} and \code{vcov}, both
-    defaulting to \code{NULL}.
-  \item \code{weights_info}: list with \code{values} (default \code{NULL}) and
-    \code{trimmed_fraction} (default \code{NA_real_}).
-  \item \code{sample}: list with \code{n_total}, \code{n_respondents},
-    \code{is_survey}, and \code{design}, defaulted to missing/empty values.
-  \item \code{inference}: list with \code{variance_method}, \code{df}, and
-    \code{message}, all defaulted to missing values.
-  \item \code{diagnostics}, \code{meta}, and \code{extra}: defaulted to empty
-    lists, with \code{meta} carrying \code{engine_name}, \code{call}, and
-    \code{formula} when unset.
+\item Core scalars: \code{se} (numeric, default \code{NA_real_}),
+\code{estimate_name} (character, default \code{NA_character_}),
+\code{converged} (logical, default \code{NA}).
+\item \code{model}: list with \code{coefficients} and \code{vcov}, both
+defaulting to \code{NULL}.
+\item \code{weights_info}: list with \code{values} (default \code{NULL}) and
+\code{trimmed_fraction} (default \code{NA_real_}).
+\item \code{sample}: list with \code{n_total}, \code{n_respondents},
+\code{is_survey}, and \code{design}, defaulted to missing/empty values.
+\item \code{inference}: list with \code{variance_method}, \code{df}, and
+\code{message}, all defaulted to missing values.
+\item \code{diagnostics}, \code{meta}, and \code{extra}: defaulted to empty
+lists, with \code{meta} carrying \code{engine_name}, \code{call}, and
+\code{formula} when unset.
 }
 
 Engine constructors should normally call \code{new_nmar_result()} rather than

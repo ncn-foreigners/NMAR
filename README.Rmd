@@ -18,13 +18,17 @@ knitr::opts_chunk$set(
 # NMAR <img src="logo.png" align="right" height="120" alt="NMAR" />
 
 <!-- badges: start -->
+[![CRAN status](https://www.r-pkg.org/badges/version/NMAR)](https://CRAN.R-project.org/package=NMAR)
+[![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/NMAR)](https://cran.r-project.org/package=NMAR)
+[![CRAN monthly downloads](https://cranlogs.r-pkg.org/badges/NMAR)](https://cran.r-project.org/package=NMAR)
 [![Codecov test coverage](https://codecov.io/gh/ncn-foreigners/NMAR/graph/badge.svg)](https://app.codecov.io/gh/ncn-foreigners/NMAR)
 [![R-CMD-check](https://github.com/ncn-foreigners/NMAR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ncn-foreigners/NMAR/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 NMAR provides estimators for finite-population means when outcomes are subject to
 nonignorable nonresponse (Not Missing at Random, NMAR). It supports iid
-`data.frame` inputs and complex survey designs via `survey::survey.design`, and
+`data.frame` inputs and complex survey designs via `survey.design` objects from
+the `survey` package, and
 exposes a unified interface through `nmar()`.
 
 ## Methods
@@ -48,6 +52,12 @@ See `browseVignettes("NMAR")` and the package website for worked examples and
 engine-specific assumptions: <https://ncn-foreigners.ue.poznan.pl/NMAR/>.
 
 ## Installation
+Install the CRAN release:
+
+```r
+install.packages("NMAR")
+```
+
 Install the development version from GitHub:
 
 ```r
@@ -103,7 +113,7 @@ summary(fit_et)
 ```
 
 Result objects returned by `nmar()` support methods such as `summary()`,
-`weights()`, `se()`, and `confint()`, and broom-style `tidy()` / `glance()`
+`weights()`, `se()`, and `confint()`, and `tidy()` / `glance()`
 via the `generics` package.
 
 ### Survey designs

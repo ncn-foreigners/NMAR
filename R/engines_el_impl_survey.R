@@ -1,43 +1,5 @@
-#' Empirical likelihood for survey designs (NMAR)
-#' @description Internal method dispatched by \code{el()} when \code{data} is a
-#'   \code{survey.design}.
-#' @param data A \code{survey.design} created with \code{survey::svydesign()}.
-#' @param formula Two-sided formula with an NA-valued outcome on the LHS;
-#'   auxiliaries on the first RHS and, optionally, missingness predictors on
-#'   the second RHS partition.
-#' @param auxiliary_means Named numeric vector of population means for auxiliary
-#'   design columns. Names must match the materialized \code{model.matrix} columns on
-#'   the first RHS (after formula expansion), including factor indicators and
-#'   transformed terms. The intercept is always excluded.
-#' @param standardize Logical; standardize predictors.
-#' @param strata_augmentation Logical; when \code{TRUE} (default), augment the
-#'   auxiliary design with stratum indicators and stratum shares when a strata
-#'   structure is present in the survey design.
-#' @param trim_cap Numeric; cap for EL weights (\code{Inf} = no trimming).
-#' @param control List; solver control for \code{nleqslv::nleqslv(control = ...)}.
-#' @param on_failure Character; \code{"return"} or \code{"error"} on solver failure.
-#' @param variance_method Character; \code{"bootstrap"} or \code{"none"}.
-#' @param bootstrap_reps Integer; reps when \code{variance_method = "bootstrap"}.
-#' @param n_total Optional analysis-scale population size \code{N_pop}; required for respondents-only designs.
-#' @param start Optional list of starting values passed to solver helpers.
-#' @param trace_level Integer 0-3 controlling estimator logging detail.
-#' @param family Missingness (response) model family specification (defaults to logit).
-#' @param ... Passed to solver.
-#' @details Implements the empirical likelihood estimator with design weights.
-#'   If \code{n_total} is supplied, it is treated as the analysis-scale population
-#'   size \code{N_pop} used in the design-weighted QLS system. If \code{n_total}
-#'   is not supplied, \code{sum(weights(design))} is used as \code{N_pop}. Design
-#'   weights are not rescaled internally; the EL equations use respondent weights
-#'   and \code{N_pop} via \eqn{T_0 = N_{\mathrm{pop}} - \sum d_i} in the linkage equation.
-#'   When respondents-only designs are used (no NA in the outcome), \code{n_total}
-#'   must be provided; if auxiliaries are requested you must also provide
-#'   population auxiliary means via \code{auxiliary_means}. Result weights are the
-#'   unnormalized EL masses \eqn{d_i / D_i(\theta)} on this analysis scale;
-#'   \code{weights(result, scale = "population")} sums to \code{N_pop}.
+#' Empirical likelihood estimator for survey designs
 #'
-#' @return \code{c("nmar_result_el","nmar_result")}.
-#'
-#' @name el_survey
 #' @keywords internal
 el.survey.design <- function(data, formula,
                              auxiliary_means = NULL, standardize = TRUE,
@@ -124,9 +86,6 @@ el.survey.design <- function(data, formula,
     auxiliary_means_eff <- aug$means
   }
 
-# Detect obvious linear dependence between auxiliaries and strata dummies.
-# Redundant constraints (e.g., auxiliaries that are sums of strata indicators)
-# can lead to a rank-deficient auxiliary block and numerical instability in EL.
   X_full <- inputs$aux_design_full
   if (is.matrix(X_full) && ncol(X_full) > 0L) {
     X_resp <- X_full[inputs$respondent_mask, , drop = FALSE]
@@ -182,7 +141,6 @@ el.survey.design <- function(data, formula,
   el_build_result(core_results, inputs, cl, formula)
 }
 
-# Capture a readable summary so validation errors can report the original survey call.
 el_get_design_context <- function(design) {
   ctx <- list(ids = "<unspecified>", strata = "<unspecified>")
   dc <- try(getCall(design), silent = TRUE)
@@ -199,7 +157,6 @@ el_get_design_context <- function(design) {
   ctx
 }
 
-# Validate survey design weights for EL workflows.
 el_validate_survey_weights <- function(weights, n_obs) {
   if (!is.numeric(weights)) stop("Survey design weights must be numeric.", call. = FALSE)
   if (length(weights) != n_obs) stop("Survey design weights must align with the number of observations.", call. = FALSE)
@@ -215,20 +172,17 @@ el_validate_survey_weights <- function(weights, n_obs) {
   invisible(TRUE)
 }
 
-#' Extract a strata factor from a survey.design object
+#' Extract strata factor
 #'
-#' Prefers strata already materialized in the \code{survey.design} object
-#' (typically \code{design$strata}). When unavailable, attempts to reconstruct
-#' strata from the original \code{svydesign()} call. When multiple
-#' stratification variables are supplied, their interaction is used.
+#' Looks for strata already materialized in the \code{survey.design} object.
+#' When unavailable, attempts to reconstruct strata from the original
+#' \code{svydesign()} call. When multiple stratification variables are supplied,
+#' their interaction is used.
+#'
 #' @keywords internal
 el_extract_strata_factor <- function(design) {
   if (!inherits(design, "survey.design")) return(NULL)
 
-# Prefer the already-materialized strata stored in the survey.design object.
-# This avoids dependence on getCall()/model.frame() reconstruction, and is more
-# robust when the original call is unavailable or when factors carry unused
-# levels (which can introduce redundant all-zero strata dummies).
   strata_df <- design$strata
   if (is.data.frame(strata_df) && nrow(strata_df) == nrow(design$variables) && ncol(strata_df) >= 1L) {
     norm_col <- function(x) {
@@ -249,7 +203,7 @@ el_extract_strata_factor <- function(design) {
   strata_expr <- get_arg("strata")
   if (is.null(strata_expr)) return(NULL)
   vars <- design$variables
-# Coerce to formula if needed
+
   strata_formula <- if (inherits(strata_expr, "formula")) {
     strata_expr
   } else {

@@ -2,7 +2,7 @@
 % Please edit documentation in R/engines_el_impl_jacobian.R
 \name{el_build_jacobian_survey}
 \alias{el_build_jacobian_survey}
-\title{Analytical Jacobian for survey EL system (design-weighted QLS analogue)}
+\title{Empirical likelihood analytical jacobian for survey designs}
 \usage{
 el_build_jacobian_survey(
   family,
@@ -15,25 +15,11 @@ el_build_jacobian_survey(
 )
 }
 \description{
-Analytical Jacobian for survey EL system (design-weighted QLS analogue)
+Empirical likelihood analytical jacobian for survey designs
 }
 \details{
 Builds the block Jacobian \eqn{A = \partial g/\partial \theta} for the
-  survey EL system with \eqn{\theta = (\beta, z, \lambda_W, \lambda_x)} and
-  \eqn{z = \operatorname{logit}(W)}. Blocks follow the design-weighted analogue
-  of Qin, Leung, and Shao (2002) used in \code{el_build_equation_system_survey()}.
-  Guarding policy matches the IID Jacobian:
-  \itemize{
-    \item cap eta: \code{eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())}
-    \item compute \code{w <- family$linkinv(eta)} and clip to \code{[1e-12, 1-1e-12]}
-      when used in ratios
-    \item denominator floor: \code{Di <- pmax(Di_raw, nmar_get_el_denom_floor())};
-      multiply terms depending on \code{d(1/Di)/d(.)} by \code{active = 1(Di_raw > floor)}
-  }
-
-  The Jacobian uses the same score and second-derivative machinery as
-  \code{el_build_jacobian()}; when \code{family$d2mu.deta2} is missing, this
-  function returns \code{NULL} and the solver falls back to numeric/Broyden
-  Jacobians.
+survey EL system with \eqn{\theta = (\beta, z, \lambda_W, \lambda_x)}
+and \eqn{z = \operatorname{logit}(W)}.
 }
 \keyword{internal}

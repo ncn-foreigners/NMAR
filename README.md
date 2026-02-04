@@ -5,6 +5,12 @@
 
 <!-- badges: start -->
 
+[![CRAN
+status](https://www.r-pkg.org/badges/version/NMAR)](https://CRAN.R-project.org/package=NMAR)
+[![CRAN
+downloads](https://cranlogs.r-pkg.org/badges/grand-total/NMAR)](https://cran.r-project.org/package=NMAR)
+[![CRAN monthly
+downloads](https://cranlogs.r-pkg.org/badges/NMAR)](https://cran.r-project.org/package=NMAR)
 [![Codecov test
 coverage](https://codecov.io/gh/ncn-foreigners/NMAR/graph/badge.svg)](https://app.codecov.io/gh/ncn-foreigners/NMAR)
 [![R-CMD-check](https://github.com/ncn-foreigners/NMAR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ncn-foreigners/NMAR/actions/workflows/R-CMD-check.yaml)
@@ -13,8 +19,8 @@ coverage](https://codecov.io/gh/ncn-foreigners/NMAR/graph/badge.svg)](https://ap
 NMAR provides estimators for finite-population means when outcomes are
 subject to nonignorable nonresponse (Not Missing at Random, NMAR). It
 supports iid `data.frame` inputs and complex survey designs via
-`survey::survey.design`, and exposes a unified interface through
-`nmar()`.
+`survey.design` objects from the `survey` package, and exposes a unified
+interface through `nmar()`.
 
 ## Methods
 
@@ -41,6 +47,12 @@ examples and engine-specific assumptions:
 <https://ncn-foreigners.ue.poznan.pl/NMAR/>.
 
 ## Installation
+
+Install the CRAN release:
+
+``` r
+install.packages("NMAR")
+```
 
 Install the development version from GitHub:
 
@@ -113,19 +125,19 @@ fit_et <- nmar(
 summary(fit_et)
 #> NMAR Model Summary (Exponential tilting)
 #> =================================
-#> y mean: -1.003974
+#> y mean: -1.004076
 #> Converged: TRUE 
 #> Variance method: none 
 #> Call: nmar(y ~ x, data = <data.frame: N=?>, engine = exponential_tilting)
 #> 
 #> Response-model (theta) coefficients:
-#>   (Intercept)          : 0.864080
-#>   y                    : -0.170216
+#>   (Intercept)          : 0.864241
+#>   y                    : -0.169948
 ```
 
 Result objects returned by `nmar()` support methods such as `summary()`,
-`weights()`, `se()`, and `confint()`, and broom-style `tidy()` /
-`glance()` via the `generics` package.
+`weights()`, `se()`, and `confint()`, and `tidy()` / `glance()` via the
+`generics` package.
 
 ### Survey designs
 

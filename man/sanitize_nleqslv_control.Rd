@@ -2,11 +2,11 @@
 % Please edit documentation in R/shared_numerics.R
 \name{sanitize_nleqslv_control}
 \alias{sanitize_nleqslv_control}
-\title{Sanitize nleqslv control list for compatibility}
+\title{Parse nleqslv control list for compatibility}
 \usage{
 sanitize_nleqslv_control(ctrl)
 }
 \description{
-Sanitize nleqslv control list for compatibility
+Parse nleqslv control list for compatibility
 }
 \keyword{internal}

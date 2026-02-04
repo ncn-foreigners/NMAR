@@ -1,32 +1,12 @@
-#' S3 helpers for NMAR engine objects
-#'
-#' Lightweight, user-facing methods for engine configuration objects
-#' (class `nmar_engine`). These improve discoverability and provide a
-#' consistent print surface across engines while keeping the objects as
-#' simple lists internally.
-#'
-#' @section Design:
-#' - `engine_name()` returns a canonical identifier used across the
-#'   package (e.g., in `nmar_result$meta$engine_name`).
-#' - `print.nmar_engine()` provides a concise, readable summary of the
-#'   engine configuration; engine-specific classes reuse the parent
-#'   method unless they need to override it.
-#' - `engine_config()` returns the underlying configuration as a named
-#'   list for programmatic inspection.
-#'
-#' @name nmar_engine_helpers
-#' @keywords engine_view
-NULL
-
 #' Canonical engine name
 #'
-#' Returns a stable, machine-friendly identifier for an engine object. This
-#' identifier is also used in `nmar_result$meta$engine_name` to keep a
-#' consistent naming scheme between configurations and results.
+#' Returns identifier for an engine object.
 #'
 #' @param x An object inheriting from class `nmar_engine`.
 #' @return A single character string, e.g. "empirical_likelihood".
+#'
 #' @keywords engine_view
+#'
 #' @export
 engine_name <- function(x) {
   UseMethod("engine_name")
@@ -93,16 +73,16 @@ s3_engine_display_keys <- function(x) {
   out
 }
 
-#' Print method for NMAR engines
+#' Print method for engines
 #'
-#' Provides a compact, human-friendly summary for `nmar_engine` objects.
-#' Child classes inherit this method; they can override it if they need a
-#' different presentation.
+#' Compact summary for `nmar_engine` objects.
 #'
 #' @param x An engine object inheriting from `nmar_engine`.
 #' @param ... Unused.
 #' @return `x`, invisibly.
+#'
 #' @keywords engine_view
+#'
 #' @export
 print.nmar_engine <- function(x, ...) {
   nm <- engine_name(x)
@@ -122,7 +102,6 @@ print.nmar_engine <- function(x, ...) {
     }
   }
 
-# Brief indicator if a custom start was provided
   st <- x$start
   if (!is.null(st) && is.list(st)) {
     kinds <- character()
@@ -144,14 +123,16 @@ print.nmar_engine <- function(x, ...) {
   invisible(x)
 }
 
-#' One-line formatter for NMAR engines
+#' Formatter for engines
 #'
 #' Returns a single concise line summarizing an engine configuration.
 #'
 #' @param x An engine object inheriting from `nmar_engine`.
 #' @param ... Unused.
 #' @return A length-1 character vector.
+#'
 #' @keywords engine_view
+#'
 #' @export
 format.nmar_engine <- function(x, ...) {
   nm <- s3_engine_label(engine_name(x))
@@ -173,13 +154,10 @@ format.nmar_engine <- function(x, ...) {
 
 #' Extract engine configuration
 #'
-#' Returns the underlying configuration of an engine as a named list. This is
-#' intended for programmatic inspection (e.g., parameter tuning, logging). The
-#' returned object should be treated as read-only.
-#'
 #' @param x An object inheriting from class `nmar_engine`.
 #' @return A named list of configuration fields.
 #' @keywords engine_view
+#'
 #' @export
 engine_config <- function(x) {
   UseMethod("engine_config")
@@ -187,7 +165,6 @@ engine_config <- function(x) {
 
 #' @export
 engine_config.nmar_engine <- function(x) {
-# Return a shallow copy to discourage in-place mutation of the source object
   out <- x
   attr(out, "class") <- NULL
   out
