@@ -1,6 +1,6 @@
-# Prepare nleqslv top-level args and control
+# Prepare nleqslv args
 
-Prepare nleqslv top-level args and control
+Prepare nleqslv args
 
 ## Usage
 

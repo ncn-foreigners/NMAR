@@ -1,6 +1,6 @@
-# Validate and apply scaling (engine-friendly)
+# Validate and apply scaling for engines
 
-Validate and apply scaling (engine-friendly)
+Validate and apply scaling for engines
 
 ## Usage
 

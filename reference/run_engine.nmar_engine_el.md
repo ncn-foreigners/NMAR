@@ -30,5 +30,4 @@ run_engine(engine, formula, data, trace_level = 0)
 
 ## Value
 
-An object of class `nmar_result_el` (which also inherits from
-`nmar_result`).
+An object of class `nmar_result_el`.

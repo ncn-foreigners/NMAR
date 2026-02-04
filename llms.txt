@@ -117,14 +117,14 @@ fit_et <- nmar(
 summary(fit_et)
 #> NMAR Model Summary (Exponential tilting)
 #> =================================
-#> y mean: -1.004078
+#> y mean: -1.004076
 #> Converged: TRUE 
 #> Variance method: none 
 #> Call: nmar(y ~ x, data = <data.frame: N=?>, engine = exponential_tilting)
 #> 
 #> Response-model (theta) coefficients:
-#>   (Intercept)          : 0.864278
-#>   y                    : -0.169949
+#>   (Intercept)          : 0.864241
+#>   y                    : -0.169948
 ```
 
 Result objects returned by
@@ -194,23 +194,23 @@ Research grant: [OPUS 20
 ## Engines
 
 - [`el_engine()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/el_engine.md)
-  : Empirical likelihood (EL) engine for NMAR
+  : Empirical likelihood engine for NMAR
 - [`exptilt_engine()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/exptilt_engine.md)
-  : Exponential tilting (ET) engine for NMAR estimation
+  : Exponential tilting engine for NMAR
 - [`exptilt_nonparam_engine()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/exptilt_nonparam_engine.md)
-  : Nonparametric exponential tilting (EM) engine for NMAR
+  : Nonparametric exponential tilting engine for NMAR
 
 ## NMAR
 
 - [`nmar()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md)
-  : Not Missing at Random (NMAR) Estimation
+  : Not Missing at Random Estimation
 
 ## Result analysis
 
 - [`coef(`*`<summary_nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/coef.summary_nmar_result.md)
   : Coefficient table for summary objects
 - [`confint(`*`<summary_nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/confint.summary_nmar_result.md)
-  : Confidence intervals for coefficient table (summary objects)
+  : Confidence intervals for summary objects
 - [`glance(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/glance.nmar_result.md)
   : Glance summary for NMAR results
 - [`print(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/print.nmar_result.md)
@@ -237,18 +237,16 @@ Research grant: [OPUS 20
 - [`engine_name()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/engine_name.md)
   : Canonical engine name
 - [`format(`*`<nmar_engine>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/format.nmar_engine.md)
-  : One-line formatter for NMAR engines
-- [`nmar_engine_helpers`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_engine_helpers.md)
-  : S3 helpers for NMAR engine objects
+  : Formatter for engines
 - [`print(`*`<nmar_engine>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/print.nmar_engine.md)
-  : Print method for NMAR engines
+  : Print method for engines
 
 ## Result params
 
 - [`coef(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/coef.nmar_result.md)
   : Default coefficients for NMAR results
 - [`confint(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/confint.nmar_result.md)
-  : Wald confidence interval for base NMAR results
+  : Wald confidence interval for NMAR results
 - [`fitted(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/fitted.nmar_result.md)
   : Default fitted values for NMAR results
 - [`formula(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/formula.nmar_result.md)
@@ -256,7 +254,7 @@ Research grant: [OPUS 20
 - [`se()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/se.md)
   : Extract standard error for NMAR results
 - [`vcov(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/vcov.nmar_result.md)
-  : Variance-covariance for base NMAR results
+  : Variance-covariance for NMAR results
 - [`weights(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/weights.nmar_result.md)
   : Extract weights from an \`nmar_result\`
 
@@ -285,10 +283,11 @@ both data.frame and survey design objects
 - [Empirical
   Likelihood](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/tutorial_empirical_likelihood.md):
 
-  Jing Qin, Denis Leung, Jun Shao  
-  Estimation With Survey Data Under Nonignorable Nonresponse or
-  Informative Sampling  
-  <https://doi.org/10.1198/016214502753479338>
+  Demonstrates the empirical likelihood estimator for Not Missing at
+  Random outcomes implemented in the NMAR package, targeting the
+  full-data mean under the Qin–Leung–Shao (2002) model. Includes
+  data-frame and survey-design usage, auxiliary constraints, and
+  bootstrap variance.
 
 - [Exponential
   Tilting](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/tutorial_exptilt.md):
@@ -310,13 +309,20 @@ both data.frame and survey design objects
 - [Developing a New NMAR
   Estimator](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/developing_new_nmar_estimator.md):
 
-  Guide for adding a new NMAR estimator to the `NMAR` package
+  Guide for adding a new NMAR estimator to the NMAR package
 
 ### Theory
 
 - [Empirical Likelihood Theory for
   NMAR](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/el_empirical_likelihood_theory.md):
+
+  Mathematical details and estimating-equation derivations for the
+  empirical likelihood estimator for NMAR nonresponse implemented in the
+  NMAR package, including the mapping from Qin–Leung–Shao (2002) paper
+  to the code.
+
 - [Exponential Tilting
   Theory](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/exptilt_theory.md):
+
 - [Nonparametric Exponential Tilting
   Theory](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/exptilt_nonparam_theory.md):

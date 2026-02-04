@@ -1,7 +1,7 @@
 # Tidy summary for NMAR results
 
-Return a data frame with the primary estimate and (if available)
-missingness-model coefficients.
+Return a data frame with the primary estimate and missingness-model
+coefficients.
 
 ## Usage
 

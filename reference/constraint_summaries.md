@@ -1,6 +1,6 @@
-# Constraint summaries for EL diagnostics
+# Constraint summaries for diagnostics
 
-Constraint summaries for EL diagnostics
+Reports the constraint sums used in the estimating equations.
 
 ## Usage
 

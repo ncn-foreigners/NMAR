@@ -1,8 +1,6 @@
-# Print method for NMAR engines
+# Print method for engines
 
-Provides a compact, human-friendly summary for \`nmar_engine\` objects.
-Child classes inherit this method; they can override it if they need a
-different presentation.
+Compact summary for \`nmar_engine\` objects.
 
 ## Usage
 

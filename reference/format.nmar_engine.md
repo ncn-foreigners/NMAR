@@ -1,4 +1,4 @@
-# One-line formatter for NMAR engines
+# Formatter for engines
 
 Returns a single concise line summarizing an engine configuration.
 

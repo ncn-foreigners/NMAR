@@ -1,6 +1,6 @@
 # Print method for EL results
 
-Compact print for objects of class `nmar_result_el`.
+Print for objects of class `nmar_result_el`.
 
 ## Usage
 

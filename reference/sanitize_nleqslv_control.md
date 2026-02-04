@@ -1,6 +1,6 @@
-# Sanitize nleqslv control list for compatibility
+# Parse nleqslv control list for compatibility
 
-Sanitize nleqslv control list for compatibility
+Parse nleqslv control list for compatibility
 
 ## Usage
 

@@ -1,6 +1,6 @@
-# Validate design spec dimensions
+# Validate design dimensions
 
-Validate design spec dimensions
+Validate design dimensions
 
 ## Usage
 

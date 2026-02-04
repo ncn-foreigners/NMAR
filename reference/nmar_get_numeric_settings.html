@@ -43,7 +43,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>NMAR numeric settings</h1>
-      <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/NMAR/blob/package-dev/R/shared_numerics.R" class="external-link"><code>R/shared_numerics.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/NMAR/blob/main/R/shared_numerics.R" class="external-link"><code>R/shared_numerics.R</code></a></small>
       <div class="d-none name"><code>nmar_get_numeric_settings.Rd</code></div>
     </div>
 
@@ -62,17 +62,13 @@
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Centralized access to numeric thresholds used across the package.
-These settings can be overridden via options() for advanced users:
-- `nmar.eta_cap`: scalar &gt; 0. Caps the response-model linear predictor
-  to avoid extreme link values in Newton updates. Default 50.
+    <p>Centralized access to numeric thresholds used across the package.</p>
+<p>- `nmar.eta_cap`: scalar &gt; 0. Caps the response-model linear predictor
+to avoid extreme link values in Newton updates. Default 50.
 - `nmar.grad_eps`: finite-difference step size epsilon for numeric
-  gradients of smooth functionals. Default 1e-6.
+gradients of smooth functionals. Default 1e-6.
 - `nmar.grad_d`: relative step adjustment for numeric gradients.
-  Default 1e-3.</p>
-<p>The defaults are chosen to be conservative and stable across typical
-NMAR problems. Engines should retrieve values via this helper rather
-than hard-coding numbers, so documentation stays consistent.</p>
+Default 1e-3.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

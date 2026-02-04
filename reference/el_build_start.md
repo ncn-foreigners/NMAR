@@ -1,6 +1,6 @@
-# Build starting values for the EL solver (beta, z, lambda)
+# Build starting values
 
-Build starting values for the EL solver (beta, z, lambda)
+Build starting values
 
 ## Usage
 

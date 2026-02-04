@@ -60,7 +60,7 @@ A list with components:
 
 ## Details
 
-Zero weights remain zero; only entries that are positive after
+Zero weights remain zero. Only entries that are positive after
 nonnegativity enforcement can absorb redistributed mass.
 
 Internally, a simple water-filling style algorithm is used on the

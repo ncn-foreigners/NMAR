@@ -4,50 +4,51 @@
 
 This guide explains how to add and integrate a new Not Missing at Random
 (NMAR) statistical estimator into `NMAR`, following the architecture
-used by the Empirical Likelihood (EL) engine and emphasizing a clean
+used by the empirical likelihood engine and emphasizing a clean
 separation of concerns:
 
 - Shared, reusable utilities live in `src_dev/shared/` (scaling,
   families, bootstrap, numerics, weights, verbosity).
 - Estimator-specific math and code live in `src_dev/engines/<method>/`.
 
-> Repository conventions - Always edit source under `src_dev/`. Do not
-> edit generated artifacts in `R/`, `man/`, or `NAMESPACE` by hand. -
-> Before running tests, vignettes, or pkgdown, refresh generated sources
-> with `Rscript build_r_folder.R` (or `source("build_r_folder.R")` from
-> an R session). - In development, prefer
-> [`devtools::load_all()`](https://devtools.r-lib.org/reference/load_all.html)
-> over [`library(NMAR)`](https://github.com/ncn-foreigners/NMAR) so you
-> always load the current working tree. - If you change roxygen
-> comments, run
-> [`devtools::document()`](https://devtools.r-lib.org/reference/document.html)
-> after refreshing `R/` so Rd/NAMESPACE are rebuilt from current
-> sources. - Use testthat v3 under `tests/testthat/` and run
-> [`devtools::test()`](https://devtools.r-lib.org/reference/test.html)
-> before opening a PR. - Recommended before publishing:
-> `R CMD check . --no-manual --as-cran`. - Optional repo tooling:
-> `pre-commit run --all-files` (styling, README render, roxygenize, and
-> other guards). - Use roxygen2 for documentation; do not edit
-> `NAMESPACE` directly.
+> Repository conventions
+>
+> - Always edit source under `src_dev/`. Do not edit generated artifacts
+>   in `R/`, `man/`, or `NAMESPACE` by hand.
+> - Before running tests, vignettes, or pkgdown, refresh generated
+>   sources with `Rscript build_r_folder.R` (or
+>   `source("build_r_folder.R")` from an R session).
+> - In development, prefer `devtools::load_all()` over
+>   [`library(NMAR)`](https://github.com/ncn-foreigners/NMAR) so you
+>   always load the current working tree.
+> - If you change roxygen comments, run `devtools::document()` after
+>   refreshing `R/` so Rd/NAMESPACE are rebuilt from current sources.
+> - Use testthat v3 under `tests/testthat/` and run `devtools::test()`
+>   before opening a PR.
+> - Recommended before publishing:
+>   `R CMD check . --no-manual --as-cran`.
+> - Optional repo tooling: `pre-commit run --all-files` (styling, README
+>   render, roxygenize, and other guards).
+> - Use roxygen2 for documentation. Do not edit `NAMESPACE` directly.
 
 ------------------------------------------------------------------------
 
 ### 0) General guidelines
 
-1.  Prefer small, pure functions with clear inputs/outputs; fail loudly
+1.  Prefer small, pure functions with clear inputs/outputs. Fail loudly
     with informative [`stop()`](https://rdrr.io/r/base/stop.html)
     messages.
 2.  Prefer type-stable iteration
     ([`vapply()`](https://rdrr.io/r/base/lapply.html),
     [`lapply()`](https://rdrr.io/r/base/lapply.html), explicit loops)
     over [`sapply()`](https://rdrr.io/r/base/lapply.html).
-3.  Avoid adding new dependencies without prior discussion; prefer base
+3.  Avoid adding new dependencies without prior discussion. Prefer base
     R and existing shared infrastructure.
 4.  Reuse `src_dev/shared/` for method-agnostic components (scaling,
     families, bootstrap, numerics).
 5.  Use S3 with explicit constructors and validators for engine and
     result objects.
-6.  Keep a single, predictable execution path; avoid unnecessary nesting
+6.  Keep a single, predictable execution path. Avoid unnecessary nesting
     and multi-modal behavior (KISS/YAGNI).
 
 ### 0.1) Minimal developer checklist
@@ -64,9 +65,7 @@ separation of concerns:
 - Add tests under `tests/testthat/` (at least: smoke test, argument
   validation, and one regression test).
 - Refresh generated files and validate: `Rscript build_r_folder.R`, then
-  [`devtools::document()`](https://devtools.r-lib.org/reference/document.html),
-  then
-  [`devtools::test()`](https://devtools.r-lib.org/reference/test.html).
+  `devtools::document()`, then `devtools::test()`.
 - If you add a developer article or vignette, register it in
   `_pkgdown.yml`. Note that this guide is intentionally excluded from
   the package tarball via `.Rbuildignore` but can still be built into
@@ -161,7 +160,7 @@ method <- function(data, ...) UseMethod("method")
 ``` r
 #' @keywords internal
 method.data.frame <- function(data, formula, standardize = TRUE, auxiliary_means = NULL, ...) {
-  # Prepare inputs. You may adapt from EL's el_prepare_inputs() pattern.
+  # Prepare inputs, you may adapt from EL's el_prepare_inputs() pattern
   parsed <- build_method_inputs(data, formula)
   estimation_data <- parsed$data
   obs_idx <- which(parsed$respondent_mask)
@@ -171,8 +170,8 @@ method.data.frame <- function(data, formula, standardize = TRUE, auxiliary_means
   X_un <- parsed$auxiliary_matrix
   has_aux <- !is.null(X_un) && ncol(X_un) > 0
 
-  # Resolve auxiliary means before scaling.
-  # If your estimator uses auxiliary moment constraints, you must define what
+  # Resolve auxiliary means before scaling,
+  # if your estimator uses auxiliary moment constraints, you must define what
   # "population means" mean in your workflow:
   # - If auxiliaries are observed for all sampled units, a common default is
   #   colMeans(X_un) (iid) or design-weighted means (survey).
@@ -197,7 +196,7 @@ method.data.frame <- function(data, formula, standardize = TRUE, auxiliary_means
     mu_x_unscaled = mu_x
   )
 
-  # Solve on the scaled space (method-specific code)
+  # Solve on the scaled space
   fit <- method_solve_core(
     full_data = estimation_data,
     respondent_data = estimation_data[obs_idx, ],
@@ -207,10 +206,10 @@ method.data.frame <- function(data, formula, standardize = TRUE, auxiliary_means
     ...
   )
 
-  # Unscale coefficients/vcov if you report missingness-model parameters.
+  # Unscale coefficients/vcov if you report missingness-model parameters
   # beta_unscaled <- unscale_coefficients(fit$beta_scaled, fit$vcov_scaled, sc$recipe)
 
-  # Wrap into a standard result object (see Section 5)
+  # Wrap into a standard result object
   new_nmar_result_method(
     y_hat = fit$y_hat,
     se = fit$se,
@@ -235,12 +234,12 @@ Follow EL’s `el.survey.design` pattern:
   `survey::svytotal(~ scores, design)` and use
   [`vcov()`](https://rdrr.io/r/stats/vcov.html).
 
-#### 6) `impl/equations.R` / `impl/jacobian.R` (optional)
+#### 6) `impl/equations.R` / `impl/jacobian.R`
 
 If your estimator uses a system of estimating equations and an analytic
 Jacobian (like EL), define and document them here.
 
-#### 7) `impl/variance.R` (optional)
+#### 7) `impl/variance.R`
 
 Add an option to use shared bootstrap variance helpers
 ([`bootstrap_variance()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/bootstrap_variance.md))
@@ -259,7 +258,7 @@ layout:
 - Lists: `model` (coefficients/vcov), `weights_info`, `sample`,
   `inference`, `diagnostics`, `meta`, `extra`.
 
-Populate only fields in the shared schema; put engine-specific objects
+Populate only fields in the shared schema. Put engine-specific objects
 under `extra`. Call `new_nmar_result(estimate = ...)` rather than
 assigning `y_hat` directly. The helper attaches classes, adds the parent
 `"nmar_result"` class, and routes the object through
@@ -300,7 +299,7 @@ new_nmar_result_method <- function(y_hat, se,
 
 #### 9) `s3.R` - S3 methods for your result class
 
-Implement (or rely on parent defaults):
+Implement, or rely on parent defaults:
 
 - `print.nmar_result_<method>()`, `summary.nmar_result_<method>()`
   (optional). When overriding, call
@@ -330,9 +329,9 @@ Use these shared modules in `src_dev/shared/`:
 - [`unscale_coefficients()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/unscale_coefficients.md)
   to map scaled coefficients and vcov back to the original scale for
   reporting.
-- Intercept is never scaled; constant columns get sd = 1.
+- Intercept is never scaled. Constant columns get sd = 1.
 
-#### Families (response model)
+#### Response model families
 
 - [`logit_family()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/logit_family.md)
   /
@@ -426,7 +425,7 @@ The shared parent class has the following schema:
     structures).
 
 [`validate_nmar_result()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/validate_nmar_result.md)
-is the single authority on this schema; it normalises and type-checks
+is the single authority on this schema. It normalises and type-checks
 objects so that parent S3 methods can rely on the presence and shape of
 these fields. Engine constructors supply whatever information they have
 and let the validator back-fill missing components with safe defaults.
@@ -451,7 +450,7 @@ methods:
   `glance()`, `coef(summary())`, `confint(summary())`) use
   `inference$df` together with `sample$is_survey` to decide between t-
   and normal-based quantiles. Engines that provide design-based degrees
-  of freedom should populate `df`; those that do not can leave it as
+  of freedom should populate `df`. Those that do not can leave it as
   `NA_real_`, in which case normal-based inference is used.
 
 As long as a new engine adheres to these conventions and calls

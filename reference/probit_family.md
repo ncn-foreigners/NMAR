@@ -1,6 +1,6 @@
-# Construct a probit response family bundle
+# Construct probit response family
 
-Construct a probit response family bundle
+Construct probit response family
 
 ## Usage
 

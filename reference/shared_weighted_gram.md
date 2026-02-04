@@ -1,6 +1,8 @@
-# Weighted linear algebra helpers
+# Weighted linear algebra
 
-Weighted linear algebra helpers
+Compute X' diag(w) X efficiently. If w \>= 0, use SPD
+crossprod(X\*sqrt(w)). Otherwise, fall back to X' (diag(w) X) via
+crossprod(X, X\*w).
 
 ## Usage
 

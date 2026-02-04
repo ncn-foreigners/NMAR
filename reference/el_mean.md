@@ -1,6 +1,6 @@
-# Mean from probability masses
+# Compute the mean
 
-Mean from probability masses
+Compute the mean
 
 ## Usage
 

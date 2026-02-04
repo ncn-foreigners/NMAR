@@ -1,6 +1,6 @@
-# Solver orchestration with staged policy
+# Solver orchestration
 
-Solver orchestration with staged policy
+Solver orchestration
 
 ## Usage
 
@@ -68,8 +68,8 @@ el_run_solver(
 
 - N_pop:
 
-  Numeric; population total (weighted when survey design).
+  Numeric; population total.
 
 - trace_level:
 
-  Integer; verbosity level (0 silent, 1-3 increasingly verbose).
+  Integer; verbosity level.

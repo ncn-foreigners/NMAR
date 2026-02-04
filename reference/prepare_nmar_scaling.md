@@ -1,6 +1,6 @@
-# Prepare scaled matrices and moments (low-level)
+# Prepare scaled matrices and moments
 
-Prepare scaled matrices and moments (low-level)
+Prepare scaled matrices and moments
 
 ## Usage
 

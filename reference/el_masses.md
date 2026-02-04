@@ -1,6 +1,6 @@
-# EL masses and probabilities from denominators
+# Compute probability masses
 
-EL masses and probabilities from denominators
+Compute probability masses
 
 ## Usage
 
@@ -20,8 +20,7 @@ el_masses(weights, denom, floor, trim_cap)
 
 - floor:
 
-  numeric small positive guard (unused in core logic here, kept for API
-  symmetry)
+  numeric small positive guard
 
 - trim_cap:
 

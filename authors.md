@@ -12,7 +12,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/ncn-foreigners/NMAR/blob/package-dev/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/ncn-foreigners/NMAR/blob/main/DESCRIPTION)
 
 Beresewicz M, Kołodziej I, Iwaniuk M (2026). *NMAR: Estimation under not
 Missing at Random Nonresponse*. R package version 0.1.2,

@@ -1,6 +1,6 @@
-# Compute (possibly weighted) mean and standard deviation
+# Compute mean and standard deviation
 
-Compute (possibly weighted) mean and standard deviation
+Compute mean and standard deviation
 
 ## Usage
 

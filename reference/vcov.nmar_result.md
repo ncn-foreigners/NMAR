@@ -1,6 +1,6 @@
-# Variance-covariance for base NMAR results
+# Variance-covariance for NMAR results
 
-Variance-covariance for base NMAR results
+Variance-covariance for NMAR results
 
 ## Usage
 

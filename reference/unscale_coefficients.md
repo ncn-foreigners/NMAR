@@ -1,6 +1,6 @@
-# Unscale regression coefficients and covariance
+# Unscale coefficients and covariance
 
-Unscale regression coefficients and covariance
+Unscale coefficients and covariance
 
 ## Usage
 

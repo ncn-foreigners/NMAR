@@ -13,7 +13,7 @@ scale_aux_multipliers(lambda_unscaled, recipe, columns)
 - lambda_unscaled:
 
   named numeric vector of auxiliary multipliers aligned to auxiliary
-  design columns (no intercept) on original scale.
+  design columns on original scale.
 
 - recipe:
 

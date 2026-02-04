@@ -1,11 +1,9 @@
-# Core eta-state computation for EL engines
+# Core computations
 
 Computes the capped linear predictor, response probabilities,
 derivatives, and stable scores with respect to the linear predictor for
-a given family. This helper centralizes the numerically delicate pieces
-(capping, clipping, Mills ratios, and score derivatives) and is used
-consistently across the EL equation system and analytical Jacobians for
-both IID and survey designs.
+a given family. Centralizes the numerically delicate pieces (capping,
+clipping, score derivatives) to be reused in EL equations and jacobian.
 
 ## Usage
 
@@ -17,10 +15,7 @@ el_core_eta_state(family, eta_raw, eta_cap)
 
 - family:
 
-  List-like response family bundle (see
-  [`logit_family()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/logit_family.md)
-  and
-  [`probit_family()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/probit_family.md)).
+  Response family.
 
 - eta_raw:
 
@@ -57,8 +52,7 @@ A list with components:
 
 - `s_eta`:
 
-  Score with respect to `eta`, using stable logit/probit forms where
-  possible.
+  Score with respect to `eta`.
 
 - `ds_eta_deta`:
 

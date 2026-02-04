@@ -1,6 +1,6 @@
 # Default fitted values for NMAR results
 
-Returns fitted response probabilities if available.
+Returns fitted response probabilities.
 
 ## Usage
 

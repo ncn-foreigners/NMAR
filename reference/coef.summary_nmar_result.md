@@ -30,5 +30,5 @@ available.
 ## Details
 
 The statistic column is labelled "t value" when finite degrees of
-freedom are available (e.g., survey designs); otherwise, it is labelled
-"z value".
+freedom are present in survey designs, otherwise it is labelled "z
+value".

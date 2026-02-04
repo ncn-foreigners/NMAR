@@ -1,6 +1,6 @@
-# Build EL result object (success or failure)
+# Build EL result object
 
-Build EL result object (success or failure)
+Build EL result object
 
 ## Usage
 

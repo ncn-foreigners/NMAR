@@ -49,7 +49,7 @@ all positive entries are set to the cap and the total sum decreases."><meta prop
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Trim weights by capping and proportional redistribution</h1>
-      <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/NMAR/blob/package-dev/R/shared_weights.R" class="external-link"><code>R/shared_weights.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/NMAR/blob/main/R/shared_weights.R" class="external-link"><code>R/shared_weights.R</code></a></small>
       <div class="d-none name"><code>trim_weights.Rd</code></div>
     </div>
 
@@ -74,18 +74,15 @@ all positive entries are set to the cap and the total sum decreases.</p>
 
 
 <dt id="arg-cap">cap<a class="anchor" aria-label="anchor" href="#arg-cap"></a></dt>
-<dd><p>positive numeric scalar; maximum allowed weight, or <code>Inf</code>
-to disable trimming.</p></dd>
+<dd><p>positive numeric scalar; maximum allowed weight, or <code>Inf</code> to disable trimming.</p></dd>
 
 
 <dt id="arg-tol">tol<a class="anchor" aria-label="anchor" href="#arg-tol"></a></dt>
-<dd><p>numeric tolerance used when testing whether a rescaling step
-respects the cap.</p></dd>
+<dd><p>numeric tolerance used when testing whether a rescaling step respects the cap.</p></dd>
 
 
 <dt id="arg-warn-tol">warn_tol<a class="anchor" aria-label="anchor" href="#arg-warn-tol"></a></dt>
-<dd><p>numeric tolerance used when testing whether the total sum
-has been preserved.</p></dd>
+<dd><p>numeric tolerance used when testing whether the total sum has been preserved.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -93,25 +90,25 @@ has been preserved.</p></dd>
     <p>A list with components:</p><dl><dt><code>weights</code></dt>
 <dd><p>numeric vector of trimmed weights.</p></dd>
 
-    <dt><code>trimmed_fraction</code></dt>
+<dt><code>trimmed_fraction</code></dt>
 <dd><p>fraction of entries at or very close to
-      the cap (within <code>tol</code>).</p></dd>
+the cap (within <code>tol</code>).</p></dd>
 
-    <dt><code>preserved_sum</code></dt>
+<dt><code>preserved_sum</code></dt>
 <dd><p>logical; <code>TRUE</code> if the total sum of
-      weights is preserved to within <code>warn_tol</code>.</p></dd>
+weights is preserved to within <code>warn_tol</code>.</p></dd>
 
-    <dt><code>total_before</code></dt>
+<dt><code>total_before</code></dt>
 <dd><p>numeric; sum of the original weights.</p></dd>
 
-    <dt><code>total_after</code></dt>
+<dt><code>total_after</code></dt>
 <dd><p>numeric; sum of the trimmed weights.</p></dd>
 
 
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Zero weights remain zero; only entries that are positive after nonnegativity
+    <p>Zero weights remain zero. Only entries that are positive after nonnegativity
 enforcement can absorb redistributed mass.</p>
 <p>Internally, a simple water-filling style algorithm is used on the positive
 weights: the largest weights are successively saturated at the cap and the

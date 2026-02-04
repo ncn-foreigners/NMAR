@@ -1,8 +1,6 @@
-# Core Empirical Likelihood Estimator
+# Core of the empirical likelihood estimator
 
-Implements the core computational engine for empirical likelihood
-estimation under nonignorable nonresponse, including parameter solving,
-variance calculation, and diagnostic computation.
+Core of the empirical likelihood estimator
 
 ## Usage
 
@@ -33,8 +31,8 @@ el_estimator_core(
 
 - missingness_design:
 
-  Respondent-side missingness (response) model design matrix
-  (intercept + predictors).
+  Respondent-side missingness model design matrix (intercept +
+  predictors).
 
 - aux_matrix:
 
@@ -52,8 +50,7 @@ el_estimator_core(
 
 - analysis_data:
 
-  Data object used for logging and variance (survey designs supply the
-  design object).
+  Data object used for logging and variance.
 
 - outcome_expr:
 
@@ -82,11 +79,11 @@ el_estimator_core(
 
 - on_failure:
 
-  Character. Action when solver fails: "return" or "error".
+  Character. Action when solver fails.
 
 - family:
 
-  List. Link function specification (typically logit).
+  List. Link function specification.
 
 - variance_method:
 
@@ -98,27 +95,8 @@ el_estimator_core(
 
 - auxiliary_means:
 
-  Named numeric vector of known population means supplied by the user
-  (optional; used for diagnostics).
+  Named numeric vector of known population means supplied by the user.
 
 ## Value
 
 List containing estimation results, diagnostics, and metadata.
-
-## Details
-
-Orchestrates EL estimation for NMAR following Qin, Leung, and Shao
-(2002). For `data.frame` inputs (IID setting) the stacked system in
-\\(\beta, z, \lambda_x)\\ with \\z = \mathrm{logit}(W)\\ is solved by
-[`nleqslv::nleqslv()`](https://rdrr.io/pkg/nleqslv/man/nleqslv.html)
-using an analytic Jacobian. For `survey.design` inputs a design-weighted
-analogue in \\(\beta, z, \lambda_W, \lambda_x)\\ is solved with an
-analytic Jacobian when the response family supplies second derivatives,
-or with numeric/Broyden Jacobians otherwise. Numerical safeguards are
-applied consistently across equations, Jacobian, and post-solution
-weights: bounded linear predictors, probability clipping in ratios, and
-a small floor on denominators \\D_i(\theta)\\ with an active-set mask in
-derivatives. After solving, unnormalized masses \\d_i/D_i(\theta)\\ are
-formed, optional trimming may be applied (with normalization only for
-reporting), and optional variance is computed via bootstrap when
-`variance_method = "bootstrap"`.

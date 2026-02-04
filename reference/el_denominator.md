@@ -1,6 +1,6 @@
-# Build denominator and floor pack
+# Compute denominator
 
-Build denominator and floor pack
+Compute denominator
 
 ## Usage
 

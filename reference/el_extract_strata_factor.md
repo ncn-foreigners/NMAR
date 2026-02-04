@@ -1,8 +1,7 @@
-# Extract a strata factor from a survey.design object
+# Extract strata factor
 
-Prefers strata already materialized in the `survey.design` object
-(typically `design$strata`). When unavailable, attempts to reconstruct
-strata from the original
+Looks for strata already materialized in the `survey.design` object.
+When unavailable, attempts to reconstruct strata from the original
 [`svydesign()`](https://rdrr.io/pkg/survey/man/svydesign.html) call.
 When multiple stratification variables are supplied, their interaction
 is used.

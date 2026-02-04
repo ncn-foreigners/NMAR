@@ -1,10 +1,8 @@
-# Prepare EL inputs for IID and survey designs
+# Input preprocessing
 
 Parses the two-part Formula, constructs EL design matrices, injects the
-respondent delta indicator, attaches weights and (optionally) survey
-metadata, and returns the pieces needed by the EL core. The outcome
-enters the missingness design only through the evaluated LHS expression;
-any explicit use of the outcome variable on RHS2 is rejected.
+respondent delta indicator, attaches weights and survey metadata, and
+returns the pieces needed by the EL core.
 
 ## Usage
 
@@ -20,7 +18,7 @@ el_prepare_inputs(
 
 ## Details
 
-Invariants enforced here (relied on by all downstream EL code):
+Enforeces the following format required by the rest of el code:
 
 - LHS references exactly one outcome source variable in `data`; any
   transforms are applied via the formula environment and must be defined
@@ -37,13 +35,13 @@ Invariants enforced here (relied on by all downstream EL code):
   and non-constant among respondents.
 
 - RHS2 always yields a missingness-design matrix for respondents that
-  includes an intercept column and zero-variance predictors only emit
-  warnings (not errors); NA among respondents is rejected.
+  includes an intercept column and zero-variance predictors emit
+  warnings. NA among respondents is rejected.
 
 - `respondent_mask` is defined from the raw outcome in `data`, not from
-  the transformed LHS; an injected `..nmar_delta..` indicator in
-  `analysis_data` matches this mask exactly.
+  the transformed LHS. An injected `..nmar_delta..` indicator in
+  `analysis_data` must match this mask.
 
-- `N_pop` is the analysis-scale population size used in the EL system:
-  for IID it is `nrow(data)` unless overridden by `n_total`; for survey
-  designs it is `sum(weights)` or `n_total` when supplied.
+- `N_pop` is the analysis-scale population size: for IID it is
+  `nrow(data)` unless overridden by `n_total`. For survey designs it is
+  `sum(weights)` or `n_total` when supplied.

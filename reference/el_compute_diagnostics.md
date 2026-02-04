@@ -1,6 +1,6 @@
-# Compute diagnostics at the EL solution
+# Compute diagnostics
 
-Compute diagnostics at the EL solution
+Compute diagnostics
 
 ## Usage
 

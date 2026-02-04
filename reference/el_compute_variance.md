@@ -1,6 +1,6 @@
-# Variance driver for EL (bootstrap or none)
+# Variance driver
 
-Variance driver for EL (bootstrap or none)
+Variance driver
 
 ## Usage
 

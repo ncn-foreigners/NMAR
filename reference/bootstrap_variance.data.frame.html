@@ -43,7 +43,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Bootstrap for IID data frames</h1>
-      <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/NMAR/blob/package-dev/R/shared_bootstrap.R" class="external-link"><code>R/shared_bootstrap.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/ncn-foreigners/NMAR/blob/main/R/shared_bootstrap.R" class="external-link"><code>R/shared_bootstrap.R</code></a></small>
       <div class="d-none name"><code>bootstrap_variance.data.frame.Rd</code></div>
     </div>
 
@@ -53,7 +53,8 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">bootstrap_variance.data.frame</span><span class="op">(</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'data.frame'</span></span>
+<span><span class="fu"><a href="bootstrap_variance.html">bootstrap_variance</a></span><span class="op">(</span></span>
 <span>  <span class="va">data</span>,</span>
 <span>  <span class="va">estimator_func</span>,</span>
 <span>  <span class="va">point_estimate</span>,</span>
@@ -76,7 +77,7 @@ component <code>y_hat</code> and an optional logical component <code>converged</
 
 
 <dt id="arg-point-estimate">point_estimate<a class="anchor" aria-label="anchor" href="#arg-point-estimate"></a></dt>
-<dd><p>Unused for IID bootstrap; included for signature
+<dd><p>Unused for IID bootstrap, included for signature
 consistency.</p></dd>
 
 
@@ -88,7 +89,7 @@ consistency.</p></dd>
 <dd><p>Additional arguments. Some are consumed by <code><a href="bootstrap_variance.html">bootstrap_variance()</a></code>
 itself (for example <code>resample_guard</code> for IID bootstrap or
 <code>bootstrap_settings</code>/<code>bootstrap_options</code>/<code>bootstrap_type</code>/<code>bootstrap_mse</code>
-for survey bootstrap); remaining arguments are forwarded to <code>estimator_func</code>.</p></dd>
+or survey bootstrap). Remaining arguments are forwarded to <code>estimator_func</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

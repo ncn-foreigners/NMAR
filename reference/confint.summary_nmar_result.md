@@ -1,4 +1,4 @@
-# Confidence intervals for coefficient table (summary objects)
+# Confidence intervals for summary objects
 
 Returns Wald-style confidence intervals for missingness-model
 coefficients from a \`summary_nmar_result\*\` object. Uses t-quantiles
@@ -21,7 +21,7 @@ confint(object, parm, level = 0.95, ...)
 - parm:
 
   A specification of which coefficients are to be given confidence
-  intervals, either a vector of names or a vector of indices; by
+  intervals, either a vector of names or a vector of indices. By
   default, all coefficients are considered.
 
 - level:

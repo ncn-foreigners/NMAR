@@ -1,8 +1,8 @@
-# Enforce (near-)nonnegativity of weights
+# Enforce nonnegativity of weights
 
 Softly enforces nonnegativity of a numeric weight vector. Large negative
-values (beyond a tolerance) are treated as errors; small negative values
-(for example, from numerical noise) are truncated to zero.
+values are treated as errors, while small negative values are truncated
+to zero.
 
 ## Usage
 

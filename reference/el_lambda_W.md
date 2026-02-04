@@ -1,6 +1,6 @@
-# Compute lambda_W from C_const and W
+# Compute lambda_W
 
-Compute lambda_W from C_const and W
+Compute lambda_W
 
 ## Usage
 

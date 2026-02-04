@@ -3,23 +3,23 @@
 ## Engines
 
 - [`el_engine()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/el_engine.md)
-  : Empirical likelihood (EL) engine for NMAR
+  : Empirical likelihood engine for NMAR
 - [`exptilt_engine()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/exptilt_engine.md)
-  : Exponential tilting (ET) engine for NMAR estimation
+  : Exponential tilting engine for NMAR
 - [`exptilt_nonparam_engine()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/exptilt_nonparam_engine.md)
-  : Nonparametric exponential tilting (EM) engine for NMAR
+  : Nonparametric exponential tilting engine for NMAR
 
 ## NMAR
 
 - [`nmar()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md)
-  : Not Missing at Random (NMAR) Estimation
+  : Not Missing at Random Estimation
 
 ## Result analysis
 
 - [`coef(`*`<summary_nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/coef.summary_nmar_result.md)
   : Coefficient table for summary objects
 - [`confint(`*`<summary_nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/confint.summary_nmar_result.md)
-  : Confidence intervals for coefficient table (summary objects)
+  : Confidence intervals for summary objects
 - [`glance(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/glance.nmar_result.md)
   : Glance summary for NMAR results
 - [`print(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/print.nmar_result.md)
@@ -46,18 +46,16 @@
 - [`engine_name()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/engine_name.md)
   : Canonical engine name
 - [`format(`*`<nmar_engine>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/format.nmar_engine.md)
-  : One-line formatter for NMAR engines
-- [`nmar_engine_helpers`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar_engine_helpers.md)
-  : S3 helpers for NMAR engine objects
+  : Formatter for engines
 - [`print(`*`<nmar_engine>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/print.nmar_engine.md)
-  : Print method for NMAR engines
+  : Print method for engines
 
 ## Result params
 
 - [`coef(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/coef.nmar_result.md)
   : Default coefficients for NMAR results
 - [`confint(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/confint.nmar_result.md)
-  : Wald confidence interval for base NMAR results
+  : Wald confidence interval for NMAR results
 - [`fitted(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/fitted.nmar_result.md)
   : Default fitted values for NMAR results
 - [`formula(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/formula.nmar_result.md)
@@ -65,7 +63,7 @@
 - [`se()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/se.md)
   : Extract standard error for NMAR results
 - [`vcov(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/vcov.nmar_result.md)
-  : Variance-covariance for base NMAR results
+  : Variance-covariance for NMAR results
 - [`weights(`*`<nmar_result>`*`)`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/weights.nmar_result.md)
   : Extract weights from an \`nmar_result\`
 

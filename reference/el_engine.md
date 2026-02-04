@@ -1,7 +1,7 @@
-# Empirical likelihood (EL) engine for NMAR
+# Empirical likelihood engine for NMAR
 
-Constructs an engine specification for the empirical likelihood (EL)
-estimator of a full-data mean under nonignorable nonresponse (NMAR).
+Constructs an engine specification for the empirical likelihood
+estimator of a full-data mean under nonignorable nonresponse.
 
 ## Usage
 
@@ -48,18 +48,18 @@ el_engine(
 
   named numeric vector; population means for auxiliary design columns.
   Names must match the materialized model.matrix column names on the
-  first RHS (after formula expansion), e.g., factor indicator columns
+  first RHS after formula expansion, e.g., factor indicator columns
   created by
   [`model.matrix()`](https://rdrr.io/r/stats/model.matrix.html) or
   transformed terms like `I(X^2)`. Auxiliary intercepts are always
   dropped automatically, so do not supply `(Intercept)`. If `NULL`
   (default) and the outcome contains at least one `NA`, auxiliary means
   are estimated from the full input (including nonrespondents): IID uses
-  unweighted column means of the auxiliary design; survey designs use
-  the design-weighted means based on `weights(design)`. This corresponds
-  to the QLS case where \\\mu_x\\ is replaced by \\\bar X\\ (the
-  full-sample mean) when auxiliary variables are observed for all
-  sampled units.
+  unweighted column means of the auxiliary design, while survey designs
+  use the design-weighted means based on `weights(design)`. This
+  corresponds to the QLS case where \\\mu_x\\ is replaced by the
+  full-sample mean \\\bar X\\ when auxiliary variables are observed for
+  all sampled units.
 
 - control:
 
@@ -74,9 +74,9 @@ el_engine(
 
   logical; when `TRUE` (default), survey designs with an identifiable
   strata structure are augmented with stratum indicators and
-  corresponding population shares in the auxiliary block (Wu-style
-  strata augmentation). Has no effect for `data.frame` inputs or survey
-  designs without strata.
+  corresponding population shares in the auxiliary block (proposed by Wu
+  2005). Has no effect for `data.frame` inputs or survey designs without
+  strata.
 
 - n_total:
 
@@ -92,29 +92,27 @@ el_engine(
   list; optional starting point for the solver. Fields:
 
   - `beta`: named numeric vector of missingness-model coefficients on
-    the original (unscaled) scale, including `(Intercept)`.
+    the original scale, including `(Intercept)`.
 
   - `W` or `z`: starting value for population response rate
     (`0 < W < 1`) or its logit (`z`). If both are provided, `z` takes
     precedence.
 
   - `lambda`: named numeric vector of auxiliary multipliers on the
-    original scale (names must match auxiliary design columns; no
-    intercept). Values are mapped to the scaled space internally.
+    original scale (names must match auxiliary design columns). Values
+    are mapped to the scaled space internally.
 
 - family:
 
-  Missingness (response) model family. Either `"logit"` (default) or
-  `"probit"`, or a custom family object: a list with components `name`,
-  `linkinv`, `mu.eta`, `score_eta`, and optionally `d2mu.deta2`. When
-  `d2mu.deta2` is absent the solver uses Broyden/numeric Jacobians.
+  Missingness model family. Either `"logit"` (default) or `"probit"`, or
+  a custom family object: a list with components `name`, `linkinv`,
+  `mu.eta`, `score_eta`, and optionally `d2mu.deta2`. When `d2mu.deta2`
+  is absent the solver uses Broyden/numeric Jacobians.
 
 ## Value
 
-A list of class `"nmar_engine_el"` (also inheriting from
-`"nmar_engine"`) containing configuration fields to be supplied to
-[`nmar()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md).
-Users rarely access fields directly; instead, pass the engine to
+A list of class `"nmar_engine_el"` containing configuration fields to be
+supplied to
 [`nmar()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md)
 together with a formula and data.
 
@@ -122,19 +120,19 @@ together with a formula and data.
 
 The implementation follows Qin, Leung, and Shao (2002): the response
 mechanism is modeled as \\w(y, x; \beta) = P(R = 1 \mid Y = y, X = x)\\
-and the joint law of \\(Y, X)\\ is represented nonparametrically by
-respondent masses that satisfy empirical likelihood constraints. The
-mean is estimated as a respondent weighted mean with weights
-proportional to \\\tilde w_i = a_i / D_i(\beta, W, \lambda)\\, where
-\\a_i\\ are base weights (\\a_i \equiv 1\\ for IID data and \\a_i =
-d_i\\ for survey designs) and \\D_i\\ is the EL denominator.
+and the joint distribution of \\(Y, X)\\ is represented
+nonparametrically by respondent masses that satisfy empirical likelihood
+constraints. The mean is estimated as a respondent weighted mean with
+weights proportional to \\\tilde w_i = a_i / D_i(\beta, W, \lambda)\\,
+where \\a_i\\ are base weights (\\a_i \equiv 1\\ for IID data and \\a_i
+= d_i\\ for survey designs) and \\D_i\\ is the EL denominator.
 
-For `data.frame` inputs the estimator solves the Qin-Leung-Shao (QLS)
+For `data.frame` inputs the estimator solves the Qin-Leung-Shao
 estimating equations for \\(\beta, W, \lambda_x)\\ with \\W\\
 reparameterized as \\z = \operatorname{logit}(W)\\, and profiles out the
 response multiplier \\\lambda_W\\ using the closed-form QLS identity
 (their Eq. 10). For `survey.design` inputs the estimator uses a
-design-weighted analogue (Chen and Sitter 1999; Wu 2005) with an
+design-weighted analogue (Chen and Sitter 1999, Wu 2005) with an
 explicit \\\lambda_W\\ and an additional linkage equation involving the
 nonrespondent design-weight total \\T_0\\.
 
@@ -143,22 +141,22 @@ Numerical stability:
 - \\W\\ is optimized on the logit scale so \\0 \< W \< 1\\.
 
 - The response-model linear predictor is capped and EL denominators
-  \\D_i\\ are floored at a small positive value; the analytic Jacobian
+  \\D_i\\ are floored at a small positive value. The analytic Jacobian
   is consistent with this guard via an active-set mask.
 
 - Optional trimming (`trim_cap`) is applied only after solving, to the
-  unnormalized masses \\\tilde w_i = a_i/D_i\\; this changes the
+  unnormalized masses \\\tilde w_i = a_i/D_i\\. This changes the
   returned weights and therefore the point estimate.
 
 **Formula syntax and data constraints**:
 [`nmar()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/nmar.md)
 accepts a partitioned right-hand side
 `y_miss ~ auxiliaries | response_only`. Variables left of `|` enter
-auxiliary moment constraints; variables right of `|` enter only the
+auxiliary moment constraints. Variables right of `|` enter only the
 response model. The outcome (LHS) is always included as a response-model
-predictor through the evaluated LHS expression; explicit use of the
+predictor through the evaluated LHS expression. Explicit use of the
 outcome on the RHS is rejected. The response model always includes an
-intercept; the auxiliary block never includes an intercept.
+intercept, while the auxiliary block never includes an intercept.
 
 To include a covariate in both the auxiliary constraints and the
 response model, repeat it on both sides, e.g. `y_miss ~ X | X`.
@@ -167,13 +165,13 @@ response model, repeat it on both sides, e.g. `y_miss ~ X | X`.
 outcome contains at least one `NA`, auxiliary means are estimated from
 the full input and used as \\\bar X\\ in the QLS constraints. For
 respondents-only data (no `NA` in the outcome), `n_total` must be
-supplied; and if the auxiliary RHS is non-empty, `auxiliary_means` must
+supplied, and if the auxiliary RHS is non-empty, `auxiliary_means` must
 also be supplied. When `standardize = TRUE`, supply `auxiliary_means` on
-the original data scale; the engine applies the same standardization
+the original data scale, the engine applies the same standardization
 internally.
 
-**Survey scale**: For `survey.design` inputs, `n_total` (if provided)
-must be on the same analysis scale as `weights(design)`. The default is
+**Survey scale**: For `survey.design` inputs, `n_total` must be on the
+same analysis scale as `weights(design)`. The default is
 `sum(weights(design))`.
 
 **Convergence and identification**: the stacked EL system can have
@@ -184,20 +182,37 @@ diagnostics such as `jacobian_condition_number` and consider supplying
 
 **Variance**: The EL engine supports bootstrap standard errors via
 `variance_method = "bootstrap"` or can skip variance with
-`variance_method = "none"`. Set a seed for reproducible bootstrap
-results.
+`variance_method = "none"`.
 
-Bootstrap uses no additional packages for IID resampling (it will run
-sequentially by default). If the suggested `future.apply` package is
+Bootstrap uses no additional packages for IID resampling, and will run
+sequentially by default. If the suggested `future.apply` package is
 installed, IID bootstrap can use
 [`future.apply::future_lapply()`](https://future.apply.futureverse.org/reference/future_lapply.html)
-(honoring the user's
-[`future::plan()`](https://future.futureverse.org/reference/plan.html))
-for parallel execution and parallel-safe RNG. The bootstrap backend can
-be controlled via `options(nmar.bootstrap_apply = ...)` (see
-[`bootstrap_variance`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/bootstrap_variance.md)
-for details). For `survey.design` inputs, replicate-weight bootstrap
-requires the suggested packages `survey` and `svrep`.
+according to the user's
+[`future::plan()`](https://future.futureverse.org/reference/plan.html)
+for parallel execution. Bootstrap backend is controlled by the package
+option `nmar.bootstrap_apply`:
+
+- `"auto"`:
+
+  (default) Use [`base::lapply()`](https://rdrr.io/r/base/lapply.html)
+  unless the current future plan has more than one worker, in which case
+  use
+  [`future.apply::future_lapply()`](https://future.apply.futureverse.org/reference/future_lapply.html)
+  if available.
+
+- `"base"`:
+
+  Always use [`base::lapply()`](https://rdrr.io/r/base/lapply.html),
+  even if `future.apply` is installed.
+
+- `"future"`:
+
+  Always use
+  [`future.apply::future_lapply()`](https://future.apply.futureverse.org/reference/future_lapply.html).
+
+For `survey.design` inputs, replicate-weight bootstrap requires the
+suggested packages `survey` and `svrep`.
 
 ## References
 
@@ -233,10 +248,10 @@ if (all(R)) R[1] <- FALSE
 df <- data.frame(Y_miss = Y, X = X)
 df$Y_miss[!R] <- NA_real_
 
-# Estimate auxiliary mean from full data (QLS "use Xbar" case)
+# Estimate auxiliary mean from full data
 eng <- el_engine(auxiliary_means = NULL, variance_method = "none")
 
-# Put X in both the auxiliary block and the response model (QLS-like)
+# Put X in both the auxiliary block and the response model
 fit <- nmar(Y_miss ~ X | X, data = df, engine = eng)
 summary(fit)
 #> NMAR Model Summary
@@ -256,7 +271,7 @@ summary(fit)
 #> X            0.133420
 
 # \donttest{
-# Response-only predictors can be placed to the right of |:
+# Response-only predictors can be placed to the right of |
 Z <- rnorm(n)
 df2 <- data.frame(Y_miss = Y, X = X, Z = Z)
 df2$Y_miss[!R] <- NA_real_

@@ -5,7 +5,8 @@ Bootstrap for IID data frames
 ## Usage
 
 ``` r
-bootstrap_variance.data.frame(
+# S3 method for class 'data.frame'
+bootstrap_variance(
   data,
   estimator_func,
   point_estimate,
@@ -27,7 +28,7 @@ bootstrap_variance.data.frame(
 
 - point_estimate:
 
-  Unused for IID bootstrap; included for signature consistency.
+  Unused for IID bootstrap, included for signature consistency.
 
 - bootstrap_reps:
 
@@ -39,7 +40,7 @@ bootstrap_variance.data.frame(
   [`bootstrap_variance()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/bootstrap_variance.md)
   itself (for example `resample_guard` for IID bootstrap or
   `bootstrap_settings`/`bootstrap_options`/`bootstrap_type`/`bootstrap_mse`
-  for survey bootstrap); remaining arguments are forwarded to
+  or survey bootstrap). Remaining arguments are forwarded to
   `estimator_func`.
 
 ## Value

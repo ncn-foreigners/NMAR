@@ -1,8 +1,6 @@
-# Construct Result Object (parent helper)
+# Construct for result objects
 
 Builds an \`nmar_result\` list using the shared schema and validates it.
-Engines must pass named fields; no legacy positional signature is
-supported.
 
 ## Usage
 
@@ -24,13 +22,11 @@ fields are optional:
   when not available).
 
 - `model`, `weights_info`, `sample`, `inference`, `diagnostics`, `meta`,
-  `extra`: lists that may be partially specified or `NULL`;
+  `extra`: lists that may be partially pecified or `NULL`;
   [`validate_nmar_result()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/validate_nmar_result.md)
-  will back-fill missing subfields with safe defaults.
-
-- `class`: engine-specific result subclass name, e.g.
-  `"nmar_result_el"`; it is combined with the parent class
-  `"nmar_result"`.
+  will back-fill missing subfields with safe defaults. item `class`:
+  engine-specific result subclass name, e.g. `"nmar_result_el"`; it is
+  combined with the parent class `"nmar_result"`.
 
 Calling `new_nmar_result()` ensures that every engine returns objects
 that satisfy the shared schema and are immediately compatible with

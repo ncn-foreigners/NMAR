@@ -1,6 +1,6 @@
-# Wald confidence interval for base NMAR results
+# Wald confidence interval for NMAR results
 
-Wald confidence interval for base NMAR results
+Wald confidence interval for NMAR results
 
 ## Usage
 

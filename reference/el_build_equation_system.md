@@ -1,6 +1,14 @@
-# Empirical likelihood estimating equations
+# Empirical likelihood estimating equations for SRS
 
-Empirical likelihood estimating equations
+Returns a function that evaluates the stacked EL system for \\\theta =
+(\beta, z, \lambda_x)\\ with \\z = \operatorname{logit}(W)\\. Blocks
+correspond to:
+
+1.  missingness model score equations in \\\beta\\,
+
+2.  the response-rate equation in \\W\\,
+
+3.  auxiliary moment constraints in \\\lambda_x\\.
 
 ## Usage
 
@@ -18,19 +26,11 @@ el_build_equation_system(
 
 ## Details
 
-Returns a function that evaluates the stacked EL system for \\\theta =
-(\beta, z, \lambda_x)\\ with \\z = \operatorname{logit}(W)\\. Blocks
-correspond to: (i) missingness (response) model score equations in
-\\\beta\\, (ii) the response-rate equation in \\W\\, and (iii) auxiliary
-moment constraints in \\\lambda_x\\. When no auxiliaries are present the
-last block is omitted. The system matches Qin, Leung, and Shao (2002,
-Eqs. 7-10) with empirical masses \\m_i = d_i/D_i(\theta)\\, \\D_i\\ as
-in the paper. We cap \\\eta\\, clip \\w_i\\ in ratios, and guard \\D_i\\
-away from zero to ensure numerical stability; these safeguards are
-applied consistently in equations, Jacobian, and post-solution weights.
+When no auxiliaries are present the last block is omitted. The system
+matches QLS equations 7-10. We cap \\\eta\\, clip \\w_i\\ in ratios, and
+guard \\D_i\\ away from zero to ensure numerical stability.
 
-**Guarding policy (must remain consistent across
-equations/Jacobian/post):**
+**Guarding policy:**
 
 - Cap \\\eta\\: `eta <- pmax(pmin(eta, get_eta_cap()), -get_eta_cap())`.
 
@@ -40,14 +40,3 @@ equations/Jacobian/post):**
 - Denominator floor: `Di <- pmax(Di_raw, nmar_get_el_denom_floor())`. In
   the Jacobian, terms that depend on `d(1/Di)/d(.)` are multiplied by
   `active = 1(Di_raw > floor)` to match the clamped equations.
-
-The score with respect to the linear predictor uses the Bernoulli form
-\\s\_{\eta,i}(\beta) = \partial \log w_i / \partial \eta_i =
-\mu.\eta(\eta_i)/w_i\\, which is valid for both logit and probit links
-when \\w_i\\ is clipped.
-
-## References
-
-Qin, J., Leung, D., and Shao, J. (2002). Estimation with survey data
-under nonignorable nonresponse or informative sampling. Journal of the
-American Statistical Association, 97(457), 193-200.

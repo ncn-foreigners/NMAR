@@ -1,9 +1,10 @@
-# Default method dispatch (internal safety net)
+# Default dispatch
 
-Default method dispatch (internal safety net)
+Default dispatch
 
 ## Usage
 
 ``` r
-bootstrap_variance.default(data, estimator_func, point_estimate, ...)
+# Default S3 method
+bootstrap_variance(data, estimator_func, point_estimate, ...)
 ```

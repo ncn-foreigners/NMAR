@@ -1,8 +1,7 @@
-# Check auxiliary means consistency against respondents' sample support.
+# Check auxiliary means consistency against respondents sample support.
 
 Computes a simple z-score diagnostic comparing user-supplied auxiliary
-means to the respondents' sample means. The caller is responsible for
-comparing the returned maximum z-score to any desired threshold.
+means to the respondents' sample means.
 
 ## Usage
 

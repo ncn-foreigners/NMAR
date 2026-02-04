@@ -1,4 +1,4 @@
-# Validate nmar_result structure
+# Validate nmar_result
 
 Ensures both the child class and the parent schema are satisfied. The
 validator also back-fills defaults so downstream code can rely on the
@@ -15,7 +15,7 @@ validate_nmar_result(x, class_name)
 This helper is the single authority on the \`nmar_result\` schema. It
 expects a list that already carries class `c(class_name, "nmar_result")`
 and at least a primary estimate stored in `y_hat`. All other components
-are optional; when they are `NULL` or missing, the validator supplies
+are optional. When they are `NULL` or missing, the validator supplies
 safe defaults:
 
 - Core scalars: `se` (numeric, default `NA_real_`), `estimate_name`

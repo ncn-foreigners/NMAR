@@ -1,11 +1,12 @@
-# Bootstrap for survey designs via replicate weights
+# Bootstrap for survey designs
 
-Bootstrap for survey designs via replicate weights
+Bootstrap for survey designs
 
 ## Usage
 
 ``` r
-bootstrap_variance.survey.design(
+# S3 method for class 'survey.design'
+bootstrap_variance(
   data,
   estimator_func,
   point_estimate,
@@ -58,7 +59,7 @@ bootstrap_variance.survey.design(
   [`bootstrap_variance()`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/bootstrap_variance.md)
   itself (for example `resample_guard` for IID bootstrap or
   `bootstrap_settings`/`bootstrap_options`/`bootstrap_type`/`bootstrap_mse`
-  for survey bootstrap); remaining arguments are forwarded to
+  or survey bootstrap). Remaining arguments are forwarded to
   `estimator_func`.
 
 ## Value
@@ -70,24 +71,19 @@ A list with components `se`, `variance`, and `replicates`.
 This path constructs a replicate-weight design using
 [`svrep::as_bootstrap_design()`](https://bschneidr.github.io/svrep/reference/as_bootstrap_design.html)
 and evaluates the estimator on each set of bootstrap replicate analysis
-weights.
-
-Replicate evaluation starts from a shallow template copy of the input
-survey design (including its ids/strata/fpc structure) and injects each
-replicate's analysis weights by updating the design's probability slots
-(`prob`/`allprob`) so that `weights(design)` returns the desired
-replicate weights (with zero weights represented as `prob = Inf`). This
-avoids replaying or reconstructing a
+weights. Replicate evaluation starts from a shallow template copy of the
+input survey design (including its ids/strata/fpc structure) and injects
+each replicate's analysis weights by updating the design's probability
+slots (`prob`/`allprob`) so that `weights(design)` returns the desired
+replicate weights. This avoids replaying or reconstructing a
 [`svydesign()`](https://rdrr.io/pkg/survey/man/svydesign.html) call and
 therefore supports designs created via
 [`subset()`](https://rdrr.io/r/base/subset.html) and
-[`update()`](https://rdrr.io/r/stats/update.html).
-
-**NA policy:** By default, survey bootstrap uses a strict NA policy: if
-any replicate fails to produce a finite estimate, the entire bootstrap
-fails with an error. Setting `survey_na_policy = "omit"` drops failed
-replicates (and their corresponding `rscales`) and proceeds with the
-remaining replicates.
+[`update()`](https://rdrr.io/r/stats/update.html). **NA policy:** By
+default, survey bootstrap uses a strict NA policy: if any replicate
+fails to produce a finite estimate, the entire bootstrap fails with an
+error. Setting `survey_na_policy = "omit"` drops failed replicates and
+proceeds with the remaining replicates.
 
 ## Limitations
 

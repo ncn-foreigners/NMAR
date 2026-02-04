@@ -13,5 +13,4 @@ nmar_format_call_line(x)
 ## Details
 
 Uses option \`nmar.show_call\` (default TRUE). Width can be tuned via
-option \`nmar.call_width\` (default 120), but the formatter aims to keep
-the line compact regardless of width.
+option \`nmar.call_width\` (default 120).

@@ -1,6 +1,6 @@
-# Construct a logit response family bundle
+# Construct logit response family
 
-Construct a logit response family bundle
+Construct logit response family
 
 ## Usage
 

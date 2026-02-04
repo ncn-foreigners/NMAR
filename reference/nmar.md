@@ -1,10 +1,9 @@
-# Not Missing at Random (NMAR) Estimation
+# Not Missing at Random Estimation
 
-High-level interface for NMAR estimation.
-
-`nmar()` validates basic inputs and dispatches to an engine (for example
+Interface for NMAR estimation. `nmar()` validates basic inputs and
+dispatches to an engine (for example
 [`el_engine`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/el_engine.md)).
-The engine controls the estimation method and interprets `formula`; see
+The engine controls the estimation method and interprets `formula`. See
 the engine documentation for model-specific requirements.
 
 ## Usage
@@ -17,12 +16,11 @@ nmar(formula, data, engine, trace_level = 0)
 
 - formula:
 
-  A two-sided formula. Many engines support a partitioned right-hand
-  side via `|`, for example `y_miss ~ block1_vars | block2_vars`. The
-  meaning of these blocks is engine-specific (see the engine
-  documentation). In the common "missing values indicate nonresponse"
-  workflow, the left-hand side is the outcome with `NA` values for
-  nonrespondents.
+  A two-sided formula. Engines support a partitioned right-hand side via
+  `|`, for example `y_miss ~ block1_vars | block2_vars`. The meaning of
+  these blocks is engine-specific (see the engine documentation). In the
+  common "missing values indicate nonresponse" workflow, the left-hand
+  side is the outcome with `NA` values for nonrespondents.
 
 - data:
 
@@ -31,23 +29,22 @@ nmar(formula, data, engine, trace_level = 0)
 
 - engine:
 
-  An NMAR engine configuration object, typically created by
+  An NMAR engine configuration object created by
   [`el_engine`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/el_engine.md),
   [`exptilt_engine`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/exptilt_engine.md),
   or
   [`exptilt_nonparam_engine`](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/reference/exptilt_nonparam_engine.md).
-  This object defines the estimation method and tuning parameters and
-  must inherit from class `"nmar_engine"`.
+  This object defines the estimation method and tuning parameters.
 
 - trace_level:
 
   Integer 0-3; controls verbosity during estimation (default `0`):
 
-  - 0: no output (silent mode);
+  - 0: no output,
 
-  - 1: major steps only (initialization, convergence, final results);
+  - 1: major steps only (initialization, convergence, final results),
 
-  - 2: iteration summaries and key diagnostics;
+  - 2: iteration summaries and key diagnostics,
 
   - 3: full diagnostic output.
 
@@ -107,7 +104,7 @@ summary(fit_el)
 #> Z           -0.875952
 
 # \donttest{
-# Exponential tilting engine (illustrative)
+# Exponential tilting engine
 dat_et <- data.frame(y = y_obs, x2 = z1, x1 = x1)
 eng_et <- exptilt_engine(
   y_dens = "normal",
@@ -128,7 +125,7 @@ summary(fit_et)
 #>   x1                   : 0.120835
 #>   y                    : -0.161063
 
-# Survey design example (same outcome, random weights)
+# Survey design
 if (requireNamespace("survey", quietly = TRUE)) {
   w <- runif(n, 0.5, 2)
   des <- survey::svydesign(ids = ~1, weights = ~w,
@@ -154,8 +151,8 @@ if (requireNamespace("survey", quietly = TRUE)) {
 #> Z           -0.046734
 
 # Bootstrap variance usage
-# (future.apply is optional; if installed, bootstrap may run in parallel under
-# the user's future::plan())
+# future.apply is optional, if installed, bootstrap may run in parallel under
+# the user's future::plan()
 set.seed(2)
 eng_boot <- el_engine(
   variance_method = "bootstrap",

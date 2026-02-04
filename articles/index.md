@@ -8,10 +8,11 @@ both data.frame and survey design objects
 - [Empirical
   Likelihood](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/tutorial_empirical_likelihood.md):
 
-  Jing Qin, Denis Leung, Jun Shao  
-  Estimation With Survey Data Under Nonignorable Nonresponse or
-  Informative Sampling  
-  <https://doi.org/10.1198/016214502753479338>
+  Demonstrates the empirical likelihood estimator for Not Missing at
+  Random outcomes implemented in the NMAR package, targeting the
+  full-data mean under the Qin–Leung–Shao (2002) model. Includes
+  data-frame and survey-design usage, auxiliary constraints, and
+  bootstrap variance.
 
 - [Exponential
   Tilting](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/tutorial_exptilt.md):
@@ -33,13 +34,20 @@ both data.frame and survey design objects
 - [Developing a New NMAR
   Estimator](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/developing_new_nmar_estimator.md):
 
-  Guide for adding a new NMAR estimator to the `NMAR` package
+  Guide for adding a new NMAR estimator to the NMAR package
 
 ### Theory
 
 - [Empirical Likelihood Theory for
   NMAR](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/el_empirical_likelihood_theory.md):
+
+  Mathematical details and estimating-equation derivations for the
+  empirical likelihood estimator for NMAR nonresponse implemented in the
+  NMAR package, including the mapping from Qin–Leung–Shao (2002) paper
+  to the code.
+
 - [Exponential Tilting
   Theory](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/exptilt_theory.md):
+
 - [Nonparametric Exponential Tilting
   Theory](https://ncn-foreigners.ue.poznan.pl/NMAR/index.html/articles/exptilt_nonparam_theory.md):
