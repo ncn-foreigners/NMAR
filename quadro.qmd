@@ -290,11 +290,12 @@ cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(x[!is.na(x$Y), 'Y'])), '\n')
 
 ## Future Work and Challenges
 
--   Large-scale data handling
+
 -   Analytical variance calculation
 -   Extension to new estimation approaches
 -   Extending estimation parameters beyond mean (quantiles, gini index)
 -   Rewriting Exptilt EM and Likelihood Jacobians in C/C++ for improved performance
+-   Large-scale data handling
 
 ## References
 
