@@ -290,7 +290,6 @@ cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(x[!is.na(x$Y), 'Y'])), '\n')
 
 ## Future Work and Challenges
 
-
 -   Analytical variance calculation
 -   Extension to new estimation approaches
 -   Extending estimation parameters beyond mean (quantiles, gini index)
