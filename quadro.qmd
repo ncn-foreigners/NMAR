@@ -10,6 +10,7 @@ format:
     scrollable: true
     html-math-method: mathjax
     slide-number: true
+    embed-resources: true
 editor: visual
 ---
 
@@ -80,7 +81,6 @@ Assuming that apart from salary, it is also affected by age
 
 ## The Case of the Missing Salaries
 
-
 ::: {style="text-align: center;"}
 <img src="./quadro/nmar_boxplot.png" alt="Simulation Results" style="width: 70%;"/>
 :::
@@ -91,88 +91,80 @@ Assuming that apart from salary, it is also affected by age
 
 ### Assumptions
 
-- Estimate density of observed data: $f(y|X_1, \delta = 1)$, e.g., salary $\sim$ experience + education
-- Use response model (logit/probit) to estimate $\pi(x_{1i}, y_i; \phi) = P(\delta_i = 1 | X_{2i}, y_i)$ based on $y$ (e.g. salary), $X_2$ (e.g., age), and intercept
+-   Estimate density of observed data: $f(y|X_1, \delta = 1)$, e.g., salary $\sim$ experience + education
+-   Use response model (logit/probit) to estimate $\pi(x_{1i}, y_i; \phi) = P(\delta_i = 1 | X_{2i}, y_i)$ based on $y$ (e.g. salary), $X_2$ (e.g., age), and intercept
 
 ### 1. Estimate Observed Distribution
 
 > $$
-\hat{f}_1(y) = f(y|X_1, \delta = 1; \gamma)
-$$
+> \hat{f}_1(y) = f(y|X_1, \delta = 1; \gamma)
+> $$
 
 ### 2. Define score function
 
-<div style="font-size: 26px;">
+::: {style="font-size: 26px;"}
 > $$
-S_{\text{obs}} = \sum_{j:\delta_j=1} s(y_j, X_{1j}) = \sum_{j:\delta_j=1} \left[ \frac{\delta_j - \pi(X_{1j}, y_j; \phi)}{\pi(X_{1j}, y_j; \phi)\{1-\pi(X_{1j}, y_j; \phi)\}} \frac{\partial \pi(X_{1j}, y_j; \phi)}{\partial \phi} \right]
-$$
+> S_{\text{obs}} = \sum_{j:\delta_j=1} s(y_j, X_{1j}) = \sum_{j:\delta_j=1} \left[ \frac{\delta_j - \pi(X_{1j}, y_j; \phi)}{\pi(X_{1j}, y_j; \phi)\{1-\pi(X_{1j}, y_j; \phi)\}} \frac{\partial \pi(X_{1j}, y_j; \phi)}{\partial \phi} \right]
+> $$
 
 > $$ 
-S_{\text{mis}} = \sum_{j:\delta_j=1} \sum_{i:\delta_i=0} w_{ji} \cdot s(y_j, X_{1i}) = \sum_{j:\delta_j=1} \sum_{i:\delta_i=0} w_{ji} \cdot \left[ \frac{\delta_i - \pi(X_{1i}, y_j; \phi)}{\pi(X_{1i}, y_j; \phi)\{1-\pi(X_{1i}, y_j; \phi)\}} \frac{\partial \pi(X_{1i}, y_j; \phi)}{\partial \phi} \right]
-$$
-
-</div>
+> S_{\text{mis}} = \sum_{j:\delta_j=1} \sum_{i:\delta_i=0} w_{ji} \cdot s(y_j, X_{1i}) = \sum_{j:\delta_j=1} \sum_{i:\delta_i=0} w_{ji} \cdot \left[ \frac{\delta_i - \pi(X_{1i}, y_j; \phi)}{\pi(X_{1i}, y_j; \phi)\{1-\pi(X_{1i}, y_j; \phi)\}} \frac{\partial \pi(X_{1i}, y_j; \phi)}{\partial \phi} \right]
+> $$
+:::
 
 ## Exponential Tilting - Riddles et al (2016) (2/2)
 
 ### 3. Calculate weights
 
 > $$
-w_{ji}^*(\phi, \gamma) = \frac{\frac{O(\mathbf{x}_{1i}, y_j; \phi) f_1(y_j|\mathbf{x}_i; \gamma)}{\sum_m f_m(y_j|\mathbf{x}_i; \gamma)}}{\sum_{k:\delta_k=1} \frac{O(\mathbf{x}_{1i}, y_k; \phi) f_1(y_k|\mathbf{x}_i; \gamma)}{\sum_m f_m(y_k|\mathbf{x}_i; \gamma)}}
-$$
+> w_{ji}^*(\phi, \gamma) = \frac{\frac{O(\mathbf{x}_{1i}, y_j; \phi) f_1(y_j|\mathbf{x}_i; \gamma)}{\sum_m f_m(y_j|\mathbf{x}_i; \gamma)}}{\sum_{k:\delta_k=1} \frac{O(\mathbf{x}_{1i}, y_k; \phi) f_1(y_k|\mathbf{x}_i; \gamma)}{\sum_m f_m(y_k|\mathbf{x}_i; \gamma)}}
+> $$
 
 ### 4. Solve Final Equation
 
 > $$
-S_{\text{total}} = S_{\text{obs}} + S_{\text{mis}} = 0
-$$
+> S_{\text{total}} = S_{\text{obs}} + S_{\text{mis}} = 0
+> $$
 
 ### 5. Estimate Population Mean
 
 > $$
-\mathbb{E}[Y] = \hat{\theta} = \frac{\sum_{i:\delta_i=1} \frac{1}{\pi_i(\hat{\phi}_p)} y_i}{\sum_{i:\delta_i=1} \frac{1}{\pi_i(\hat{\phi}_p)}}
-$$
+> \mathbb{E}[Y] = \hat{\theta} = \frac{\sum_{i:\delta_i=1} \frac{1}{\pi_i(\hat{\phi}_p)} y_i}{\sum_{i:\delta_i=1} \frac{1}{\pi_i(\hat{\phi}_p)}}
+> $$
 
 ## Empirical Likelihood: Core Idea (1/2)
 
-**Based on Qin, Leung & Shao (JASA, 2002).**
-Model only the **response mechanism**; keep the outcome distribution **nonparametric**.
+**Based on Qin, Leung & Shao (JASA, 2002).** Model only the **response mechanism**; keep the outcome distribution **nonparametric**.
 
 > $$
-w(y, x; \beta) = P(\delta = 1 \mid Y=y, X=x) \quad (\text{e.g., logit/probit}), \qquad W = \iint w(y, x; \beta) \, dF(y, x).
-$$
+> w(y, x; \beta) = P(\delta = 1 \mid Y=y, X=x) \quad (\text{e.g., logit/probit}), \qquad W = \iint w(y, x; \beta) \, dF(y, x).
+> $$
 
-**Profile out $F$** (for fixed $(\beta, W)$) by placing masses $p_i$ on respondents $(y_i, x_i)$ and enforcing:
+**Profile out** $F$ (for fixed $(\beta, W)$) by placing masses $p_i$ on respondents $(y_i, x_i)$ and enforcing:
 
-> 
-* $\sum p_i = 1$ (probability)
-* $\sum p_i \{ w(y_i, x_i; \beta) - W \} = 0$ (response rate)
-* $\sum p_i (x_i - \mu_x) = 0$ (auxiliaries, if available)
+> -   $\sum p_i = 1$ (probability)
+> -   $\sum p_i \{ w(y_i, x_i; \beta) - W \} = 0$ (response rate)
+> -   $\sum p_i (x_i - \mu_x) = 0$ (auxiliaries, if available)
 
 This yields the EL **weights**
 
 > $$
-p_i = \frac{1}{n} \frac{1}{1 + \lambda_W (w(y_i, x_i; \beta) - W) + (x_i - \mu_x)^\top \lambda_x}.
-$$
+> p_i = \frac{1}{n} \frac{1}{1 + \lambda_W (w(y_i, x_i; \beta) - W) + (x_i - \mu_x)^\top \lambda_x}.
+> $$
 
 ## Empirical Likelihood: Mean Estimate (2/2)
 
-
-
 > $$
-\hat{\mu}_Y = \sum_{i:\delta_i=1} p_i y_i
-$$
+> \hat{\mu}_Y = \sum_{i:\delta_i=1} p_i y_i
+> $$
 
 #### How are the weights obtained?
 
 Profile out $F$ and solve the estimating equations for $(\beta, W, \lambda_W, \lambda_x)$, plug back into the formula for $p_i$.
 
-
 </br>
 
 #### Survey sampling?
-
-
 
 Can be extended to survey sampling by incorporating the design weights into the likelihood and augumenting auxiliary constraints with stratum indicators.
 
@@ -180,9 +172,9 @@ Can be extended to survey sampling by incorporating the design weights into the 
 
 #### Properties
 
-* Consistent if the response model $w(y, x; \beta)$ is correctly specified.
-* Asymptotically normal (under regularity conditions).
-* Auxiliaries improve efficiency.
+-   Consistent if the response model $w(y, x; \beta)$ is correctly specified.
+-   Asymptotically normal (under regularity conditions).
+-   Auxiliaries improve efficiency.
 
 ## NMAR Package in Action
 
@@ -285,12 +277,11 @@ cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(x[!is.na(x$Y), 'Y'])), '\n')
 ## Improving R folder
 
 ::: {style="text-align: center;"}
-<img src="./quadro/src_dev.png" alt="Simulation Results" style="height: 600px;"/>
-<br/>
-<img src="./quadro/R.png" alt="Simulation Results" style="height: 400px;"/>
+<img src="./quadro/src_dev.png" alt="Simulation Results" style="height: 600px;"/> <br/> <img src="./quadro/R.png" alt="Simulation Results" style="height: 400px;"/>
 :::
 
 ## CI/CD via Github Actions
+
 ::: {style="text-align: center;"}
 <img src="./quadro/cidev.png" alt="Simulation Results" style="height: 400px;"/>
 
@@ -300,13 +291,12 @@ cat('Naive Y mean (MAR):   ', sprintf('%.4f', mean(x[!is.na(x$Y), 'Y'])), '\n')
 ## Future Work and Challenges
 
 -   Large-scale data handling
--   Further numerical performance and stability tweaks
 -   Analytical variance calculation
--   Bootstrap parallelization
 -   Extension to new estimation approaches
+-   Extending estimation parameters beyond mean (quantiles, gini index)
+-   Rewriting Exptilt EM and Likelihood Jacobians in C/C++ for improved performance
 
 ## References
 
 -   Qin, J., Leung, D., & Shao, J. (2002). Estimation With Survey Data Under Nonignorable Nonresponse or Informative Sampling. Journal of the American Statistical Association, 97(457), 193–200. https://doi.org/10.1198/016214502753479338
 -   Minsun Kim Riddles, Jae Kwang Kim, Jongho Im, A Propensity-score-adjustment Method for Nonignorable Nonresponse, Journal of Survey Statistics and Methodology, Volume 4, Issue 2, June 2016, Pages 215–245, https://doi.org/10.1093/jssam/smv047
-
