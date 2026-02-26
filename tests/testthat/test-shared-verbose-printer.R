@@ -1,13 +1,13 @@
 test_that("create_verboser validates trace_level and is silent at 0", {
-  expect_error(NMAR:::create_verboser(99), "trace_level", fixed = FALSE)
+  expect_error(create_verboser(99), "trace_level", fixed = FALSE)
 
-  v0 <- NMAR:::create_verboser(0)
+  v0 <- create_verboser(0)
   out0 <- capture.output(v0("hello", level = 1, type = "info"))
   expect_length(out0, 0)
 })
 
 test_that("create_verboser prints only at or below trace_level", {
-  v1 <- NMAR:::create_verboser(1)
+  v1 <- create_verboser(1)
 
   out1 <- capture.output(v1("hello", level = 1, type = "info"))
   expect_true(any(grepl("\\[INFO\\]", out1)))
@@ -18,7 +18,7 @@ test_that("create_verboser prints only at or below trace_level", {
 })
 
 test_that("create_verboser prints object summaries across types", {
-  v3 <- NMAR:::create_verboser(3)
+  v3 <- create_verboser(3)
 
   out_num <- capture.output(v3("x", level = 1, type = "detail", obj = 1.234))
   expect_true(any(grepl("Value:", out_num)))

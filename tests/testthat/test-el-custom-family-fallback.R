@@ -29,7 +29,7 @@ test_that("EL runs with a custom family lacking second derivatives", {
 
 test_that("analytic Jacobian is disabled when family lacks d2mu.deta2", {
   df <- make_iid_nmar(n = 120, alpha = 0.6, seed = 4402)
-  spec <- NMAR:::el_prepare_inputs(
+  spec <- el_prepare_inputs(
     formula = Y_miss ~ X,
     data = df,
     weights = NULL,
@@ -40,7 +40,7 @@ test_that("analytic Jacobian is disabled when family lacks d2mu.deta2", {
   Z_un <- spec$missingness_design
   X_un <- spec$aux_design_full[spec$respondent_mask, , drop = FALSE]
   aux_means <- c(X = 0)
-  sc <- NMAR:::validate_and_apply_nmar_scaling(TRUE, ncol(X_un) > 0, Z_un, X_un, aux_means)
+  sc <- validate_and_apply_nmar_scaling(TRUE, ncol(X_un) > 0, Z_un, X_un, aux_means)
 
   custom_logit <- list(
     name = "logit",
@@ -55,7 +55,7 @@ test_that("analytic Jacobian is disabled when family lacks d2mu.deta2", {
     }
   )
 
-  jac_fun <- NMAR:::el_build_jacobian(
+  jac_fun <- el_build_jacobian(
     family = custom_logit,
     missingness_model_matrix = sc$response_model_matrix_scaled,
     auxiliary_matrix = sc$auxiliary_matrix_scaled,
