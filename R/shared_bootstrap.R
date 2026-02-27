@@ -555,8 +555,16 @@ nmar_warn_no_future_apply_once <- function(context = NULL) {
   invisible(TRUE)
 }
 
-nmar_warn_survey_bootstrap_assumptions <- function(design) {
-  if (!inherits(design, "survey.design")) return(invisible(FALSE))
+nmar_detect_survey_design_assumptions <- function(design) {
+  if (!inherits(design, "survey.design")) {
+    return(list(
+      flags = list(),
+      has_probability_risk = FALSE,
+      has_poststrata = FALSE,
+      has_calibration = FALSE,
+      risk_labels = character()
+    ))
+  }
 
   allprob <- design$allprob
   has_multistage_probs <- is.data.frame(allprob) && ncol(allprob) > 1L
@@ -577,7 +585,44 @@ nmar_warn_survey_bootstrap_assumptions <- function(design) {
     has_pps_arg <- !is.null(args$pps)
   }
 
-  if (has_multistage_probs || has_pps || has_fpc_arg || has_fpc_popsize || has_probs_arg || has_pps_arg) {
+  has_poststrata <- !is.null(design$postStrata)
+  has_calibration <- !is.null(design$calibration)
+
+  flags <- list(
+    has_multistage_probs = has_multistage_probs,
+    has_pps = has_pps,
+    has_fpc_arg = has_fpc_arg,
+    has_fpc_popsize = has_fpc_popsize,
+    has_probs_arg = has_probs_arg,
+    has_pps_arg = has_pps_arg,
+    has_poststrata = has_poststrata,
+    has_calibration = has_calibration
+  )
+
+  risk_labels <- character()
+  if (isTRUE(has_multistage_probs)) risk_labels <- c(risk_labels, "multistage probabilities")
+  if (isTRUE(has_pps)) risk_labels <- c(risk_labels, "PPS")
+  if (isTRUE(has_fpc_arg) || isTRUE(has_fpc_popsize)) risk_labels <- c(risk_labels, "FPC")
+  if (isTRUE(has_probs_arg)) risk_labels <- c(risk_labels, "explicit probs= argument")
+  if (isTRUE(has_pps_arg)) risk_labels <- c(risk_labels, "explicit pps= argument")
+  if (isTRUE(has_poststrata)) risk_labels <- c(risk_labels, "post-stratification")
+  if (isTRUE(has_calibration)) risk_labels <- c(risk_labels, "calibration")
+
+  list(
+    flags = flags,
+    has_probability_risk = isTRUE(has_multistage_probs || has_pps || has_fpc_arg || has_fpc_popsize || has_probs_arg || has_pps_arg),
+    has_poststrata = has_poststrata,
+    has_calibration = has_calibration,
+    risk_labels = unique(risk_labels)
+  )
+}
+
+nmar_warn_survey_bootstrap_assumptions <- function(design) {
+  if (!inherits(design, "survey.design")) return(invisible(FALSE))
+
+  info <- nmar_detect_survey_design_assumptions(design)
+
+  if (isTRUE(info$has_probability_risk)) {
     warning(
       "Survey bootstrap injects replicate analysis weights into the design.\n  ",
       "This is valid when the estimator depends on weights (and optionally strata/cluster)\n  ",

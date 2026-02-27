@@ -23,6 +23,7 @@ articles:
       - tutorial_empirical_likelihood
       - tutorial_exptilt
       - tutorial_exptilt_nonparam
+      - tutorial_induced_logit
   - title: Developer
     # desc: >
     #   Guide to develop new estimators in nmar package
@@ -36,6 +37,7 @@ articles:
       - el_empirical_likelihood_theory
       - exptilt_theory
       - exptilt_nonparam_theory
+      - induced_logit_theory
 
 
 
@@ -58,4 +60,3 @@ reference:
   - title: Datasets
     contents:
       - has_keyword("dataset")
-

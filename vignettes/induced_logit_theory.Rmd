@@ -1,0 +1,958 @@
+---
+title: "Induced Logistic Regression Theory for NMAR"
+description: >
+  Mathematical details and implementation crosswalk for the induced logistic
+  regression estimator for NMAR nonresponse implemented in the NMAR package,
+  including the IID estimator in Li-Qin-Liu and the package's survey-design
+  extension.
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Induced Logistic Regression Theory for NMAR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+This vignette documents the induced logistic regression estimator implemented
+in the `NMAR` package. It has two goals:
+
+1. Summarize the key mathematical objects and the 2-step estimator described in
+   "Instability of Inverse Probability Weighting Methods and a Remedy for
+   Nonignorable Missing Data" (Li, Qin, and Liu, 2023), including the stable
+   computation of the estimand.
+2. Map each mathematical step to the concrete implementation in
+   `src_dev/engines/induced_logit/`, including the package's survey-design
+   extension and its explicit limitations.
+
+## Summary
+
+### Data structure
+
+We observe $(Y_i R_i, X_i, R_i)$ for sampled units $i = 1, ..., n$, where:
+
+- $Y_i$ is a scalar outcome that may be missing
+- $R_i \in \{0, 1\}$ is the response indicator (1 = observed outcome)
+- $X_i$ is a vector of fully observed covariates
+
+In the package interface, nonresponse is represented by `NA` in the outcome
+column.
+
+### Models
+
+The paper assumes a logistic missingness model of the form
+
+$$
+\Pr(R = 1 \mid X = x, Y = y)
+= \frac{1}{1 + \exp\{\alpha_0 + x_1^T\beta + \gamma y\}}.
+$$
+
+It also assumes an outcome regression model for respondents
+
+$$
+\mu(x;\xi) = E(Y \mid X = x, R = 1),
+$$
+
+and leaves the respondent error distribution otherwise unrestricted (this is
+the key to avoiding unstable MGF estimation in the IPW estimating equations).
+
+### Estimand
+
+The target parameter is the population mean
+
+$$
+\tau = E(Y).
+$$
+
+## Notation
+
+### Units
+
+- $i = 1, ..., n$ index sampled units.
+- $R_i \in \{0, 1\}$ is the response indicator (1 = observed outcome).
+- Respondents: $\mathcal{I}_1 = \{ i : R_i = 1 \}$ with size $n_1$.
+- Nonrespondents: $\mathcal{I}_0 = \{ i : R_i = 0 \}$ with size $n_0$.
+  We have $n = n_0 + n_1$.
+
+### Data
+
+- Outcome: $Y_i$ (observed when $R_i = 1$, missing otherwise).
+- Covariates: $X_i$ are fully observed for all sampled units.
+
+The paper partitions covariates as $X = (X_1^T, X_2^T)^T$, where:
+
+- $X_1$ are the covariates that enter the missingness model.
+- $X_2$ (if present) may act as a shadow / instrumental variable that affects
+  $Y$ but does not enter the missingness model directly.
+
+In the package, covariate blocks are determined by the formula interface:
+
+`y_miss ~ mu_covariates | x1_covariates`
+
+- The outcome regression uses the first RHS block (`mu_covariates`).
+- The induced-logit response regression uses the second RHS block
+  (`x1_covariates`). If the `|` block is omitted it defaults to `| 1`.
+
+Mapping to code:
+
+- Formula parsing, validation, and cached design matrices:
+  `src_dev/engines/induced_logit/impl/input.R`
+  (`induced_logit_prepare_inputs()`).
+
+### Models
+
+The paper's logistic missingness model is
+
+$$
+\Pr(R = 1 \mid X = x, Y = y)
+= \frac{1}{1 + \exp\{\alpha_0 + x_1^T\beta + \gamma y\}}.
+$$
+
+The respondent outcome regression is
+
+$$
+\mu(x;\xi) = E(Y \mid X = x, R = 1),
+$$
+
+and for the induced-logit derivation (their Section 3.1) the paper uses the
+location model
+
+$$
+Y = \mu(X;\xi) + \epsilon,
+$$
+
+where the distribution of $\epsilon$ is understood as the respondent error
+distribution (i.e., under $R=1$), and $M_1(t) = E\{\exp(t\epsilon)\}$ is
+well-defined in a neighborhood of $t$ of interest. The induced-logit
+derivation requires that $E\{\exp(t Y) \mid X=x, R=1\}$ factorizes as
+\(\exp\{t\mu(x;\xi)\} M_1(t)\), which holds when $\epsilon$ is independent
+of $X$ among respondents under this location model.
+
+### Moment terms
+
+Define the moment generating function (MGF) and its first derivative moment:
+
+$$
+M_1(t) = E\{\exp(t\epsilon)\}, \qquad
+M_2(t) = E\{\epsilon \exp(t\epsilon)\}.
+$$
+
+The estimator uses the ratio $M_2(\gamma) / M_1(\gamma)$, which can be written
+as a tilted expectation of $\epsilon$ under weights proportional to
+\(\exp(\gamma\epsilon)\).
+
+In code we estimate these moments using respondent residuals
+
+$$
+\hat\epsilon_i = Y_i - \hat\mu(X_i), \qquad i \in \mathcal{I}_1,
+$$
+
+with stabilized (log-sum-exp) computations to avoid overflow/underflow.
+
+Mapping to code:
+
+- Moment calculations:
+  `src_dev/engines/induced_logit/impl/numerics.R`
+
+### Estimand identity
+
+Under the paper models, the population mean can be expressed as
+
+$$
+\tau = E\{\mu(X;\xi)\} + (1 - \eta)\,\frac{M_2(\gamma)}{M_1(\gamma)},
+\qquad \eta = \Pr(R = 1).
+$$
+
+This is the identity that leads to the plug-in estimator implemented in the
+package.
+
+### Notation at a glance
+
+| Symbol | Meaning |
+|---|---|
+| $i$ | Sample index |
+| $Y_i$ | Outcome (missing if $R_i=0$) |
+| $R_i$ | Response indicator |
+| $X_i$ | Fully observed covariates |
+| $x_1$ | Missingness covariates (paper) |
+| $\mu(x;\xi)$ | Respondent outcome regression |
+| $\epsilon$ | Respondent error $Y - \mu(X;\xi)$ |
+| $M_1(t)$ | $E\{\exp(t\epsilon)\}$ |
+| $M_2(t)$ | $E\{\epsilon\exp(t\epsilon)\}$ |
+| $\eta$ | $\Pr(R=1)$ |
+| $\tau$ | $E(Y)$ |
+
+## Induced logistic regression
+
+The key insight in Li-Qin-Liu is that, under the paper models, the marginal
+response probability $\Pr(R=1 \mid X=x)$ follows a logistic regression in
+terms of $x_1$ and $\mu(x;\xi)$.
+
+### Odds form and induced model
+
+From the paper missingness model,
+
+$$
+\Pr(R = 1 \mid x, y) = \frac{1}{1 + \exp\{\alpha_0 + x_1^T\beta + \gamma y\}},
+$$
+
+the conditional odds satisfy
+
+$$
+\frac{\Pr(R=0 \mid x, y)}{\Pr(R=1 \mid x, y)} = \exp\{\alpha_0 + x_1^T\beta + \gamma y\}.
+$$
+
+Taking the conditional expectation given $(X=x, R=1)$ yields
+
+$$
+\frac{\Pr(R=0 \mid x)}{\Pr(R=1 \mid x)}
+= E\left[ \exp\{\alpha_0 + x_1^T\beta + \gamma Y\} \mid X=x, R=1 \right].
+$$
+
+This identity follows from rewriting the marginal odds ratio as
+\(\int \exp\{\alpha_0 + x_1^T\beta + \gamma y\} \Pr(R=1 \mid x,y) f(y\mid x)\,dy / \int \Pr(R=1 \mid x,y) f(y\mid x)\,dy\)
+and recognizing the conditional density $f(y\mid x, R=1)$ in the ratio.
+
+Under the location model $Y = \mu(x;\xi) + \epsilon$, this becomes
+
+$$
+\frac{\Pr(R=0 \mid x)}{\Pr(R=1 \mid x)}
+= \exp\{\alpha_0 + x_1^T\beta + \gamma\mu(x;\xi)\} \, M_1(\gamma).
+$$
+
+Define
+
+$$
+\alpha = \alpha_0 + \log M_1(\gamma), \qquad
+\theta = (\alpha, \beta^T, \gamma)^T.
+$$
+
+Then the induced logistic regression model is
+
+$$
+\pi(x;\theta,\xi)
+= \Pr(R=1 \mid X=x)
+= \frac{1}{1 + \exp\{\alpha + x_1^T\beta + \gamma\mu(x;\xi)\}}.
+$$
+
+This is Eq. (8) in the paper (under the location model) and is the basis for
+Step 2: estimate $\theta$ by maximizing the conditional likelihood of
+$\{R_i\}$ given $\{X_i\}$ with $\mu(x;\xi)$ replaced by $\hat\mu(x)$.
+
+### GLM parameter mapping used in NMAR
+
+The implementation fits a standard logit GLM for $\pi(x)$:
+
+$$
+\text{logit}\{\pi(x)\}
+= b_0 + b_{x_1}^T x_1 + b_{\mu} \hat\mu(x).
+$$
+
+Because
+\(\pi(x) = 1 / (1 + \exp\{t\}) = \text{plogis}(-t)\),
+the induced model above implies
+
+$$
+b_0 = -\alpha, \qquad b_{x_1} = -\beta, \qquad b_{\mu} = -\gamma.
+$$
+
+In other words, paper parameters correspond to the negation of the fitted GLM
+coefficients. In the result diagnostics we report:
+
+- `gamma_hat_paper = -coef(mu_hat)`
+- `alpha_hat_paper = -coef((Intercept))`
+
+After fitting Step 2, the paper recovers $\alpha_0$ via
+
+$$
+\hat\alpha_0 = \hat\alpha - \log \hat M_1(\hat\gamma),
+$$
+
+where $\hat M_1(\gamma)$ is computed from respondent residuals
+\(\hat\epsilon_i\).
+This derived quantity is included in `NMAR` diagnostics as
+`alpha0_hat_paper`.
+
+Mapping to code:
+
+- Response regression and sign mapping:
+  `src_dev/engines/induced_logit/impl/fit_response.R`
+  (`il_extract_gamma_hat()` and callers).
+- Derived diagnostics including `alpha0_hat_paper`:
+  `src_dev/engines/induced_logit/impl/estimand.R`.
+
+### Identifiability diagnostic
+
+In the paper, $\theta$ is identifiable when $\mu(x;\xi)$ is not a linear
+function of $x_1$ (or when a shadow variable $x_2$ provides identification in
+linear cases). In practice, Step 2 becomes unstable when
+$\hat\mu(x)$ is (nearly) collinear with the columns of the $x_1$ design matrix.
+
+The implementation enforces two guards on the Step 2 design matrix:
+
+- Full column rank (no exact non-identifiability).
+- A condition-number threshold to fail fast on extreme near-collinearity.
+
+Mapping to code:
+
+- Rank and conditioning checks:
+  `src_dev/engines/induced_logit/impl/fit_utils.R`
+  (`il_enforce_response_model_identifiability()`).
+
+## Estimation: the 2-step estimator
+
+### Step 1: outcome regression on respondents
+
+Step 1 estimates the respondent outcome regression function
+\(\mu(x;\xi) = E(Y \mid X=x, R=1)\) using respondents only.
+
+In the paper, $\hat\xi$ is defined as the least squares estimator
+
+$$
+\hat\xi = \arg\min_{\xi} \sum_{i=1}^n R_i \{ Y_i - \mu(X_i;\xi) \}^2.
+$$
+
+#### Implementation in NMAR
+
+Induced-logit engine fits a linear-in-parameters regression for $\mu(x;\xi)$
+built from a standard model matrix. Concretely:
+
+- Let $X_{\mu} \in \mathbb{R}^{n \times p}$ be the design matrix generated by
+  `model.matrix()` for the mu block of the formula, evaluated on the full
+  sample.
+- Let $y \in \mathbb{R}^n$ be the outcome vector, with `NA` for
+  nonrespondents.
+- Let $r \in \{0,1\}^n$ be the response indicator implied by `!is.na(y)`.
+
+The implementation fits $\hat\xi$ on the respondent subset
+\(\mathcal{I}_1\) by ordinary least squares, and then forms fitted values on
+the full sample as
+
+$$
+\hat\mu_i = (X_{\mu})_i^T\,\hat\xi, \qquad i = 1, ..., n.
+$$
+
+Note that the paper also discusses fitting $\mu(x;\xi)$ with `nls()` for
+nonlinear $\mu$. That is not supported in the current implementation. All mu
+models must be expressible through `model.matrix()` (including interactions and
+other basis expansions that are linear in coefficients).
+
+#### Input constraints enforced before fitting
+
+Before Step 1 is run, the engine enforces constraints that match the paper
+setup and protect against silent NA propagation:
+
+- Only the outcome may be missing (nonresponse). All covariates used in either
+  the mu block or the x1 block must be fully observed and finite for all sampled
+  units.
+- The outcome must be numeric; observed outcomes must be finite.
+- For factor predictors used in the mu block, each level must occur among
+  respondents. Otherwise the respondent-only least squares fit is not
+  identifiable and $\hat\mu(x)$ is not well-defined for some nonrespondents.
+
+These checks are performed once up front so that downstream computations
+(Step 2 and the moment terms) can assume $\hat\mu$ is finite for all units.
+
+Implementation crosswalk:
+
+- Input preprocessing and cached design matrices:
+  `src_dev/engines/induced_logit/impl/input.R`
+  (`induced_logit_prepare_inputs()`):
+  - parses the partitioned formula and extracts the mu RHS block
+  - constructs `spec$model_frame`, `spec$respondent_mask`, and caches
+    `spec$mu_mat_full = model.matrix(mu_rhs, data = model_frame)`
+  - enforces the fully observed covariate and factor-level constraints above
+- Outcome regression fits:
+  `src_dev/engines/induced_logit/impl/fit_mu.R`
+  - `il_fit_mu_iid_core()` selects the unscaled vs scaled path based on
+    `standardize`
+  - `il_fit_mu_unscaled()` fits `stats::lm.fit()` on respondents and computes
+    `mu_hat = mu_mat_full %*% coef` on the full sample
+  - `il_fit_mu_scaled()` fits `stats::lm.fit()` on a scaled mu design matrix (pure
+    reparameterization), computes `mu_hat` on the full sample, and returns a scaling
+    recipe used for predictions
+  - `predict.nmar_il_mu_fit()` is used to compute $\hat\mu(x)$ consistently in
+    tests and for internal consistency checks. The core fitting pipeline
+    computes `mu_hat` via matrix multiplication.
+
+### Step 2: induced logistic regression for response
+
+Step 2 estimates the response-model parameters that govern the induced logistic
+regression for $\Pr(R=1 \mid X=x)$.
+
+#### Paper formulation
+
+Using the induced logistic regression model
+
+$$
+\pi(x;\theta,\xi)
+= \Pr(R=1 \mid X=x)
+= \frac{1}{1 + \exp\{\alpha + x_1^T\beta + \gamma\mu(x;\xi)\}},
+$$
+
+the paper estimates
+\(\theta = (\alpha, \beta^T, \gamma)^T\) by maximizing the conditional
+log-likelihood of $\{R_i\}$ given $\{X_i\}$ with $\xi$ replaced by $\hat\xi$:
+
+$$
+\hat\theta
+= \arg\max_{\theta} \;
+\sum_{i=1}^n \left[
+R_i \log\{\pi(X_i;\theta,\hat\xi)\}
+ + (1 - R_i)\log\{1 - \pi(X_i;\theta,\hat\xi)\}
+\right].
+$$
+
+This is Eq. (10) in the paper.
+
+#### GLM form used in NMAR
+
+The induced model can be written as a standard logistic regression in terms of
+predictors $x_1$ and the fitted respondent mean $\hat\mu(x)$:
+
+$$
+\text{logit}\{\pi(x)\}
+= b_0 + b_{x_1}^T x_1 + b_{\mu} \hat\mu(x).
+$$
+
+Comparing to the paper parameterization yields the mapping
+
+$$
+b_0 = -\alpha, \qquad b_{x_1} = -\beta, \qquad b_{\mu} = -\gamma.
+$$
+
+The implementation therefore reports the paper-scale coefficient on the fitted
+mean as
+
+$$
+\hat\gamma_{paper} = -\hat b_{\mu}.
+$$
+
+Likewise, the paper-scale $\alpha$ is
+\(\hat\alpha_{paper} = -\hat b_0\), and the derived $\alpha_0$ is computed
+as
+\(\hat\alpha_0 = \hat\alpha - \log \hat M_1(\hat\gamma)\) (see the
+Estimand section).
+
+#### Guards and diagnostics
+
+Step 2 can fail or become unstable when the induced-logit design matrix is not
+identifiable or is extremely ill-conditioned. Practically, this happens when
+$\hat\mu(x)$ is (nearly) collinear with the $x_1$ predictors, or when the
+binary response model exhibits separation.
+
+The implementation enforces:
+
+- Full column rank of the Step 2 design matrix.
+- A condition-number threshold that fails fast on extreme near-collinearity.
+- Explicit GLM convergence checks and NA-coefficient checks.
+
+If the checks fail, the induced-logit engine returns a non-converged result
+(`on_failure = "return"`) or throws an error (`on_failure = "error"`).
+
+Implementation crosswalk:
+
+- IID induced-logit response fit:
+  `src_dev/engines/induced_logit/impl/fit_response.R`
+  - `il_build_response_design()` builds the Step 2 predictors from cached
+    `spec$x1_mat_full` and the computed `mu_hat`
+  - `il_fit_resp_iid_core()` fits the binomial GLM via `glm.fit()` and extracts
+    `gamma_hat_paper = -coef(mu_hat)`
+  - `il_extract_gamma_hat()` implements the sign mapping and validates finiteness
+- Identifiability diagnostics (rank and conditioning checks):
+  `src_dev/engines/induced_logit/impl/fit_utils.R`
+  - `il_response_model_diagnostics_matrix()` computes rank and a condition number
+  - `il_enforce_response_model_identifiability()` enforces thresholds and
+    returns a warning message for moderately high condition numbers
+  - `il_glm_control()` parses `control = list(...)` into `stats::glm.control()`
+
+## Estimand computation
+
+This section defines the paper estimator of $\tau$ and the stabilized moment
+computations used in code.
+
+### Plug-in estimator
+
+Recall the identity (paper Eq. (12)):
+
+$$
+\tau = E\{\mu(X;\xi)\} + (1 - \eta)\,\frac{M_2(\gamma)}{M_1(\gamma)},
+\qquad \eta = \Pr(R=1).
+$$
+
+The implementation uses the plug-in estimator (paper Eq. (13)):
+
+$$
+\hat\tau
+= \frac{1}{n} \sum_{i=1}^n \hat\mu(x_i)
+  + (1 - \hat\eta)\,\frac{\hat M_2(\hat\gamma)}{\hat M_1(\hat\gamma)}.
+$$
+
+Here:
+
+- $\hat\eta = n^{-1} \sum_{i=1}^n R_i$ is the sample response rate.
+- $\hat\mu(x_i)$ is the Step 1 fitted value for unit $i$.
+- $\hat\gamma$ is the Step 2 induced-logit estimate on the paper scale.
+
+Let respondent residuals be
+
+$$
+\hat\epsilon_i = Y_i - \hat\mu(X_i), \qquad i \in \mathcal{I}_1.
+$$
+
+The moment estimators used in the plug-in expression are:
+
+$$
+\hat M_1(t) = \frac{1}{n_1} \sum_{i \in \mathcal{I}_1} \exp\{t\hat\epsilon_i\},
+\qquad
+\hat M_2(t) = \frac{1}{n_1} \sum_{i \in \mathcal{I}_1} \hat\epsilon_i\,\exp\{t\hat\epsilon_i\}.
+$$
+
+The ratio $\hat M_2(\hat\gamma)/\hat M_1(\hat\gamma)$ can be interpreted as
+a tilted mean of $\hat\epsilon$ under weights proportional to
+\(\exp\{\hat\gamma \hat\epsilon\}\).
+
+### Derived paper parameters
+
+In Step 2 the induced-logit GLM is fit as
+\(\text{logit}(\pi(x)) = b_0 + \cdots\). The diagnostics in `NMAR` report:
+
+$$
+\hat\alpha_{paper} = -\hat b_0, \qquad \hat\gamma_{paper} = -\hat b_{\mu}.
+$$
+
+The paper defines $\alpha = \alpha_0 + \log M_1(\gamma)$, so after computing
+$\log \hat M_1(\hat\gamma)$ from respondent residuals we form
+
+$$
+\hat\alpha_{0,paper} = \hat\alpha_{paper} - \log \hat M_1(\hat\gamma).
+$$
+
+This derived quantity is included as `alpha0_hat_paper` in engine diagnostics.
+
+### Stabilized computations
+
+Direct computation of $\exp\{t\hat\epsilon_i\}$ can overflow or underflow
+when $|t\hat\epsilon_i|$ is large. To make the ratio stable, we use a max-shift.
+
+Let $z_i = t\hat\epsilon_i$ for respondents. Define the shift
+\(a = \max_{i \in \mathcal{I}_1} z_i\) and stabilized weights
+\(\tilde w_i = \exp(z_i - a)\). Then
+
+$$
+\frac{\hat M_2(t)}{\hat M_1(t)}
+= \frac{\sum_{i \in \mathcal{I}_1} \hat\epsilon_i \exp(z_i)}{\sum_{i \in \mathcal{I}_1} \exp(z_i)}
+= \frac{\sum_{i \in \mathcal{I}_1} \hat\epsilon_i \tilde w_i}{\sum_{i \in \mathcal{I}_1} \tilde w_i},
+$$
+
+and the log moment is computed as
+
+$$
+\log \hat M_1(t)
+= \log\left( \frac{1}{n_1} \sum_{i \in \mathcal{I}_1} \exp(z_i) \right)
+= a + \log\left( \frac{1}{n_1} \sum_{i \in \mathcal{I}_1} \exp(z_i - a) \right).
+$$
+
+This max-shift is numerically stable even when individual $\exp(z_i)$ terms are
+not representable on the floating point scale.
+
+### Survey-design extension
+
+The Li-Qin-Liu paper is IID. The `NMAR` package additionally supports
+`survey::survey.design` objects via a weight-based pseudo-likelihood extension
+(not derived in Li-Qin-Liu). In that extension, the estimand computation uses
+analysis weights $w_i$:
+
+$$
+\hat\eta_w = \frac{\sum_{i=1}^n w_i R_i}{\sum_{i=1}^n w_i},
+\qquad
+\bar\mu_w = \frac{\sum_{i=1}^n w_i \hat\mu(X_i)}{\sum_{i=1}^n w_i}.
+$$
+
+Moment terms are computed on respondents with respondent weights $w_i$:
+
+$$
+\hat M_{1,w}(t) = \frac{\sum_{i \in \mathcal{I}_1} w_i \exp\{t\hat\epsilon_i\}}{\sum_{i \in \mathcal{I}_1} w_i},
+\qquad
+\hat M_{2,w}(t) = \frac{\sum_{i \in \mathcal{I}_1} w_i \hat\epsilon_i\exp\{t\hat\epsilon_i\}}{\sum_{i \in \mathcal{I}_1} w_i}.
+$$
+
+The resulting estimator is
+
+$$
+\hat\tau_w = \bar\mu_w + (1 - \hat\eta_w)\,\frac{\hat M_{2,w}(\hat\gamma)}{\hat M_{1,w}(\hat\gamma)}.
+$$
+
+To stabilize these weighted sums we apply the same max-shift idea, but shift on
+\(\log w_i + t\hat\epsilon_i\) so that zero-weight observations do not affect
+the reference value.
+
+Implementation crosswalk:
+
+- Estimand computation:
+  `src_dev/engines/induced_logit/impl/estimand.R`
+  - `il_compute_estimand()` computes $\hat\eta$ and $\bar\mu$ (unweighted or
+    weighted), moment terms, and derived diagnostics `alpha_hat_paper` and
+    `alpha0_hat_paper`
+- Stabilized log-sum-exp computations for $\log \hat M_1$ and
+  $\hat M_2/\hat M_1$ (weighted and unweighted):
+  `src_dev/engines/induced_logit/impl/numerics.R`
+  - `il_m2_over_m1_ratio()` and `il_log_m1_hat()` are the unweighted helpers
+  - `il_m2_over_m1_ratio_weighted()` and `il_log_m1_hat_weighted()` implement
+    the weighted analog using shifts based on `log(weights) + gamma * eps`
+
+## Numerical stability and standardization
+
+This section summarizes the main numerical-stability techniques used by the
+implementation. These techniques do not change the estimator definition, they
+are used to avoid common floating-point failures and ill-conditioned fits.
+
+### Stabilized moment calculations
+
+Moment terms in the estimand involve sums of the form
+\(\sum \exp\{\gamma\hat\epsilon\}\) and
+\(\sum \hat\epsilon\exp\{\gamma\hat\epsilon\}\). These are computed
+using a max-shift (log-sum-exp) stabilization, as shown in the previous
+section. This avoids overflow/underflow for large values of
+\(|\gamma\hat\epsilon|\).
+
+### Standardization as a reparameterization
+
+The engine supports an internal standardization option intended to improve
+conditioning in Step 1 (mu regression) and Step 2 (induced-logit GLM):
+
+- For the mu regression design matrix, columns are centered and scaled before
+  fitting, then the resulting fit object stores a scaling recipe so predictions
+  are formed consistently.
+- For the Step 2 design matrix, the $x_1$ columns (excluding the intercept) are
+  centered and scaled before fitting, and the fitted coefficients and covariance
+  matrix are transformed back to the original scale for reporting.
+
+This is implemented as a pure reparameterization: point estimates and fitted
+values are invariant up to numerical tolerance, but the optimization and linear
+algebra can be substantially more stable.
+
+### Special case: no-intercept mu models
+
+Centering predictors is a reparameterization only when the mu model includes an
+intercept. When the mu model omits the intercept, centering changes the column
+space (equivalent to implicitly adding a constant column) and therefore changes
+fitted values. For no-intercept mu models, the implementation scales columns
+(divides by standard deviation) but does not center them, so fitted values are
+preserved.
+
+Implementation crosswalk:
+
+- Standardization helpers and coefficient unscaling:
+  `src_dev/engines/induced_logit/impl/fit_utils.R`
+  and `src_dev/shared/scaling.R`
+  - `il_scale_mu_matrix()` implements the "do not center without intercept" rule
+  - `il_scale_matrix()` scales the $x_1$ block
+  - `il_unscale_response_model()` maps Step 2 coefficients and vcov back to the
+    original predictor scale
+  - `unscale_coefficients()` applies the affine scaling recipe to coefficients
+    and covariance matrices
+- Stabilized moments:
+  `src_dev/engines/induced_logit/impl/numerics.R`
+
+## Survey designs: extension and assumptions
+
+The Li-Qin-Liu paper is an IID development. The `NMAR` package additionally
+supports `survey::survey.design` inputs via a weight-based pseudo-likelihood
+extension. This extension is not derived in Li-Qin-Liu and should be viewed as
+a pragmatic generalization that treats survey weights as multiplicities in the
+estimating equations.
+
+### What NMAR implements
+
+- Step 1: fit the respondent outcome regression using `survey::svyglm()` on the
+  respondent subset.
+- Step 2: fit the induced logistic regression using `survey::svyglm()` with a
+  quasibinomial family.
+- Estimand: compute the weighted analog of Eq. (13), using weighted
+  \(\hat\eta_w\), weighted \(\bar\mu_w\), and a respondent-weighted
+  stabilized moment ratio (as defined in the Estimand section).
+
+This construction has several attractive invariances that are tested in the
+package (for example, it reduces to the IID implementation when `ids = ~1` and
+all weights are 1, and it is invariant to multiplying all weights by a common
+constant).
+
+This section separates what is implemented (and tested) in `NMAR` from what is
+justified by the IID theory in Li-Qin-Liu, and documents which survey-design
+features are rejected or warned about.
+
+### Supported and unsupported survey features
+
+The implementation explicitly rejects designs that apply post-hoc weight
+adjustments (calibration or post-stratification), because the estimator is not
+defined in terms of a recalibrated likelihood and the replicate-weight bootstrap
+machinery used elsewhere in the package cannot recompute those adjustments.
+
+For other design features that may require handling beyond analysis weights
+(multistage probabilities, PPS, FPC, or explicit `probs=`/`pps=` arguments), the
+engine behavior is controlled by `survey_design_policy`:
+
+- `survey_design_policy = "strict"` (default) fails fast with an informative
+  error.
+- `survey_design_policy = "warn"` proceeds but emits a warning describing the
+  detected design features.
+
+Implementation crosswalk:
+
+- Survey entry point and design validation:
+  `src_dev/engines/induced_logit/impl/survey.R`
+  - `il_validate_supported_survey_design()` enforces the design policy
+- Survey backends:
+  `src_dev/engines/induced_logit/impl/backends_survey_mu.R` and
+  `src_dev/engines/induced_logit/impl/backends_survey_resp.R`
+  - Step 1 uses `survey::svyglm()` on the respondent subset design
+  - Step 2 uses `survey::svyglm()` on a design with injected `r` and `mu_hat`
+
+## Variance estimation
+
+The Li-Qin-Liu paper develops asymptotic theory, but the `NMAR` induced-logit
+engine currently provides variance estimates via bootstrap only.
+
+### Options
+
+- `variance_method = "none"`: skip variance and return `se = NA`.
+- `variance_method = "bootstrap"`: compute a bootstrap standard error.
+
+### IID bootstrap (data.frame)
+
+For IID `data.frame` inputs, variance is computed by a nonparametric row
+bootstrap:
+
+1. Resample rows with replacement to form a bootstrap dataset of size $n$.
+2. Refit the full induced-logit estimator on the bootstrap dataset.
+3. Collect the bootstrap replicates $\hat\tau^{(b)}$ and compute
+   \(\widehat{\mathrm{Var}}(\hat\tau)\) as the empirical variance of the
+   successful replicates.
+
+Because induced-logit requires both respondents and nonrespondents, the IID
+bootstrap uses a guard that rejects resamples that contain only respondents or
+only nonrespondents (after a limited number of attempts).
+
+### Survey bootstrap (survey.design)
+
+For `survey::survey.design` inputs, variance is computed using bootstrap
+replicate weights:
+
+1. Convert the input design to a bootstrap replicate-weight design via
+   `svrep::as_bootstrap_design()`. This step requires the suggested package
+   `svrep`.
+2. For each replicate $j$, inject its analysis weights into a shallow copy of
+   the original survey design (so that `weights(design)` returns the replicate
+   weights).
+3. Refit the induced-logit estimator on each replicate-weight design, producing
+   replicate estimates $\hat\tau^{(j)}$.
+4. Combine replicate estimates using `survey::svrVar()` with appropriate scaling
+   factors.
+
+### Limitations and failure modes
+
+- Bootstrap variance is not supported for calibrated or post-stratified survey
+  designs (these are rejected in the induced-logit survey path anyway).
+- Survey bootstrap uses a strict NA policy by default: if any replicate fails
+  to produce a finite estimate, the variance computation fails with an error.
+  This makes estimator instability explicit, but it can be inconvenient for
+  difficult designs.
+- Survey bootstrap requires a non-replicate `survey.design` as input. Passing a
+  `svyrep.design` is rejected.
+
+Implementation crosswalk:
+
+- Engine variance wrapper:
+  `src_dev/engines/induced_logit/impl/variance.R`
+  - `il_compute_variance()` calls `bootstrap_variance()` with an estimator
+    function that refits induced-logit with `variance_method = "none"`
+- Shared bootstrap framework:
+  `src_dev/shared/bootstrap.R`
+  - `bootstrap_variance.data.frame()` implements IID row resampling and uses an
+    optional `resample_guard`
+  - `bootstrap_variance.survey.design()` implements replicate-weight bootstrap
+    via `svrep::as_bootstrap_design()` and weight injection
+  - `nmar_inject_design_weights()` injects replicate weights by updating the
+    design probability slots
+
+## Package interface and workflow
+
+This section summarizes the user-facing interface and the main internal objects
+created by the induced-logit engine.
+
+- Engine constructor: `induced_logit_engine()`
+- Formula interface: `y_miss ~ mu_covariates | x1_covariates`
+- Result object: `nmar_result_induced_logit`
+  - `coef()` returns induced-logit GLM coefficients
+  - `fitted()` returns fitted response probabilities
+  - `summary()` prints induced-logit diagnostics and response-model table
+
+### Engine configuration
+
+The induced-logit estimator is selected by passing an engine created with
+`induced_logit_engine(...)` to `nmar(...)`. Key options:
+
+- `variance_method`: `"none"` or `"bootstrap"`.
+- `bootstrap_reps`: number of bootstrap replicates.
+- `standardize`: internal reparameterization for numerical stability.
+- `control`: forwarded to `stats::glm.control()` for Step 2.
+- `survey_design_policy`: `"strict"` (fail fast) or `"warn"` for survey designs
+  with PPS/FPC/multistage probability risk.
+- `on_failure`: `"return"` (default) or `"error"`.
+- `keep_fits`: store raw internal fit objects for debugging.
+
+### Inputs and formula
+
+The engine expects a two-block formula:
+
+`y_miss ~ mu_covariates | x1_covariates`
+
+- The left-hand side must be a single outcome variable name (no transforms).
+- The first RHS block defines the mu regression.
+- The second RHS block defines the $x_1$ predictors used in the induced logit.
+
+The input data may be:
+
+- an IID `data.frame`, or
+- a `survey::survey.design` (pseudo-likelihood extension).
+
+In both cases, covariates referenced by the formula must be fully observed.
+
+### Output object
+
+`nmar(...)` returns an object of class `nmar_result_induced_logit`, which
+inherits from `nmar_result`. The induced-logit result stores:
+
+- Primary estimate: `y_hat` (the estimate of $\tau$).
+- Standard error: `se` (when bootstrapped).
+- Response-model coefficients: `coef(result)` returns the fitted Step 2 GLM
+  coefficients on the reporting scale (not the paper scale).
+- Fitted response probabilities: `fitted(result)`.
+- Diagnostics: `result$diagnostics` includes `eta_hat`, `mu_bar`,
+  `gamma_hat_paper`, `alpha0_hat_paper`, and response-model conditioning
+  information.
+
+Implementation crosswalk:
+
+- Engine: `src_dev/engines/induced_logit/engine.R`
+- Run method: `src_dev/engines/induced_logit/run_engine.R`
+- Result builders and S3 view methods:
+  `src_dev/engines/induced_logit/impl/result_builders.R` and
+  `src_dev/engines/induced_logit/s3.R`
+
+## Worked examples
+
+This section includes short examples showing:
+
+- An IID data.frame workflow
+- A `survey.design` workflow (guarded by `requireNamespace("survey")`)
+- How to interpret key diagnostics (`eta_hat`, `gamma_hat_paper`, `alpha0_hat_paper`)
+- Bootstrap variance usage
+
+```{r example_iid}
+set.seed(1)
+n <- 300
+x1 <- rnorm(n)
+x2 <- rnorm(n)
+y <- 1 + 0.5 * x1 - 0.25 * x2 + rnorm(n)
+
+p <- plogis(-0.4 + 0.15 * y + 0.2 * x1)
+r <- rbinom(n, 1, p)
+if (all(r == 1L)) r[1] <- 0L
+if (all(r == 0L)) r[1] <- 1L
+
+df <- data.frame(y_miss = ifelse(r == 1L, y, NA_real_), x1 = x1, x2 = x2)
+
+eng <- induced_logit_engine(variance_method = "none", standardize = TRUE)
+fit <- nmar(y_miss ~ x1 + x2 | x1, data = df, engine = eng)
+summary(fit)
+```
+
+```{r example_survey}
+if (requireNamespace("survey", quietly = TRUE)) {
+  des <- survey::svydesign(ids = ~1, weights = ~1, data = df)
+  fit_svy <- nmar(y_miss ~ x1 + x2 | x1, data = des, engine = eng)
+  summary(fit_svy)
+}
+```
+
+```{r example_bootstrap}
+set.seed(2)
+eng_boot <- induced_logit_engine(
+  variance_method = "bootstrap",
+  bootstrap_reps = 50,
+  standardize = TRUE,
+  on_failure = "error"
+)
+fit_boot <- nmar(y_miss ~ x1 + x2 | x1, data = df, engine = eng_boot)
+se(fit_boot)
+```
+
+## Limitations and troubleshooting
+
+This section collects common failure modes and their typical causes.
+
+### Data requirements
+
+- Only the outcome may be missing. Any missingness in covariates causes an
+  error in `induced_logit_prepare_inputs()`.
+- The outcome must be numeric and finite for respondents.
+- For factor predictors in the mu block, each level must occur among
+  respondents.
+
+### Step 1 issues (mu regression)
+
+- Rank deficiency in the respondent-only mu regression can lead to undefined
+  coefficients or undefined predictions. The implementation fails early if
+  predictions on the full data are not finite.
+
+If the mu model is misspecified, induced-logit can be biased. The method is not
+doubly robust.
+
+### Step 2 issues (induced logistic regression)
+
+- Non-identifiability: if $\hat\mu(x)$ is exactly collinear with $x_1$ (or
+  other predictors), the Step 2 design matrix is rank deficient and the fit
+  fails.
+- Weak identification: if $\hat\mu(x)$ is nearly collinear with $x_1$, the fit
+  can be numerically unstable. The engine fails fast at an extreme condition
+  number threshold and may emit a warning at a lower threshold.
+- Separation / quasi-separation: as with any logistic regression, complete
+  separation can lead to unstable coefficients. `NMAR` checks for NA
+  coefficients and nonconvergence and returns a non-converged result (or errors)
+  depending on `on_failure`.
+
+When Step 2 fails, consider:
+
+- simplifying the $x_1$ block,
+- using `standardize = TRUE`,
+- increasing iterations via `control = list(maxit = ...)`,
+- or revisiting identification (e.g., include a shadow variable in the mu block
+  that is not in $x_1$).
+
+### Survey path limitations
+
+- Calibrated and post-stratified designs are rejected.
+- PPS, FPC, and multistage probability features are treated as out of scope for
+  the weight-only pseudo-likelihood extension; behavior is controlled by
+  `survey_design_policy`.
+
+### Bootstrap variance limitations
+
+- IID bootstrap can be unstable if the response rate is very low, because many
+  resamples may lack respondents or nonrespondents.
+- Survey bootstrap requires the `svrep` package and can fail if replicate
+  estimates are not finite (strict NA policy).
+
+## References
+
+- Li, P., Qin, J., and Liu, Y. (2023). Instability of Inverse Probability
+  Weighting Methods and a Remedy for Nonignorable Missing Data. Biometrics,
+  79(4), 3215-3226. <https://doi.org/10.1111/biom.13881>

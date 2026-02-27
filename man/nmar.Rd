@@ -19,8 +19,9 @@ variables referenced by \code{formula}.}
 
 \item{engine}{An NMAR engine configuration object created by
 \code{\link{el_engine}}, \code{\link{exptilt_engine}}, or
-\code{\link{exptilt_nonparam_engine}}. This object defines the estimation
-method and tuning parameters.}
+\code{\link{exptilt_nonparam_engine}}, or
+\code{\link{induced_logit_engine}}. This object defines the estimation method
+and tuning parameters.}
 
 \item{trace_level}{Integer 0-3; controls verbosity during estimation
 (default \code{0}):
@@ -96,7 +97,7 @@ se(fit_boot)
 }
 \seealso{
 \code{\link{el_engine}}, \code{\link{exptilt_engine}},
-\code{\link{exptilt_nonparam_engine}}, \code{\link{summary.nmar_result}},
-\code{\link{weights.nmar_result}}
+\code{\link{exptilt_nonparam_engine}}, \code{\link{induced_logit_engine}},
+\code{\link{summary.nmar_result}}, \code{\link{weights.nmar_result}}
 }
 \keyword{nmar}

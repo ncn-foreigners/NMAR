@@ -30,6 +30,8 @@ NMAR currently provides the following engines:
 - `exptilt_engine()`: exponential tilting (Riddles, Kim and Im, 2016).
 - `exptilt_nonparam_engine()`: nonparametric exponential tilting for
   aggregated categorical data (Riddles, Kim and Im, 2016, Appendix 2).
+- `induced_logit_engine()`: induced logistic regression (Li, Qin and
+  Liu, 2023).
 
 References:
 
@@ -41,6 +43,10 @@ References:
   propensity-score-adjustment method for nonignorable nonresponse.
   Journal of Survey Statistics and Methodology, 4(2), 215-245.
   <https://doi.org/10.1093/jssam/smv047>
+- Li, P., Qin, J., and Liu, Y. (2023). Instability of Inverse
+  Probability Weighting Methods and a Remedy for Nonignorable Missing
+  Data. Biometrics, 79(4), 3215-3226.
+  <https://doi.org/10.1111/biom.13881>
 
 See `browseVignettes("NMAR")` and the package website for worked
 examples and engine-specific assumptions:
@@ -84,8 +90,8 @@ nonrespondents are encoded as `NA` in the outcome.
 
 Many engines support a partitioned right-hand side via `|` (e.g.,
 `y_miss ~ block1_vars | block2_vars`), but the interpretation of these
-blocks is engine-specific. See `?el_engine` and `?exptilt_engine` for
-details.
+blocks is engine-specific. See `?el_engine`, `?exptilt_engine`, and
+`?induced_logit_engine` for details.
 
 ### Example
 
@@ -125,14 +131,34 @@ fit_et <- nmar(
 summary(fit_et)
 #> NMAR Model Summary (Exponential tilting)
 #> =================================
-#> y mean: -1.004076
+#> y mean: -1.003975
 #> Converged: TRUE 
 #> Variance method: none 
 #> Call: nmar(y ~ x, data = <data.frame: N=?>, engine = exponential_tilting)
 #> 
 #> Response-model (theta) coefficients:
-#>   (Intercept)          : 0.864241
-#>   y                    : -0.169948
+#>   (Intercept)          : 0.864091
+#>   y                    : -0.170214
+
+# Induced logistic regression (IL)
+fit_il <- nmar(
+  y ~ x | x,
+  data = riddles_case1,
+  engine = induced_logit_engine(variance_method = "none", standardize = TRUE)
+)
+summary(fit_il)
+#> NMAR Model Summary
+#> =================
+#> y mean: NA
+#> Converged: FALSE 
+#> Variance method: none 
+#> Variance notes: Induced-logit response model is not identifiable: design matrix is rank deficient.
+#>   rank = 2, ncol = 3 
+#> Total units: 500 
+#> Respondents: 368 
+#> Call: nmar(y ~ x | x, data = <data.frame: N=500>, engine = induced_logistic)
+#> 
+#> Induced-logit diagnostics:
 ```
 
 Result objects returned by `nmar()` support methods such as `summary()`,
