@@ -10,7 +10,10 @@
 ^Meta$
 ^\.github$
 ^tests/testthat/_snaps$
+^vignettes/.*\.html$
+^vignettes/.*\.R$
 ^vignettes/el_empirical_likelihood_theory\.Rmd$
+^vignettes/induced_logit_theory\.Rmd$
 ^vignettes/developing_new_nmar_estimator\.Rmd$
 ^pkgdown\.yml$
 ^\.gitignore-prod$

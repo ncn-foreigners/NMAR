@@ -1,3 +1,6 @@
+# NMAR 0.2.0
+- Add induced logistic regression estimator via `induced_logit_engine()`, implementing the induced-logit approach of Li, Qin and Liu (2023) for NMAR outcomes (with a weight-based extension for `survey::survey.design` objects).
+
 # NMAR 0.1.2
 - Bootstrap replicate evaluation backend is now configurable via `options(nmar.bootstrap_apply = "auto"|"base"|"future")`. Default bootstrap behavior (`nmar.bootstrap_apply = "auto"`) uses `base::lapply()` unless the current future plan has more than one worker; if so, it uses `future.apply::future_lapply(future.seed = TRUE)` when available.
 - Exptilt validation now rejects non-finite values (e.g., `Inf`, `-Inf`) in covariates (and non-finite observed outcomes).

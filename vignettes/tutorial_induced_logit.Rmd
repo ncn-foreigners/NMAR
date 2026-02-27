@@ -1,0 +1,474 @@
+---
+title: "Induced Logistic Regression"
+description: >
+  Practical tutorial for the induced logistic regression estimator for Not Missing
+  at Random outcomes implemented in the NMAR package. Includes data-frame and
+  survey-design usage, bootstrap variance, diagnostics, and troubleshooting.
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Induced Logistic Regression}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Overview
+
+This vignette demonstrates the induced logistic regression
+estimator for Not Missing at Random outcomes implemented in the `NMAR`
+package.
+
+The primary estimand is the full-data mean of the outcome $Y$:
+
+$$
+\tau = E(Y).
+$$
+
+The method targets $\tau$ under a model in which the response probability can
+depend on the possibly missing outcome, for example through a logistic model
+of the form
+\(\Pr(R=1\mid X,Y) = 1 / (1 + \exp\{\alpha_0 + x_1^T\beta + \gamma Y\})\).
+
+Induced-logit follows the 2-step construction of Li, Qin, and Liu (2023):
+
+1. Fit an outcome regression on respondents to estimate
+   $\mu(x;\xi) = E(Y \mid X=x, R=1)$.
+2. Fit an induced logistic regression for the response indicator $R$ on $x_1$
+   and $\hat\mu(x)$.
+
+The output is a plug-in estimate of $\tau$ based on $\hat\mu(x)$, the fitted
+response rate, and a stabilized exponential-tilt moment ratio computed from
+respondent residuals.
+
+Assumptions and scope:
+
+- Only the outcome may be missing. Covariates used in either model must be fully
+  observed for all sampled units.
+- The method is not doubly robust: misspecifying either the mu regression or the
+  response model can bias $\hat\tau$.
+- Identification can be weak when $\hat\mu(x)$ is (nearly) collinear with the
+  $x_1$ predictors.
+
+The package also supports `survey::survey.design` objects via a weight-based
+pseudo-likelihood extension. This survey extension is not derived in the
+Li-Qin-Liu IID theory. It should be viewed as a pragmatic generalization that
+uses analysis weights in the estimating equations. See
+the induced-logit theory article on the package website for details and
+limitations.
+
+Key features:
+
+- Supports `data.frame` (IID) and `survey.design` objects via the same `nmar()` API.
+- Variance via bootstrap (IID resampling or survey replicate weights).
+- Optional standardization (`standardize = TRUE`) as a reparameterization for
+  numerical stability.
+- Rich S3 surface: `summary()`, `confint()`, `tidy()`, `glance()`, `coef()`,
+  `fitted()`.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+```{r}
+library(NMAR)
+```
+
+## Quick start
+
+- Represent nonresponse by setting the outcome to `NA` for nonrespondents.
+- Specify a two-block formula: `y_miss ~ mu_covariates | x1_covariates`
+  - Left of `|`: covariates used for the respondent mu regression (Step 1).
+  - Right of `|`: covariates used in the induced response model (Step 2). If
+    omitted, the missingness block defaults to `| 1`.
+- Choose the engine: `induced_logit_engine(...)`.
+- Fit with `nmar(...)` and inspect with `summary()`, `coef()`, `fitted()`, and
+  `fit$diagnostics`.
+
+Minimal example:
+
+```{r, eval = FALSE}
+eng <- induced_logit_engine(variance_method = "none", standardize = TRUE)
+fit <- nmar(y_miss ~ x1 + x2 | x1, data = df, engine = eng)
+summary(fit)
+```
+
+# Data frame example (IID)
+
+We simulate an NMAR mechanism where response depends on the (possibly missing)
+outcome. This violates MAR, and induced-logit targets the full-data mean
+$E(Y)$ under its modeling assumptions.
+
+```{r}
+set.seed(123)
+n <- 400
+
+x1 <- rnorm(n)
+x2 <- rnorm(n)
+
+# True outcome model
+y <- 1.5 + 0.7 * x1 - 0.2 * x2 + rnorm(n)
+
+# NMAR response: depends on y and x1
+p <- plogis(-0.7 + 0.25 * scale(y)[, 1] + 0.15 * x1)
+r <- rbinom(n, 1, p)
+if (all(r == 1L)) r[1] <- 0L
+if (all(r == 0L)) r[1] <- 1L
+
+df <- data.frame(
+  y_miss = ifelse(r == 1L, y, NA_real_),
+  x1 = x1,
+  x2 = x2
+)
+```
+
+Fit induced-logit:
+
+```{r}
+eng <- induced_logit_engine(
+  variance_method = "none",
+  standardize = TRUE,
+  on_failure = "error"
+)
+
+fit <- nmar(
+  formula = y_miss ~ x1 + x2 | x1,
+  data = df,
+  engine = eng
+)
+
+summary(fit)
+```
+
+For this simulated dataset, we can compare:
+
+- The true mean `mean(y)` (known because we simulated full data).
+- The naive mean `mean(y_miss, na.rm = TRUE)` based only on respondents.
+- The induced-logit estimate `fit$y_hat`.
+
+```{r}
+c(
+  y_true_mean = mean(y),
+  naive_respondent_mean = mean(df$y_miss, na.rm = TRUE),
+  induced_logit_hat = as.numeric(fit$y_hat)
+)
+```
+
+## What to look at in the result
+
+The induced-logit result exposes:
+
+- `fit$y_hat`: the estimate of $\tau = E(Y)$.
+- `coef(fit)`: the Step 2 GLM coefficients for `logit{Pr(R=1|x)}` on the GLM
+  scale.
+- `fitted(fit)`: fitted response probabilities.
+- `fit$diagnostics`: useful quantities such as `eta_hat` (response rate),
+  `gamma_hat_paper` (paper-scale coefficient on `mu_hat`, equal to the negation
+  of the fitted GLM coefficient on `mu_hat`), and a conditioning diagnostic for
+  the Step 2 design matrix.
+
+Note: `coef(fit)` returns coefficients on the GLM scale. The paper parameter
+`gamma_hat_paper` is a derived quantity defined as `-coef(mu_hat)`.
+
+Note: in `coef(fit)`, the coefficient corresponding to `mu_hat` may appear under
+the internal reserved name `..nmar_mu_hat..`. `summary(fit)` prints it as
+`mu_hat`.
+
+```{r}
+fit$diagnostics[c(
+  "eta_hat",
+  "mu_bar",
+  "m2_over_m1",
+  "gamma_hat_paper",
+  "alpha0_hat_paper",
+  "response_model_condition_number"
+)]
+
+head(coef(fit), 10)
+head(fitted(fit), 10)
+```
+
+Tidy and glance summaries:
+
+```{r}
+generics::tidy(fit)
+generics::glance(fit)
+```
+
+# Understanding the formula blocks
+
+The induced-logit engine uses the two RHS blocks:
+
+- Left block (mu): `y_miss ~ mu_covariates | ...` fits $\hat\mu(x)$ on
+  respondents only.
+- Right block (x1): `... | x1_covariates` fits the induced response model for
+  $R$ using predictors $x_1$ and $\hat\mu(x)$.
+
+Practical guidance for choosing blocks:
+
+- Put covariates that help predict $Y$ among respondents into the mu block.
+- Put covariates you believe directly affect response into the x1 block.
+- Identification and stability: Step 2 regresses $R$ on both $x_1$ and
+  $\hat\mu(x)$. If $\hat\mu(x)$ is (nearly) a linear combination of the $x_1$
+  design matrix columns, the induced-logit fit can be weakly identified or fail.
+  Inspect `fit$diagnostics$response_model_condition_number` and be cautious when
+  it is very large.
+- A common pattern is to include a "shadow variable" (predicts $Y$ but does not
+  enter the response model) in the mu block but not in the x1 block.
+
+If you omit the `|` block, the response model uses only an intercept and
+$\hat\mu(x)$:
+
+```{r}
+fit_int_only <- nmar(
+  formula = y_miss ~ x1 + x2,
+  data = df,
+  engine = eng
+)
+summary(fit_int_only)
+```
+
+No-intercept mu models are allowed. When `standardize = TRUE`, the engine scales
+but does not center mu predictors if the mu model omits the intercept so that
+fitted values are invariant:
+
+```{r}
+fit_no_int <- nmar(
+  formula = y_miss ~ x1 + x2 - 1 | x1,
+  data = df,
+  engine = eng
+)
+summary(fit_no_int)
+```
+
+# Bootstrap variance
+
+Use `variance_method = "bootstrap"` to compute a bootstrap standard error.
+For speed in vignettes, we use a small number of replicates.
+
+For real analyses, consider using more replicates (for example 200 to 500) and
+expect higher runtime. Bootstrap failures can occur when the response rate is
+very low or when the Step 2 induced logistic regression is unstable in some
+resamples.
+
+```{r}
+set.seed(123)
+eng_boot <- induced_logit_engine(
+  variance_method = "bootstrap",
+  bootstrap_reps = 10,
+  standardize = TRUE,
+  on_failure = "error"
+)
+fit_boot <- nmar(
+  formula = y_miss ~ x1 + x2 | x1,
+  data = df,
+  engine = eng_boot
+)
+se(fit_boot)
+confint(fit_boot)
+fit_boot$inference$message
+```
+
+Bootstrap evaluation runs sequentially by default. If the optional
+`future.apply` package is installed, bootstrap may run in parallel under the
+user's `future::plan()`. You can control this via:
+
+```{r, eval = FALSE}
+options(nmar.bootstrap_apply = "auto") # default
+options(nmar.bootstrap_apply = "base") # always sequential
+options(nmar.bootstrap_apply = "future") # requires future.apply
+```
+
+# Survey design example
+
+The engine supports `survey::survey.design` objects via a weight-based
+pseudo-likelihood extension. This survey path is not derived in the Li-Qin-Liu
+IID theory; it should be viewed as a pragmatic generalization that treats
+analysis weights as multiplicities in the estimating equations.
+
+```{r, eval = requireNamespace("survey", quietly = TRUE)}
+suppressPackageStartupMessages(library(survey))
+
+set.seed(456)
+w <- runif(nrow(df), 0.5, 2)
+des <- svydesign(ids = ~1, weights = ~w, data = df)
+
+eng_svy <- induced_logit_engine(
+  variance_method = "none",
+  standardize = TRUE,
+  on_failure = "error",
+  survey_design_policy = "strict"
+)
+
+fit_svy <- nmar(
+  formula = y_miss ~ x1 + x2 | x1,
+  data = des,
+  engine = eng_svy
+)
+summary(fit_svy)
+```
+
+## survey_design_policy: strict vs warn (FPC toy example)
+
+Some survey design features can require handling beyond analysis weights (for
+example FPC, PPS, or multistage probabilities). Induced-logit currently treats
+these as out of scope for the weight-only extension, and uses
+`survey_design_policy` to control behavior:
+
+- `survey_design_policy = "strict"` (default): fail fast with an informative error.
+- `survey_design_policy = "warn"`: proceed with a warning.
+
+This example uses an FPC field to trigger the policy.
+
+```{r, eval = requireNamespace("survey", quietly = TRUE), warning = TRUE}
+df_fpc <- df
+df_fpc$fpc <- rep(nrow(df_fpc) + 100L, nrow(df_fpc))
+des_fpc <- survey::svydesign(ids = ~1, weights = ~w, fpc = ~fpc, data = df_fpc)
+
+eng_strict <- induced_logit_engine(
+  variance_method = "none",
+  standardize = TRUE,
+  on_failure = "error",
+  survey_design_policy = "strict"
+)
+
+strict_try <- try(
+  nmar(y_miss ~ x1 + x2 | x1, data = des_fpc, engine = eng_strict),
+  silent = TRUE
+)
+inherits(strict_try, "try-error")
+
+eng_warn <- induced_logit_engine(
+  variance_method = "none",
+  standardize = TRUE,
+  on_failure = "error",
+  survey_design_policy = "warn"
+)
+
+fit_warn <- nmar(y_miss ~ x1 + x2 | x1, data = des_fpc, engine = eng_warn)
+fit_warn$diagnostics$survey_design_policy
+```
+
+Survey bootstrap variance uses bootstrap replicate weights and requires the
+suggested package `svrep`:
+
+```{r, eval = requireNamespace("survey", quietly = TRUE) && requireNamespace("svrep", quietly = TRUE)}
+set.seed(456)
+eng_svy_boot <- induced_logit_engine(
+  variance_method = "bootstrap",
+  bootstrap_reps = 10,
+  standardize = TRUE,
+  on_failure = "error",
+  survey_design_policy = "strict"
+)
+fit_svy_boot <- nmar(
+  formula = y_miss ~ x1 + x2 | x1,
+  data = des,
+  engine = eng_svy_boot
+)
+se(fit_svy_boot)
+```
+
+# Practical guidance
+
+## Model specification tips
+
+- Separate roles: use the mu block for predicting $Y$ among respondents, and the
+  x1 block for variables you believe directly affect response.
+- Avoid redundancy: do not put the exact same information in both blocks if it
+  makes $\hat\mu(x)$ nearly a linear combination of the x1 design matrix.
+- Consider a shadow variable: include a predictor of $Y$ in the mu block that is
+  excluded from the x1 block.
+
+## Checklist after fitting
+
+Inspect these diagnostics to assess stability and plausibility:
+
+- `eta_hat`: observed response rate.
+- `gamma_hat_paper`: paper-scale coefficient on $\hat\mu(x)$ in Step 2.
+  Extremely large magnitude can indicate separation or weak identification.
+- `response_model_condition_number`: conditioning of the Step 2 design matrix.
+  Very large values indicate weak identification.
+- `m2_over_m1` and `log_m1_hat`: exponential-tilt moment summaries, extreme
+  values can indicate an unstable tilt implied by $\hat\gamma$.
+- `alpha0_hat_paper`: derived intercept on the paper scale (see the theory vignette).
+- `warnings`: captured warnings from Step 1 and Step 2 fits.
+
+```{r}
+fit$diagnostics[c(
+  "eta_hat",
+  "gamma_hat_paper",
+  "response_model_condition_number",
+  "m2_over_m1",
+  "log_m1_hat",
+  "alpha0_hat_paper"
+)]
+fit$diagnostics$warnings
+```
+
+## Common tuning choices
+
+- Identification: Step 2 fits a logistic regression of $R$ on $x_1$ and
+  $\hat\mu(x)$. If $\hat\mu(x)$ is (nearly) collinear with the $x_1$ design
+  matrix, the induced-logit parameters can be weakly identified or not
+  identifiable. Inspect `fit$diagnostics$response_model_condition_number`.
+- Standardization: `standardize = TRUE` often improves numerical stability.
+- Step 2 control: You can pass GLM control parameters via
+  `control = list(maxit = ..., epsilon = ...)`.
+
+```{r, eval = FALSE}
+eng_ctrl <- induced_logit_engine(
+  variance_method = "none",
+  standardize = TRUE,
+  control = list(maxit = 100),
+  on_failure = "error"
+)
+fit_ctrl <- nmar(y_miss ~ x1 + x2 | x1, data = df, engine = eng_ctrl)
+```
+
+- Survey designs: The survey path is a pseudo-likelihood extension. Calibrated
+  and post-stratified designs are rejected. Designs with PPS/FPC/multistage
+  probability structure can require additional handling beyond analysis weights.
+  Use `survey_design_policy = "strict"` (default) to fail fast or `"warn"` to
+  proceed with a warning.
+
+# Troubleshooting
+
+Common error messages and typical causes:
+
+- "Outcome-model (mu) covariates must be fully observed" or
+  "Missingness-model (x1) covariates must be fully observed": at least one
+  predictor has NA values. Induced-logit requires fully observed covariates.
+- "Outcome regression produced NA/Inf predictions on full data": the mu fit is
+  not usable for prediction on the full sample (often rank deficiency or factor
+  levels that appear only among nonrespondents).
+- "Induced-logit response model is not identifiable: design matrix is rank deficient":
+  Step 2 has exact multicollinearity (for example, duplicate predictors).
+- "Induced-logit response model is nearly non-identifiable (extreme conditioning)":
+  Step 2 is extremely ill-conditioned (often $\hat\mu(x)$ nearly collinear
+  with $x_1$). Consider simplifying blocks or using `standardize = TRUE`.
+- "Induced-logit response model did not converge": the Step 2 GLM did not
+  converge. Increase iterations via `control = list(maxit = ...)`, or simplify
+  predictors.
+- "does not support calibrated/post-stratified designs": the design contains
+  calibration or post-stratification adjustments.
+- "assumes weight-based estimating equations": the design contains PPS/FPC or
+  multistage probability features and `survey_design_policy = "strict"` was used.
+- Bootstrap failures: low response rates or Step 2 instability can cause failed
+  bootstrap replicates. Increase `bootstrap_reps`, use `standardize = TRUE`, and
+  simplify model blocks.
+
+# References and further reading
+
+- Li, P., Qin, J., and Liu, Y. (2023). Instability of Inverse Probability
+  Weighting Methods and a Remedy for Nonignorable Missing Data. Biometrics,
+  79(4), 3215-3226. <https://doi.org/10.1111/biom.13881>
+- For implementation details, see the induced-logit theory article on the
+  package website: <https://ncn-foreigners.ue.poznan.pl/NMAR/articles/induced_logit_theory.html>.
+
+```{r}
+sessionInfo()
+```

@@ -1,5 +1,5 @@
 test_that("EL print method shows convergence message on failure objects", {
-  res <- NMAR:::new_nmar_result(
+  res <- new_nmar_result(
     estimate = NA_real_,
     estimate_name = "Y_miss",
     se = NA_real_,
@@ -20,7 +20,7 @@ test_that("EL print method shows convergence message on failure objects", {
 })
 
 test_that("EL print and summary printing cover vcov and df branches", {
-  res <- NMAR:::new_nmar_result(
+  res <- new_nmar_result(
     estimate = 1,
     estimate_name = "Y_miss",
     se = 1,

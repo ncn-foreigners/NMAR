@@ -28,6 +28,10 @@ engine_name.nmar_engine_exptilt <- function(x) "exponential_tilting"
 #' @export
 engine_name.nmar_engine_exptilt_nonparam <- function(x) "exponential_tilting_nonparam"
 
+#' @keywords engine_view
+#' @export
+engine_name.nmar_engine_induced_logit <- function(x) "induced_logistic"
+
 
 #' @keywords internal
 s3_engine_label <- function(name) {
@@ -35,6 +39,7 @@ s3_engine_label <- function(name) {
     empirical_likelihood = "Empirical Likelihood (EL)",
     exponential_tilting = "Exponential Tilting (ET)",
     exponential_tilting_nonparam = "Exponential Tilting (nonparametric)",
+    induced_logistic = "Induced Logistic Regression",
     name
   )
 }
@@ -69,6 +74,8 @@ s3_engine_display_keys <- function(x) {
     out <- c(out, "prob_model_type", "y_dens", "optim_method", "min_iter", "max_iter", "tol_value")
   } else if ("nmar_engine_exptilt_nonparam" %in% cls) {
     out <- c(out, "refusal_col", "max_iter", "tol_value")
+  } else if ("nmar_engine_induced_logit" %in% cls) {
+    out <- c(out, "on_failure", "survey_design_policy", "keep_fits")
   }
   out
 }

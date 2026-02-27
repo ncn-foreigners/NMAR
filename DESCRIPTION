@@ -1,7 +1,7 @@
 Package: NMAR
 Type: Package
 Title: Estimation under not Missing at Random Nonresponse
-Version: 0.1.2
+Version: 0.2.0
 Authors@R: 
     c(person(given = "Maciej",
              family = "Beresewicz",
@@ -16,11 +16,16 @@ Authors@R:
              family = "Iwaniuk",
              role = c("aut", "ctb"),
              email = "mateusz.iwaniuk11@gmail.com"))
+Author: Maciej Beresewicz [aut, cre] (ORCID:
+    <https://orcid.org/0000-0002-8281-4301>), Igor Kołodziej [aut, ctb],
+    Mateusz Iwaniuk [aut, ctb]
+Maintainer: Maciej Beresewicz <maciej.beresewicz@ue.poznan.pl>
 Description: Methods to estimate finite-population parameters under nonresponse that is not missing at
-    random (NMAR, nonignorable). Incorporates auxiliary information and user-specified response models,
-    and supports independent samples and complex survey designs via objects from the 'survey' package.
-    Provides diagnostics and optional variance estimates. For methodological background see
-    Qin, Leung and Shao (2002) <doi:10.1198/016214502753479338> and Riddles, Kim and Im (2016) <doi:10.1093/jssam/smv047>.
+    random (NMAR, nonignorable). Includes empirical likelihood (Qin, Leung and Shao (2002)
+    <doi:10.1198/016214502753479338>), exponential tilting (Riddles, Kim and Im (2016)
+    <doi:10.1093/jssam/smv047>), and induced logistic regression (Li, Qin and Liu (2023)
+    <doi:10.1111/biom.13881>). Supports independent samples and complex survey designs via objects
+    from the 'survey' package. Provides diagnostics and optional variance estimates.
 License: MIT + file LICENSE
 URL: https://github.com/ncn-foreigners/NMAR, https://ncn-foreigners.ue.poznan.pl/NMAR/index.html
 BugReports: https://github.com/ncn-foreigners/NMAR/issues
