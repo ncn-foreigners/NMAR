@@ -13,8 +13,8 @@ vignette: >
 
 # Overview
 
-This vignette demonstrates the induced logistic regression (induced-logit)
-estimator for Not Missing at Random (NMAR) outcomes implemented in the `NMAR`
+This vignette demonstrates the induced logistic regression
+estimator for Not Missing at Random outcomes implemented in the `NMAR`
 package.
 
 The primary estimand is the full-data mean of the outcome $Y$:
@@ -24,7 +24,7 @@ $$
 $$
 
 The method targets $\tau$ under a model in which the response probability can
-depend on the (possibly missing) outcome, for example through a logistic model
+depend on the possibly missing outcome, for example through a logistic model
 of the form
 \(\Pr(R=1\mid X,Y) = 1 / (1 + \exp\{\alpha_0 + x_1^T\beta + \gamma Y\})\).
 
@@ -50,7 +50,7 @@ Assumptions and scope:
 
 The package also supports `survey::survey.design` objects via a weight-based
 pseudo-likelihood extension. This survey extension is not derived in the
-Li-Qin-Liu IID theory; it should be viewed as a pragmatic generalization that
+Li-Qin-Liu IID theory. It should be viewed as a pragmatic generalization that
 uses analysis weights in the estimating equations. See
 the induced-logit theory article on the package website for details and
 limitations.
@@ -96,7 +96,7 @@ fit <- nmar(y_miss ~ x1 + x2 | x1, data = df, engine = eng)
 summary(fit)
 ```
 
-# Data-frame example (IID)
+# Data frame example (IID)
 
 We simulate an NMAR mechanism where response depends on the (possibly missing)
 outcome. This violates MAR, and induced-logit targets the full-data mean
@@ -109,7 +109,7 @@ n <- 400
 x1 <- rnorm(n)
 x2 <- rnorm(n)
 
-# True outcome model (for simulation only)
+# True outcome model
 y <- 1.5 + 0.7 * x1 - 0.2 * x2 + rnorm(n)
 
 # NMAR response: depends on y and x1
@@ -191,7 +191,7 @@ head(coef(fit), 10)
 head(fitted(fit), 10)
 ```
 
-Tidy and glance summaries (via the `generics` package):
+Tidy and glance summaries:
 
 ```{r}
 generics::tidy(fit)
@@ -200,7 +200,7 @@ generics::glance(fit)
 
 # Understanding the formula blocks
 
-The induced-logit engine uses the two RHS blocks differently than the EL engine:
+The induced-logit engine uses the two RHS blocks:
 
 - Left block (mu): `y_miss ~ mu_covariates | ...` fits $\hat\mu(x)$ on
   respondents only.
@@ -288,8 +288,6 @@ The engine supports `survey::survey.design` objects via a weight-based
 pseudo-likelihood extension. This survey path is not derived in the Li-Qin-Liu
 IID theory; it should be viewed as a pragmatic generalization that treats
 analysis weights as multiplicities in the estimating equations.
-
-This chunk runs only if the `survey` package is available.
 
 ```{r, eval = requireNamespace("survey", quietly = TRUE)}
 suppressPackageStartupMessages(library(survey))
@@ -394,7 +392,7 @@ Inspect these diagnostics to assess stability and plausibility:
   Extremely large magnitude can indicate separation or weak identification.
 - `response_model_condition_number`: conditioning of the Step 2 design matrix.
   Very large values indicate weak identification.
-- `m2_over_m1` and `log_m1_hat`: exponential-tilt moment summaries; extreme
+- `m2_over_m1` and `log_m1_hat`: exponential-tilt moment summaries, extreme
   values can indicate an unstable tilt implied by $\hat\gamma$.
 - `alpha0_hat_paper`: derived intercept on the paper scale (see the theory vignette).
 - `warnings`: captured warnings from Step 1 and Step 2 fits.
@@ -433,8 +431,8 @@ fit_ctrl <- nmar(y_miss ~ x1 + x2 | x1, data = df, engine = eng_ctrl)
 
 - Survey designs: The survey path is a pseudo-likelihood extension. Calibrated
   and post-stratified designs are rejected. Designs with PPS/FPC/multistage
-  probability structure can require additional handling beyond analysis weights;
-  use `survey_design_policy = "strict"` (default) to fail fast or `"warn"` to
+  probability structure can require additional handling beyond analysis weights.
+  Use `survey_design_policy = "strict"` (default) to fail fast or `"warn"` to
   proceed with a warning.
 
 # Troubleshooting
